@@ -7569,6 +7569,187 @@ fn only_a_refused_listing_marks_the_daemon() {
     assert!(daemon.listing_refused.load(Ordering::Relaxed));
 }
 
+struct DelayedCatalogBackend {
+    inner: Arc<dyn crate::remote_backend::RemoteBackend>,
+    dispatch: Instant,
+    catalog_delay: Duration,
+    pack_delay: Duration,
+    late_requests: Arc<AtomicU64>,
+}
+
+#[async_trait::async_trait]
+impl crate::remote_backend::RemoteBackend for DelayedCatalogBackend {
+    async fn head(&self, key: &str) -> Result<bool> {
+        self.inner.head(key).await
+    }
+    async fn get(
+        &self,
+        key: &str,
+        max_bytes: Option<u64>,
+    ) -> Result<Option<crate::remote_backend::GetObject>> {
+        if self.dispatch.elapsed() >= Duration::from_secs(1) {
+            self.late_requests.fetch_add(1, Ordering::Relaxed);
+        }
+        if key.contains("/v4/prefetch/catalogs/") {
+            tokio::time::sleep(self.catalog_delay).await;
+        } else if key.contains("/v4/prefetch/packs/") {
+            tokio::time::sleep(self.pack_delay).await;
+        }
+        self.inner.get(key, max_bytes).await
+    }
+    async fn put(&self, key: &str, body: Vec<u8>, content_type: Option<&str>) -> Result<()> {
+        self.inner.put(key, body, content_type).await
+    }
+    async fn list(&self, prefix: &str) -> Result<Vec<String>> {
+        if self.dispatch.elapsed() >= Duration::from_secs(1) {
+            self.late_requests.fetch_add(1, Ordering::Relaxed);
+        }
+        self.inner.list(prefix).await
+    }
+    fn describe(&self, key: &str) -> String {
+        self.inner.describe(key)
+    }
+}
+
+#[tokio::test]
+async fn packed_prefetch_honors_dispatch_deadline_without_cancelling_started_transfers() {
+    for (catalog_delay_ms, pack_delay_ms, budget_secs, dispatch_age_secs, expect_hit) in [
+        (1500, 0, 1, 0, false),
+        (0, 0, 1, 0, true),
+        (0, 1500, 1, 0, true),
+        (1500, 0, 0, 0, true),
+        (0, 0, 1, 2, false),
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        let mut config = test_config(dir.path());
+        config.remote_key_listing = true;
+        config.remote = Some(test_remote_config());
+        config.prefetch_deadline_secs = budget_secs;
+        config.remote_restore_timeout_secs = 10;
+        let inner = test_remote_backend();
+        let context = PackPrefetchContext::from_deps(
+            crate::identity::host_target_triple(),
+            "linux/toolchain/release",
+            &[("serde".into(), "1.0.0".into())],
+        )
+        .unwrap();
+        let key = test_cache_key("packed-dispatch-deadline");
+        let (payload, meta_digest) = build_entry_pack_with_meta(&key, "serde");
+        seed_packed_catalog(
+            &inner,
+            &context,
+            vec![crate::remote_pack::PackInputEntry {
+                cache_key: key.clone(),
+                crate_name: "serde".into(),
+                meta_digest,
+                payload,
+            }],
+            None,
+        )
+        .await;
+        let dispatch = Instant::now() - Duration::from_secs(dispatch_age_secs);
+        let late_requests = Arc::new(AtomicU64::new(0));
+        let backend = Arc::new(DelayedCatalogBackend {
+            inner,
+            dispatch,
+            catalog_delay: Duration::from_millis(catalog_delay_ms),
+            pack_delay: Duration::from_millis(pack_delay_ms),
+            late_requests: late_requests.clone(),
+        });
+        let daemon = Arc::new(Daemon::new(config));
+        assert!(daemon.remote_backend.set(backend).is_ok());
+        let response = daemon
+            .handle_prefetch_with_context(
+                &PrefetchRequest {
+                    keys: vec![(key.clone(), "serde".into())],
+                    warm_all: false,
+                    origin: None,
+                    candidate_sources: HashMap::new(),
+                },
+                Some(context),
+                dispatch,
+            )
+            .await;
+        assert!(response.ok);
+        let mut tasks = std::mem::take(&mut *daemon.prefetch_tasks.lock().unwrap());
+        tokio::time::timeout(Duration::from_secs(10), async {
+            while let Some(result) = tasks.join_next().await {
+                result.unwrap();
+            }
+        })
+        .await
+        .expect("fixture transfers complete");
+        let late = late_requests.load(Ordering::Relaxed);
+        if budget_secs != 0 {
+            assert_eq!(
+                late, 0,
+                "packed and fallback requests must not start after the plan dispatch deadline"
+            );
+        } else {
+            assert!(late > 0, "unlimited control must admit the delayed pack");
+        }
+        assert_eq!(
+            daemon
+                .with_store(|store| Ok(store.get(&key)?.is_some()))
+                .unwrap(),
+            expect_hit,
+            "started transfers may finish; expired plans must stop starting new transfers"
+        );
+    }
+}
+
+#[tokio::test]
+async fn packed_prefetch_queue_expires_before_the_restore_timeout() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut config = test_config(dir.path());
+    config.remote_key_listing = true;
+    config.remote = Some(test_remote_config());
+    config.prefetch_deadline_secs = 1;
+    config.remote_restore_timeout_secs = 10;
+    let daemon = Arc::new(Daemon::new(config));
+    assert!(daemon.remote_backend.set(test_remote_backend()).is_ok());
+    let occupied = daemon
+        .prefetch_gate
+        .acquire_many(daemon.prefetch_gate.available_permits() as u32)
+        .await
+        .unwrap();
+    let context = PackPrefetchContext::from_deps(
+        crate::identity::host_target_triple(),
+        "linux/toolchain/release",
+        &[("serde".into(), "1.0.0".into())],
+    )
+    .unwrap();
+    let response = daemon
+        .handle_prefetch_with_context(
+            &PrefetchRequest {
+                keys: vec![(test_cache_key("queued-plan-deadline"), "serde".into())],
+                warm_all: false,
+                origin: None,
+                candidate_sources: HashMap::new(),
+            },
+            Some(context),
+            Instant::now(),
+        )
+        .await;
+    assert!(response.ok);
+    let mut tasks = std::mem::take(&mut *daemon.prefetch_tasks.lock().unwrap());
+    tokio::time::timeout(Duration::from_secs(3), async {
+        while let Some(result) = tasks.join_next().await {
+            result.unwrap();
+        }
+    })
+    .await
+    .expect("an expired plan must stop waiting for local capacity before the 10s restore timeout");
+    assert_eq!(
+        daemon
+            .prefetch_stats
+            .pack_requests_total
+            .load(Ordering::Relaxed),
+        0
+    );
+    drop(occupied);
+}
+
 #[tokio::test]
 async fn packed_prefetch_discovers_one_pack_and_batch_imports_all_entries() {
     let dir = tempfile::tempdir().unwrap();
