@@ -1997,6 +1997,10 @@ fn rewrite_depinfo_content_with_prefixes_and_sentinel(
     sentinel: &str,
     mode: DepInfoMode,
 ) -> String {
+    // Filenames cannot contain NUL, so generated markers cannot collide with
+    // literal relative paths. This byte exists only in private cached dep-info.
+    let encoded_sentinel = format!("\0{sentinel}");
+    let sentinel = encoded_sentinel.as_str();
     content
         .split_inclusive('\n')
         .map(|line| {
