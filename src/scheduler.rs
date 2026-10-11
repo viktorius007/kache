@@ -682,14 +682,17 @@ pub(crate) fn write_test_weight(cache_dir: &Path, key: &str, rss: u64) {
     write_weight(&scheduler_root(cache_dir).join("weights"), key, rss).unwrap();
 }
 
-/// Whether `lease` is a marker of this scheduler's test leases, so the
+/// Whether `lease` is a held marker of this scheduler's test leases, so the
 /// caller runs inside a test that already holds slots. Any error is false.
 pub(crate) fn lease_covers(lease: Option<&Path>, root: &Path) -> bool {
-    let Some(parent) = lease.and_then(Path::parent) else {
+    let Some(lease) = lease else {
+        return false;
+    };
+    let Some(parent) = lease.parent() else {
         return false;
     };
     match (parent.canonicalize(), tests_dir(root).canonicalize()) {
-        (Ok(parent), Ok(tests)) => parent == tests,
+        (Ok(parent), Ok(tests)) => parent == tests && slot_is_held(lease) == Some(true),
         _ => false,
     }
 }
