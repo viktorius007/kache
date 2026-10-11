@@ -1253,13 +1253,9 @@ pub(crate) mod tests {
             (
                 other_key.as_str(),
                 "serde",
-                "packed-prefetch cache-key or crate binding mismatch",
+                "downloaded entry binding mismatch",
             ),
-            (
-                key.as_str(),
-                "tokio",
-                "packed-prefetch cache-key or crate binding mismatch",
-            ),
+            (key.as_str(), "tokio", "downloaded entry binding mismatch"),
         ] {
             let restored = tmp
                 .path()
@@ -1291,6 +1287,31 @@ pub(crate) mod tests {
                 .contains("invalid packed-prefetch entry binding")
         );
         assert!(!restored.exists());
+
+        let wrong_digest = blake3::hash(b"other metadata").to_hex().to_string();
+        assert_ne!(wrong_digest, meta_digest);
+        let restored = tmp.path().join("restored-wrong-meta-digest");
+        let error =
+            extract_verified_prefetch_entry(&key, "serde", &wrong_digest, &packed, &restored, None)
+                .err()
+                .expect("a valid-format mismatched metadata digest must be rejected");
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "packed-prefetch meta.json digest mismatch (expected {wrong_digest}, got {meta_digest})"
+            )
+        );
+        assert!(!restored.exists());
+
+        let restored = tmp.path().join("restored-matching-binding");
+        let verified =
+            extract_verified_prefetch_entry(&key, "serde", &meta_digest, &packed, &restored, None)
+                .unwrap();
+        assert_eq!(verified.restored.meta, meta);
+        assert_eq!(
+            std::fs::read(restored.join("libserde.rlib")).unwrap(),
+            b"packed binding artifact"
+        );
     }
 
     #[test]
@@ -1566,6 +1587,81 @@ pub(crate) mod tests {
         }
         fn completed(&mut self, count: usize) {
             self.0.last_mut().unwrap().1 = Some(count);
+        }
+    }
+
+    #[tokio::test]
+    async fn exact_download_rejects_a_valid_pack_for_another_entry() {
+        let tmp = tempfile::tempdir().unwrap();
+        let store = Store::open(&min_config(tmp.path().join("cache"))).unwrap();
+        let key = blake3::hash(b"requested-entry").to_hex().to_string();
+        let other_key = blake3::hash(b"another-entry").to_hex().to_string();
+        let source = tmp.path().join("source.rlib");
+        std::fs::write(&source, b"requested entry artifact").unwrap();
+        store
+            .put(
+                &key,
+                "serde",
+                &["lib".to_string()],
+                &[],
+                "x86_64-unknown-linux-gnu",
+                "debug",
+                &[(source, "libserde.rlib".to_string())],
+                "",
+                "",
+            )
+            .unwrap();
+        let entry_dir = store.entry_dir(&key);
+        let meta: EntryMeta =
+            serde_json::from_slice(&std::fs::read(entry_dir.join("meta.json")).unwrap()).unwrap();
+        let packed = create_entry_pack_zstd(&entry_dir, &store.blobs_dir(), &meta, 3).unwrap();
+        let remote = test_remote();
+        let backend = memory_backend();
+        let layout = RemoteLayout::new(&backend, &remote);
+
+        for (case, requested_key, requested_crate, should_restore) in [
+            ("matching", key.as_str(), "serde", true),
+            ("wrong-key", other_key.as_str(), "serde", false),
+            ("wrong-crate", key.as_str(), "tokio", false),
+        ] {
+            backend
+                .put(
+                    &v3_pack_key(&remote.prefix, requested_key, requested_crate),
+                    packed.clone(),
+                    None,
+                )
+                .await
+                .unwrap();
+            let restored = tmp.path().join(case);
+            let result = layout
+                .download_entry_until(requested_key, requested_crate, &restored, tmp.path(), None)
+                .await;
+            if should_restore {
+                result.unwrap();
+                let restored_meta: EntryMeta =
+                    serde_json::from_slice(&std::fs::read(restored.join("meta.json")).unwrap())
+                        .unwrap();
+                assert_eq!(restored_meta.cache_key, requested_key);
+                assert_eq!(restored_meta.crate_name, requested_crate);
+                assert_eq!(
+                    std::fs::read(restored.join("libserde.rlib")).unwrap(),
+                    b"requested entry artifact"
+                );
+            } else {
+                let error = result
+                    .err()
+                    .expect("a valid pack for another entry must be rejected");
+                assert_eq!(
+                    error.to_string(),
+                    format!(
+                        "downloaded entry binding mismatch: expected cache key {requested_key} and crate {requested_crate}, got cache key {key} and crate serde"
+                    )
+                );
+                assert!(
+                    !restored.exists(),
+                    "a mismatched entry must not be published"
+                );
+            }
         }
     }
 
