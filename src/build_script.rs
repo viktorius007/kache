@@ -2653,6 +2653,34 @@ mod tests {
     }
 
     #[test]
+    fn padded_rerun_declarations_keep_exact_paths_and_environment_names() {
+        let dir = tempfile::tempdir().unwrap();
+        let env = environment(&dir.path().join("out"), &dir.path().join("pkg"));
+        for prefix in ["cargo:", "cargo::"] {
+            for (leading, trailing) in [("", ""), (" \t", " \t\r")] {
+                let stdout = format!(
+                    "{leading}{prefix}rerun-if-changed=input{trailing}\n\
+                     {leading}{prefix}rerun-if-env-changed=APP_MODE{trailing}\n"
+                );
+                let (inputs, names, default) = parse_declarations(&stdout, &env).unwrap();
+                assert_eq!(names, ["APP_MODE"], "environment declaration: {stdout:?}");
+                assert_eq!(
+                    inputs,
+                    [format!(
+                        "${{KACHE_MANIFEST_DIR}}{}input",
+                        std::path::MAIN_SEPARATOR
+                    )],
+                    "file declaration: {stdout:?}"
+                );
+                assert!(
+                    !default,
+                    "explicit declarations must not use the package default"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn an_empty_rerun_if_env_changed_name_is_not_a_declaration() {
         let env = environment(Path::new("/t/build/pkg-1/out"), Path::new("/src/pkg"));
         let (inputs, names, default) =
@@ -3312,6 +3340,52 @@ mod tests {
             a.prediction().unwrap().is_none(),
             "the marker is no prediction"
         );
+    }
+
+    #[test]
+    fn legacy_rerun_predictions_are_rejected_before_reuse() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = crate::test_support::test_config(dir.path().join("cache"));
+        let run = Run {
+            store: Store::open(&config).unwrap(),
+            config,
+            binary_hash: "padded-declarations".to_string(),
+            environment: environment(&dir.path().join("out"), &dir.path().join("pkg")),
+            start: std::time::Instant::now(),
+        };
+        // Version 1 could omit whitespace-padded Cargo declarations.
+        let legacy = Prediction {
+            version: 1,
+            inputs: vec!["${KACHE_MANIFEST_DIR}".to_string()],
+            env: Vec::new(),
+            default_package: true,
+            portable_out_dir: true,
+            embedded_roots: None,
+            rewrites_text: false,
+        };
+        run.store
+            .file_hash_cache()
+            .put_input_prediction(
+                &run.identity(),
+                1,
+                Some(CRATE_NAME),
+                &serde_json::to_string(&legacy).unwrap(),
+            )
+            .unwrap();
+        assert!(
+            run.prediction().unwrap().is_none(),
+            "legacy predictions may have omitted a declared environment input"
+        );
+
+        let current = recorded_prediction(
+            Vec::new(),
+            vec!["APP_MODE".to_string()],
+            false,
+            Vec::new(),
+            false,
+        );
+        run.record_prediction(&current).unwrap();
+        assert_eq!(run.prediction().unwrap(), Some(current));
     }
 
     /// A `links` dependency hands its outputs down as `DEP_*` paths. What is
