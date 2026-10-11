@@ -85,7 +85,7 @@ pub(crate) struct VerifiedPackEntry {
 struct ExpectedEntryBinding<'a> {
     cache_key: &'a str,
     crate_name: &'a str,
-    meta_digest: &'a str,
+    meta_digest: Option<&'a str>,
 }
 
 impl<'a> RemoteLayout<'a> {
@@ -213,7 +213,16 @@ impl<'a> RemoteLayout<'a> {
         decoder
             .window_log_max(MAX_ZSTD_WINDOW_LOG)
             .context("setting v3 zstd window-log cap")?;
-        let extracted = extract_entry_pack_until(decoder, entry_dir, deadline, None)?;
+        let extracted = extract_entry_pack_until(
+            decoder,
+            entry_dir,
+            deadline,
+            Some(ExpectedEntryBinding {
+                cache_key,
+                crate_name,
+                meta_digest: None,
+            }),
+        )?;
         let extract_ms = extract_start.elapsed().as_millis() as u64;
 
         Ok(DownloadResult {
@@ -436,7 +445,7 @@ pub(crate) fn extract_verified_prefetch_entry(
         Some(ExpectedEntryBinding {
             cache_key,
             crate_name,
-            meta_digest,
+            meta_digest: Some(meta_digest),
         }),
     )?;
     Ok(VerifiedPackEntry {
@@ -726,17 +735,25 @@ fn extract_entry_pack_until<R: std::io::Read>(
     }
     if let Some(expected) = expected {
         if meta.cache_key != expected.cache_key || meta.crate_name != expected.crate_name {
-            bail!("packed-prefetch cache-key or crate binding mismatch");
-        }
-        let actual_meta_digest = computed_hashes
-            .get(Path::new("meta.json"))
-            .context("missing streamed meta.json digest")?;
-        if actual_meta_digest != expected.meta_digest {
             bail!(
-                "packed-prefetch meta.json digest mismatch (expected {}, got {})",
-                expected.meta_digest,
-                actual_meta_digest
+                "downloaded entry binding mismatch: expected cache key {} and crate {}, got cache key {} and crate {}",
+                expected.cache_key,
+                expected.crate_name,
+                meta.cache_key,
+                meta.crate_name
             );
+        }
+        if let Some(meta_digest) = expected.meta_digest {
+            let actual_meta_digest = computed_hashes
+                .get(Path::new("meta.json"))
+                .context("missing streamed meta.json digest")?;
+            if actual_meta_digest != meta_digest {
+                bail!(
+                    "packed-prefetch meta.json digest mismatch (expected {}, got {})",
+                    meta_digest,
+                    actual_meta_digest
+                );
+            }
         }
     }
     // Validate declared fields from the untrusted meta.json before they flow
