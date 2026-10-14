@@ -1,0 +1,14 @@
+{
+  "uuid": "01a1388e-86de-72ed-8808-de0b95e27c9b",
+  "seq_id": 14,
+  "version": 0,
+  "title": "wrapper test fixture-start wait is 5 s while scheduler's was raised to 30 s",
+  "type": "polish",
+  "evidence": "(a) No REQ/ADR exists for kache in this tracker (pm db was empty). Gap: wait_flight_ready in the wrapper tests gives the fixture process 5 s to start; the scheduler's equivalent was raised to 30 s because spawning alone can take several seconds on a loaded machine.\n(b) src/wrapper/tests.rs:10591 (5 s); src/scheduler.rs:1494-1499 (30 s, comment: \"on a loaded machine the spawn alone can take several seconds\"). Affects admit_scheduler_miss_recheck_returns_accepted_meta and ..._skips_rejected_meta.\n(c) Not reproduced; static only. Next probe: run those two tests under heavy load with fixture spawn timing logged.",
+  "resolution_plan": "Raise the wrapper wait to match the scheduler's 30 s, or share one helper.",
+  "notes": "Severity: low (static risk, never observed). Status: raised by the Opus assessor as a separate risk while assessing Sol's finding 4; not assessed by Sol. assess-opus report Finding 4, 'Where I differ'.\n\nSource: flaky-test investigation, 2026-10-14, at upstream main 991c836. Investigators: Opus high (/Users/viktor/Developer/github/kache-investigations/flaky-reports/opus/report.md) and Sol gpt-6.1 high (/Users/viktor/Developer/github/kache-investigations/flaky-reports/sol/report.md). Cross-model assessment of findings only one investigator proved: Opus high (/Users/viktor/Developer/github/kache-investigations/flaky-reports/assess-opus/report.md) and Sol gpt-5.6 high (/Users/viktor/Developer/github/kache-investigations/flaky-reports/assess-sol/report.md). Instrumentation patches and run logs are beside each report. No kache REQ or ADR exists in this tracker, so --applies-to is empty: the governing intent is that a test's result depends only on the code under test, never on timing, run order, or another test's process state.",
+  "status": "filed",
+  "duplicate_of": null,
+  "applies_to": null,
+  "caused_by": []
+}
