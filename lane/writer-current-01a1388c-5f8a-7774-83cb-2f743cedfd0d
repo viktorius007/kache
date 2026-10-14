@@ -1,0 +1,37 @@
+{
+  "writer": "writer-current-01a1388c-5f8a-7774-83cb-2f743cedfd0d",
+  "lane": 0,
+  "lane_width": 10000,
+  "evidence": {
+    "complete": [
+      {
+        "kind": "Reason",
+        "next_value": 1
+      },
+      {
+        "kind": "Goal",
+        "next_value": 1
+      },
+      {
+        "kind": "Req",
+        "next_value": 1
+      },
+      {
+        "kind": "Adr",
+        "next_value": 1
+      },
+      {
+        "kind": "Issue",
+        "next_value": 2
+      },
+      {
+        "kind": "Task",
+        "next_value": 1
+      },
+      {
+        "kind": "Step",
+        "next_value": 1
+      }
+    ]
+  }
+}
