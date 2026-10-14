@@ -177,6 +177,8 @@ fn changing_diagnostic_format_preserves_requested_output_and_reuse() {
                 .any(|message| message["code"]["code"] == "unused_variables")
         );
     }
+    fs::remove_dir_all(&out).unwrap();
+    fs::create_dir(&out).unwrap();
     let direct = run(false, "json");
     let direct_messages: Vec<Value> = direct
         .lines()
