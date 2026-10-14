@@ -1,0 +1,14 @@
+{
+  "uuid": "01a1388e-85dd-76d5-867b-6e1886f754e4",
+  "seq_id": 12,
+  "version": 0,
+  "title": "admit_scheduler_miss_recheck test uses a 200 ms sleep to order two threads",
+  "type": "polish",
+  "evidence": "(a) No REQ/ADR exists for kache in this tracker (pm db was empty). Gap: same ordering assumption as waiter_rechecks, at the wrapper boundary: if the waiter calls begin_miss after the fixture drops its guard, admit_scheduler_miss returns the compile guard instead of the Recheck hit.\n(b) src/wrapper/tests.rs:10603; waiter spawned :10614, sleep 200 ms :10627, release :10628, asserts :10630-10637; fixture drops guard :10694; src/wrapper.rs:1123 admit_scheduler_miss, Recheck :1145, Compile :1150.\n(c) Forced (Sol phase-2 patch): `env KACHE_FLAKY_WRAPPER=1 ./scripts/with-test-resources.sh cargo test -p kache --bin kache admit_scheduler_miss_recheck_returns_accepted_meta -- --test-threads=1 --nocapture` fails (Sol R12; Opus assessor F04):\npanicked at src/wrapper/tests.rs:10637:5: a Recheck hit must not keep the flight or permit\nUnforced: 0 failures. Opus-assessor margin: min/median/max 163.7/205.7/226.0 ms at load 32.7 (n=93), 190.8/206.3/215.2 at load 117.5; waiter Store::open setup max 21.4 ms. Smallest headroom of the four timing findings.",
+  "resolution_plan": "Prove the waiter met the held flight before the fixture releases (handshake), then assert the accepted metadata and the released guard.",
+  "notes": "Severity: low (Sol medium; Opus assessor low). Status: UNSETTLED. Sol-only finding; cross-model assessment by Opus high confirmed mechanism and forced failure, no unforced stall shown. Next probe: assess-opus/measure.patch on CI runners. A separate 5 s fixture-start timeout in the same file is filed separately. Sol report finding 4; assess-opus report Finding 4.\n\nSource: flaky-test investigation, 2026-10-14, at upstream main 991c836. Investigators: Opus high (/Users/viktor/Developer/github/kache-investigations/flaky-reports/opus/report.md) and Sol gpt-6.1 high (/Users/viktor/Developer/github/kache-investigations/flaky-reports/sol/report.md). Cross-model assessment of findings only one investigator proved: Opus high (/Users/viktor/Developer/github/kache-investigations/flaky-reports/assess-opus/report.md) and Sol gpt-5.6 high (/Users/viktor/Developer/github/kache-investigations/flaky-reports/assess-sol/report.md). Instrumentation patches and run logs are beside each report. No kache REQ or ADR exists in this tracker, so --applies-to is empty: the governing intent is that a test's result depends only on the code under test, never on timing, run order, or another test's process state.",
+  "status": "filed",
+  "duplicate_of": null,
+  "applies_to": null,
+  "caused_by": []
+}
