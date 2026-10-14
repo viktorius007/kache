@@ -38,13 +38,17 @@ fn probe_post_upload_gc() -> ProbeResult {
             })
             .await
     });
-    // Reading the initialized lock file never competes with GC's try-lock.
+    // Observe gc.lock by reading it, never by try-locking it: winning the lock
+    // would make the sweep skip. On Unix the lock is advisory, so the read
+    // returns the holder's PID. On Windows it is mandatory (LockFileEx), so a
+    // read through another handle fails with ERROR_LOCK_VIOLATION (33) while
+    // GC holds it (#348).
+    let sweep_holds_gc_lock = || match fs::read_to_string(&gc_lock_path) {
+        Ok(pid) => !pid.trim().is_empty(),
+        Err(e) => cfg!(windows) && e.raw_os_error() == Some(33),
+    };
     let deadline = Instant::now() + Duration::from_secs(5);
-    while fs::read_to_string(&gc_lock_path)
-        .unwrap_or_default()
-        .trim()
-        .is_empty()
-    {
+    while !sweep_holds_gc_lock() {
         if Instant::now() >= deadline {
             writer.execute_batch("ROLLBACK").unwrap();
             panic!("the upload must enter its post-upload GC sweep");
