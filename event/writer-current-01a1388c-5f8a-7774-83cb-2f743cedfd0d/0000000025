@@ -1,0 +1,12 @@
+{
+  "origin_writer": "writer-current-01a1388c-5f8a-7774-83cb-2f743cedfd0d",
+  "origin_ordinal": 25,
+  "timestamp": "1791950797",
+  "operation": "issue.delete",
+  "entity_id": "ISSUE-08",
+  "outcome": "permitted",
+  "constraint": "ADR-193,ADR-219,ADR-22",
+  "actor_type": "agent",
+  "from_state": null,
+  "to_state": null
+}
