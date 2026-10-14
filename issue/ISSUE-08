@@ -1,0 +1,14 @@
+{
+  "uuid": "01a1388e-83d7-76b6-b1fa-805c96638445",
+  "seq_id": 8,
+  "version": 0,
+  "title": "nvcc execute_drops_artifacts test races KACHE_NVCC_PATH_NORMALIZE writer",
+  "type": "defect",
+  "evidence": "(a) No REQ/ADR exists for kache in this tracker (pm db was empty). Gap: the test reads KACHE_NVCC_PATH_NORMALIZE without the lock while normalize_disabled_by_knob sets it to 0; with normalisation off no prefix maps exist, the object is kept, and the assertion fails.\n(b) src/compiler/nvcc.rs:2299 (assert :2327-2336); env read :873-875; empty maps :899-906; used at :1250, drop decision :1306-1315; writer normalize_disabled_by_knob :2211-2224.\n(c) Forced (Opus patch, generic toggler): `FLAKY_GEN_MS=600 FLAKY_GEN_VAR=KACHE_NVCC_PATH_NORMALIZE FLAKY_GEN_VAL=0 <instrumented bin> --test-threads=4 compiler::nvcc::tests::execute_drops_artifacts_when_object_embeds_mapped_root compiler::cc::tests::zz_flaky_generic_toggler` Opus 1/15, Sol assessor 11/15:\npanicked at src/compiler/nvcc.rs:2327:9: an object that embeds a mapped root must not be cached, got [\".../k.o\"]\nUnforced: real-writer pair 0/100, whole nvcc module 0/100 at 16 threads, full suite 0/9.",
+  "resolution_plan": "Hold process_state_test_lock in the test, or pass the normalise switch in explicitly instead of reading the environment.",
+  "notes": "Severity: low (static, narrow window; never observed unforced). Status: Opus-only finding; cross-model assessment by Sol gpt-5.6 high: REAL (forced condition exists in committed code; subject and writer are 11 entries apart in libtest order, inside 16-thread width). Opus report section 6; assess-sol report section 3.\n\nSource: flaky-test investigation, 2026-10-14, at upstream main 991c836. Investigators: Opus high (/Users/viktor/Developer/github/kache-investigations/flaky-reports/opus/report.md) and Sol gpt-6.1 high (/Users/viktor/Developer/github/kache-investigations/flaky-reports/sol/report.md). Cross-model assessment of findings only one investigator proved: Opus high (/Users/viktor/Developer/github/kache-investigations/flaky-reports/assess-opus/report.md) and Sol gpt-5.6 high (/Users/viktor/Developer/github/kache-investigations/flaky-reports/assess-sol/report.md). Instrumentation patches and run logs are beside each report. No kache REQ or ADR exists in this tracker, so --applies-to is empty: the governing intent is that a test's result depends only on the code under test, never on timing, run order, or another test's process state.",
+  "status": "filed",
+  "duplicate_of": null,
+  "applies_to": null,
+  "caused_by": []
+}
