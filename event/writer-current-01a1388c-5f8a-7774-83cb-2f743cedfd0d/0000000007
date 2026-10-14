@@ -1,0 +1,12 @@
+{
+  "origin_writer": "writer-current-01a1388c-5f8a-7774-83cb-2f743cedfd0d",
+  "origin_ordinal": 7,
+  "timestamp": "1791950226",
+  "operation": "issue.create",
+  "entity_id": "ISSUE-07",
+  "outcome": "permitted",
+  "constraint": "ADR-91,ADR-93",
+  "actor_type": "agent",
+  "from_state": null,
+  "to_state": null
+}
