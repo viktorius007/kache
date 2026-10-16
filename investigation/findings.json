@@ -1,0 +1,162 @@
+[
+  {
+    "id": "fs-default-lock-compat",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:58:05.383381+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex reviewer",
+      "mode": "production-readiness",
+      "slice": "filesystem-targets"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Default-layout modern Cargo is not invisible to an exclusive .cargo-lock probe",
+    "checked": "Compared Kache seeding/dedup locks with current Cargo Layout::new, including shared/exclusive semantics",
+    "closed_by": "Tier 2 and 3: Kache target_seed.rs:695-697,716-718 and target_dedup.rs:1138-1162 request exclusive .cargo-lock; Cargo layout.rs:285-292 retains a shared compatibility .cargo-lock in artifact root",
+    "reopens_if": "Split build-dir, NFS, or Cargo removing the compatibility lock",
+    "evidence": [
+      {
+        "path": "src/target_seed.rs",
+        "lines": "695-718",
+        "point": "Exclusive try_lock conflicts with shared compatibility holder"
+      },
+      {
+        "path": "src/target_dedup.rs",
+        "lines": "1138-1162",
+        "point": "Exclusive profile lock"
+      },
+      {
+        "url": "https://doc.rust-lang.org/stable/nightly-rustc/src/cargo/compiler/layout.rs.html",
+        "lines": "285-292",
+        "point": "Shared compatibility lock remains in artifact directory"
+      }
+    ],
+    "status": "dismissed"
+  },
+  {
+    "id": "fs-cleanup-source-guard",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:58:05.383381+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex reviewer",
+      "mode": "production-readiness",
+      "slice": "filesystem-targets"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Recorded cleanup paths have explicit source-root, identity and symlink guards",
+    "checked": "Read sweep, intact, remove_after_rename and safe-target seam end to end",
+    "closed_by": "Tier 2: target_cleanup.rs:333-337 and 744-766 recheck identity and source markers after rename; filesystem.rs:25-42 rejects workspace/ancestor/non-derived root",
+    "reopens_if": "Non-cooperative external rename interleaving, injected I/O failure, or marker/identity implementation change",
+    "evidence": [
+      {
+        "path": "src/target_cleanup.rs",
+        "lines": "724-777",
+        "point": "Reservation, rename, identity/type/source-root and Cargo lock recheck before deletion"
+      }
+    ],
+    "status": "dismissed"
+  },
+  {
+    "id": "fs-unit-prune-locks",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:58:05.383381+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex reviewer",
+      "mode": "production-readiness",
+      "slice": "filesystem-targets"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Unit pruning includes the modern build and artifact locks",
+    "checked": "Read locking, stale-unit ownership and deletion ordering",
+    "closed_by": "Tier 2: unit_prune.rs:43-46 names .cargo-lock/.cargo-build-lock/.cargo-artifact-lock; hold/sweep retain all locks across removal and rearming",
+    "reopens_if": "New Cargo lock names or changed shared layout ownership",
+    "evidence": [
+      {
+        "path": "src/unit_prune.rs",
+        "lines": "554-638",
+        "point": "Locks held through fingerprint-first ordered deletion"
+      }
+    ],
+    "status": "dismissed"
+  },
+  {
+    "id": "fs-rearm-old-record",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:58:05.383381+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex reviewer",
+      "mode": "production-readiness",
+      "slice": "filesystem-targets"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "An unsuccessful new arming record does not keep the old record as evidence",
+    "checked": "Read forget_armed, judge_with, watch_with and partial-profile path",
+    "closed_by": "Tier 2: unit_prune.rs:373-387 forgets old record before arming; 507-524 records only complete sweep",
+    "reopens_if": "Crash between selected unit deletion and rearming; recording/arming order changes",
+    "evidence": [
+      {
+        "path": "src/unit_prune.rs",
+        "lines": "373-387",
+        "point": "Old record must go before any arming"
+      }
+    ],
+    "status": "dismissed"
+  },
+  {
+    "id": "fs-prestage-hash",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:58:05.383381+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex reviewer",
+      "mode": "production-readiness",
+      "slice": "filesystem-targets"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Prestage verifies the complete materialized executable hash before publication",
+    "checked": "Read stage_one/take/records/prune",
+    "closed_by": "Tier 2: prestage.rs:418-431 hashes temporary data and requires hash == record.blob before persist",
+    "reopens_if": "Concurrent post-hash replacement or metadata memo collision; adversarial record paths",
+    "evidence": [
+      {
+        "path": "src/prestage.rs",
+        "lines": "418-431",
+        "point": "Full hash of staged copy checked before persist"
+      }
+    ],
+    "status": "dismissed"
+  },
+  {
+    "id": "fs-fiemap-completion",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:58:05.383381+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex reviewer",
+      "mode": "production-readiness",
+      "slice": "filesystem-targets"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Bounded/incomplete FIEMAP answers do not become partial reclaim promises",
+    "checked": "Read full extents walker and Linux fallback wiring",
+    "closed_by": "Tier 2: extents.rs:44-85 rejects overflow/overlap/after-LAST and returns None on page cap; linux.rs:149-151 falls back",
+    "reopens_if": "Kernel reply contract changes or platform runtime evidence",
+    "evidence": [
+      {
+        "path": "crates/kache-fs/src/extents.rs",
+        "lines": "44-85",
+        "point": "Incomplete mapping returns no accounting"
+      }
+    ],
+    "status": "dismissed"
+  }
+]

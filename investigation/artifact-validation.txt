@@ -1,0 +1,2 @@
+saved report; primary coverage 29 dismissals 6 unresolved 2 files 14
+PASS artifact schema/readability; 29 primary paths accounted; production diff empty; confirmed findings 0; unresolved 2

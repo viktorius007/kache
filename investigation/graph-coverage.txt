@@ -1,0 +1,806 @@
+project: Users-viktor-Developer-github-kache-investigations-coordinator
+signal: best_effort
+indexed_at: 2026-10-11T05:36:35Z
+metadata:
+  generation: 2026-10-11T05:36:35Z
+  index_mode: full
+  recorded_at: 2026-10-11T05:36:36Z
+  recording_status: complete
+  ignored_files_stored: 17
+  ignored_files_total: 17
+  hash_records_complete: true
+  coverage_version: 17
+  generation_matches: true
+semantic_coverage:
+  rust:
+    status: semantic_partial
+    reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    note: "Rust CALLS, expanded calls, IMPLEMENTS, and OVERRIDE facts may be omitted according to the listed semantic gaps."
+paths: 29
+  -
+    requested_path: crates/kache-fs/Cargo.toml
+    path: crates/kache-fs/Cargo.toml
+    unresolved_sites:
+      lookup: complete
+      calls: 0
+      references: 0
+      files: 0
+      file_kind_groups_total: 0
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: crates/kache-fs/LICENSE
+    path: crates/kache-fs/LICENSE
+    unresolved_sites:
+      lookup: complete
+      calls: 0
+      references: 0
+      files: 0
+      file_kind_groups_total: 0
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: not_tracked
+    recommended_action: read_source_and_reindex
+    coverage: 0
+  -
+    requested_path: crates/kache-fs/README.md
+    path: crates/kache-fs/README.md
+    unresolved_sites:
+      lookup: complete
+      calls: 0
+      references: 0
+      files: 0
+      file_kind_groups_total: 0
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: crates/kache-fs/src/apfs.rs
+    path: crates/kache-fs/src/apfs.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 288
+      references: 358
+      files: 4  (cols: path kind total)
+        crates/kache-fs/src/apfs.rs call 288
+        crates/kache-fs/src/apfs.rs member 34
+        crates/kache-fs/src/apfs.rs reference 161
+        crates/kache-fs/src/apfs.rs type 163
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: crates/kache-fs/src/apfs_values.rs
+    path: crates/kache-fs/src/apfs_values.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 3
+      references: 77
+      files: 3  (cols: path kind total)
+        crates/kache-fs/src/apfs_values.rs call 3
+        crates/kache-fs/src/apfs_values.rs reference 58
+        crates/kache-fs/src/apfs_values.rs type 19
+      file_kind_groups_total: 3
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: crates/kache-fs/src/copy.rs
+    path: crates/kache-fs/src/copy.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 148
+      references: 321
+      files: 4  (cols: path kind total)
+        crates/kache-fs/src/copy.rs call 148
+        crates/kache-fs/src/copy.rs member 4
+        crates/kache-fs/src/copy.rs reference 165
+        crates/kache-fs/src/copy.rs type 152
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: crates/kache-fs/src/extents.rs
+    path: crates/kache-fs/src/extents.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 63
+      references: 147
+      files: 4  (cols: path kind total)
+        crates/kache-fs/src/extents.rs call 63
+        crates/kache-fs/src/extents.rs member 11
+        crates/kache-fs/src/extents.rs reference 111
+        crates/kache-fs/src/extents.rs type 25
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: crates/kache-fs/src/fallback.rs
+    path: crates/kache-fs/src/fallback.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 9
+      references: 58
+      files: 4  (cols: path kind total)
+        crates/kache-fs/src/fallback.rs call 9
+        crates/kache-fs/src/fallback.rs member 3
+        crates/kache-fs/src/fallback.rs reference 46
+        crates/kache-fs/src/fallback.rs type 9
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: crates/kache-fs/src/identity.rs
+    path: crates/kache-fs/src/identity.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 51
+      references: 172
+      files: 4  (cols: path kind total)
+        crates/kache-fs/src/identity.rs call 51
+        crates/kache-fs/src/identity.rs member 6
+        crates/kache-fs/src/identity.rs reference 108
+        crates/kache-fs/src/identity.rs type 58
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: crates/kache-fs/src/ledger.rs
+    path: crates/kache-fs/src/ledger.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 10
+      references: 77
+      files: 4  (cols: path kind total)
+        crates/kache-fs/src/ledger.rs call 10
+        crates/kache-fs/src/ledger.rs member 6
+        crates/kache-fs/src/ledger.rs reference 63
+        crates/kache-fs/src/ledger.rs type 8
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: crates/kache-fs/src/lib.rs
+    path: crates/kache-fs/src/lib.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 224
+      references: 759
+      files: 4  (cols: path kind total)
+        crates/kache-fs/src/lib.rs call 224
+        crates/kache-fs/src/lib.rs member 49
+        crates/kache-fs/src/lib.rs reference 523
+        crates/kache-fs/src/lib.rs type 187
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: crates/kache-fs/src/linux.rs
+    path: crates/kache-fs/src/linux.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 62
+      references: 101
+      files: 4  (cols: path kind total)
+        crates/kache-fs/src/linux.rs call 62
+        crates/kache-fs/src/linux.rs member 5
+        crates/kache-fs/src/linux.rs reference 52
+        crates/kache-fs/src/linux.rs type 44
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: crates/kache-fs/src/staging.rs
+    path: crates/kache-fs/src/staging.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 118
+      references: 182
+      files: 4  (cols: path kind total)
+        crates/kache-fs/src/staging.rs call 118
+        crates/kache-fs/src/staging.rs member 3
+        crates/kache-fs/src/staging.rs reference 117
+        crates/kache-fs/src/staging.rs type 62
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: docs/deduplication.mdx
+    path: docs/deduplication.mdx
+    unresolved_sites:
+      lookup: complete
+      calls: 0
+      references: 0
+      files: 0
+      file_kind_groups_total: 0
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: src/blob_heal.rs
+    path: src/blob_heal.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 201
+      references: 742
+      files: 4  (cols: path kind total)
+        src/blob_heal.rs call 201
+        src/blob_heal.rs member 44
+        src/blob_heal.rs reference 510
+        src/blob_heal.rs type 188
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: src/disk_recovery.rs
+    path: src/disk_recovery.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 80
+      references: 194
+      files: 4  (cols: path kind total)
+        src/disk_recovery.rs call 80
+        src/disk_recovery.rs member 5
+        src/disk_recovery.rs reference 124
+        src/disk_recovery.rs type 65
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: src/index_compact.rs
+    path: src/index_compact.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 144
+      references: 793
+      files: 4  (cols: path kind total)
+        src/index_compact.rs call 144
+        src/index_compact.rs member 30
+        src/index_compact.rs reference 546
+        src/index_compact.rs type 217
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: src/link_probe.rs
+    path: src/link_probe.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 226
+      references: 385
+      files: 4  (cols: path kind total)
+        src/link_probe.rs call 226
+        src/link_probe.rs member 23
+        src/link_probe.rs reference 260
+        src/link_probe.rs type 102
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: src/maintenance.rs
+    path: src/maintenance.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 56
+      references: 268
+      files: 4  (cols: path kind total)
+        src/maintenance.rs call 56
+        src/maintenance.rs member 9
+        src/maintenance.rs reference 152
+        src/maintenance.rs type 107
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: src/prestage.rs
+    path: src/prestage.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 450
+      references: 653
+      files: 4  (cols: path kind total)
+        src/prestage.rs call 450
+        src/prestage.rs member 5
+        src/prestage.rs reference 374
+        src/prestage.rs type 274
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: src/target_cleanup.rs
+    path: src/target_cleanup.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 882
+      references: 1746
+      files: 4  (cols: path kind total)
+        src/target_cleanup.rs call 882
+        src/target_cleanup.rs member 55
+        src/target_cleanup.rs reference 1126
+        src/target_cleanup.rs type 565
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: src/target_dedup.rs
+    path: src/target_dedup.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 799
+      references: 1382
+      files: 4  (cols: path kind total)
+        src/target_dedup.rs call 799
+        src/target_dedup.rs member 70
+        src/target_dedup.rs reference 846
+        src/target_dedup.rs type 466
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: src/target_liveness.rs
+    path: src/target_liveness.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 992
+      references: 1597
+      files: 4  (cols: path kind total)
+        src/target_liveness.rs call 992
+        src/target_liveness.rs member 53
+        src/target_liveness.rs reference 1057
+        src/target_liveness.rs type 487
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: src/target_seed.rs
+    path: src/target_seed.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 943
+      references: 1645
+      files: 4  (cols: path kind total)
+        src/target_seed.rs call 943
+        src/target_seed.rs member 34
+        src/target_seed.rs reference 1049
+        src/target_seed.rs type 562
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: src/target_seed/placement.rs
+    path: src/target_seed/placement.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 136
+      references: 221
+      files: 3  (cols: path kind total)
+        src/target_seed/placement.rs call 136
+        src/target_seed/placement.rs reference 166
+        src/target_seed/placement.rs type 55
+      file_kind_groups_total: 3
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: src/target_use.rs
+    path: src/target_use.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 117
+      references: 154
+      files: 4  (cols: path kind total)
+        src/target_use.rs call 117
+        src/target_use.rs member 1
+        src/target_use.rs reference 76
+        src/target_use.rs type 77
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: src/unit_prune.rs
+    path: src/unit_prune.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 615
+      references: 1178
+      files: 4  (cols: path kind total)
+        src/unit_prune.rs call 615
+        src/unit_prune.rs member 16
+        src/unit_prune.rs reference 716
+        src/unit_prune.rs type 446
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: src/volume_gc.rs
+    path: src/volume_gc.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 90
+      references: 141
+      files: 4  (cols: path kind total)
+        src/volume_gc.rs call 90
+        src/volume_gc.rs member 5
+        src/volume_gc.rs reference 92
+        src/volume_gc.rs type 44
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+  -
+    requested_path: src/worktree_discovery.rs
+    path: src/worktree_discovery.rs
+    semantic_status: semantic_partial
+    semantic_reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    unresolved_sites:
+      lookup: complete
+      calls: 206
+      references: 181
+      files: 4  (cols: path kind total)
+        src/worktree_discovery.rs call 206
+        src/worktree_discovery.rs member 19
+        src/worktree_discovery.rs reference 99
+        src/worktree_discovery.rs type 63
+      file_kind_groups_total: 4
+      files_truncated: false
+      scope: file
+      recording: available
+      listing_tool: trace_path
+      listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+      note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+    status: no_recorded_issue
+    freshness: metadata_match
+    recommended_action: use_graph_with_best_effort_caveat
+    coverage: 0
+path_total: 29
+path_returned: 29
+path_has_more: false
+scopes: 0
+scope_total: 0
+scope_returned: 0
+scope_truncated: false
+has_more: false
+caveat: "Best-effort signal only. No recorded issue does not prove graph or source completeness; read flagged source and qualify claims when metadata is changed or unavailable."
+

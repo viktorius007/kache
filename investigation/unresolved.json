@@ -1,0 +1,26 @@
+[
+  {
+    "id": "fs-dedup-corruption",
+    "classification": "unresolved investigation; not admitted finding",
+    "paths": [
+      "src/target_dedup.rs"
+    ],
+    "source_evidence": "consider hashes target (685-715); account_match chooses hash-named blob; replace_with (1169-1237) checks length/first-last ends, not whole blob digest",
+    "production_reachability": "targets share --apply or idle_slice \u2192 one_pass \u2192 consider \u2192 account_match \u2192 replace_with",
+    "required_proof": "Correctly isolated full-path CLI probe with a valid content-addressed blob corrupted only in middle; assert good target bytes survive",
+    "executed": "Initial fixture setup failed before target consideration; wrong config key may have opened default host cache. probe-status.json records the error. Corrected source saved, rerun not authorized under latest steering."
+  },
+  {
+    "id": "fs-split-build-lock",
+    "classification": "unresolved investigation; not admitted finding",
+    "paths": [
+      "src/target_seed.rs",
+      "src/target_dedup.rs",
+      "src/target_cleanup.rs"
+    ],
+    "source_evidence": "Cargo locks intermediate root .cargo-build-lock but compatibility .cargo-lock stays in artifact root. target_seed uses only .cargo-lock at donor intermediate profile; dedup checks/takes .cargo-lock and derives parent-of-file profile; cleanup consults cli target_in_use, only .cargo-lock",
+    "production_reachability": "placement::resolve honors build-dir \u2192 before_probe \u2192 daemon handle_seed_target; dedup/cleanup tracked build roots require consultation with registry owner",
+    "required_proof": "Ordinary generated Cargo workspace with separate artifact/intermediate dirs and an active real Cargo command; observe actual lock files; then authorized exact production probe",
+    "limits": "No current runtime proof; source-only audit after coordinator steering. Default same-root case dismissed separately."
+  }
+]

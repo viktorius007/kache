@@ -1,0 +1,17 @@
+{
+  "admitted_red_tests": [],
+  "proposed_unadmitted_cases": [
+    {
+      "id": "fs-dedup-corruption",
+      "argv": [
+        "python3",
+        "/Users/viktor/Developer/github/kache-investigations/audit-filesystem-targets/investigation/probes/corrupt-blob.py"
+      ],
+      "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-filesystem-targets",
+      "timeout_seconds": 60,
+      "expected_failure_regex": "DEDUP_CORRUPTION",
+      "assertion_regex": "sharing replaced a valid target artifact",
+      "execution_status": "DO_NOT_RUN: latest task is read-only; helper must be compiled first"
+    }
+  ]
+}

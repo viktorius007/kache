@@ -1,0 +1,10 @@
+{
+  "status": "NOT_PROVEN",
+  "executed": "initial incorrect fixture setup only",
+  "failure": "sqlite3.OperationalError: no such table: blobs",
+  "isolation_error": "[cache] dir is ignored; command may have opened the default host cache; no further host inspection performed",
+  "proposed_source": "probes/corrupt-blob.py",
+  "corrected_after_run": true,
+  "rerun_performed": false,
+  "reason": "coordinator changed task to read-only and instructed not to execute earlier artifact mutation experiment"
+}

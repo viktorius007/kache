@@ -1,0 +1,692 @@
+[
+  {
+    "path": "crates/kache-fs/Cargo.toml",
+    "state": "reviewed",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 38
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "7eca4e6778eeb60044078989032e80200990840e"
+  },
+  {
+    "path": "crates/kache-fs/LICENSE",
+    "state": "collateral",
+    "production_fully_read": false,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [],
+    "omitted_ranges": [],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "fbe1a21e6241cd20b4588d34ef46b5273f92edf3"
+  },
+  {
+    "path": "crates/kache-fs/README.md",
+    "state": "reviewed",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 32
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "96b9f571c22f4de23cd56451e7d68c14756b3c1f"
+  },
+  {
+    "path": "crates/kache-fs/src/apfs.rs",
+    "state": "sampled",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 533
+      },
+      {
+        "start_line": 534,
+        "end_line": 625
+      }
+    ],
+    "omitted_ranges": [
+      {
+        "start_line": 626,
+        "end_line": 834,
+        "purpose": "dedicated test suite not sampled"
+      }
+    ],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "b9b85dde227c5c904955ee9b9110c599c07d2e3c"
+  },
+  {
+    "path": "crates/kache-fs/src/apfs_values.rs",
+    "state": "reviewed",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 75
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "341d882c213f33722be1084990fb793f45a4af9e"
+  },
+  {
+    "path": "crates/kache-fs/src/copy.rs",
+    "state": "reviewed",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 371
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "6569b4264c0b27603e6b137dbd17b4f367d640b7"
+  },
+  {
+    "path": "crates/kache-fs/src/extents.rs",
+    "state": "reviewed",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 193
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "0952b29ef25f391e8d61d1b822e6db56a1a3b808"
+  },
+  {
+    "path": "crates/kache-fs/src/fallback.rs",
+    "state": "reviewed",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 91
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "9e039bdf114694df05a5f6908a5da0711422ed2f"
+  },
+  {
+    "path": "crates/kache-fs/src/identity.rs",
+    "state": "reviewed",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 210
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "5f8776a8de66366b654b4a93cdc2b333289cc2e5"
+  },
+  {
+    "path": "crates/kache-fs/src/ledger.rs",
+    "state": "reviewed",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 157
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "0592ba85efec50d9335a51f2c511be26917745d7"
+  },
+  {
+    "path": "crates/kache-fs/src/lib.rs",
+    "state": "sampled",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 654
+      },
+      {
+        "start_line": 655,
+        "end_line": 670
+      }
+    ],
+    "omitted_ranges": [
+      {
+        "start_line": 671,
+        "end_line": 1245,
+        "purpose": "dedicated test suite not sampled"
+      }
+    ],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "50b6697eb06d3a7783711b7c5082320394e103e6"
+  },
+  {
+    "path": "crates/kache-fs/src/linux.rs",
+    "state": "reviewed",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 242
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "6b6a48b97b83a5c4ae15381cfcf9a5b8d65af710"
+  },
+  {
+    "path": "crates/kache-fs/src/staging.rs",
+    "state": "reviewed",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 222
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "925f5cbfe502da44a247da3404f1f60c8576e451"
+  },
+  {
+    "path": "docs/deduplication.mdx",
+    "state": "reviewed",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 68
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "c9844b6a07d49d72253bbc4cf5148030ba3612f1"
+  },
+  {
+    "path": "src/blob_heal.rs",
+    "state": "sampled",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 312
+      },
+      {
+        "start_line": 313,
+        "end_line": 430
+      }
+    ],
+    "omitted_ranges": [
+      {
+        "start_line": 431,
+        "end_line": 869,
+        "purpose": "dedicated test suite not sampled"
+      }
+    ],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "e22572bda826f4d2cc088b8b2c2b6f2e8b671fc3"
+  },
+  {
+    "path": "src/disk_recovery.rs",
+    "state": "reviewed",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 252
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "fc2b927db5f47f2cb76a90e3bf940c33d3b04ab9"
+  },
+  {
+    "path": "src/index_compact.rs",
+    "state": "sampled",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 340
+      },
+      {
+        "start_line": 341,
+        "end_line": 420
+      }
+    ],
+    "omitted_ranges": [
+      {
+        "start_line": 421,
+        "end_line": 849,
+        "purpose": "dedicated test suite not sampled"
+      }
+    ],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "e000e872ee716d291e6779f37f2b58d012242d39"
+  },
+  {
+    "path": "src/link_probe.rs",
+    "state": "sampled",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 345
+      },
+      {
+        "start_line": 346,
+        "end_line": 410
+      }
+    ],
+    "omitted_ranges": [
+      {
+        "start_line": 411,
+        "end_line": 675,
+        "purpose": "dedicated test suite not sampled"
+      }
+    ],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "ba06184a57d765a0f8a1c4c59bf97173ba1ac9d0"
+  },
+  {
+    "path": "src/maintenance.rs",
+    "state": "sampled",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 170
+      },
+      {
+        "start_line": 171,
+        "end_line": 180
+      }
+    ],
+    "omitted_ranges": [
+      {
+        "start_line": 181,
+        "end_line": 290,
+        "purpose": "dedicated test suite not sampled"
+      }
+    ],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "3d2140689898fdb79b978ad9a5b8d2cf569ca258"
+  },
+  {
+    "path": "src/prestage.rs",
+    "state": "sampled",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 507
+      },
+      {
+        "start_line": 508,
+        "end_line": 560
+      }
+    ],
+    "omitted_ranges": [
+      {
+        "start_line": 561,
+        "end_line": 913,
+        "purpose": "dedicated test suite not sampled"
+      }
+    ],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "f0caa2970b7199a0452ae6a794193313e5a0a4ef"
+  },
+  {
+    "path": "src/target_cleanup.rs",
+    "state": "sampled",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 786
+      },
+      {
+        "start_line": 787,
+        "end_line": 980
+      }
+    ],
+    "omitted_ranges": [
+      {
+        "start_line": 981,
+        "end_line": 2111,
+        "purpose": "dedicated test suite not sampled"
+      }
+    ],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "eabb81e1aa44ef5e7403eef91a3b4b6afb95379a"
+  },
+  {
+    "path": "src/target_dedup.rs",
+    "state": "sampled",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 1260
+      },
+      {
+        "start_line": 1261,
+        "end_line": 1450
+      }
+    ],
+    "omitted_ranges": [
+      {
+        "start_line": 1451,
+        "end_line": 2330,
+        "purpose": "dedicated test suite not sampled"
+      }
+    ],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "1804c230608b437580d4fa8a3001c40b9eaec145"
+  },
+  {
+    "path": "src/target_liveness.rs",
+    "state": "sampled",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 1179
+      },
+      {
+        "start_line": 1180,
+        "end_line": 1200
+      }
+    ],
+    "omitted_ranges": [
+      {
+        "start_line": 1201,
+        "end_line": 2059,
+        "purpose": "dedicated test suite not sampled"
+      }
+    ],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "7fa9fb72111d7e9cb5cca648b67fe2c64fb059aa"
+  },
+  {
+    "path": "src/target_seed.rs",
+    "state": "sampled",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 920
+      },
+      {
+        "start_line": 921,
+        "end_line": 930
+      }
+    ],
+    "omitted_ranges": [
+      {
+        "start_line": 931,
+        "end_line": 2280,
+        "purpose": "dedicated test suite not sampled"
+      }
+    ],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "6cbc6aa76cbeb853d371b393b4d48cabd79538e2"
+  },
+  {
+    "path": "src/target_seed/placement.rs",
+    "state": "reviewed",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 309
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "6efb7a46496e80a7bf301d9f9f6cc37bb0f457d7"
+  },
+  {
+    "path": "src/target_use.rs",
+    "state": "reviewed",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 216
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "d12f6f99edda62d5d6b983cb1bd040fcdf68ed34"
+  },
+  {
+    "path": "src/unit_prune.rs",
+    "state": "sampled",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 666
+      }
+    ],
+    "omitted_ranges": [
+      {
+        "start_line": 667,
+        "end_line": 1415,
+        "purpose": "dedicated test suite not sampled"
+      }
+    ],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "c4626e00c5926f278a01f3715b18232646bf45cf"
+  },
+  {
+    "path": "src/volume_gc.rs",
+    "state": "reviewed",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 175
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "2f96aeae8be15e5cc69986b45e1d27e73fa4d6be"
+  },
+  {
+    "path": "src/worktree_discovery.rs",
+    "state": "reviewed",
+    "production_fully_read": true,
+    "evidence": [
+      "Source read by bounded cat/sed during this audit",
+      "graph-coverage.txt; recorded Rust semantic gaps require source fallback"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 374
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "No reliable behavioral result; read-only steering and heavy-build hold",
+    "reopen_conditions": "Production changes, Cargo lock/layout changes, or authorized cross-platform/failure-injection probe",
+    "blob": "9aac02cd2f48b546f835e2d508b5f3a2ae4ea22a"
+  },
+  {
+    "path": "crates/kache-store/src/filesystem.rs",
+    "state": "collateral",
+    "evidence": [
+      "Source inspection of identity/safe-target and retainer seam"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 146
+      }
+    ],
+    "reopen_conditions": "safe-target or identity behavior changes"
+  },
+  {
+    "path": "src/cli.rs",
+    "state": "collateral",
+    "evidence": [
+      "Source inspection of target_in_use and cargo_lock_files seam"
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 5240,
+        "end_line": 5310
+      }
+    ],
+    "reopen_conditions": "Cargo lock discovery changes"
+  }
+]
