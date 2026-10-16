@@ -1,0 +1,32 @@
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/ev594-001/crates/kache-store)
+    Finished `test` profile [unoptimized] target(s) in 1.60s
+     Running unittests src/lib.rs (/private/tmp/kache-pr-ev594-target/debug/deps/kache_store-0579b58586fb6f8d)
+
+running 4 tests
+test store::tests::backfill_compile_times_is_bounded_per_sweep_and_converges ... ok
+blocking_rows=10000 passes=[1, 0, 0] recovered_cost_ms=60000
+blocking_rows=9999 passes=[1, 0, 0] recovered_cost_ms=60000
+test store::tests::backfill_compile_times_reaches_expensive_entry_past_a_zero_cost_batch ... ok
+test store::tests::backfill_compile_times_recovers_cost_inside_the_first_batch ... ok
+test store::tests::backfill_compile_times_recovers_pre_index_entries ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 568 filtered out; finished in 5.77s
+
+     Running tests/byte_counters.rs (/private/tmp/kache-pr-ev594-target/debug/deps/byte_counters-b61d5c12cd9ce573)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/staged_publication.rs (/private/tmp/kache-pr-ev594-target/debug/deps/staged_publication-07b48b65449cc273)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/thread_store_counters.rs (/private/tmp/kache-pr-ev594-target/debug/deps/thread_store_counters-17d90a3e8be7e038)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+

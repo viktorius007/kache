@@ -1,0 +1,309 @@
+{
+  "capacity_bytes": 450000,
+  "inventory": [
+    {
+      "bytes": 400000,
+      "compile_ms": 60000,
+      "key": "expensive"
+    },
+    {
+      "bytes": 100000,
+      "compile_ms": 7,
+      "key": "cheap"
+    }
+  ],
+  "limits": [
+    "Generated costs, not measured compiler or cache timings",
+    "One initial sweep, unique blobs, no concurrency, no remote cache",
+    "Pure density uses public ranking and removal in a separate world; it is not enabled as live policy",
+    "No population policy winner inferred"
+  ],
+  "objective": "sum of fixture net compile-minus-cache-serving cost on future misses after one eviction; serving costs are assumptions, not timings",
+  "protected_prefix_limit": {
+    "legacy_live_evicted": 0,
+    "legacy_shadow_evicted": 0,
+    "live_evicted": 1,
+    "shadow_only_rows": 0
+  },
+  "status": "DONE",
+  "target_bytes": 405000,
+  "traces": [
+    {
+      "generated_future_demands": [
+        "expensive",
+        "cheap"
+      ],
+      "name": "expensive_requested",
+      "results": [
+        {
+          "after_bytes": 100000,
+          "before_bytes": 500000,
+          "events": [
+            {
+              "assumed_serve_ms": 30,
+              "compile_ms": 60000,
+              "key": "expensive",
+              "miss": true
+            },
+            {
+              "assumed_serve_ms": 1,
+              "compile_ms": 7,
+              "key": "cheap",
+              "miss": false
+            }
+          ],
+          "gross_miss_cost_ms": 60000,
+          "horizon_evidence": {
+            "as_of_unix_secs": 604901,
+            "horizon_secs": 604800,
+            "live_shadow_agreed": {
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0,
+              "gross_compile_cost_ms": 0,
+              "immature": 0,
+              "invalid": 0,
+              "known_cost_logical_bytes": 0,
+              "mature": 0,
+              "observations": 0,
+              "unknown_compile_cost": 0
+            },
+            "live_shadow_kept": {
+              "demand_within_horizon_lower": 1,
+              "demand_within_horizon_upper": 1,
+              "demanded_gross_compile_cost_ms_lower": 60000,
+              "demanded_gross_compile_cost_ms_upper": 60000,
+              "gross_compile_cost_ms": 60000,
+              "immature": 0,
+              "invalid": 0,
+              "known_cost_logical_bytes": 400000,
+              "mature": 1,
+              "observations": 1,
+              "unknown_compile_cost": 0
+            },
+            "shadow_only": {
+              "demand_within_horizon_lower": 1,
+              "demand_within_horizon_upper": 1,
+              "demanded_gross_compile_cost_ms_lower": 7,
+              "demanded_gross_compile_cost_ms_upper": 7,
+              "gross_compile_cost_ms": 7,
+              "immature": 0,
+              "invalid": 0,
+              "known_cost_logical_bytes": 100000,
+              "mature": 1,
+              "observations": 1,
+              "unknown_compile_cost": 0
+            }
+          },
+          "net_miss_cost_ms": 59970,
+          "policy": "size-pressure",
+          "requested_reclaim_bytes": 95000,
+          "retained": [
+            "cheap"
+          ]
+        },
+        {
+          "after_bytes": 400000,
+          "before_bytes": 500000,
+          "events": [
+            {
+              "assumed_serve_ms": 30,
+              "compile_ms": 60000,
+              "key": "expensive",
+              "miss": false
+            },
+            {
+              "assumed_serve_ms": 1,
+              "compile_ms": 7,
+              "key": "cheap",
+              "miss": true
+            }
+          ],
+          "gross_miss_cost_ms": 7,
+          "horizon_evidence": {
+            "as_of_unix_secs": 604901,
+            "horizon_secs": 604800,
+            "live_shadow_agreed": {
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0,
+              "gross_compile_cost_ms": 0,
+              "immature": 0,
+              "invalid": 0,
+              "known_cost_logical_bytes": 0,
+              "mature": 0,
+              "observations": 0,
+              "unknown_compile_cost": 0
+            },
+            "live_shadow_kept": {
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0,
+              "gross_compile_cost_ms": 0,
+              "immature": 0,
+              "invalid": 0,
+              "known_cost_logical_bytes": 0,
+              "mature": 0,
+              "observations": 0,
+              "unknown_compile_cost": 0
+            },
+            "shadow_only": {
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0,
+              "gross_compile_cost_ms": 0,
+              "immature": 0,
+              "invalid": 0,
+              "known_cost_logical_bytes": 0,
+              "mature": 0,
+              "observations": 0,
+              "unknown_compile_cost": 0
+            }
+          },
+          "net_miss_cost_ms": 6,
+          "policy": "value-density",
+          "requested_reclaim_bytes": 95000,
+          "retained": [
+            "expensive"
+          ]
+        }
+      ]
+    },
+    {
+      "generated_future_demands": [
+        "cheap"
+      ],
+      "name": "expensive_obsolete",
+      "results": [
+        {
+          "after_bytes": 100000,
+          "before_bytes": 500000,
+          "events": [
+            {
+              "assumed_serve_ms": 1,
+              "compile_ms": 7,
+              "key": "cheap",
+              "miss": false
+            }
+          ],
+          "gross_miss_cost_ms": 0,
+          "horizon_evidence": {
+            "as_of_unix_secs": 604901,
+            "horizon_secs": 604800,
+            "live_shadow_agreed": {
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0,
+              "gross_compile_cost_ms": 0,
+              "immature": 0,
+              "invalid": 0,
+              "known_cost_logical_bytes": 0,
+              "mature": 0,
+              "observations": 0,
+              "unknown_compile_cost": 0
+            },
+            "live_shadow_kept": {
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0,
+              "gross_compile_cost_ms": 60000,
+              "immature": 0,
+              "invalid": 0,
+              "known_cost_logical_bytes": 400000,
+              "mature": 1,
+              "observations": 1,
+              "unknown_compile_cost": 0
+            },
+            "shadow_only": {
+              "demand_within_horizon_lower": 1,
+              "demand_within_horizon_upper": 1,
+              "demanded_gross_compile_cost_ms_lower": 7,
+              "demanded_gross_compile_cost_ms_upper": 7,
+              "gross_compile_cost_ms": 7,
+              "immature": 0,
+              "invalid": 0,
+              "known_cost_logical_bytes": 100000,
+              "mature": 1,
+              "observations": 1,
+              "unknown_compile_cost": 0
+            }
+          },
+          "net_miss_cost_ms": 0,
+          "policy": "size-pressure",
+          "requested_reclaim_bytes": 95000,
+          "retained": [
+            "cheap"
+          ]
+        },
+        {
+          "after_bytes": 400000,
+          "before_bytes": 500000,
+          "events": [
+            {
+              "assumed_serve_ms": 1,
+              "compile_ms": 7,
+              "key": "cheap",
+              "miss": true
+            }
+          ],
+          "gross_miss_cost_ms": 7,
+          "horizon_evidence": {
+            "as_of_unix_secs": 604901,
+            "horizon_secs": 604800,
+            "live_shadow_agreed": {
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0,
+              "gross_compile_cost_ms": 0,
+              "immature": 0,
+              "invalid": 0,
+              "known_cost_logical_bytes": 0,
+              "mature": 0,
+              "observations": 0,
+              "unknown_compile_cost": 0
+            },
+            "live_shadow_kept": {
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0,
+              "gross_compile_cost_ms": 0,
+              "immature": 0,
+              "invalid": 0,
+              "known_cost_logical_bytes": 0,
+              "mature": 0,
+              "observations": 0,
+              "unknown_compile_cost": 0
+            },
+            "shadow_only": {
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0,
+              "gross_compile_cost_ms": 0,
+              "immature": 0,
+              "invalid": 0,
+              "known_cost_logical_bytes": 0,
+              "mature": 0,
+              "observations": 0,
+              "unknown_compile_cost": 0
+            }
+          },
+          "net_miss_cost_ms": 6,
+          "policy": "value-density",
+          "requested_reclaim_bytes": 95000,
+          "retained": [
+            "expensive"
+          ]
+        }
+      ]
+    }
+  ]
+}

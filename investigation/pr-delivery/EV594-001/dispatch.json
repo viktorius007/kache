@@ -1,0 +1,9 @@
+{
+  "id": "EV594-001",
+  "agent": "audit_store_core",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/ev594-001",
+  "branch": "fix/ev594-001",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "dispatched_at": "2026-10-11T12:42:33.066199+00:00",
+  "scope": "Saved confirmed compile-cost backfill starvation proof; no renewed audit"
+}

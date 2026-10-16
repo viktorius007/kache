@@ -1,0 +1,48 @@
+{
+  "sqlite_version": "3.43.2",
+  "population": 100000,
+  "limit": 10000,
+  "scope": "generated in-memory selection only; no metadata I/O or production timing claim",
+  "queries": {
+    "baseline": {
+      "plan": [
+        [
+          5,
+          0,
+          0,
+          "SCAN entries"
+        ]
+      ],
+      "returned": 10000,
+      "samples_ms": [
+        1.6958749999999996,
+        1.906332999999996,
+        1.8756250000000056
+      ],
+      "median_ms": 1.8756250000000056
+    },
+    "randomized": {
+      "plan": [
+        [
+          6,
+          0,
+          0,
+          "SCAN entries"
+        ],
+        [
+          22,
+          0,
+          0,
+          "USE TEMP B-TREE FOR ORDER BY"
+        ]
+      ],
+      "returned": 10000,
+      "samples_ms": [
+        27.686707999999978,
+        27.45545799999999,
+        26.975374999999996
+      ],
+      "median_ms": 27.45545799999999
+    }
+  }
+}

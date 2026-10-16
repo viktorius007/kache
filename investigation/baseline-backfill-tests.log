@@ -1,0 +1,85 @@
+   Compiling libc v0.2.189
+   Compiling cfg-if v1.0.4
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.47
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.12
+   Compiling cc v1.4.5
+   Compiling getrandom v0.3.4
+   Compiling serde_core v1.0.229
+   Compiling bitflags v2.13.1
+   Compiling rustix v1.1.4
+   Compiling zerocopy v0.8.57
+   Compiling once_cell v1.21.4
+   Compiling vcpkg v0.2.15
+   Compiling pkg-config v0.3.34
+   Compiling getrandom v0.4.3
+   Compiling rand_core v0.9.5
+   Compiling libsqlite3-sys v0.38.2
+   Compiling syn v3.0.5
+   Compiling errno v0.3.14
+   Compiling serde v1.0.229
+   Compiling autocfg v1.5.1
+   Compiling foldhash v0.2.0
+   Compiling zmij v1.0.23
+   Compiling hashbrown v0.17.1
+   Compiling num-traits v0.2.19
+   Compiling serde_derive v1.0.229
+   Compiling blake3 v1.8.7
+   Compiling syn v2.0.119
+   Compiling anyhow v1.0.104
+   Compiling fastrand v2.5.0
+   Compiling serde_json v1.0.151
+   Compiling tempfile v3.27.0
+   Compiling ppv-lite86 v0.2.21
+   Compiling hashlink v0.12.2
+   Compiling tracing-core v0.1.36
+   Compiling arrayvec v0.7.8
+   Compiling constant_time_eq v0.4.2
+   Compiling itoa v1.0.18
+   Compiling fallible-streaming-iterator v0.1.9
+   Compiling memchr v2.8.3
+   Compiling fallible-iterator v0.3.0
+   Compiling smallvec v1.15.2
+   Compiling tracing-attributes v0.1.31
+   Compiling pin-project-lite v0.2.17
+   Compiling rusqlite v0.40.2
+   Compiling tracing v0.1.44
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-investigations/eviction-value/crates/kache-format)
+   Compiling rand_chacha v0.9.0
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-investigations/eviction-value/crates/kache-fs)
+   Compiling rand v0.9.5
+   Compiling rand_xorshift v0.4.0
+   Compiling filetime v0.2.29
+   Compiling regex-syntax v0.8.11
+   Compiling unarray v0.1.4
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-investigations/eviction-value/crates/kache-store)
+   Compiling proptest v1.11.0
+    Finished `test` profile [unoptimized] target(s) in 13.09s
+     Running unittests src/lib.rs (investigation/target/debug/deps/kache_store-0579b58586fb6f8d)
+
+running 2 tests
+test store::tests::backfill_compile_times_recovers_pre_index_entries ... ok
+test store::tests::backfill_compile_times_is_bounded_per_sweep_and_converges ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 568 filtered out; finished in 0.15s
+
+     Running tests/byte_counters.rs (investigation/target/debug/deps/byte_counters-b61d5c12cd9ce573)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/staged_publication.rs (investigation/target/debug/deps/staged_publication-07b48b65449cc273)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/thread_store_counters.rs (investigation/target/debug/deps/thread_store_counters-17d90a3e8be7e038)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+

@@ -1,0 +1,12 @@
+[package]
+name = "eviction-investigation"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+
+[dependencies]
+kache-store = { path = "../../crates/kache-store" }
+rusqlite = { version = "0.40", features = ["bundled"] }
+serde_json = "1"
+tempfile = "3"

@@ -1,0 +1,118 @@
+[
+  {
+    "id": "EV594-001",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T05:47:06.021358+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex review agent",
+      "mode": "production-readiness",
+      "slice": "eviction-value-policy-evidence"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Compile-cost backfill repeatedly reselects a full batch of zero-cost legacy entries and starves recoverable expensive entries behind it.",
+    "scenario": "Migrated committed index has 10000 valid metadata entries with compile_time_ms=0 followed by a valid 60000ms entry whose index cost is still0; three public backfill sweeps each update0 and leave its cost0.",
+    "evidence": [
+      {
+        "path": "crates/kache-store/src/store.rs",
+        "lines": "5487-5513",
+        "point": "LIMIT selects only rows indexed0; only positive metadata costs change their eligibility; no progression state."
+      },
+      {
+        "path": "src/cli.rs",
+        "lines": "3743-3754",
+        "point": "Production local GC invokes backfill and prints up to date when update count0."
+      },
+      {
+        "path": "src/daemon.rs",
+        "lines": "6904-6910",
+        "point": "Daemon GC invokes the same public backfill."
+      },
+      {
+        "path": "investigation/backfill-test.log",
+        "lines": "1-end",
+        "point": "10000 blockers: [0,0,0], cost0; 9999 blockers: [1,0,0], cost60000; exact expected red and passing control."
+      }
+    ],
+    "trace": "pre-index entries gain default cost0 -> requested local GC or daemon GC -> backfill_compile_times -> bounded fixed eligible selection -> zero metadata rows stay eligible -> later expensive metadata never read -> cost0 reaches shadow selection and known-cost telemetry exclusions",
+    "authority": {
+      "source": "production migration progress / public backfill contract at crates/kache-store/src/store.rs:5396-5418",
+      "quote": "Spreading it over successive sweeps costs nothing"
+    },
+    "proof": {
+      "red_test": "#![cfg(test)]\nuse kache_store::{ArtifactPolicy, ArtifactStore};\n\nstruct FixturePolicy;\nimpl ArtifactPolicy for FixturePolicy {\n    fn allow_hardlink(_: &str) -> bool {\n        false\n    }\n    fn allow_empty(_: &str, _: &[String]) -> bool {\n        false\n    }\n    fn emit_kind(_: &str) -> Option<&'static str> {\n        Some(\"link\")\n    }\n    fn stable_after_store(_: &str) -> bool {\n        true\n    }\n}\ntype Store = ArtifactStore<FixturePolicy>;\n\nfn config(path: &std::path::Path) -> kache_store::config::Config {\n    kache_store::config::Config {\n        cache_dir: path.to_owned(),\n        max_size: 450_000,\n        gc_evict_shared: true,\n        upload_spool_max_jobs: 100,\n        deferred_durability: false,\n    }\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n    use rusqlite::{Connection, params};\n\n    // The asserted cost is the fixture's metadata cost, independent of the\n    // SQL selection. A zero-cost prefix is the discriminator; removing one\n    // prefix row puts the recoverable entry within the batch and goes green.\n    fn recover_legacy_cost(blocking_rows: usize) -> (Vec<usize>, i64) {\n        let fixture = tempfile::tempdir().unwrap();\n        let cfg = config(fixture.path());\n        let store = Store::open(&cfg).unwrap();\n        let artifact = fixture.path().join(\"artifact.rlib\");\n        std::fs::write(&artifact, b\"valid legacy artifact\").unwrap();\n        store\n            .put_with_compile_time(\n                \"template\",\n                \"legacy\",\n                &[\"lib\".into()],\n                &[],\n                \"\",\n                \"dev\",\n                &[(artifact, \"lib.rlib\".into())],\n                \"\",\n                \"\",\n                60_000,\n            )\n            .unwrap();\n        let mut template = serde_json::to_value(store.stored_meta(\"template\").unwrap()).unwrap();\n        let hash = template[\"files\"][0][\"hash\"].as_str().unwrap().to_owned();\n        let mut db = Connection::open(cfg.index_db_path()).unwrap();\n        db.execute(\"DELETE FROM entries WHERE cache_key='template'\", [])\n            .unwrap();\n        db.execute(\"DELETE FROM entry_blobs WHERE cache_key='template'\", [])\n            .unwrap();\n        db.execute(\"UPDATE blobs SET refcount=0\", []).unwrap();\n        let tx = db.transaction().unwrap();\n        for i in 0..=blocking_rows {\n            let expensive = i == blocking_rows;\n            let key = format!(\"{i:064x}\");\n            template[\"cache_key\"] = key.clone().into();\n            template[\"compile_time_ms\"] = if expensive { 60_000 } else { 0 }.into();\n            let dir = store.entry_dir(&key);\n            std::fs::create_dir_all(&dir).unwrap();\n            std::fs::write(\n                dir.join(\"meta.json\"),\n                serde_json::to_vec(&template).unwrap(),\n            )\n            .unwrap();\n            tx.execute(\"INSERT INTO entries(cache_key,crate_name,size,committed,compile_time_ms) VALUES(?1,'legacy',21,1,0)\", params![key]).unwrap();\n            tx.execute(\n                \"INSERT INTO entry_blobs(cache_key,hash,refs) VALUES(?1,?2,1)\",\n                params![key, hash],\n            )\n            .unwrap();\n            tx.execute(\n                \"UPDATE blobs SET refcount=refcount+1 WHERE hash=?1\",\n                params![hash],\n            )\n            .unwrap();\n        }\n        tx.commit().unwrap();\n        let passes = (0..3)\n            .map(|_| store.backfill_compile_times().unwrap())\n            .collect();\n        let cost = db\n            .query_row(\n                \"SELECT compile_time_ms FROM entries WHERE cache_key=?1\",\n                params![format!(\"{blocking_rows:064x}\")],\n                |r| r.get(0),\n            )\n            .unwrap();\n        println!(\"blocking_rows={blocking_rows} passes={passes:?} recovered_cost_ms={cost}\");\n        (passes, cost)\n    }\n\n    #[test]\n    fn compile_cost_backfill_does_not_starve_legacy_expensive_entry() {\n        let (_, cost) = recover_legacy_cost(10_000);\n        assert_eq!(\n            cost, 60_000,\n            \"successive backfill sweeps must reach a recoverable expensive entry behind a full batch of valid zero-cost legacy entries\"\n        );\n    }\n\n    #[test]\n    fn backfill_control_recovers_expensive_entry_inside_the_batch() {\n        let (passes, cost) = recover_legacy_cost(9_999);\n        assert_eq!(cost, 60_000);\n        assert_eq!(passes, vec![1, 0, 0]);\n    }\n}\n",
+      "manifest": "[package]\nname = \"eviction-investigation\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\n[workspace]\n\n[dependencies]\nkache-store = { path = \"../../crates/kache-store\" }\nrusqlite = { version = \"0.40\", features = [\"bundled\"] }\nserde_json = \"1\"\ntempfile = \"3\"\n",
+      "name": "tests::compile_cost_backfill_does_not_starve_legacy_expensive_entry",
+      "command": "python3 investigation/reproduce.py",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.25s\n     Running unittests src/lib.rs (investigation/target/debug/deps/eviction_investigation-1d1293d166706e42)\n\nrunning 2 tests\nblocking_rows=9999 passes=[1, 0, 0] recovered_cost_ms=60000\nblocking_rows=10000 passes=[0, 0, 0] recovered_cost_ms=0\ntest tests::backfill_control_recovers_expensive_entry_inside_the_batch ... ok\n\nthread 'tests::compile_cost_backfill_does_not_starve_legacy_expensive_entry' (45808551) panicked at src/lib.rs:110:9:\nassertion `left == right` failed: successive backfill sweeps must reach a recoverable expensive entry behind a full batch of valid zero-cost legacy entries\n  left: 0\n right: 60000\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\ntest tests::compile_cost_backfill_does_not_starve_legacy_expensive_entry ... FAILED\n\nfailures:\n\nfailures:\n    tests::compile_cost_backfill_does_not_starve_legacy_expensive_entry\n\ntest result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.24s\n\nerror: test failed, to rerun pass `--lib`\n",
+      "fixture_discriminator": "Reduce zero-cost prefix from10000 to9999: cost60000 recovered, [1,0,0], control passes. Production code unchanged."
+    },
+    "severity": "Persistent migration and policy-observation data-quality failure on large legacy stores with >=10000 permanently zero/nonrecoverable entries selected before expensive recoverable entries. Unknown-cost density ordering and exclusion bias persist; no direct live eviction change, user-cache prevalence, or artifact-integrity failure proved.",
+    "status": "open"
+  },
+  {
+    "id": "EV594-D01",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:47:06.021358+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex review agent",
+      "mode": "production-readiness",
+      "slice": "eviction-value-policy-evidence"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "The fixed-horizon evidence reader is not asserted to establish a policy winner.",
+    "checked": "Read complete eviction_evidence.rs and report/eviction_evidence.rs; generated traces exercise mature demand and opposite future-demand outcomes; examined timestamp, maturity, unknown-cost and shadow-bound tests.",
+    "closed_by": {
+      "tier": 2,
+      "citation": "crates/kache-store/src/eviction_evidence.rs:61-117 and src/report/eviction_evidence.rs:6-14 explicitly restrict totals and disclose observation limits; investigation/generated-traces.json demonstrates independent future-demand reversal."
+    },
+    "reopens_if": "A valid counterexample makes a stated lower bound exceed observed in-horizon demand or a report removes these limits and treats cohorts as a policy comparison.",
+    "status": "dismissed"
+  },
+  {
+    "id": "EV594-D02",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:47:06.021358+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex review agent",
+      "mode": "production-readiness",
+      "slice": "eviction-value-policy-evidence"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Protected candidate prefixes and retained-row counterfactuals are diagnostic approximations rather than faithful capacity-constrained policy replays.",
+    "checked": "Executed protected-cheap fixture: live eviction1, shadow-only records0, legacy counterfactual evicted0 on both sides; read budget-walk and filter contracts and SQL anchor.",
+    "closed_by": {
+      "tier": 4,
+      "citation": "crates/kache-store/src/eviction.rs:197-208: An approximation over the pre-sweep snapshot, not a simulation; explicitly says eligibility and dynamic refcounts need follow-up. src/report/eviction_evidence.rs:6-14 disclaims complete history and winner selection."
+    },
+    "reopens_if": "This API is used as sufficient flip evidence or promised as a faithful replay, or a separate accepted requirement mandates equal-coverage accounting.",
+    "status": "dismissed"
+  },
+  {
+    "id": "EV594-D03",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:47:06.021358+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex review agent",
+      "mode": "production-readiness",
+      "slice": "eviction-value-policy-evidence"
+    },
+    "category": "gap",
+    "domain": "code",
+    "summary": "A live value-aware policy and append-only two-sided demand ledger are proposed future work, not confirmed missing accepted behavior.",
+    "checked": "Compared issue594 current body with production size-pressure policy, density shadow, latest tombstones and first shadow-only observations; generated two future-demand traces using separate states.",
+    "closed_by": {
+      "tier": 4,
+      "citation": "https://github.com/kunobi-ninja/kache/issues/594 current status says live eviction remains size-driven and ledger replacement/reuse estimation remains to decide; production matches that scope."
+    },
+    "reopens_if": "A later accepted requirement mandates a live value-aware policy or append-only episode ledger, or independently held-out prospective demand establishes a policy regression.",
+    "status": "dismissed"
+  }
+]
