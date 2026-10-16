@@ -1,0 +1,1 @@
+PASS fixture seed {"seed_build_s": 2.594674375, "seed_push_s": 0.4445969169999997, "entries": 24, "logical_bytes": 19103368, "remote_bytes": 6412193, "remote_files": 48}

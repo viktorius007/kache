@@ -1,0 +1,20 @@
+{
+  "id": "ephemeral-ci-001",
+  "branch": "fix/ephemeral-ci-001",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/ephemeral-ci-001",
+  "test_commit": "45ac1497a7ca1d230e3381a9080035b27c100186",
+  "fix_commit": "7e7f98decc0b52883a49f493cbbc5d25f5b94882",
+  "title": "Recover uncommitted extracted entries during bulk sync",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/ephemeral-ci/investigation/pr-delivery/ephemeral-ci-001/pr-body.md",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "gate_command": "python3 /Users/viktor/Developer/github/kache-investigations/ephemeral-ci/investigation/pr-delivery/ephemeral-ci-001/run-check.py /Users/viktor/Developer/github/kache-investigations/ephemeral-ci/investigation/pr-delivery/ephemeral-ci-001/gate.log just check",
+  "gate_exit": 0,
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/ephemeral-ci/investigation/pr-delivery/ephemeral-ci-001/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/ephemeral-ci/investigation/pr-delivery/ephemeral-ci-001/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/ephemeral-ci/investigation/pr-delivery/ephemeral-ci-001/gate.log",
+  "changed_files": [
+    "src/cli.rs",
+    "src/cli/tests.rs"
+  ],
+  "environment_diagnosis": "/Users/viktor/Developer/github/kache-investigations/ephemeral-ci/investigation/pr-delivery/ephemeral-ci-001/gate-environment.md"
+}

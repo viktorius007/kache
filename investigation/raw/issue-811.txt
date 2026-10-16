@@ -1,0 +1,21 @@
+URL: https://github.com/kunobi-ninja/kache/issues/811
+State: closed
+Parent: #810
+
+Deliver a bounded trusted node-local L1 cache for ephemeral self-hosted CI jobs, with explicit ownership and no public/fork exposure.
+
+## Required behavior
+
+- Define one supported per-node store/daemon lifecycle across one-job ARC runner pods.
+- Preserve Kache's local SQLite/blob correctness under concurrent trusted jobs.
+- Isolate trust domains so public, fork, or otherwise untrusted jobs cannot read or mutate the trusted cache.
+- Bound disk with GC, reservations, health, and node-local hit/miss/byte metrics.
+- Fail open to ordinary per-job L2/v3 behavior when L1 is unavailable.
+- Document runner/platform wiring and operational rollback.
+
+## Acceptance
+
+- Warm trusted nodes download only misses.
+- Isolation tests prove untrusted jobs receive no node-cache mount/socket/credentials.
+- Concurrent-job, daemon restart, corrupt local entry, disk-pressure, and fallback tests.
+- Five clean cold-node and warm-node representative runs.

@@ -1,0 +1,108 @@
+diff --git a/src/cli.rs b/src/cli.rs
+index 52ec693..6ceeb4a 100644
+--- a/src/cli.rs
++++ b/src/cli.rs
+@@ -7629,14 +7629,11 @@ async fn sync_with_client(
+ 
+     let local_entries = store.list_entries("name")?;
+ 
+-    // to_pull: remote keys not present on disk locally — (cache_key, crate_name).
++    // to_pull: remote keys not committed locally — (cache_key, crate_name).
+     let to_pull: Vec<(String, String)> = if !push_only {
+         s3_keys
+             .iter()
+-            .filter(|(k, _)| {
+-                let entry_dir = config.store_dir().join(k.as_str());
+-                !entry_dir.exists()
+-            })
++            .filter(|(k, _)| !store.contains(k))
+             .map(|(k, cn)| (k.clone(), cn.clone()))
+             .collect()
+     } else {
+@@ -7720,13 +7717,13 @@ async fn sync_with_client(
+             // We do NOT tokio::spawn — FuturesUnordered polls futures cooperatively
+             // on the current thread. This avoids Send requirements for Store.
+             in_flight.push(async move {
+-                // Re-check: daemon (or a parallel sync) may have downloaded it
+-                let entry_dir = cfg.store_dir().join(&key);
+-                if entry_dir.exists() {
++                // Extraction alone does not commit an entry for local consumers.
++                if store.contains(&key) {
+                     ok_ref.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                     return;
+                 }
+ 
++                let entry_dir = cfg.store_dir().join(&key);
+                 let blobs_dir = cfg.store_dir().join("blobs");
+                 let result = remote_cache
+                     .download_entry(&key, &crate_name, &entry_dir, &blobs_dir, None)
+diff --git a/src/cli/tests.rs b/src/cli/tests.rs
+index da20100..4c287b9 100644
+--- a/src/cli/tests.rs
++++ b/src/cli/tests.rs
+@@ -6411,6 +6411,65 @@ async fn sync_with_client_pull_downloads_and_imports_entry() {
+     );
+ }
+ 
++#[tokio::test]
++async fn sync_with_client_pull_recovers_uncommitted_extracted_entry() {
++    let dir = tempfile::tempdir().unwrap();
++    let config = save_manifest_config(dir.path().to_path_buf(), Some(test_remote_cfg()));
++    let store = Store::open(&config).unwrap();
++    let remote = test_remote_cfg();
++    let key = sync_test_cache_key("uncommitted-extracted-pull");
++    let pack_path = format!("prefix/v3/packs/serde/{key}.tar.zst");
++    let backend = TestBackend::memory();
++    backend
++        .seed(
++            &format!("prefix/v3/manifests/serde/{key}.json"),
++            b"{}".to_vec(),
++        )
++        .await;
++    backend
++        .seed(&pack_path, build_entry_pack(&key, "serde"))
++        .await;
++    let client = as_cache_remote(as_remote_backend(&backend), &remote);
++    crate::cache_remote::CacheRemote::download_entry(
++        &client,
++        &key,
++        "serde",
++        &store.entry_dir(&key),
++        &store.blobs_dir(),
++        None,
++    )
++    .await
++    .unwrap();
++    assert!(store.entry_dir(&key).join("libfoo.rlib").is_file());
++    assert!(!store.contains(&key));
++
++    sync_with_client(
++        &client, &config, &store, None, true, false, false, true, None, false, false,
++    )
++    .await
++    .expect("sync should recover extraction interrupted before index import");
++    let meta = store
++        .get(&key)
++        .unwrap()
++        .expect("successful sync must make the extracted entry available to local consumers");
++    assert_eq!(
++        fs::read(store.blob_path(&meta.files[0].hash)).unwrap(),
++        b"real artifact bytes"
++    );
++    assert_eq!(backend.get_calls(), vec![pack_path.clone(), pack_path]);
++
++    sync_with_client(
++        &client, &config, &store, None, true, false, false, true, None, false, false,
++    )
++    .await
++    .expect("syncing a committed entry should remain successful");
++    assert_eq!(
++        backend.get_calls().len(),
++        2,
++        "committed entries need no pull"
++    );
++}
++
+ struct DisappearingBackend {
+     inner: Arc<TestBackend>,
+     on_put_delete: std::path::PathBuf,

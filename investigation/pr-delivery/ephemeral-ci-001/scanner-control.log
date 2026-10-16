@@ -1,0 +1,995 @@
+    Finished `test` profile [unoptimized] target(s) in 0.76s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 256 tests
+test cli::tests::a_cache_preview_says_what_each_clean_would_do ... ok
+test cli::tests::a_cache_clean_decides_from_what_it_counted ... ok
+test cli::tests::a_clean_sweep_says_nothing_about_entries_left_behind ... ok
+test cli::tests::a_hardlinked_artifact_records_its_link_group ... ok
+test cli::tests::a_push_without_logs_reports_that_and_succeeds ... ok
+test cli::tests::a_quiet_gc_the_user_asked_for_is_requested ... ok
+test cli::tests::a_freshly_built_target_is_offered_once_its_worktree_is_deleted ... ok
+test cli::tests::a_removal_summary_counts_directories_and_names_shared_bytes_only_when_there_are_some ... ok
+test cli::tests::a_successful_eviction_reports_bytes_and_still_flags_pinned_entries ... ok
+test cli::tests::a_successful_eviction_sizes_the_entries_clones_hold ... ok
+test cli::tests::a_successful_eviction_without_pinned_entries_has_no_pinned_note ... ok
+test cli::tests::a_target_says_what_the_next_pass_does_to_it ... ok
+test cli::tests::a_target_whose_build_lock_is_held_is_in_use ... ok
+test cli::tests::a_workspace_is_gone_only_when_its_parent_is_still_there ... ok
+test cli::tests::a_remote_that_never_answers_fails_the_probe ... ok
+test cli::tests::age_gc_without_a_daemon_records_its_run ... ok
+test cli::tests::an_empty_store_does_not_imply_something_is_wrong ... ok
+test cli::tests::age_gc_without_a_daemon_reaches_shards_whose_lock_is_free ... ok
+test cli::tests::an_unsuccessful_eviction_still_flags_pinned_entries_when_clones_remain ... ok
+test cli::tests::apply_rustdoc_edit_inserts_replaces_and_leaves_a_correct_line ... ok
+test cli::tests::auto_gc_worker_retries_after_pins_or_a_lost_lock ... ok
+test cli::tests::automatic_manifest_entries_are_scoped_to_the_build_session ... ok
+test cli::tests::automatic_manifest_save_without_remote_errors ... ok
+test cli::tests::cache_candidates_accept_each_independent_store_sharing_signal ... ok
+test cli::tests::an_orphans_dry_run_keeps_a_missing_target_registered ... ok
+test cli::tests::cache_counts_cover_one_crate_or_the_whole_cache ... ok
+test cli::tests::cache_limit_note_names_the_disk_share_budget ... ok
+test cli::tests::checkout_check_wording ... ok
+test cli::tests::checkout_comparison_lines_separate_path_only_from_input_changes ... ok
+test cli::tests::clean_event_applies_press_but_ignores_release ... ok
+test cli::tests::clean_handle_key_cancel_and_confirm ... ok
+test cli::tests::clean_handle_key_handles_boundaries ... ok
+test cli::tests::clean_handle_key_navigation_and_selection ... ok
+test cli::tests::clean_names_its_window_and_the_command_that_repeats_it ... ok
+{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "preview": true,
+  "targets": []
+}{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "preview": false,
+  "targets": []
+}test cli::tests::clean_units_without_a_receipt_keeps_files_in_preview_and_confirmed_modes ... ok
+test cli::tests::cache_cleaning_previews_without_removing_and_removes_on_yes ... ok
+test cli::tests::cloned_targets_summary_only_appears_for_retained_blocks ... ok
+test cli::tests::compute_project_stats_classifies_an_externally_hardlinked_rlib_as_cached ... ok
+test cli::tests::compute_project_stats_does_not_follow_profile_symlinks ... ok
+test cli::tests::compute_project_stats_reads_cargos_per_unit_build_layout ... ok
+test cli::tests::config_mismatch_warnings_name_both_sides_per_field ... ok
+test cli::tests::clean_yes_removes_a_selected_tracked_target ... ok
+test cli::tests::daemon_footnote_only_for_downgraded_daemon_failures ... ok
+test cli::tests::daemon_gc_breakdown_sums_every_policy_field ... ok
+test cli::tests::daemon_service_is_satisfied_by_install_or_healthy_on_demand_daemon ... ok
+test cli::tests::daemon_version_check_prefers_the_daemon_that_answered ... ok
+test cli::tests::daemon_version_check_reports_an_absent_daemon ... ok
+test cli::tests::daemon_version_check_reports_pending_start_without_guessing_the_release ... ok
+test cli::tests::daemon_version_check_reports_release_order_and_unknown_legacy_versions ... ok
+test cli::tests::detail_fields_render_only_nonempty_values ... ok
+test cli::tests::doctor_and_full_clean_report_quarantined_indexes_without_deleting_them ... ok
+test cli::tests::doctor_check_optionality_truth_table ... ok
+test cli::tests::doctor_flags_a_read_only_daemon_for_a_writable_process ... ok
+test cli::tests::doctor_groups_each_label_by_its_component ... ok
+test cli::tests::doctor_host_config_check_wording ... ok
+test cli::tests::doctor_install_path_check_wording ... ok
+test cli::tests::doctor_link_layout_uses_the_mapped_store_and_leaves_missing_shards_absent ... ok
+test cli::tests::doctor_quarantine_inspection_reports_unreadable_cache_directory ... ok
+test cli::tests::doctor_reads_cross_checkout_misses_from_the_event_log ... ok
+test cli::tests::draw_clean_renders_target_table ... ok
+test cli::tests::evicting_nothing_because_everything_is_pinned_explains_itself ... ok
+test cli::tests::evicting_nothing_while_over_limit_still_explains_the_grace ... ok
+test cli::tests::eviction_messages_are_singular_for_one_entry ... ok
+test cli::tests::find_target_dirs_ignores_an_empty_cargo_target ... ok
+test cli::tests::free_page_bytes_multiplies_and_rejects_nonsense ... ok
+test cli::tests::fully_retained_eviction_has_a_cleanup_path ... ok
+test cli::tests::gc_machine_output_boundaries_are_explicit ... ok
+test cli::tests::hit_rate_row_adds_every_outcome ... ok
+test cli::tests::idle_times_use_the_largest_whole_unit ... ok
+test cli::tests::index_free_bytes_counts_freelist_pages ... ok
+test cli::tests::index_row_figures_seek_instead_of_scanning ... ok
+test cli::tests::crate_entries_counts_only_that_crate ... ok
+test cli::tests::init_reports_whether_this_terminal_paces_tests ... ok
+test cli::tests::json_list_crate_filter_is_exact ... ok
+test cli::tests::json_targets_suggest_the_orphan_clean_only_when_a_worktree_is_gone ... ok
+test cli::tests::labels_are_key_value_pairs ... ok
+test cli::tests::lifetime_rows_leave_out_zero_totals ... ok
+test cli::tests::lifetime_rows_show_each_recorded_total ... ok
+test cli::tests::init_reads_the_host_triple_from_rustc ... ok
+test cli::tests::local_gc_appends_to_the_gc_history_only_when_record_sessions_is_on ... ok
+test cli::tests::local_gc_records_its_run_with_the_driver_that_ran_it ... ok
+test cli::tests::local_gc_runs_store_housekeeping_and_records_it ... ok
+test cli::tests::local_gc_sweeps_hermetic_build_script_runs ... ok
+test cli::tests::local_gc_takes_each_stores_lock_on_its_own ... ok
+test cli::tests::login_service_configuration_covers_existing_and_new_installations ... ok
+test cli::tests::machine_snapshot_never_checkpoints_the_wal ... ok
+test cli::tests::local_gc_sweeps_each_shard_against_its_own_budget ... ok
+test cli::tests::machine_snapshot_reads_a_store_without_creating_one ... ok
+test cli::tests::manifest_commit_prefers_github_then_gitlab_and_skips_daemon_sessions ... ok
+test cli::tests::manifest_entries_from_events_accepts_remote_and_prefetch_hits ... ok
+test cli::tests::manifest_entries_from_events_dedups_and_filters ... ok
+test cli::tests::manifest_entries_from_events_falls_back_to_elapsed_when_no_compile_time ... ok
+test cli::tests::manifest_entry_ties_keep_the_first_observation ... ok
+test cli::tests::only_a_printing_sweep_names_the_shard_first ... ok
+test cli::tests::only_fix_restarts_a_stale_daemon ... ok
+test cli::tests::only_the_primary_manifest_key_publishes_shards ... ok
+test cli::tests::over_limit_is_decided_by_a_strict_comparison_against_the_budget ... ok
+test cli::tests::pager_line_writer_stops_on_content_or_newline_errors ... ok
+test cli::tests::pager_resolution_groups_quotes_without_shell_evaluation ... ok
+test cli::tests::pager_resolution_obeys_tty_disable_and_environment_precedence ... ok
+test cli::tests::pager_resolution_uses_platform_defaults ... ok
+test cli::tests::prefetch_session_lines_follow_the_summaries ... ok
+test cli::tests::probing_a_free_lock_leaves_it_free_while_a_duplicate_lives ... ok
+test cli::tests::profiles_are_found_by_what_cargo_wrote_into_them ... ok
+test cli::tests::purge_keeps_only_linked_build_script_runs ... ok
+test cli::tests::purge_skips_corrupt_filtered_entry ... ok
+test cli::tests::machine_snapshot_skips_row_figures_on_a_locked_index ... ok
+test cli::tests::reclaim_estimator_clamps_private_bytes_to_allocated_storage ... ok
+test cli::tests::reclaim_estimator_collapses_internal_hardlink_groups ... ok
+test cli::tests::reclaim_estimator_counts_binary_reflink_private_bytes ... ok
+test cli::tests::reclaim_estimator_uses_private_bytes_for_partial_reflinks ... ok
+test cli::tests::remote_access_names_the_credential_source_and_a_stopped_chain ... ok
+test cli::tests::remote_access_reports_the_explained_cause ... ok
+test cli::tests::removal_asks_only_at_a_terminal ... ok
+test cli::tests::remove_targets_deletes_all_and_reports_estimates ... ok
+test cli::tests::remove_targets_keeps_a_target_while_cargo_is_running ... ok
+test cli::tests::remove_targets_leaves_a_target_a_build_is_writing ... ok
+test cli::tests::remove_targets_refuses_a_directory_replaced_after_scan ... ok
+test cli::tests::remove_targets_skips_failures_without_aborting ... ok
+test cli::tests::render_clean_dry_run_formats_plural_profiles_and_fallback_paths ... ok
+test cli::tests::render_stats_cache_fallback_labels_logical_bytes ... ok
+test cli::tests::render_stats_cache_preserves_logical_size_without_registered_blobs ... ok
+test cli::tests::render_stats_cache_shards_use_blob_bytes_and_label_missing_metadata ... ok
+test cli::tests::render_stats_daemon_mismatch_and_local_only ... ok
+test cli::tests::render_stats_handles_zero_limits_and_zero_logical_dedup ... ok
+test cli::tests::render_stats_offline_and_not_configured ... ok
+test cli::tests::render_stats_places_the_lifetime_section_after_the_window ... ok
+test cli::tests::render_stats_prefetch_policy_labels_client_fallback_for_old_daemon ... ok
+test cli::tests::render_stats_prefetch_policy_prefers_daemon_effective ... ok
+test cli::tests::render_stats_prefetch_section_gated_on_activity ... ok
+test cli::tests::render_stats_remote_state_prefers_daemon_effective ... ok
+test cli::tests::render_stats_resilience_requires_both_sources_and_any_single_signal ... ok
+test cli::tests::render_stats_rich_snapshot_covers_all_lines ... ok
+test cli::tests::render_stats_says_when_the_daemon_does_not_list_the_remote ... ok
+test cli::tests::repair_tip_and_reconciliation_message_cover_every_boundary ... ok
+test cli::tests::report_record_appends_one_line_to_the_cache_dir_not_the_runtime_dir ... ok
+test cli::tests::report_record_that_cannot_write_still_delivers_the_report ... ok
+test cli::tests::report_records_without_the_flag_when_record_sessions_is_on ... ok
+test cli::tests::report_without_record_leaves_the_cache_dir_unchanged ... ok
+test cli::tests::rowid_high_water_counts_replacements_not_rows ... ok
+test cli::tests::rustdoc_assignment_ignores_a_longer_key_and_a_comment ... ok
+test cli::tests::rustdoc_doctor_fields_cover_windows_unset_and_a_bad_path ... ok
+test cli::tests::rustdoc_doctor_fix_is_present_only_when_the_check_fails ... ok
+test cli::tests::rustdoc_edit_decision_writes_only_for_kache_without_a_key ... ok
+test cli::tests::rustdoc_shim_path_accepts_a_symlink_to_kache ... ok
+test cli::tests::rustdoc_shim_path_requires_an_absolute_rustdoc_file ... ok
+test cli::tests::save_manifest_skipped_when_remote_readonly ... ok
+test cli::tests::save_manifest_warns_a_writable_job_about_a_read_only_daemon ... ok
+test cli::tests::save_manifest_with_no_events_returns_ok_before_touching_remote ... ok
+test cli::tests::save_manifest_without_remote_errors ... ok
+test cli::tests::scoped_listing_merges_every_requested_crates_keys ... ok
+test cli::tests::scoped_listing_propagates_failures_and_drops_cancelled_requests ... ok
+test cli::tests::scoped_sync_lists_overlap_within_the_configured_limit ... ok
+test cli::tests::selecting_from_no_records_sends_nothing ... ok
+test cli::tests::shutdown_summary_status_distinguishes_partial_totals_from_cancellation ... ok
+test cli::tests::since_label_adds_the_year_only_for_another_year ... ok
+test cli::tests::snapshot_from_direct_reads_honors_a_sub_hour_window ... ok
+test cli::tests::purge_waits_for_the_gc_lock ... ok
+test cli::tests::snapshot_from_direct_reads_returns_only_the_newest_five_summaries ... ok
+test cli::tests::snapshot_from_direct_reads_reflects_store_and_events ... ok
+test cli::tests::stale_restart_note_never_claims_a_replacement_that_may_not_exist ... ok
+test cli::tests::snapshot_from_direct_reads_without_entries_skips_listing ... ok
+test cli::tests::stats_gc_note_suffixes_start_at_one ... ok
+{
+  "schema_version": 1,
+  "command": "gc",
+  "success": true,
+  "skipped": false,
+  "disk": {
+    "store_bytes": 0,
+    "store_limit_bytes": 1048576,
+    "disk_private_bytes": 0,
+    "cloned_into_targets_bytes": 0,
+    "snapshot_retained_bytes": 0,
+    "cloned_coverage": "full"
+  },
+  "entries": 0,
+  "entries_dropped": 0,
+  "store_bytes_removed": 0,
+  "disk_bytes_reclaimed": 0,
+  "entries_pinned": 0,
+  "entries_unreclaimable": 0,
+  "entries_failed": 0
+}test cli::tests::stale_schema_gc_records_its_run ... ok
+test cli::tests::stats_names_the_host_config_only_when_in_effect ... ok
+test cli::tests::stats_rows_show_the_index_and_a_gc_that_keeps_losing_the_lock ... ok
+test cli::tests::stats_show_a_read_only_daemon_to_a_writable_process ... ok
+test cli::tests::sync_without_remote_errors ... ok
+{
+  "schema_version": 1,
+  "command": "stats",
+  "success": true,
+  "report": {
+    "eviction_evidence": {
+      "horizon_secs": 604800,
+      "as_of_unix_secs": 1791718894,
+      "limitations": [
+        "All-store observations tagged with value-density shadow decisions, independent of the build-event window and root filter.",
+        "Latest live eviction and first shadow-only sweep per key; repeated evictions overwrite history and cohorts can overlap.",
+        "Immature and invalid observations are excluded from demand and cost totals. Retained rows are not a complete sweep history.",
+        "Live demand counts first recorded post-eviction requests. Read-only clients and overwritten records can hide demand; absence of a stamp does not prove obsolescence.",
+        "Shadow demand bounds allow unrecorded requests because hit stamps are throttled, overwritten and reset on reinsertion.",
+        "Costs are gross measured compile time, excluding unknown costs and cache-serving cost. Logical bytes include shared blobs and do not estimate physically reclaimed bytes.",
+        "These observations do not select a policy winner or change live eviction."
+      ],
+      "stores": [
+        {
+          "store_index": 0,
+          "evidence": {
+            "as_of_unix_secs": 1791718894,
+            "horizon_secs": 604800,
+            "live_shadow_agreed": {
+              "observations": 0,
+              "immature": 0,
+              "invalid": 0,
+              "mature": 0,
+              "unknown_compile_cost": 0,
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "known_cost_logical_bytes": 0,
+              "gross_compile_cost_ms": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0
+            },
+            "live_shadow_kept": {
+              "observations": 0,
+              "immature": 0,
+              "invalid": 0,
+              "mature": 0,
+              "unknown_compile_cost": 0,
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "known_cost_logical_bytes": 0,
+              "gross_compile_cost_ms": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0
+            },
+            "shadow_only": {
+              "observations": 0,
+              "immature": 0,
+              "invalid": 0,
+              "mature": 0,
+              "unknown_compile_cost": 0,
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "known_cost_logical_bytes": 0,
+              "gross_compile_cost_ms": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0
+            }
+          },
+          "error": null
+        }
+      ]
+    },
+    "schema_version": 1,
+    "meta": {
+      "kache_version": "1.0.0",
+      "generated_at": "2026-10-11T11:41:34.399764+00:00",
+      "since_hours": 0,
+      "since_secs": 0,
+      "since": "0s",
+      "root_filter": "/repo",
+      "session": {
+        "root": "/repo",
+        "session_id": "build",
+        "inferred": false,
+        "inactivity_secs": 300
+      }
+    },
+    "summary": {
+      "hit_rate_pct": 100.0,
+      "weighted_hit_rate_pct": 100.0,
+      "time_saved_ms": 4,
+      "total_crates": 1,
+      "local_hits": 1,
+      "prefetch_hits": 0,
+      "remote_hits": 0,
+      "dups": 0,
+      "misses": 0,
+      "errors": 0,
+      "passthroughs": 0,
+      "probes": 0,
+      "skipped": 0,
+      "store_failures": 0,
+      "fallbacks": 0,
+      "total_duration_ms": 5,
+      "cache_efficiency_pct": 100.0
+    },
+    "timeline": {
+      "start_time": "2026-10-11T11:41:34.377977+00:00",
+      "end_time": "2026-10-11T11:41:34.382977+00:00",
+      "start_unix_ms": 1791718894377,
+      "end_unix_ms": 1791718894382,
+      "duration_ms": 5,
+      "event_count": 1,
+      "cacheable_count": 1,
+      "hit_count": 1,
+      "compiled_count": 0,
+      "passthrough_count": 0,
+      "probe_count": 0,
+      "skipped_count": 0,
+      "error_count": 0
+    },
+    "timing": {
+      "hit_time_ms": 5,
+      "miss_time_ms": 0,
+      "avg_hit_ms": 5.0,
+      "avg_miss_ms": 0.0,
+      "avg_hit_overhead_ms": 5.0,
+      "miss_compile_time_ms": 0,
+      "avg_key_ms": 0.0,
+      "avg_lookup_ms": 0.0,
+      "avg_restore_ms": 0.0,
+      "avg_store_ms": 0.0,
+      "total_key_ms": 0,
+      "total_lookup_ms": 0,
+      "total_restore_ms": 0,
+      "total_store_ms": 0,
+      "total_startup_ms": 0,
+      "avg_startup_ms": 0.0,
+      "total_dep_info_ms": 0,
+      "dep_info_runs": 0,
+      "avg_dep_info_ms": 0.0,
+      "prediction_mismatches": 0,
+      "total_wait_ms": 0,
+      "total_flight_wait_ms": 0,
+      "total_permit_wait_ms": 0,
+      "avg_wait_ms": 0.0,
+      "total_unattributed_ms": 5,
+      "avg_unattributed_ms": 5.0
+    },
+    "storage": {
+      "store_entries": 0,
+      "stores": [
+        {
+          "path": "/tmp/kache-e1-2k3u5ynw/.tmp9axMvS",
+          "bytes": 0,
+          "max_size": 1048576,
+          "entries": 0,
+          "blob_stats": {
+            "total_blobs": 0,
+            "total_blob_size": 0,
+            "total_logical_size": 0,
+            "savings": 0
+          },
+          "error": null
+        }
+      ],
+      "reflinked_bytes": 0,
+      "hardlinked_bytes": 0,
+      "copied_bytes": 0,
+      "restored_bytes": 0,
+      "zero_copy_pct": 0.0,
+      "store_reflinked_bytes": 0,
+      "store_hardlinked_bytes": 0,
+      "store_copied_bytes": 0,
+      "store_copy_cross_device_bytes": 0,
+      "store_copy_permission_bytes": 0,
+      "store_copy_ineligible_bytes": 0,
+      "store_copy_other_bytes": 0,
+      "restore_copy_cross_device_bytes": 0,
+      "restore_copy_permission_bytes": 0,
+      "restore_copy_exclusive_bytes": 0,
+      "restore_copy_other_bytes": 0,
+      "store_blobs": 0,
+      "logical_bytes": 0,
+      "blob_bytes": 0,
+      "dedup_saved_bytes": 0,
+      "accounting_consistent": true
+    },
+    "network": null,
+    "prefetch": {
+      "prefetch_hits": 0,
+      "total_hits": 1,
+      "contribution_pct": 0.0
+    },
+    "top_misses": [],
+    "top_hits": [
+      {
+        "crate_name": "demo",
+        "root": "/repo",
+        "result": "local_hit",
+        "start_time": "2026-10-11T11:41:34.377977+00:00",
+        "end_time": "2026-10-11T11:41:34.382977+00:00",
+        "start_unix_ms": 1791718894377,
+        "end_unix_ms": 1791718894382,
+        "elapsed_ms": 5,
+        "compile_time_ms": 4,
+        "overhead_ms": 5,
+        "size": 64,
+        "cache_key": "key",
+        "store_output_blobs": 0,
+        "store_duplicate_blobs": 0,
+        "store_new_blobs": 0,
+        "compiler_runs": 0,
+        "preprocessor_runs": 0,
+        "probe_runs": 0,
+        "dep_info_runs": 0,
+        "prediction_mismatches": 0,
+        "store_handed_off": false,
+        "daemon_store_ms": 0
+      }
+    ],
+    "all_events": [
+      {
+        "crate_name": "demo",
+        "root": "/repo",
+        "result": "local_hit",
+        "start_time": "2026-10-11T11:41:34.377977+00:00",
+        "end_time": "2026-10-11T11:41:34.382977+00:00",
+        "start_unix_ms": 1791718894377,
+        "end_unix_ms": 1791718894382,
+        "elapsed_ms": 5,
+        "compile_time_ms": 4,
+        "overhead_ms": 5,
+        "size": 64,
+        "cache_key": "key",
+        "store_output_blobs": 0,
+        "store_duplicate_blobs": 0,
+        "store_new_blobs": 0,
+        "compiler_runs": 0,
+        "preprocessor_runs": 0,
+        "probe_runs": 0,
+        "dep_info_runs": 0,
+        "prediction_mismatches": 0,
+        "store_handed_off": false,
+        "daemon_store_ms": 0
+      }
+    ],
+    "traceEvents": [
+      {
+        "name": "hit: demo",
+        "cat": "kache",
+        "ph": "X",
+        "ts": 1791718894377977,
+        "dur": 5000,
+        "pid": 1,
+        "tid": 0,
+        "cname": "good",
+        "args": {
+          "crate_name": "demo",
+          "root": "/repo",
+          "result": "local_hit",
+          "route": "n/a",
+          "reason": "unknown",
+          "cache_key": "key",
+          "elapsed_ms": 5,
+          "compile_time_ms": 4,
+          "overhead_ms": 5,
+          "size": 64,
+          "compiler_runs": 0,
+          "preprocessor_runs": 0,
+          "probe_runs": 0,
+          "store_output_blobs": 0,
+          "store_duplicate_blobs": 0,
+          "store_new_blobs": 0,
+          "startup_ms": 0,
+          "key_ms": 0,
+          "dep_info_ms": 0,
+          "dep_info_runs": 0,
+          "lookup_ms": 0,
+          "wait_ms": 0,
+          "flight_wait_ms": 0,
+          "permit_wait_ms": 0,
+          "restore_ms": 0,
+          "store_ms": 0,
+          "unattributed_ms": 5,
+          "exit_code": null
+        }
+      }
+    ],
+    "displayTimeUnit": "ms",
+    "bypass": {
+      "passthroughs": 0,
+      "probes": 0,
+      "skipped": 0,
+      "fallbacks": 0,
+      "direct_passthroughs": 0,
+      "reasons": [],
+      "slowest": []
+    },
+    "errors_detail": [],
+    "suggestions": [
+      "Remote transfer data omitted because transfer events are not root-scoped yet"
+    ]
+  }
+}{
+  "schema_version": 1,
+  "command": "stats",
+  "success": true,
+  "report": {
+    "eviction_evidence": {
+      "horizon_secs": 604800,
+      "as_of_unix_secs": 1791718894,
+      "limitations": [
+        "All-store observations tagged with value-density shadow decisions, independent of the build-event window and root filter.",
+        "Latest live eviction and first shadow-only sweep per key; repeated evictions overwrite history and cohorts can overlap.",
+        "Immature and invalid observations are excluded from demand and cost totals. Retained rows are not a complete sweep history.",
+        "Live demand counts first recorded post-eviction requests. Read-only clients and overwritten records can hide demand; absence of a stamp does not prove obsolescence.",
+        "Shadow demand bounds allow unrecorded requests because hit stamps are throttled, overwritten and reset on reinsertion.",
+        "Costs are gross measured compile time, excluding unknown costs and cache-serving cost. Logical bytes include shared blobs and do not estimate physically reclaimed bytes.",
+        "These observations do not select a policy winner or change live eviction."
+      ],
+      "stores": [
+        {
+          "store_index": 0,
+          "evidence": {
+            "as_of_unix_secs": 1791718894,
+            "horizon_secs": 604800,
+            "live_shadow_agreed": {
+              "observations": 0,
+              "immature": 0,
+              "invalid": 0,
+              "mature": 0,
+              "unknown_compile_cost": 0,
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "known_cost_logical_bytes": 0,
+              "gross_compile_cost_ms": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0
+            },
+            "live_shadow_kept": {
+              "observations": 0,
+              "immature": 0,
+              "invalid": 0,
+              "mature": 0,
+              "unknown_compile_cost": 0,
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "known_cost_logical_bytes": 0,
+              "gross_compile_cost_ms": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0
+            },
+            "shadow_only": {
+              "observations": 0,
+              "immature": 0,
+              "invalid": 0,
+              "mature": 0,
+              "unknown_compile_cost": 0,
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "known_cost_logical_bytes": 0,
+              "gross_compile_cost_ms": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0
+            }
+          },
+          "error": null
+        }
+      ]
+    },
+    "schema_version": 1,
+    "meta": {
+      "kache_version": "1.0.0",
+      "generated_at": "2026-10-11T11:41:34.408884+00:00",
+      "since_hours": 0,
+      "since_secs": 0,
+      "since": "0s",
+      "root_filter": "/repo",
+      "session": {
+        "root": "/repo",
+        "session_id": "build",
+        "inferred": false,
+        "inactivity_secs": 300
+      }
+    },
+    "summary": {
+      "hit_rate_pct": 100.0,
+      "weighted_hit_rate_pct": 100.0,
+      "time_saved_ms": 4,
+      "total_crates": 1,
+      "local_hits": 1,
+      "prefetch_hits": 0,
+      "remote_hits": 0,
+      "dups": 0,
+      "misses": 0,
+      "errors": 0,
+      "passthroughs": 0,
+      "probes": 0,
+      "skipped": 0,
+      "store_failures": 0,
+      "fallbacks": 0,
+      "total_duration_ms": 5,
+      "cache_efficiency_pct": 100.0
+    },
+    "timeline": {
+      "start_time": "2026-10-11T11:41:34.397465+00:00",
+      "end_time": "2026-10-11T11:41:34.402465+00:00",
+      "start_unix_ms": 1791718894397,
+      "end_unix_ms": 1791718894402,
+      "duration_ms": 5,
+      "event_count": 1,
+      "cacheable_count": 1,
+      "hit_count": 1,
+      "compiled_count": 0,
+      "passthrough_count": 0,
+      "probe_count": 0,
+      "skipped_count": 0,
+      "error_count": 0
+    },
+    "timing": {
+      "hit_time_ms": 5,
+      "miss_time_ms": 0,
+      "avg_hit_ms": 5.0,
+      "avg_miss_ms": 0.0,
+      "avg_hit_overhead_ms": 5.0,
+      "miss_compile_time_ms": 0,
+      "avg_key_ms": 0.0,
+      "avg_lookup_ms": 0.0,
+      "avg_restore_ms": 0.0,
+      "avg_store_ms": 0.0,
+      "total_key_ms": 0,
+      "total_lookup_ms": 0,
+      "total_restore_ms": 0,
+      "total_store_ms": 0,
+      "total_startup_ms": 0,
+      "avg_startup_ms": 0.0,
+      "total_dep_info_ms": 0,
+      "dep_info_runs": 0,
+      "avg_dep_info_ms": 0.0,
+      "prediction_mismatches": 0,
+      "total_wait_ms": 0,
+      "total_flight_wait_ms": 0,
+      "total_permit_wait_ms": 0,
+      "avg_wait_ms": 0.0,
+      "total_unattributed_ms": 5,
+      "avg_unattributed_ms": 5.0
+    },
+    "storage": {
+      "store_entries": 0,
+      "stores": [
+        {
+          "path": "/tmp/kache-e1-2k3u5ynw/.tmpqMpJI9",
+          "bytes": 0,
+          "max_size": 1048576,
+          "entries": 0,
+          "blob_stats": {
+            "total_blobs": 0,
+            "total_blob_size": 0,
+            "total_logical_size": 0,
+            "savings": 0
+          },
+          "error": null
+        }
+      ],
+      "reflinked_bytes": 0,
+      "hardlinked_bytes": 0,
+      "copied_bytes": 0,
+      "restored_bytes": 0,
+      "zero_copy_pct": 0.0,
+      "store_reflinked_bytes": 0,
+      "store_hardlinked_bytes": 0,
+      "store_copied_bytes": 0,
+      "store_copy_cross_device_bytes": 0,
+      "store_copy_permission_bytes": 0,
+      "store_copy_ineligible_bytes": 0,
+      "store_copy_other_bytes": 0,
+      "restore_copy_cross_device_bytes": 0,
+      "restore_copy_permission_bytes": 0,
+      "restore_copy_exclusive_bytes": 0,
+      "restore_copy_other_bytes": 0,
+      "store_blobs": 0,
+      "logical_bytes": 0,
+      "blob_bytes": 0,
+      "dedup_saved_bytes": 0,
+      "accounting_consistent": true
+    },
+    "network": null,
+    "prefetch": {
+      "prefetch_hits": 0,
+      "total_hits": 1,
+      "contribution_pct": 0.0
+    },
+    "top_misses": [],
+    "top_hits": [
+      {
+        "crate_name": "demo",
+        "root": "/repo",
+        "result": "local_hit",
+        "start_time": "2026-10-11T11:41:34.397465+00:00",
+        "end_time": "2026-10-11T11:41:34.402465+00:00",
+        "start_unix_ms": 1791718894397,
+        "end_unix_ms": 1791718894402,
+        "elapsed_ms": 5,
+        "compile_time_ms": 4,
+        "overhead_ms": 5,
+        "size": 64,
+        "cache_key": "key",
+        "store_output_blobs": 0,
+        "store_duplicate_blobs": 0,
+        "store_new_blobs": 0,
+        "compiler_runs": 0,
+        "preprocessor_runs": 0,
+        "probe_runs": 0,
+        "dep_info_runs": 0,
+        "prediction_mismatches": 0,
+        "store_handed_off": false,
+        "daemon_store_ms": 0
+      }
+    ],
+    "all_events": [
+      {
+        "crate_name": "demo",
+        "root": "/repo",
+        "result": "local_hit",
+        "start_time": "2026-10-11T11:41:34.397465+00:00",
+        "end_time": "2026-10-11T11:41:34.402465+00:00",
+        "start_unix_ms": 1791718894397,
+        "end_unix_ms": 1791718894402,
+        "elapsed_ms": 5,
+        "compile_time_ms": 4,
+        "overhead_ms": 5,
+        "size": 64,
+        "cache_key": "key",
+        "store_output_blobs": 0,
+        "store_duplicate_blobs": 0,
+        "store_new_blobs": 0,
+        "compiler_runs": 0,
+        "preprocessor_runs": 0,
+        "probe_runs": 0,
+        "dep_info_runs": 0,
+        "prediction_mismatches": 0,
+        "store_handed_off": false,
+        "daemon_store_ms": 0
+      }
+    ],
+    "traceEvents": [
+      {
+        "name": "hit: demo",
+        "cat": "kache",
+        "ph": "X",
+        "ts": 1791718894397465,
+        "dur": 5000,
+        "pid": 1,
+        "tid": 0,
+        "cname": "good",
+        "args": {
+          "crate_name": "demo",
+          "root": "/repo",
+          "result": "local_hit",
+          "route": "n/a",
+          "reason": "unknown",
+          "cache_key": "key",
+          "elapsed_ms": 5,
+          "compile_time_ms": 4,
+          "overhead_ms": 5,
+          "size": 64,
+          "compiler_runs": 0,
+          "preprocessor_runs": 0,
+          "probe_runs": 0,
+          "store_output_blobs": 0,
+          "store_duplicate_blobs": 0,
+          "store_new_blobs": 0,
+          "startup_ms": 0,
+          "key_ms": 0,
+          "dep_info_ms": 0,
+          "dep_info_runs": 0,
+          "lookup_ms": 0,
+          "wait_ms": 0,
+          "flight_wait_ms": 0,
+          "permit_wait_ms": 0,
+          "restore_ms": 0,
+          "store_ms": 0,
+          "unattributed_ms": 5,
+          "exit_code": null
+        }
+      }
+    ],
+    "displayTimeUnit": "ms",
+    "bypass": {
+      "passthroughs": 0,
+      "probes": 0,
+      "skipped": 0,
+      "fallbacks": 0,
+      "direct_passthroughs": 0,
+      "reasons": [],
+      "slowest": []
+    },
+    "errors_detail": [],
+    "suggestions": [
+      "Remote transfer data omitted because transfer events are not root-scoped yet"
+    ]
+  }
+}test cli::tests::stats_last_build_records_when_record_sessions_is_on ... ok
+test cli::tests::target_rows_report_each_worktree_and_sort_by_what_frees_most ... ok
+test cli::tests::telemetry_push_refuses_a_malformed_label_before_reading_logs ... ok
+test cli::tests::targets_inside_worktree_containers_are_found ... ok
+test cli::tests::test_category_breakdown_default ... ok
+test cli::tests::test_compile_weighted_hit_rate_none_when_no_compile_time ... ok
+test cli::tests::test_compile_weighted_hit_rate_weights_by_time ... ok
+test cli::tests::test_compute_project_stats_classifies_remaining_buckets ... ok
+test cli::tests::test_compute_project_stats_empty_dir ... ok
+test cli::tests::test_compute_project_stats_with_profiles ... ok
+test cli::tests::test_count_hit_rate_all_hits_is_hundred ... ok
+test cli::tests::test_count_hit_rate_counts_all_hit_kinds ... ok
+test cli::tests::test_count_hit_rate_zero_total_is_zero ... ok
+test cli::tests::test_daemon_needed_when_both_configured ... ok
+test cli::tests::test_daemon_needed_when_planner_configured ... ok
+test cli::tests::test_daemon_needed_when_remote_configured ... ok
+test cli::tests::test_daemon_not_needed_when_local_only_or_unconfigured ... ok
+test cli::tests::test_detect_profiles_all ... ok
+test cli::tests::test_detect_profiles_empty ... ok
+test cli::tests::test_detect_profiles_with_dirs ... ok
+test cli::tests::test_dir_size_empty ... ok
+test cli::tests::test_dir_size_nonexistent ... ok
+test cli::tests::test_dir_size_recursive ... ok
+test cli::tests::test_dir_size_with_files ... ok
+test cli::tests::test_fallback_is_sccache ... ok
+test cli::tests::test_find_target_dirs_empty ... ok
+test cli::tests::test_find_target_dirs_skips_hidden ... ok
+test cli::tests::test_find_target_dirs_skips_node_modules ... ok
+test cli::tests::telemetry_write_emits_cache_scope_not_bench ... ok
+test cli::tests::test_format_duration_ms_buckets ... ok
+test cli::tests::test_format_relative_time_buckets ... ok
+test cli::tests::test_format_relative_time_invalid_passes_through ... ok
+test cli::tests::test_genuine_failing_check_is_an_issue ... ok
+test cli::tests::test_find_target_dirs_with_cargo_project ... ok
+test cli::tests::test_get_workspace_crate_names_errors_on_bad_manifest ... ok
+test cli::tests::test_is_binary_artifact_extensions ... ok
+test cli::tests::test_is_macos_protected ... ok
+test cli::tests::test_key_short_truncates_long_keys ... ok
+test cli::tests::test_optional_failing_check_is_not_an_issue ... ok
+test cli::tests::test_parse_cargo_lock_crate_names_from_valid_missing_and_bad_files ... ok
+test cli::tests::test_get_workspace_crate_names_lists_members ... ok
+test cli::tests::test_passing_check_is_never_an_issue ... ok
+test cli::tests::test_sccache_program_detection_accepts_paths ... ok
+test cli::tests::test_sccache_rc_detection_ignores_fallback_setting ... ok
+test cli::tests::test_parse_cargo_lock_crate_names_nonexistent ... ok
+test cli::tests::test_workspace_filter_bad_manifest_is_empty_set ... ok
+test cli::tests::the_clean_preview_splits_what_goes_from_what_stays ... ok
+test cli::tests::the_default_selection_is_the_last_build ... ok
+test cli::tests::the_gc_summary_has_a_line_per_shard_it_swept ... ok
+test cli::tests::the_targets_table_says_nothing_about_unit_cleanup_unless_it_is_on ... ok
+test cli::tests::the_targets_table_totals_and_points_at_deleted_worktrees ... ok
+test cli::tests::the_auto_gc_worker_sweeps_an_over_budget_shard ... ok
+{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "targets": [],
+  "skipped": [
+    {
+      "path": "/tmp/kache-e1-2k3u5ynw/.tmpgUqmVp/targets/feature",
+      "reason": "path no longer exists; registry entry would be removed"
+    }
+  ],
+  "removed_paths": [],
+  "changed": false,
+  "estimated_reclaimed_bytes": 0
+}{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "targets": [],
+  "skipped": [
+    {
+      "path": "/tmp/kache-e1-2k3u5ynw/.tmp3x0dnL/targets/feature",
+      "reason": "path no longer exists; registry entry would be removed"
+    }
+  ],
+  "removed_paths": [],
+  "changed": false,
+  "estimated_reclaimed_bytes": 0
+}test cli::tests::tracked_clean_says_when_registry_removal_is_only_a_preview ... ok
+test cli::tests::tracked_selection_takes_orphans_at_any_age ... ok
+test cli::tests::unit_cleanup_confirmation_requires_candidates_and_nonpreview_mode ... ok
+test cli::tests::unit_cleanup_excludes_other_workspaces_and_replaced_selected_targets ... ok
+{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "targets": [],
+  "skipped": [
+    {
+      "path": "/tmp/kache-e1-2k3u5ynw/.tmpK440ls/targets/feature",
+      "reason": "path no longer exists; registry entry removed"
+    }
+  ],
+  "removed_paths": [],
+  "changed": false,
+  "estimated_reclaimed_bytes": 0
+}{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "preview": true,
+  "targets": []
+}{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "preview": true,
+  "targets": []
+}{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "preview": false,
+  "targets": []
+}test cli::tests::unit_cleanup_human_messages_do_not_leak_into_json_or_claim_preview_removal ... ok
+test cli::tests::unit_cleanup_preview_keeps_json_without_yes_and_all_dry_runs_read_only ... ok
+test cli::tests::unit_cleanup_rendering_explains_missing_evidence_and_ready_counts ... ok
+test cli::tests::unit_cleanup_requires_both_ready_evidence_and_current_target_identity ... ok
+test cli::tests::unit_cleanup_selects_only_matching_intact_live_targets ... ok
+test cli::tests::unsupported_storage_observation_treats_the_whole_file_as_private ... ok
+test cli::tests::upload_manifest_and_shards_skips_shards_when_lock_missing ... ok
+{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "targets": [],
+  "skipped": [
+    {
+      "path": "/tmp/kache-e1-2k3u5ynw/.tmpCeNAUg/targets/feature",
+      "reason": "path no longer exists; registry entry would be removed"
+    }
+  ],
+  "removed_paths": []test cli::tests::upload_manifest_and_shards_uploads_manifest_only_without_namespace ... ok
+,
+  "changed": false,
+  "estimated_reclaimed_bytes": 0
+}{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "targets": [],
+  "skipped": [
+    {
+      "path": "/tmp/kache-e1-2k3u5ynw/.tmpzAxKij/targets/feature",
+      "reason": "path no longer exists; registry entry would be removed"
+    }
+  ],
+  "removed_paths": [],
+  "changed": false,
+  "estimated_reclaimed_bytes": 0
+}test cli::tests::upload_manifest_and_shards_uploads_shards_when_lock_present ... ok
+test cli::tests::upload_shards_errors_on_malformed_lockfile ... ok
+test cli::tests::upload_shards_skips_when_no_entries_match ... ok
+test cli::tests::upload_shards_uploads_one_shard_per_nonempty_bucket ... ok
+{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "targets": [],
+  "skipped": [
+    {
+      "path": "/tmp/kache-e1-2k3u5ynw/.tmpZJmkP5/targets/feature",
+      "reason": "path no longer exists; registry entry removed"
+    }
+  ],
+  "removed_paths": [],
+  "changed": false,
+  "estimated_reclaimed_bytes": 0
+}test cli::tests::verify_accepts_build_script_out_dir_artifact_names ... ok
+test cli::tests::tracked_clean_json_previews_keep_missing_targets_registered ... ok
+test cli::tests::verify_detects_blob_size_mismatch ... ok
+test cli::tests::verify_detects_checksum_mismatch_with_checksums_enabled ... ok
+test cli::tests::verify_detects_missing_blob_and_missing_meta_then_repairs ... ok
+test cli::tests::verify_reports_and_repairs_blob_index_drift ... ok
+test cli::tests::verify_reports_no_findings_for_a_clean_store ... ok
+test cli::tests::verify_reports_valid_entries_on_a_clean_store ... ok
+test cli::tests::why_miss_all_hits_reports_no_misses ... ok
+test cli::tests::why_miss_diff_messages_cap_feature_and_type_diffs ... ok
+test cli::tests::why_miss_diff_messages_dedupes_same_config_and_empty_other_features ... ok
+test cli::tests::why_miss_leads_with_a_store_failure_when_there_was_one ... ok
+test cli::tests::why_miss_legacy_same_key_repeat_does_not_claim_key_mismatch ... ok
+test cli::tests::why_miss_no_events_prints_tip ... ok
+test cli::tests::why_miss_prioritizes_same_key_lookup_rejection ... ok
+test cli::tests::verify_scrubs_each_unique_blob_once_and_marks_every_referencing_entry ... ok
+test cli::tests::why_miss_shows_stored_metadata_for_a_missed_key ... ok
+test cli::tests::windows_identity_parts_preserve_volume_and_both_file_index_halves ... ok
+test cli::tests::windows_storage_observation_covers_identity_and_link_count_boundaries ... ok
+test cli::tests::why_miss_reports_many_stored_diffs ... ok
+
+test result: ok. 256 passed; 0 failed; 0 ignored; 0 measured; 4140 filtered out; finished in 1.96s
+

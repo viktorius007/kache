@@ -1,0 +1,12 @@
+commit 45ac1497a7ca1d230e3381a9080035b27c100186
+Author:     Viktor <38939817+viktorius007@users.noreply.github.com>
+AuthorDate: Sun Oct 11 21:35:17 2026 +1000
+Commit:     Viktor <38939817+viktorius007@users.noreply.github.com>
+CommitDate: Sun Oct 11 21:35:17 2026 +1000
+
+    Test bulk sync recovery of uncommitted extracted entries
+    
+    An interrupted V3 pull can leave an authentic extracted artifact without a committed index row. Exercise that state through the real extractor and require subsequent sync to make it consumable, while preserving the warm skip.
+
+ src/cli/tests.rs | 59 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 59 insertions(+)

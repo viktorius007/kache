@@ -1,0 +1,49 @@
+URL: https://github.com/kunobi-ninja/kache/issues/810
+Retrieved baseline investigation current API
+State: open
+Title: Two-level cache for ephemeral CI: node-local L1 plus packed remote prefetch
+
+## Problem
+
+ARC creates a fresh runner pod for each job, so every Linux job cold-hydrates Kache from the S3 remote. A representative large Rust job reported:
+
+- 4,188 cached crates / 20 compiled
+- 5.0 GB downloaded across 4,371 objects at 78 MB/s
+- 12.6 GB restored, all copied
+- 169 ms average hit overhead; about 12 minutes aggregate
+- aggregate remote phases: 139 s open/setup, 65 s transfer, 104 s extract, 172 s import
+
+The hit rate is excellent, but the transport is doing a distributed rebuild for every ephemeral pod.
+
+## Design
+
+Implement both layers:
+
+### L1: bounded node-local cache for trusted runner pools
+
+- Persist a local Kache store per builder node with explicit multi-job and daemon lifecycle support.
+- Never mount writable persistent cache state into public or fork-capable runners.
+- Bound storage with GC and expose bytes, entries, evictions and local-hit metrics.
+- Preserve content validation and isolate trust domains; a job must not poison another trust domain.
+
+### L2: immutable packed prefetch for cold and untrusted runners
+
+- Publish content-addressed transport packs selected by manifest, namespace and Cargo.lock shards.
+- Fetch a small number of packs instead of thousands of individual S3 objects.
+- Verify cache recipe, entry metadata and blob hashes before import.
+- Keep existing v3 objects as a compatibility fallback and use create-only publication.
+- Avoid unbounded duplication with bounded pack size, retention and GC metadata.
+
+## Runner prerequisites
+
+Larger builder disks and scheduling that accounts for ephemeral storage. Both are tracked in the private platform repositories.
+
+## Acceptance criteria
+
+- At least 90% fewer remote requests on a representative cold Rust job.
+- No increase above 10% in bytes downloaded for the same build shape.
+- Warm trusted-node runs download only misses, with reported L1/L2 byte counts.
+- Demonstrated fallback from missing or corrupt packs to existing v3 objects.
+- Isolation test proving an untrusted job cannot read or mutate another trust-domain cache.
+- Before and after wall-clock benchmark across at least five clean runs per arm.
+

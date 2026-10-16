@@ -1,0 +1,14 @@
+{
+  "tip": "e8df9b2a6e6165de82592d73c711ddf1219c768f",
+  "gate_exit": 0,
+  "gate": "just check",
+  "gate_counts": {
+    "passed": 5892,
+    "failed": 0,
+    "ignored": 16,
+    "test_targets": 76
+  },
+  "regression": "concurrent_bulk_sync_clients_hydrate_shared_store_without_errors",
+  "native_control": "sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server",
+  "exclusive_reservation": true
+}

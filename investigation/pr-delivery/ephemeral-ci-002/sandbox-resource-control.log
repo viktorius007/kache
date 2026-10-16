@@ -1,0 +1,31 @@
+    Blocking waiting for file lock on package cache
+    Finished `test` profile [unoptimized] target(s) in 0.61s
+     Running tests/fallback_recovery_test.rs (/Users/viktor/Developer/github/kache-prs/ephemeral-ci-001/target/debug/deps/fallback_recovery_test-1612d428b129f00f)
+
+running 6 tests
+test failed_fallback_retries_once_preserving_compiler_inputs_and_events ... ok
+test genuine_compiler_failure_is_preserved_after_retry ... ok
+test missing_and_non_executable_fallbacks_compile_directly ... ok
+test sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server ... FAILED
+test stdin_reaches_the_direct_compiler_once_without_partial_fallback_stdout ... ok
+test successful_and_cancelled_fallbacks_do_not_retry ... ok
+
+failures:
+
+---- sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server stdout ----
+
+thread 'sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server' (57763573) panicked at tests/fallback_recovery_test.rs:320:5:
+assertion `left == right` failed: fallback compiler error
+kache: warning: fallback `/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpgGG7eI/sccache`: exit status: 42; compiling directly without fallback
+
+  left: "fallback\ndirect\n"
+ right: "direct\n"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server
+
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.08s
+
+error: test failed, to rerun pass `-p kache --test fallback_recovery_test`

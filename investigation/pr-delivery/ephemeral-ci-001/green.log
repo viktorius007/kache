@@ -1,0 +1,30 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/ephemeral-ci-001)
+    Finished `test` profile [unoptimized] target(s) in 17.41s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 19 tests
+test cli::tests::sync_with_client_dry_run_empty_remote_reports_nothing ... ok
+test cli::tests::sync_with_client_dry_run_plans_pull_for_remote_only_key ... ok
+test cli::tests::sync_with_client_mixed_success_and_failure_with_allow_partial_returns_ok ... ok
+test cli::tests::sync_with_client_mixed_success_and_failure_completes_all_and_fails_default ... ok
+test cli::tests::sync_with_client_pull_allows_partial_when_flag_set ... ok
+test cli::tests::sync_with_client_pull_allows_partial_when_import_fails ... ok
+test cli::tests::sync_with_client_pull_fails_when_import_fails_by_default ... ok
+test cli::tests::sync_with_client_pull_loop_records_failure_and_returns_err_by_default ... ok
+test cli::tests::sync_with_client_pull_downloads_and_imports_entry ... ok
+test cli::tests::sync_with_client_pull_throttles_with_low_concurrency ... ok
+test cli::tests::sync_with_client_pull_recovers_uncommitted_extracted_entry ... ok
+test cli::tests::sync_with_client_push_allows_partial_when_flag_set ... ok
+test cli::tests::sync_with_client_push_reports_failed_uploads_and_returns_err_by_default ... ok
+test cli::tests::sync_with_client_push_fails_when_local_entry_disappears ... ok
+test cli::tests::sync_with_client_push_skipped_when_remote_readonly ... ok
+test cli::tests::sync_with_client_push_throttles_with_low_concurrency ... ok
+test cli::tests::sync_with_client_push_uploads_local_only_entry ... ok
+test cli::tests::sync_with_client_workspace_pull_errors_when_no_workspace_resolved ... ok
+test cli::tests::sync_with_client_workspace_pull_scopes_listing_to_workspace_members ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 4377 filtered out; finished in 2.12s
+

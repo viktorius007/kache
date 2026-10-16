@@ -1,0 +1,9 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/ephemeral-ci-002)
+    Finished `test` profile [unoptimized] target(s) in 10.40s
+     Running tests/filesystem_remote_test.rs (/Users/viktor/Developer/github/kache-prs/ephemeral-ci-001/target/debug/deps/filesystem_remote_test-c39d7d13b2a02c45)
+
+running 1 test
+test concurrent_bulk_sync_clients_hydrate_shared_store_without_errors ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 15.15s
+

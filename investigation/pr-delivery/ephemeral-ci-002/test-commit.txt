@@ -1,0 +1,12 @@
+commit f7ac6de9daa755c03da05996e4120f689ed35213
+Author:     Viktor <38939817+viktorius007@users.noreply.github.com>
+AuthorDate: Sun Oct 11 21:59:26 2026 +1000
+Commit:     Viktor <38939817+viktorius007@users.noreply.github.com>
+CommitDate: Sun Oct 11 21:59:26 2026 +1000
+
+    Test concurrent bulk sync against one shared store
+    
+    Seed real filesystem packs, then start four CLI clients together with distinct runtime directories and one cache. Require all pulls to exit successfully and every entry to be committed; clean and warm pulls provide controls.
+
+ tests/filesystem_remote_test.rs | 93 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 93 insertions(+)

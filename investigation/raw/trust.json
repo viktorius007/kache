@@ -1,0 +1,30 @@
+[
+  {
+    "domain": "trusted-A",
+    "base_entries": 0,
+    "scoped_entries": 24,
+    "scoped_exists": true
+  },
+  {
+    "domain": "trusted-B",
+    "base_entries": 0,
+    "scoped_entries": 24,
+    "scoped_exists": true
+  },
+  {
+    "domain": "invalid/domain",
+    "base_entries": 24,
+    "scoped_entries": 0,
+    "scoped_exists": false
+  },
+  {
+    "domain": "Trusted-A",
+    "base_entries": 24,
+    "scoped_entries": 24,
+    "scoped_exists": true
+  },
+  {
+    "same_os_principal_reads_sibling_index": true,
+    "case_variants_samefile": true
+  }
+]

@@ -1,0 +1,5 @@
+COMMIT: e8df9b2a6e6165de82592d73c711ddf1219c768f
+COMMAND: python3 /Users/viktor/Developer/github/kache-investigations/ephemeral-ci/investigation/pr-delivery/ephemeral-ci-002/run-check.py /Users/viktor/Developer/github/kache-investigations/ephemeral-ci/investigation/pr-delivery/ephemeral-ci-002/gate.log just check
+ENVIRONMENT: KACHE_PR_EXCLUSIVE_GATE=1 KACHE_PR_TEST_THREADS=1; normal inherited toolchain HOME/TMPDIR; ambient KACHE_RUNTIME_DIR unset; isolated Kache config/cache; private CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/ephemeral-ci-001/target
+RESERVATION: coordinator build-slot.py reserves all three full-gate locks, drains prior gates and blocks queued full gates. Root asks other authors to hold focused builds. No warmup, source edits, oracle edits or skips.
+RESULT: EXIT 0 at unchanged e8df9b2a6e6165de82592d73c711ddf1219c768f; git worktree clean after completion.

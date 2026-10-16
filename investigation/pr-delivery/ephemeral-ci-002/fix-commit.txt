@@ -1,0 +1,12 @@
+commit e8df9b2a6e6165de82592d73c711ddf1219c768f
+Author:     Viktor <38939817+viktorius007@users.noreply.github.com>
+AuthorDate: Sun Oct 11 22:00:24 2026 +1000
+Commit:     Viktor <38939817+viktorius007@users.noreply.github.com>
+CommitDate: Sun Oct 11 22:00:24 2026 +1000
+
+    Serialize bulk sync commands sharing a local cache
+    
+    Hold the existing cross-process StoreLock through planning, extraction and import. This prevents one CLI pull from replacing or consuming another pull’s extracted files before its import completes; independent stores keep their existing concurrency.
+
+ src/cli.rs | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)

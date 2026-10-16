@@ -1,0 +1,7 @@
+{
+  "platform": "macOS-15.8.1-arm64-arm-64bit",
+  "processor": "arm",
+  "cpu_count": 16,
+  "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: aarch64-apple-darwin\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+  "filesystem": "Filesystem      Size    Used   Avail Capacity iused ifree %iused  Mounted on\n/dev/disk3s1   926Gi   878Gi    30Gi    97%    8.0M  316M    2%   /System/Volumes/Data\n"
+}

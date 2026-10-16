@@ -1,0 +1,14 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/ephemeral-ci-002)
+    Finished `test` profile [unoptimized] target(s) in 13.46s
+     Running tests/fallback_recovery_test.rs (/Users/viktor/Developer/github/kache-prs/ephemeral-ci-001/target/debug/deps/fallback_recovery_test-f38743893dd34a55)
+
+running 6 tests
+test failed_fallback_retries_once_preserving_compiler_inputs_and_events ... ok
+test genuine_compiler_failure_is_preserved_after_retry ... ok
+test missing_and_non_executable_fallbacks_compile_directly ... ok
+test sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server ... ok
+test stdin_reaches_the_direct_compiler_once_without_partial_fallback_stdout ... ok
+test successful_and_cancelled_fallbacks_do_not_retry ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.79s
+

@@ -1,0 +1,39 @@
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/ephemeral-ci-002/crates/kache-fs)
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/ephemeral-ci-002/crates/kache-format)
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/ephemeral-ci-002)
+   Compiling kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-prs/ephemeral-ci-002/crates/kache-shims)
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/ephemeral-ci-002/crates/kache-store)
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/ephemeral-ci-002/crates/kache-core)
+    Finished `test` profile [unoptimized] target(s) in 30.66s
+     Running tests/filesystem_remote_test.rs (/Users/viktor/Developer/github/kache-prs/ephemeral-ci-001/target/debug/deps/filesystem_remote_test-c39d7d13b2a02c45)
+
+running 1 test
+test concurrent_bulk_sync_clients_hydrate_shared_store_without_errors ... FAILED
+
+failures:
+
+---- concurrent_bulk_sync_clients_hydrate_shared_store_without_errors stdout ----
+
+thread 'concurrent_bulk_sync_clients_hydrate_shared_store_without_errors' (56700939) panicked at tests/filesystem_remote_test.rs:1028:13:
+concurrent bulk sync must not race extraction against import:
+stdout: Plan: pull 24 artifacts, push 0 artifacts
+
+stderr: Listing remote keys... 24 keys
+
+  error: import c2ae70c0fffdef03...: moving downloaded artifact /tmp/kache-e1-8lzifxd9/.tmpKyM1HO/store/c2ae70c0fffdef033945725e4632c7fceba62afba726d34e70c5dbb5b1d5d7d3/libfsremote.rlib to blob store
+  Downloading: 1/24  Downloading: 2/24  Downloading: 3/24  Downloading: 4/24  Downloading: 5/24  Downloading: 6/24
+  error: import b8411f6fecc2123e...: downloaded entry b8411f6fecc2123e missing file: libfsremote.rlib
+  Downloading: 7/24  Downloading: 8/24  Downloading: 9/24  Downloading: 10/24
+  error: import d5b9b90e0e3136e5...: downloaded entry d5b9b90e0e3136e5 file libfsremote.rlib size mismatch (expected 794392, got 0)
+  Downloading: 11/24  Downloading: 12/24  Downloading: 13/24  Downloading: 14/24  Downloading: 15/24  Downloading: 16/24  Downloading: 17/24  Downloading: 18/24  Downloading: 19/24  Downloading: 20/24  Downloading: 21/24  Downloading: 22/24  Downloading: 23/24  Downloading: 24/24  Downloaded:  21/24 (3 failed)
+error: 3 transfer(s) or import(s) failed during sync
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    concurrent_bulk_sync_clients_hydrate_shared_store_without_errors
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 14 filtered out; finished in 11.24s
+
+error: test failed, to rerun pass `--test filesystem_remote_test`

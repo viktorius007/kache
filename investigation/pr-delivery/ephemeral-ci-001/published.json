@@ -1,0 +1,8 @@
+{
+  "id": "ephemeral-ci-001",
+  "url": "https://github.com/kunobi-ninja/kache/pull/1519",
+  "branch": "fix/ephemeral-ci-001",
+  "fix_commit": "7e7f98decc0b52883a49f493cbbc5d25f5b94882",
+  "state": "draft",
+  "review": "investigation/pr-delivery/reviews/ephemeral-ci-001.md"
+}

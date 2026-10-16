@@ -1,0 +1,32 @@
+[
+  {
+    "trial": 0,
+    "elapsed_ms": 239.50187499999998,
+    "exit": 0,
+    "listener_matches": 1
+  },
+  {
+    "trial": 1,
+    "elapsed_ms": 57.45675,
+    "exit": 0,
+    "listener_matches": 1
+  },
+  {
+    "trial": 2,
+    "elapsed_ms": 58.536584000000005,
+    "exit": 0,
+    "listener_matches": 1
+  },
+  {
+    "trial": 3,
+    "elapsed_ms": 58.21691700000004,
+    "exit": 0,
+    "listener_matches": 1
+  },
+  {
+    "trial": 4,
+    "elapsed_ms": 56.648959,
+    "exit": 0,
+    "listener_matches": 1
+  }
+]

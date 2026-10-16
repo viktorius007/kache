@@ -1,0 +1,12 @@
+commit 7e7f98decc0b52883a49f493cbbc5d25f5b94882
+Author:     Viktor <38939817+viktorius007@users.noreply.github.com>
+AuthorDate: Sun Oct 11 21:36:04 2026 +1000
+Commit:     Viktor <38939817+viktorius007@users.noreply.github.com>
+CommitDate: Sun Oct 11 21:36:04 2026 +1000
+
+    Recover uncommitted extracted entries during bulk sync
+    
+    A final extracted directory may survive interruption before SQLite import, so its existence does not establish a local cache hit. Reuse Store::contains in both pull-skip decisions to hydrate that state without downloading already committed entries.
+
+ src/cli.rs | 13 +++++--------
+ 1 file changed, 5 insertions(+), 8 deletions(-)
