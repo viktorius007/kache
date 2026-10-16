@@ -1,0 +1,8 @@
+{
+  "id": "cli-config-002",
+  "url": "https://github.com/kunobi-ninja/kache/pull/1525",
+  "branch": "fix/cli-config-002",
+  "fix_commit": "31f6ac2747887dd9184dfab36f14e80a76e5008f",
+  "state": "draft",
+  "review": "investigation/pr-delivery/reviews/cli-config-002.md"
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "disabled": "0",
+    "returncode": 0,
+    "stdout": "# 1 \"/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/family-probe-gv704nkr/input.c\"\n# 1 \"<built-in>\" 1\n# 1 \"<built-in>\" 3\n# 466 \"<built-in>\" 3\n# 1 \"<command line>\" 1\n# 1 \"<built-in>\" 2\n# 1 \"/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/family-probe-gv704nkr/input.c\" 2\n\n42\n",
+    "stderr": ""
+  },
+  {
+    "disabled": "1",
+    "returncode": 1,
+    "stdout": "",
+    "stderr": "Error: No such file or directory (os error 2)\n"
+  }
+]

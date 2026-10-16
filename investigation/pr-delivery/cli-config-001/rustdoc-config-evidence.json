@@ -1,0 +1,106 @@
+[
+  {
+    "name": "plain",
+    "before": "[build]\nrustc-wrapper = \"kache\"\n[env]\nHOST_CC = \"clang\"\nHOST_CXX = \"clang++\"\nCC_KNOWN_WRAPPER_CUSTOM = \"kache\"\n",
+    "after": "[build]\nrustdoc = \"/tmp/rustdoc-plain-3qn2aa2i/.local/lib/kache/shims/rustdoc\"\nrustc-wrapper = \"kache\"\n[env]\nHOST_CC = \"clang\"\nHOST_CXX = \"clang++\"\nCC_KNOWN_WRAPPER_CUSTOM = \"kache\"\n",
+    "before_cargo": {
+      "argv": [
+        "/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/cargo",
+        "metadata",
+        "--no-deps",
+        "--format-version=1",
+        "--offline"
+      ],
+      "returncode": 0,
+      "stdout": "{\"packages\":[{\"name\":\"rustdoc-audit\",\"version\":\"0.1.0\",\"id\":\"path+file:///private/tmp/rustdoc-plain-3qn2aa2i/project#rustdoc-audit@0.1.0\",\"license\":null,\"license_file\":null,\"description\":null,\"source\":null,\"dependencies\":[],\"targets\":[{\"kind\":[\"lib\"],\"crate_types\":[\"lib\"],\"name\":\"rustdoc_audit\",\"src_path\":\"/private/tmp/rustdoc-plain-3qn2aa2i/project/src/lib.rs\",\"edition\":\"2024\",\"doc\":true,\"doctest\":true,\"test\":true}],\"features\":{},\"manifest_path\":\"/private/tmp/rustdoc-plain-3qn2aa2i/project/Cargo.toml\",\"metadata\":null,\"publish\":null,\"authors\":[],\"categories\":[],\"keywords\":[],\"readme\":null,\"repository\":null,\"homepage\":null,\"documentation\":null,\"edition\":\"2024\",\"links\":null,\"default_run\":null,\"rust_version\":null}],\"workspace_members\":[\"path+file:///private/tmp/rustdoc-plain-3qn2aa2i/project#rustdoc-audit@0.1.0\"],\"workspace_default_members\":[\"path+file:///private/tmp/rustdoc-plain-3qn2aa2i/project#rustdoc-audit@0.1.0\"],\"resolve\":null,\"target_directory\":\"/private/tmp/rustdoc-plain-3qn2aa2i/project/target\",\"build_directory\":\"/private/tmp/rustdoc-plain-3qn2aa2i/project/target\",\"version\":1,\"workspace_root\":\"/private/tmp/rustdoc-plain-3qn2aa2i/project\",\"metadata\":null}\n",
+      "stderr": ""
+    },
+    "setup": {
+      "argv": [
+        "/Users/viktor/Developer/github/kache-prs/cargo-build-001/target/debug/kache",
+        "init",
+        "--yes",
+        "--no-service"
+      ],
+      "returncode": 0,
+      "stdout": "kache \u00b7 setup\n\nSetup plan\n  Cargo        caching         Rust and native dependencies\n  Config       ~/.cargo/config.toml\n  Shell        new terminals   C/C++ caching, Cargo target protection and test pacing\n  Docs         caching         cargo doc when build.rustdoc is unset\n  Shell file   ~/.bashrc\n  Shell file   ~/.bash_profile\n  Daemon       background      start or restart the cache if needed\n\nSetup\n  \u2713 Cargo caching: configured\n  Cargo target protection and C/C++ caching in new terminals\n    Shell config: ~/.bashrc\n    Shell config: ~/.bash_profile\n  \u2713 Cargo target protection and C/C++ caching: configured for new terminals\n    For this terminal, run:\n    export PATH='/tmp/rustdoc-plain-3qn2aa2i/.local/lib/kache/shims'${PATH:+:\"$PATH\"}\n    Backup: ~/.cargo/.kache-cargo-backup-Hq5ysr\n  \u2713 cargo doc: build.rustdoc set\n  Test pacing: cargo test waits for the CPU slots builds use\n    Shell config: ~/.bashrc\n    Shell config: ~/.bash_profile\n    Backup: ~/.kache-shell-backup-ufJsgI\n    Backup: ~/.kache-shell-backup-uPDxjc\n  \u2713 Test pacing: configured for new terminals\n  \u2192 Login service: skipped (--no-service)\n  \u2192 Background cache: not running\n    \u2713 Background cache: running\n\n  Ready for Cargo builds. Use cargo as usual.\n  Open a new terminal to activate C/C++ caching.\n  Open a new terminal to pace test binaries.\n  Run kache doctor to check this terminal.\n\n",
+      "stderr": ""
+    },
+    "after_cargo": {
+      "argv": [
+        "/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/cargo",
+        "metadata",
+        "--no-deps",
+        "--format-version=1",
+        "--offline"
+      ],
+      "returncode": 0,
+      "stdout": "{\"packages\":[{\"name\":\"rustdoc-audit\",\"version\":\"0.1.0\",\"id\":\"path+file:///private/tmp/rustdoc-plain-3qn2aa2i/project#rustdoc-audit@0.1.0\",\"license\":null,\"license_file\":null,\"description\":null,\"source\":null,\"dependencies\":[],\"targets\":[{\"kind\":[\"lib\"],\"crate_types\":[\"lib\"],\"name\":\"rustdoc_audit\",\"src_path\":\"/private/tmp/rustdoc-plain-3qn2aa2i/project/src/lib.rs\",\"edition\":\"2024\",\"doc\":true,\"doctest\":true,\"test\":true}],\"features\":{},\"manifest_path\":\"/private/tmp/rustdoc-plain-3qn2aa2i/project/Cargo.toml\",\"metadata\":null,\"publish\":null,\"authors\":[],\"categories\":[],\"keywords\":[],\"readme\":null,\"repository\":null,\"homepage\":null,\"documentation\":null,\"edition\":\"2024\",\"links\":null,\"default_run\":null,\"rust_version\":null}],\"workspace_members\":[\"path+file:///private/tmp/rustdoc-plain-3qn2aa2i/project#rustdoc-audit@0.1.0\"],\"workspace_default_members\":[\"path+file:///private/tmp/rustdoc-plain-3qn2aa2i/project#rustdoc-audit@0.1.0\"],\"resolve\":null,\"target_directory\":\"/private/tmp/rustdoc-plain-3qn2aa2i/project/target\",\"build_directory\":\"/private/tmp/rustdoc-plain-3qn2aa2i/project/target\",\"version\":1,\"workspace_root\":\"/private/tmp/rustdoc-plain-3qn2aa2i/project\",\"metadata\":null}\n",
+      "stderr": ""
+    },
+    "parse_error": null,
+    "rustdoc": "/tmp/rustdoc-plain-3qn2aa2i/.local/lib/kache/shims/rustdoc",
+    "cleanup": {
+      "argv": [
+        "/Users/viktor/Developer/github/kache-prs/cargo-build-001/target/debug/kache",
+        "daemon",
+        "stop"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "daemon stopped\n"
+    }
+  },
+  {
+    "name": "comment",
+    "before": "[build] # Existing compiler configuration\nrustc-wrapper = \"kache\"\n[env]\nHOST_CC = \"clang\"\nHOST_CXX = \"clang++\"\nCC_KNOWN_WRAPPER_CUSTOM = \"kache\"\n",
+    "after": "[build] # Existing compiler configuration\nrustdoc = \"/tmp/rustdoc-comment-kanqwh1t/.local/lib/kache/shims/rustdoc\"\nrustc-wrapper = \"kache\"\n[env]\nHOST_CC = \"clang\"\nHOST_CXX = \"clang++\"\nCC_KNOWN_WRAPPER_CUSTOM = \"kache\"\n",
+    "before_cargo": {
+      "argv": [
+        "/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/cargo",
+        "metadata",
+        "--no-deps",
+        "--format-version=1",
+        "--offline"
+      ],
+      "returncode": 0,
+      "stdout": "{\"packages\":[{\"name\":\"rustdoc-audit\",\"version\":\"0.1.0\",\"id\":\"path+file:///private/tmp/rustdoc-comment-kanqwh1t/project#rustdoc-audit@0.1.0\",\"license\":null,\"license_file\":null,\"description\":null,\"source\":null,\"dependencies\":[],\"targets\":[{\"kind\":[\"lib\"],\"crate_types\":[\"lib\"],\"name\":\"rustdoc_audit\",\"src_path\":\"/private/tmp/rustdoc-comment-kanqwh1t/project/src/lib.rs\",\"edition\":\"2024\",\"doc\":true,\"doctest\":true,\"test\":true}],\"features\":{},\"manifest_path\":\"/private/tmp/rustdoc-comment-kanqwh1t/project/Cargo.toml\",\"metadata\":null,\"publish\":null,\"authors\":[],\"categories\":[],\"keywords\":[],\"readme\":null,\"repository\":null,\"homepage\":null,\"documentation\":null,\"edition\":\"2024\",\"links\":null,\"default_run\":null,\"rust_version\":null}],\"workspace_members\":[\"path+file:///private/tmp/rustdoc-comment-kanqwh1t/project#rustdoc-audit@0.1.0\"],\"workspace_default_members\":[\"path+file:///private/tmp/rustdoc-comment-kanqwh1t/project#rustdoc-audit@0.1.0\"],\"resolve\":null,\"target_directory\":\"/private/tmp/rustdoc-comment-kanqwh1t/project/target\",\"build_directory\":\"/private/tmp/rustdoc-comment-kanqwh1t/project/target\",\"version\":1,\"workspace_root\":\"/private/tmp/rustdoc-comment-kanqwh1t/project\",\"metadata\":null}\n",
+      "stderr": ""
+    },
+    "setup": {
+      "argv": [
+        "/Users/viktor/Developer/github/kache-prs/cargo-build-001/target/debug/kache",
+        "init",
+        "--yes",
+        "--no-service"
+      ],
+      "returncode": 0,
+      "stdout": "kache \u00b7 setup\n\nSetup plan\n  Cargo        caching         Rust and native dependencies\n  Config       ~/.cargo/config.toml\n  Shell        new terminals   C/C++ caching, Cargo target protection and test pacing\n  Docs         caching         cargo doc when build.rustdoc is unset\n  Shell file   ~/.bashrc\n  Shell file   ~/.bash_profile\n  Daemon       background      start or restart the cache if needed\n\nSetup\n  \u2713 Cargo caching: configured\n  Cargo target protection and C/C++ caching in new terminals\n    Shell config: ~/.bashrc\n    Shell config: ~/.bash_profile\n  \u2713 Cargo target protection and C/C++ caching: configured for new terminals\n    For this terminal, run:\n    export PATH='/tmp/rustdoc-comment-kanqwh1t/.local/lib/kache/shims'${PATH:+:\"$PATH\"}\n    Backup: ~/.cargo/.kache-cargo-backup-dwzUDJ\n  \u2713 cargo doc: build.rustdoc set\n  Test pacing: cargo test waits for the CPU slots builds use\n    Shell config: ~/.bashrc\n    Shell config: ~/.bash_profile\n    Backup: ~/.kache-shell-backup-knNois\n    Backup: ~/.kache-shell-backup-BRtddv\n  \u2713 Test pacing: configured for new terminals\n  \u2192 Login service: skipped (--no-service)\n  \u2192 Background cache: not running\n    \u2713 Background cache: running\n\n  Ready for Cargo builds. Use cargo as usual.\n  Open a new terminal to activate C/C++ caching.\n  Open a new terminal to pace test binaries.\n  Run kache doctor to check this terminal.\n\n",
+      "stderr": ""
+    },
+    "after_cargo": {
+      "argv": [
+        "/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/cargo",
+        "metadata",
+        "--no-deps",
+        "--format-version=1",
+        "--offline"
+      ],
+      "returncode": 0,
+      "stdout": "{\"packages\":[{\"name\":\"rustdoc-audit\",\"version\":\"0.1.0\",\"id\":\"path+file:///private/tmp/rustdoc-comment-kanqwh1t/project#rustdoc-audit@0.1.0\",\"license\":null,\"license_file\":null,\"description\":null,\"source\":null,\"dependencies\":[],\"targets\":[{\"kind\":[\"lib\"],\"crate_types\":[\"lib\"],\"name\":\"rustdoc_audit\",\"src_path\":\"/private/tmp/rustdoc-comment-kanqwh1t/project/src/lib.rs\",\"edition\":\"2024\",\"doc\":true,\"doctest\":true,\"test\":true}],\"features\":{},\"manifest_path\":\"/private/tmp/rustdoc-comment-kanqwh1t/project/Cargo.toml\",\"metadata\":null,\"publish\":null,\"authors\":[],\"categories\":[],\"keywords\":[],\"readme\":null,\"repository\":null,\"homepage\":null,\"documentation\":null,\"edition\":\"2024\",\"links\":null,\"default_run\":null,\"rust_version\":null}],\"workspace_members\":[\"path+file:///private/tmp/rustdoc-comment-kanqwh1t/project#rustdoc-audit@0.1.0\"],\"workspace_default_members\":[\"path+file:///private/tmp/rustdoc-comment-kanqwh1t/project#rustdoc-audit@0.1.0\"],\"resolve\":null,\"target_directory\":\"/private/tmp/rustdoc-comment-kanqwh1t/project/target\",\"build_directory\":\"/private/tmp/rustdoc-comment-kanqwh1t/project/target\",\"version\":1,\"workspace_root\":\"/private/tmp/rustdoc-comment-kanqwh1t/project\",\"metadata\":null}\n",
+      "stderr": ""
+    },
+    "parse_error": null,
+    "rustdoc": "/tmp/rustdoc-comment-kanqwh1t/.local/lib/kache/shims/rustdoc",
+    "cleanup": {
+      "argv": [
+        "/Users/viktor/Developer/github/kache-prs/cargo-build-001/target/debug/kache",
+        "daemon",
+        "stop"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "daemon stopped\n"
+    }
+  }
+]

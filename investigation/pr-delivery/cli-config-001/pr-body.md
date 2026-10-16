@@ -1,0 +1,1 @@
+`[build] # comment` made [`apply_rustdoc_edit`](https://github.com/kunobi-ninja/kache/blob/4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9/src/cli.rs#L9070-L9131) append a duplicate table, leaving Cargo unable to parse its config after `init`. Recognize commented table headers while preserving settings and comments. The init and editor regressions pass, along with `just check`.

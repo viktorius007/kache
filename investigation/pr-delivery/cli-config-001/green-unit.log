@@ -1,0 +1,36 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/cli-config-001)
+    Finished `test` profile [unoptimized] target(s) in 12.00s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/cargo-build-001/target/debug/deps/kache-1216026e9547a40d)
+
+running 15 tests
+test cli::tests::apply_rustdoc_edit_preserves_commented_table_boundaries ... ok
+test cli::tests::rustdoc_assignment_ignores_a_longer_key_and_a_comment ... ok
+test cli::tests::apply_rustdoc_edit_inserts_replaces_and_leaves_a_correct_line ... ok
+test cli::tests::rustdoc_doctor_fields_cover_windows_unset_and_a_bad_path ... ok
+test cli::tests::rustdoc_doctor_fix_is_present_only_when_the_check_fails ... ok
+test cli::tests::rustdoc_edit_decision_writes_only_for_kache_without_a_key ... ok
+test cli::tests::rustdoc_shim_path_accepts_a_symlink_to_kache ... ok
+test cli::tests::rustdoc_shim_path_requires_an_absolute_rustdoc_file ... ok
+fail-stdout
+fail-stderr
+doc-stdout
+doc-stderr
+version
+test compiler::rustdoc::tests::a_refused_run_returns_rustdoc_status_and_records_the_event ... ok
+test compiler::rustdoc::tests::classify_marks_the_archive_as_rustdoc_output ... ok
+test compiler::rustdoc::tests::recognizes_rustdoc_and_not_rustc ... ok
+test wrapper_config::tests::cargo_config_without_rustdoc_still_parses ... ok
+test wrapper_config::tests::cargo_rustdoc_setting_reads_the_cargo_home_config ... ok
+doc-stdout
+doc-stderr
+test wrapper_config::tests::nearest_rustdoc_setting_overrides_an_earlier_config ... ok
+doc-stdout
+doc-stderr
+doc-stdout
+doc-stderr
+doc-stdout
+doc-stderr
+test compiler::rustdoc::tests::a_second_invocation_does_not_run_rustdoc_again ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 4381 filtered out; finished in 0.15s
+

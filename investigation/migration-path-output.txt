@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/repro_migration_path.py", line 73, in <module>
+    main()
+    ~~~~^^
+  File "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/repro_migration_path.py", line 67, in main
+    assert after_cargo['returncode'] == 0, (
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: MIGRATION_WRAPPER_BROKEN: doctor --fix rewrote an absolute sccache wrapper path to a nonexistent kache path;
+error: could not execute process `/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/migration-0qfq837s/old-wrapper/kache /Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/rustc -vV` (never executed)
+
+Caused by:
+  No such file or directory (os error 2)
+

@@ -1,0 +1,64 @@
+{
+  "guarded": {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+      "init",
+      "--yes",
+      "--no-service",
+      "--no-shell"
+    ],
+    "returncode": 1,
+    "stdout": "kache \u00b7 setup\n\nSetup plan\n  Cargo    caching      Rust and native dependencies\n  Config   ~/.cargo/config.toml\n  Daemon   background   start or restart the cache if needed\n\nSetup\n  Cargo caching: Rust and native dependencies\n    Config: ~/.cargo/config.toml\n",
+    "stderr": "error: TOML parse error at line 4, column 2\n  |\n4 | [build]\n  |  ^^^^^\nduplicate key\n\n"
+  },
+  "before": "[build] # existing config\njobs = 2\n",
+  "after": "[build] # existing config\njobs = 2\n",
+  "native": [
+    {
+      "argv": [
+        "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+        "cc",
+        "-E",
+        "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/guards-vm1uyukz/input.c"
+      ],
+      "returncode": 0,
+      "stdout": "# 1 \"/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/guards-vm1uyukz/input.c\"\n# 1 \"<built-in>\" 1\n# 1 \"<built-in>\" 3\n# 466 \"<built-in>\" 3\n# 1 \"<command line>\" 1\n# 1 \"<built-in>\" 2\n# 1 \"/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/guards-vm1uyukz/input.c\" 2\n\n42\n",
+      "stderr": "",
+      "disabled": "0"
+    },
+    {
+      "argv": [
+        "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+        "cc",
+        "-E",
+        "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/guards-vm1uyukz/input.c"
+      ],
+      "returncode": 0,
+      "stdout": "# 1 \"/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/guards-vm1uyukz/input.c\"\n# 1 \"<built-in>\" 1\n# 1 \"<built-in>\" 3\n# 466 \"<built-in>\" 3\n# 1 \"<command line>\" 1\n# 1 \"<built-in>\" 2\n# 1 \"/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/guards-vm1uyukz/input.c\" 2\n\n42\n",
+      "stderr": "",
+      "disabled": "1"
+    },
+    {
+      "argv": [
+        "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+        "-E",
+        "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/guards-vm1uyukz/input.c"
+      ],
+      "returncode": 0,
+      "stdout": "# 1 \"/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/guards-vm1uyukz/input.c\"\n# 1 \"<built-in>\" 1\n# 1 \"<built-in>\" 3\n# 466 \"<built-in>\" 3\n# 1 \"<command line>\" 1\n# 1 \"<built-in>\" 2\n# 1 \"/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/guards-vm1uyukz/input.c\" 2\n\n42\n",
+      "stderr": "",
+      "disabled": "0"
+    },
+    {
+      "argv": [
+        "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+        "-E",
+        "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/guards-vm1uyukz/input.c"
+      ],
+      "returncode": 1,
+      "stdout": "",
+      "stderr": "Error: No such file or directory (os error 2)\n",
+      "disabled": "1"
+    }
+  ]
+}

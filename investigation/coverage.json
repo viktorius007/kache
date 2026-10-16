@@ -1,0 +1,610 @@
+{
+  "schema_version": 1,
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "primary_paths": [
+    {
+      "path": "docs/compatibility.mdx",
+      "state": "reviewed",
+      "evidence": [
+        "Full assigned text read and reconciled with production behavior and scope contracts. Source/test review only unless named in runtime evidence."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 16
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "docs/getting-started/comparison.mdx",
+      "state": "reviewed",
+      "evidence": [
+        "Full assigned text read and reconciled with production behavior and scope contracts. Source/test review only unless named in runtime evidence."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 96
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "docs/getting-started/configuration.mdx",
+      "state": "reviewed",
+      "evidence": [
+        "Full assigned text read and reconciled with production behavior and scope contracts. Source/test review only unless named in runtime evidence."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 637
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "docs/getting-started/installation.mdx",
+      "state": "reviewed",
+      "evidence": [
+        "Full assigned text read and reconciled with production behavior and scope contracts. Source/test review only unless named in runtime evidence."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 154
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "docs/getting-started/meta.json",
+      "state": "reviewed",
+      "evidence": [
+        "Full assigned text read and reconciled with production behavior and scope contracts. Source/test review only unless named in runtime evidence."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 14
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "docs/getting-started/quick-start.mdx",
+      "state": "reviewed",
+      "evidence": [
+        "Full assigned text read and reconciled with production behavior and scope contracts. Source/test review only unless named in runtime evidence."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 126
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "docs/getting-started/troubleshooting.mdx",
+      "state": "reviewed",
+      "evidence": [
+        "Full assigned text read and reconciled with production behavior and scope contracts. Source/test review only unless named in runtime evidence."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 131
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "docs/how-it-works/architecture.mdx",
+      "state": "reviewed",
+      "evidence": [
+        "Full assigned text read and reconciled with production behavior and scope contracts. Source/test review only unless named in runtime evidence."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 95
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "docs/how-it-works/meta.json",
+      "state": "reviewed",
+      "evidence": [
+        "Full assigned text read and reconciled with production behavior and scope contracts. Source/test review only unless named in runtime evidence."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 9
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "docs/index.mdx",
+      "state": "reviewed",
+      "evidence": [
+        "Full assigned text read and reconciled with production behavior and scope contracts. Source/test review only unless named in runtime evidence."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 78
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "docs/meta.json",
+      "state": "reviewed",
+      "evidence": [
+        "Full assigned text read and reconciled with production behavior and scope contracts. Source/test review only unless named in runtime evidence."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 17
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "src/cli.rs",
+      "state": "reviewed",
+      "evidence": [
+        "Full production command, reporting, sync, integrity verify, cleanup, setup, migration and shim-install text reviewed. Executed Cargo breakage proofs and wrapper-edit control; other command/platform behavior source-reviewed only."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 10293
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "src/cli/login.rs",
+      "state": "reviewed",
+      "evidence": [
+        "Full login/logout discovery, trust, scoped stores, session locks, bounded revoke and tests read; no live authentication or token storage exercised. Planner/auth remains consulted ownership."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 412
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "src/cli/miss_diagnosis.rs",
+      "state": "reviewed",
+      "evidence": [
+        "Full diagnosis priorities and shared terminal/JSON facts read, including tests. Emitted-event semantics require observability/planner consultations beyond this primary slice."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 178
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "src/cli/tests.rs",
+      "state": "sampled",
+      "evidence": [
+        "Selected setup/rustdoc/wrapper editor and cache cleanup cases read; tests were not executed as a suite. Existing rustdoc edit assertions cover plain headers, not commented table headers."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 2780,
+          "end_line": 3125
+        },
+        {
+          "start_line": 7810,
+          "end_line": 8010
+        }
+      ],
+      "unreviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 2779
+        },
+        {
+          "start_line": 3126,
+          "end_line": 7809
+        },
+        {
+          "start_line": 8011,
+          "end_line": 8350
+        }
+      ],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "src/config.rs",
+      "state": "reviewed",
+      "evidence": [
+        "Full layered config, env/pinning, path/socket, remote policy, persistence and provenance text reviewed. Malformed whole-file behavior reconciled with the explicit contract."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 4324
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "src/config/tests.rs",
+      "state": "sampled",
+      "evidence": [
+        "Selected host merge, precedence, remote/planner isolation cases read; no test suite execution."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1233,
+          "end_line": 1475
+        }
+      ],
+      "unreviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 1232
+        },
+        {
+          "start_line": 1476,
+          "end_line": 5364
+        }
+      ],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "src/config_tui.rs",
+      "state": "sampled",
+      "evidence": [
+        "Production editor fields, validation, preservation, save and input/drawing paths fully reviewed; interactive terminal runtime not exercised. Test sample covers form shape and OCI form preservation."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 1500
+        }
+      ],
+      "unreviewed_ranges": [
+        {
+          "start_line": 1501,
+          "end_line": 2857
+        }
+      ],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim.",
+      "production_reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 1370
+        }
+      ],
+      "test_sampling_only": true
+    },
+    {
+      "path": "src/init_shell.rs",
+      "state": "sampled",
+      "evidence": [
+        "Production shell selection, quoting, regular-file checks, snapshot verification, backup and atomic replacement fully reviewed. Bash fixture setup exercised indirectly by baseline init."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 390
+        }
+      ],
+      "unreviewed_ranges": [
+        {
+          "start_line": 391,
+          "end_line": 642
+        }
+      ],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim.",
+      "production_reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 287
+        }
+      ],
+      "test_sampling_only": true
+    },
+    {
+      "path": "src/main.rs",
+      "state": "sampled",
+      "evidence": [
+        "Production dispatch, argument/env ownership, JSON selection, config bootstrap, CLI routing and direct/disabled/reentrant wrapper paths fully reviewed. Runtime samples are setup/doctor and C preprocessing; no broad compiler correctness claim."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 2205
+        }
+      ],
+      "unreviewed_ranges": [
+        {
+          "start_line": 2206,
+          "end_line": 2711
+        }
+      ],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim.",
+      "production_reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 1834
+        }
+      ],
+      "test_sampling_only": true
+    },
+    {
+      "path": "src/notice.rs",
+      "state": "reviewed",
+      "evidence": [
+        "Full assigned text read and reconciled with production behavior and scope contracts. Source/test review only unless named in runtime evidence."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 131
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "src/platform.rs",
+      "state": "sampled",
+      "evidence": [
+        "Production platform limits, self-spawn naming and process ownership guards fully reviewed. Unsupported platform behavior source-reviewed only."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 440
+        }
+      ],
+      "unreviewed_ranges": [
+        {
+          "start_line": 441,
+          "end_line": 584
+        }
+      ],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim.",
+      "production_reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 328
+        }
+      ],
+      "test_sampling_only": true
+    },
+    {
+      "path": "src/service.rs",
+      "state": "sampled",
+      "evidence": [
+        "Production launchd/systemd/Task Scheduler generation, install/remove, manager deadline, ownership and status paths fully reviewed. Real managers were never modified or exercised."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 1500
+        }
+      ],
+      "unreviewed_ranges": [
+        {
+          "start_line": 1501,
+          "end_line": 1867
+        }
+      ],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim.",
+      "production_reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 1284
+        }
+      ],
+      "test_sampling_only": true
+    },
+    {
+      "path": "src/wrapper_config.rs",
+      "state": "reviewed",
+      "evidence": [
+        "Full assigned text read and reconciled with production behavior and scope contracts. Source/test review only unless named in runtime evidence."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 350
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "tests/cli_commands_test.rs",
+      "state": "sampled",
+      "evidence": [
+        "Selected fixture isolation, tracked cleanup, migration, and rustdoc setup cases read; tests were not run as a suite. Existing migration asserts textual replacement of bare sccache, not usability of absolute replacements."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 75
+        },
+        {
+          "start_line": 1250,
+          "end_line": 1411
+        },
+        {
+          "start_line": 1656,
+          "end_line": 1715
+        },
+        {
+          "start_line": 2690,
+          "end_line": 2760
+        }
+      ],
+      "unreviewed_ranges": [
+        {
+          "start_line": 76,
+          "end_line": 1249
+        },
+        {
+          "start_line": 1412,
+          "end_line": 1655
+        },
+        {
+          "start_line": 1716,
+          "end_line": 2689
+        },
+        {
+          "start_line": 2761,
+          "end_line": 4237
+        }
+      ],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "tests/fixtures/config_editor_legacy.toml",
+      "state": "reviewed",
+      "evidence": [
+        "Full assigned text read and reconciled with production behavior and scope contracts. Source/test review only unless named in runtime evidence."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 73
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "tests/host_config_test.rs",
+      "state": "reviewed",
+      "evidence": [
+        "Full assigned text read and reconciled with production behavior and scope contracts. Source/test review only unless named in runtime evidence."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 149
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    },
+    {
+      "path": "tests/macos_local_network_metadata_test.rs",
+      "state": "reviewed",
+      "evidence": [
+        "Full assigned text read and reconciled with production behavior and scope contracts. Source/test review only unless named in runtime evidence."
+      ],
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 35
+        }
+      ],
+      "unreviewed_ranges": [],
+      "reopen_conditions": "Reopen on changes to the cited paths or a new production workload/contradictory event; omitted test ranges require separate review before a test-suite completeness claim."
+    }
+  ],
+  "graph_coverage": {
+    "project": "Users-viktor-Developer-github-kache-investigations-coordinator",
+    "evidence": "investigation/graph-index-status.txt",
+    "rust_status": "semantic_partial",
+    "limits": [
+      "binding oracle unavailable",
+      "expanded calls unavailable",
+      "impl relationships unavailable",
+      ".cargo excluded from graph"
+    ],
+    "method": "Graph entry-point and config/function searches, source snippets, then source fallback. Missing graph edges are not negative caller evidence."
+  },
+  "collateral": [
+    {
+      "path": "src/cargo_env.rs",
+      "state": "collateral",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 259
+        }
+      ],
+      "evidence": "Full native Cargo env editor read to trace prevalidation and already-ready rustdoc scenario."
+    },
+    {
+      "path": ".cargo/config.toml",
+      "state": "collateral",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 8
+        }
+      ],
+      "evidence": "Full ancestor fixture Cargo configuration read; only KACHE_HOST_CONFIG env isolation."
+    },
+    {
+      "path": "src/compiler/mod.rs",
+      "state": "collateral",
+      "reviewed_ranges": [
+        {
+          "start_line": 2050,
+          "end_line": 2070
+        }
+      ],
+      "evidence": "Default shim directory seam inspected; not a review of compiler implementation."
+    },
+    {
+      "path": "src/compiler/cc.rs",
+      "state": "collateral",
+      "reviewed_ranges": [
+        {
+          "start_line": 6641,
+          "end_line": 6643
+        }
+      ],
+      "evidence": "Graph source snippet of recognizes_family_probe used for dispatch consultation."
+    },
+    {
+      "path": "src/wrapper.rs",
+      "state": "collateral",
+      "reviewed_ranges": [
+        {
+          "start_line": 919,
+          "end_line": 928
+        }
+      ],
+      "evidence": "Graph source snippet of run_cc_probe used for dispatch consultation."
+    }
+  ]
+}

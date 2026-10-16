@@ -1,0 +1,50 @@
+{
+  "before": "[build]\nrustc-wrapper = \"/tmp/migration-5knx2m6x/old-wrapper/sccache\"\n",
+  "after": "[build]\nrustc-wrapper = \"kache\"\n",
+  "before_cargo": {
+    "argv": [
+      "/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/cargo",
+      "check",
+      "--offline",
+      "--target-dir",
+      "/tmp/migration-5knx2m6x/target-before"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": "    Checking migration-audit v0.1.0 (/private/tmp/migration-5knx2m6x/project)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s\n"
+  },
+  "migration": {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-prs/cargo-build-001/target/debug/kache",
+      "doctor",
+      "--fix"
+    ],
+    "returncode": 0,
+    "stdout": "kache \u00b7 doctor\n  v1.0.0 \u00b7 rustc 1.99.0 (b940084d7 2026-09-28)\n\nSetup\n  Binary           \u2713   /tmp/migration-5knx2m6x/bin/kache\n  RUSTC_WRAPPER    \u2717   /tmp/migration-5knx2m6x/old-wrapper/sccache in /private/tmp/migration-5knx2m6x/.cargo/config.toml\n                   \u2192   replace `rustc-wrapper = \"/tmp/migration-5knx2m6x/old-wrapper/sccache\"` with `rustc-wrapper = \"kache\"` in /private/tmp/migration-5knx2m6x/.cargo/config.toml\n  Cargo config     \u2717   /tmp/migration-5knx2m6x/old-wrapper/sccache in /private/tmp/migration-5knx2m6x/.cargo/config.toml\n                   \u2192   replace `rustc-wrapper = \"/tmp/migration-5knx2m6x/old-wrapper/sccache\"` with `rustc-wrapper = \"kache\"` in /private/tmp/migration-5knx2m6x/.cargo/config.toml\n  cargo doc        \u2713   not set\n  Host config      \u2713   off (KACHE_HOST_CONFIG is empty)\n  Install path     \u2713   /tmp/migration-5knx2m6x/bin/kache (standalone, user-managed): the first kache on PATH, which keeps working until that file is replaced or removed\n  C/C++ shims      \u2022   not installed\n                   \u2192   kache install-shims && export PATH=\"/tmp/migration-5knx2m6x/.local/lib/kache/shims:$PATH\"\n  Compiler probe   \u2713   cc -### resolves (Apple clang version 17.0.0 (clang-1700.6.4.2))\n\nStorage\n  Cache dir          \u2713   /tmp/migration-5knx2m6x/cache\n  Cache FS           \u2713   apfs (local)\n  Store DB           \u2713   /tmp/migration-5knx2m6x/cache/index.db\n  Store quarantine   \u2713   no retained corrupt index files\n  Store totals       \u2713   0 unique entries, 0 B stored across 1 configured stores\n  Link layout        \u2713   hardlink build-tree \u2192 <store>/staging works (FICLONE unknown) (build: /private/tmp/migration-5knx2m6x/project, staging: /tmp/migration-5knx2m6x/cache/store/staging)\n\nServices\n  Remote           \u2713   local-only mode \u2014 remote + planner ignored (KACHE_LOCAL_ONLY)\n  Daemon version   \u2022   daemon not reachable\n                   \u2192   start daemon with `kache daemon start` or `kache daemon install`; if it does not start, the reason is in /tmp/migration-5knx2m6x/runtime/daemon.log\n  Daemon service   \u2022   not installed\n                   \u2192   kache daemon install\n\n\n  2 issue(s) found.\n  Daemon checks are informational: no remote cache or planner configured (the daemon is optional for local-only use).\n\nRunning migration...\n\n\nMigration summary:\n  \u2713 Replaced sccache with kache in /tmp/migration-5knx2m6x/.cargo/config.toml\n\n  Tip: run `kache doctor --fix --purge-sccache` to also remove sccache cache and binary\n\n  Then verify with: kache doctor\n",
+    "stderr": ""
+  },
+  "after_cargo": {
+    "argv": [
+      "/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/cargo",
+      "check",
+      "--offline",
+      "--target-dir",
+      "/tmp/migration-5knx2m6x/target-after"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": "    Checking migration-audit v0.1.0 (/private/tmp/migration-5knx2m6x/project)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.22s\n"
+  },
+  "configured_wrapper": "kache",
+  "wrapper_exists": true,
+  "cleanup": {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-prs/cargo-build-001/target/debug/kache",
+      "daemon",
+      "stop"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": "error: daemon connection timed out\n"
+  }
+}

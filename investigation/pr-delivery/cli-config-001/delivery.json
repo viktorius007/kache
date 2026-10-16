@@ -1,0 +1,32 @@
+{
+  "id": "cli-config-001",
+  "branch": "fix/cli-config-001",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/cli-config-001",
+  "test_commit": "8a404f7f75372c13b52f2623d32378bc0abc5d54",
+  "fix_commit": "a9f22bd37e70793bc977be3c2d96486f7a87421b",
+  "title": "Preserve commented Cargo build tables during init",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-001/pr-body.md",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "gate_command": "/bin/bash /Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-001/gate.sh",
+  "gate_exit": 0,
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-001/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-001/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-001/gate.log",
+  "changed_files": [
+    "src/cli.rs",
+    "src/cli/tests.rs",
+    "tests/cli_commands_test.rs"
+  ],
+  "unit_red_log": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-001/red-unit.log",
+  "unit_green_log": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-001/green-unit.log",
+  "external_proof": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-001/external-proof.py",
+  "external_green_log": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-001/external-green.log",
+  "external_evidence": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-001/rustdoc-config-evidence.json",
+  "harness_notes": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-001/harness-notes.md",
+  "working_tree_clean": true,
+  "tests": [
+    "cli::tests::apply_rustdoc_edit_preserves_commented_table_boundaries",
+    "init_preserves_a_commented_cargo_build_table"
+  ],
+  "gate_command_record": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-001/gate-command.json"
+}

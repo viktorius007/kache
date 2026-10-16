@@ -1,0 +1,27 @@
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/cli-config-001/crates/kache-fs)
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/cli-config-001/crates/kache-format)
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/cli-config-001)
+   Compiling kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-prs/cli-config-001/crates/kache-shims)
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/cli-config-001/crates/kache-store)
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/cli-config-001/crates/kache-core)
+    Finished `test` profile [unoptimized] target(s) in 50.88s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/cargo-build-001/target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+test cli::tests::apply_rustdoc_edit_preserves_commented_table_boundaries ... FAILED
+
+failures:
+
+---- cli::tests::apply_rustdoc_edit_preserves_commented_table_boundaries stdout ----
+
+thread 'cli::tests::apply_rustdoc_edit_preserves_commented_table_boundaries' (55984679) panicked at src/cli/tests.rs:2941:33:
+valid Cargo config after rustdoc edit: Error { message: "duplicate key", input: Some("[build] # compiler settings\nrustc-wrapper = \"kache\"\n[env] # retained environment\nrustdoc = \"keep\"\n\n[build]\nrustdoc = \"/shim/rustdoc\"\n"), keys: [], span: Some(100..105) }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    cli::tests::apply_rustdoc_edit_preserves_commented_table_boundaries
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4395 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--bin kache`

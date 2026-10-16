@@ -1,0 +1,29 @@
+{
+  "id": "cli-config-002",
+  "branch": "fix/cli-config-002",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/cli-config-002",
+  "test_commit": "47949f8d0f635161769fcd24326ecf1b6cc8e855",
+  "fix_commit": "31f6ac2747887dd9184dfab36f14e80a76e5008f",
+  "title": "Keep Cargo wrappers executable after doctor migration",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-002/pr-body.md",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "gate_command": "/bin/bash /Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-002/gate.sh",
+  "gate_command_record": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-002/gate-command.json",
+  "gate_exit": 0,
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-002/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-002/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-002/gate.log",
+  "changed_files": [
+    "src/cli.rs",
+    "tests/cli_commands_test.rs"
+  ],
+  "external_proof": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-002/external-proof.py",
+  "external_green_log": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-002/external-green.log",
+  "external_evidence": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-002/migration-path-evidence.json",
+  "oracle_notes": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-002/oracle-notes.md",
+  "working_tree_clean": true,
+  "tests": [
+    "doctor_fix_migrates_an_absolute_sccache_wrapper_to_a_working_kache",
+    "doctor_fix_preserves_cargo_config_without_an_sccache_wrapper"
+  ]
+}

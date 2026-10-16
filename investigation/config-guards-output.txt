@@ -1,0 +1,1 @@
+CONFIG_GUARDS_PASS: rejected invalid wrapper edit preserves config; kache cc -E works with caching on or off

@@ -1,0 +1,164 @@
+[
+  {
+    "id": "cli-config-001",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:06:24.267962+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "Codex",
+      "mode": "production-readiness",
+      "slice": "cli-config"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Unix init corrupts a valid Cargo config when its build table has a trailing comment.",
+    "scenario": "CARGO_HOME/config.toml already contains a working rustc-wrapper=\"kache\", complete native env settings, an unset rustdoc, and the valid header [build] # Existing compiler configuration. Running init --yes --no-service exits 0 and says Ready for Cargo builds, but appends a second [build]. Cargo metadata --offline then exits 101 with duplicate key; the same setup with a plain header stays usable.",
+    "evidence": [
+      {
+        "path": "src/main.rs",
+        "lines": "1119-1131",
+        "point": "Ordinary init dispatch reaches cli::init with shell setup enabled by default."
+      },
+      {
+        "path": "src/cli.rs",
+        "lines": "9082-9091",
+        "point": "apply_rustdoc_edit recognizes only trimmed == \"[build]\"."
+      },
+      {
+        "path": "src/cli.rs",
+        "lines": "9122-9131",
+        "point": "An unrecognized build header causes an unconditional appended [build] table."
+      },
+      {
+        "path": "src/cli.rs",
+        "lines": "9207-9249",
+        "point": "configure_cargo_rustdoc parses the input to choose Write, then writes edited text without validating the result."
+      },
+      {
+        "path": "src/cli.rs",
+        "lines": "9440-9447",
+        "point": "init calls configure_cargo_rustdoc after compiler/shell setup."
+      }
+    ],
+    "trace": "main init -> cli::init -> existing wrapper/native settings already ready -> init_compiler_setup installs rustdoc shim -> configure_cargo_rustdoc chooses Write -> apply_rustdoc_edit appends duplicate table -> std::fs::write overwrites valid Cargo config -> init returns success -> real Cargo refuses configuration.",
+    "authority": {
+      "source": "failure-mode; docs/getting-started/quick-start.mdx:19",
+      "quote": "kache init configures Cargo\u2019s Rust wrapper; successful setup must leave Cargo able to load its configuration."
+    },
+    "proof": {
+      "red_test": "#!/usr/bin/env python3\n\"\"\"Baseline CLI must preserve valid Cargo configuration during rustdoc setup.\"\"\"\nimport argparse\nimport json\nimport os\nfrom pathlib import Path\nimport subprocess\nimport tempfile\nimport tomllib\n\nBASELINE = Path('/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache')\nCARGO = Path('/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/cargo')\nRUSTC = CARGO.with_name('rustc')\nROOT = Path(__file__).resolve().parent\n\n\ndef run(argv, env, cwd):\n    result = subprocess.run([str(a) for a in argv], env=env, cwd=cwd, text=True,\n                            capture_output=True, timeout=30)\n    return dict(argv=[str(a) for a in argv], returncode=result.returncode,\n                stdout=result.stdout, stderr=result.stderr)\n\n\ndef exercise(name, header):\n    with tempfile.TemporaryDirectory(prefix='rustdoc-' + name + '-', dir=ROOT) as fixture, \\\n         tempfile.TemporaryDirectory(prefix='kcr-', dir='/private/tmp') as runtime:\n        home = Path(fixture)\n        cargo_home = home / '.cargo'\n        cargo_home.mkdir()\n        config = cargo_home / 'config.toml'\n        config.write_text(header + '\\nrustc-wrapper = \"kache\"\\n[env]\\n'\n                          'HOST_CC = \"clang\"\\nHOST_CXX = \"clang++\"\\n'\n                          'CC_KNOWN_WRAPPER_CUSTOM = \"kache\"\\n')\n        project = home / 'project'\n        (project / 'src').mkdir(parents=True)\n        (project / 'Cargo.toml').write_text('[package]\\nname=\"rustdoc-audit\"\\nversion=\"0.1.0\"\\nedition=\"2024\"\\n[workspace]\\n')\n        (project / 'src/lib.rs').write_text('pub fn value() -> u32 { 42 }\\n')\n        binary_dir = home / 'bin'\n        binary_dir.mkdir()\n        (binary_dir / 'kache').symlink_to(BASELINE)\n        kache_config = home / 'kache.toml'\n        kache_config.write_text('[cache]\\nlocal_only = true\\ndaemon_idle_timeout_secs = 15\\n'\n                                'auto_gc = false\\nauto_clean_orphaned_targets = false\\n'\n                                'auto_clean_unused_units_days = 0\\nseed_new_targets = false\\n')\n        env = dict(HOME=str(home), CARGO_HOME=str(cargo_home), SHELL='/bin/bash',\n                   PATH=str(binary_dir) + ':' + str(CARGO.parent) + ':/usr/bin:/bin:/usr/sbin:/sbin',\n                   XDG_CONFIG_HOME=str(home / '.config'), XDG_CACHE_HOME=str(home / '.cache'),\n                   KACHE_CONFIG=str(kache_config), KACHE_HOST_CONFIG='',\n                   KACHE_CACHE_DIR=str(home / 'cache'), KACHE_RUNTIME_DIR=runtime,\n                   KACHE_SOCKET_PATH=str(Path(runtime) / 'daemon.sock'),\n                   KACHE_LOG='off', KACHE_LOG_FILE='off', KACHE_LOG_FILE_PATH=str(home / 'kache.log'),\n                   RUSTC=str(RUSTC), RUSTC_WRAPPER='', RUSTUP_HOME='/Users/viktor/.rustup')\n        before = config.read_text()\n        tomllib.loads(before)\n        before_cargo = run([CARGO, 'metadata', '--no-deps', '--format-version=1', '--offline'], env, project)\n        assert before_cargo['returncode'] == 0, before_cargo\n        # Installation and startup target only this fixture, with no login service.\n        setup = None\n        try:\n            setup = run([BASELINE, 'init', '--yes', '--no-service'], env, project)\n            after = config.read_text()\n            try:\n                parsed = tomllib.loads(after)\n                error = None\n                configured = parsed.get('build', {}).get('rustdoc')\n            except tomllib.TOMLDecodeError as exc:\n                error = str(exc)\n                configured = None\n            after_cargo = run([CARGO, 'metadata', '--no-deps', '--format-version=1', '--offline'], env, project)\n        finally:\n            stop = run([BASELINE, 'daemon', 'stop'], env, project)\n        return dict(name=name, before=before, after=after, before_cargo=before_cargo,\n                    setup=setup, after_cargo=after_cargo, parse_error=error,\n                    rustdoc=configured, cleanup=stop)\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument('--evidence', type=Path, default=ROOT / 'rustdoc-config-evidence.json')\n    args = parser.parse_args()\n    observations = [exercise('plain', '[build]'), exercise('comment', '[build] # Existing compiler configuration')]\n    args.evidence.write_text(json.dumps(observations, indent=2) + '\\n')\n    control, commented = observations\n    assert all(x['setup']['returncode'] == 0 for x in observations), 'CONTROL_FAILED: both init invocations must report success'\n    assert control['parse_error'] is None and control['rustdoc'], 'CONTROL_FAILED: plain Cargo table must configure rustdoc'\n    assert control['after_cargo']['returncode'] == 0, 'CONTROL_FAILED: plain Cargo table must remain usable'\n    assert commented['parse_error'] is None and commented['after_cargo']['returncode'] == 0, (\n        'RUSTDOC_CONFIG_CORRUPTED: init appended duplicate [build] to a valid commented table; '\n        + str(commented['parse_error']) + '\\n' + commented['after_cargo']['stderr'])\n\n\nif __name__ == '__main__':\n    main()\n",
+      "name": "repro_rustdoc_config",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "Traceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/repro_rustdoc_config.py\", line 93, in <module>\n    main()\n    ~~~~^^\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/repro_rustdoc_config.py\", line 87, in main\n    assert commented['parse_error'] is None and commented['after_cargo']['returncode'] == 0, (\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: RUSTDOC_CONFIG_CORRUPTED: init appended duplicate [build] to a valid commented table; Cannot declare ('build',) twice (at line 8, column 7)\nerror: could not load Cargo configuration\n\nCaused by:\n  could not parse TOML configuration in `/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/rustdoc-comment-e57avxzd/.cargo/config.toml`\n\nCaused by:\n  TOML parse error at line 8, column 2\n    |\n  8 | [build]\n    |  ^^^^^\n  duplicate key\n\n"
+    },
+    "severity": "The ordinary Unix setup command causes persistent failure for every Cargo project using the edited user/CARGO_HOME config. A trailing table comment is valid and commonplace. The command reports success, so users continue with broken setup. A backup exists, limiting recovery cost, but manual restoration/editing is required. No cache artifact integrity claim is made.",
+    "status": "open"
+  },
+  {
+    "id": "cli-config-002",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:06:24.267962+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "Codex",
+      "mode": "production-readiness",
+      "slice": "cli-config"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Doctor migration turns a working absolute sccache wrapper path into a nonexistent kache path.",
+    "scenario": "CARGO_HOME/config.toml sets build.rustc-wrapper to an existing absolute old-wrapper/sccache executable, while kache is available separately on PATH. A dependency-free Cargo check passes. doctor --fix exits 0 and changes the value to old-wrapper/kache, which is absent. The next real Cargo check exits 101 before rustc executes with OS error 2.",
+    "evidence": [
+      {
+        "path": "src/main.rs",
+        "lines": "1133-1153",
+        "point": "doctor --fix dispatch reaches cli::doctor."
+      },
+      {
+        "path": "src/cli.rs",
+        "lines": "7169-7172",
+        "point": "The fix branch invokes migrate(purge_sccache)."
+      },
+      {
+        "path": "src/cli.rs",
+        "lines": "7311-7325",
+        "point": "Migration rewrites the entire Cargo configuration with content.replace(\"sccache\", \"kache\") and writes it in place; it does not select a real replacement executable."
+      }
+    ],
+    "trace": "main doctor --fix -> cli::doctor -> migrate(false) -> Cargo home config contains sccache -> global substring replacement -> absolute executable path rewritten -> success report -> Cargo cannot launch rewritten wrapper.",
+    "authority": {
+      "source": "failure-mode; src/cli.rs:7293",
+      "quote": "Migrate from sccache to kache (called by doctor --fix)."
+    },
+    "proof": {
+      "red_test": "#!/usr/bin/env python3\n\"\"\"Doctor migration must leave Cargo pointing to an executable wrapper.\"\"\"\nimport argparse\nimport json\nfrom pathlib import Path\nimport subprocess\nimport tempfile\nimport tomllib\n\nBASELINE = Path('/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache')\nCARGO = Path('/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/cargo')\nROOT = Path(__file__).resolve().parent\n\n\ndef run(argv, env, cwd):\n    result = subprocess.run([str(a) for a in argv], env=env, cwd=cwd, text=True,\n                            capture_output=True, timeout=30)\n    return dict(argv=[str(a) for a in argv], returncode=result.returncode,\n                stdout=result.stdout, stderr=result.stderr)\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument('--evidence', type=Path, default=ROOT / 'migration-path-evidence.json')\n    args = parser.parse_args()\n    with tempfile.TemporaryDirectory(prefix='migration-', dir=ROOT) as fixture:\n        home = Path(fixture)\n        cargo_home = home / '.cargo'\n        cargo_home.mkdir()\n        binary_dir = home / 'bin'\n        binary_dir.mkdir()\n        (binary_dir / 'kache').symlink_to(BASELINE)\n        # Keep the migration from observing or stopping the user's sccache.\n        (binary_dir / 'pgrep').write_text('#!/bin/sh\\nexit 1\\n')\n        (binary_dir / 'pgrep').chmod(0o755)\n        old_dir = home / 'old-wrapper'\n        old_dir.mkdir()\n        old_wrapper = old_dir / 'sccache'\n        old_wrapper.write_text('#!/bin/sh\\nexec \"$@\"\\n')\n        old_wrapper.chmod(0o755)\n        config = cargo_home / 'config.toml'\n        config.write_text('[build]\\nrustc-wrapper = ' + json.dumps(str(old_wrapper)) + '\\n')\n        project = home / 'project'\n        (project / 'src').mkdir(parents=True)\n        (project / 'Cargo.toml').write_text('[package]\\nname=\"migration-audit\"\\nversion=\"0.1.0\"\\nedition=\"2024\"\\n[workspace]\\n')\n        (project / 'src/lib.rs').write_text('pub fn value() -> u32 { 42 }\\n')\n        kache_config = home / 'kache.toml'\n        kache_config.write_text('[cache]\\nlocal_only = true\\nauto_gc = false\\n')\n        env = dict(HOME=str(home), CARGO_HOME=str(cargo_home), SHELL='/bin/bash',\n                   PATH=str(binary_dir) + ':' + str(CARGO.parent) + ':/usr/bin:/bin:/usr/sbin:/sbin',\n                   XDG_CONFIG_HOME=str(home / '.config'), KACHE_CONFIG=str(kache_config),\n                   KACHE_HOST_CONFIG='', KACHE_CACHE_DIR=str(home / 'cache'),\n                   KACHE_RUNTIME_DIR=str(home / 'runtime'), KACHE_LOG='off', KACHE_LOG_FILE='off',\n                   KACHE_LOG_FILE_PATH=str(home / 'kache.log'), RUSTC=str(CARGO.with_name('rustc')),\n                   RUSTUP_HOME='/Users/viktor/.rustup')\n        before = config.read_text()\n        before_cargo = run([CARGO, 'check', '--offline', '--target-dir', home / 'target-before'], env, project)\n        assert before_cargo['returncode'] == 0, 'CONTROL_FAILED: old absolute wrapper must work: ' + str(before_cargo)\n        migration = run([BASELINE, 'doctor', '--fix'], env, project)\n        after = config.read_text()\n        chosen = tomllib.loads(after)['build']['rustc-wrapper']\n        after_cargo = run([CARGO, 'check', '--offline', '--target-dir', home / 'target-after'], env, project)\n        observations = dict(before=before, after=after, before_cargo=before_cargo,\n                            migration=migration, after_cargo=after_cargo,\n                            configured_wrapper=chosen, wrapper_exists=Path(chosen).is_file())\n        args.evidence.write_text(json.dumps(observations, indent=2) + '\\n')\n        assert after_cargo['returncode'] == 0, (\n            'MIGRATION_WRAPPER_BROKEN: doctor --fix rewrote an absolute sccache wrapper path to a nonexistent kache path;\\n'\n            + after_cargo['stderr'])\n\n\nif __name__ == '__main__':\n    main()\n",
+      "name": "repro_migration_path",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "Traceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/repro_migration_path.py\", line 73, in <module>\n    main()\n    ~~~~^^\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/repro_migration_path.py\", line 67, in main\n    assert after_cargo['returncode'] == 0, (\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: MIGRATION_WRAPPER_BROKEN: doctor --fix rewrote an absolute sccache wrapper path to a nonexistent kache path;\nerror: could not execute process `/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/migration-0qfq837s/old-wrapper/kache /Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/rustc -vV` (never executed)\n\nCaused by:\n  No such file or directory (os error 2)\n\n"
+    },
+    "severity": "Existing absolute wrapper paths are supported Cargo configurations and common when PATH is controlled. All projects sharing that Cargo home fail after the repair command. The mutation is persistent and the migration path creates no backup. The same indiscriminate replacement also touches unrelated sccache strings, but the admitted proof is limited to executable-path breakage.",
+    "status": "open"
+  },
+  {
+    "id": "cli-config-dismiss-001",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:06:24.267962+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "Codex",
+      "mode": "production-readiness",
+      "slice": "cli-config"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "The ordinary Rust wrapper editor rejects an invalid edited config before writing it.",
+    "checked": "A valid [build] # comment with no wrapper is passed to init --yes --no-service --no-shell; the formatting editor generates a duplicate table internally.",
+    "evidence": [
+      {
+        "path": "src/cli.rs",
+        "lines": "9408-9427",
+        "point": "The updated wrapper/native-env text is parsed and its wrapper checked before directory creation, backup, or writing."
+      },
+      {
+        "path": "investigation/config-guards-evidence.json",
+        "lines": "all",
+        "point": "Executed baseline init exits 1 for duplicate key and before/after Cargo configuration bytes are equal."
+      }
+    ],
+    "trace": "init -> apply_cargo_wrapper_edit -> apply_cargo_env_edit -> toml::from_str(updated)? -> failure before write",
+    "closed_by": "Tier 1: probe_config_guards.py executed baseline rejection and unchanged-file assertions; Tier 2: src/cli.rs:9411 validates the text before saving.",
+    "reopens_if": "A valid input shape reaches the Rust wrapper write with invalid text, or a rejection changes the original file.",
+    "status": "no-action"
+  },
+  {
+    "id": "cli-config-dismiss-002",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:06:24.267962+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "Codex",
+      "mode": "production-readiness",
+      "slice": "cli-config"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Whole-file fallback on an invalid Kache config is the explicit current contract, not an undisclosed parse-precedence regression.",
+    "checked": "Config::load_resolved reads file_config.as_ref().ok(); one wrong-typed setting drops the chosen and host layers, including pinning/safety settings.",
+    "evidence": [
+      {
+        "path": "docs/getting-started/configuration.mdx",
+        "lines": "33",
+        "point": "The documentation explicitly says invalid TOML or a wrong type ignores the whole chosen file and host config, and uses env/defaults without warning."
+      },
+      {
+        "path": "src/config.rs",
+        "lines": "1498-1600",
+        "point": "Resolution consumes the fallible loaded file through optional parsed settings."
+      }
+    ],
+    "trace": "load chosen config -> parse/schema error -> load_resolved optional file settings absent -> environment/default resolution",
+    "closed_by": "Tier 4: docs/getting-started/configuration.mdx:33 expressly declares this behavior. This closes the contract-divergence claim only; it does not establish the behavior is safe for every policy workload.",
+    "reopens_if": "A policy or authority requires fail-closed pinning despite malformed config, or a concrete artifact/egress consequence is demonstrated in the owning domain.",
+    "status": "no-action"
+  }
+]

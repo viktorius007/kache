@@ -1,0 +1,10 @@
+{
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "baseline_binary": "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+  "binary_sha256": "45840941809ca7c45622027f84d2c653c737e7ff35d375cfbf355b619456120f",
+  "cargo": "/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/cargo",
+  "python": "/opt/homebrew/bin/python3.14",
+  "source_diff": "git diff --exit-code -- src docs tests .cargo exited 0",
+  "cleanup": "Both rustdoc fixtures returned daemon stopped; all fixture homes/workspaces and short runtime directories deleted by context managers.",
+  "run_limits": "No substantial repository build, whole-suite execution, live credential operation, real service-manager modification, remote egress, or terminal interaction."
+}

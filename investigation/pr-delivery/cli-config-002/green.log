@@ -1,0 +1,13 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/cli-config-002)
+    Finished `test` profile [unoptimized] target(s) in 7.40s
+     Running tests/cli_commands_test.rs (/Users/viktor/Developer/github/kache-prs/cargo-build-001/target/debug/deps/cli_commands_test-02de9353427050e5)
+
+running 5 tests
+test doctor_fix_in_isolated_home_succeeds ... ok
+test doctor_fix_migrates_sccache_cargo_config_to_kache ... ok
+test doctor_fix_migrates_an_absolute_sccache_wrapper_to_a_working_kache ... ok
+test doctor_fix_preserves_cargo_config_without_an_sccache_wrapper ... ok
+test doctor_fix_migrates_sccache_config_in_custom_cargo_home ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 113 filtered out; finished in 0.89s
+

@@ -1,0 +1,43 @@
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/cli-config-002/crates/kache-fs)
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/cli-config-002/crates/kache-format)
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/cli-config-002)
+   Compiling kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-prs/cli-config-002/crates/kache-shims)
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/cli-config-002/crates/kache-store)
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/cli-config-002/crates/kache-core)
+    Finished `test` profile [unoptimized] target(s) in 25.72s
+     Running tests/cli_commands_test.rs (/Users/viktor/Developer/github/kache-prs/cargo-build-001/target/debug/deps/cli_commands_test-02de9353427050e5)
+
+running 5 tests
+test doctor_fix_migrates_an_absolute_sccache_wrapper_to_a_working_kache ... FAILED
+test doctor_fix_in_isolated_home_succeeds ... ok
+test doctor_fix_migrates_sccache_cargo_config_to_kache ... ok
+test doctor_fix_migrates_sccache_config_in_custom_cargo_home ... ok
+test doctor_fix_preserves_cargo_config_without_an_sccache_wrapper ... FAILED
+
+failures:
+
+---- doctor_fix_migrates_an_absolute_sccache_wrapper_to_a_working_kache stdout ----
+
+thread 'doctor_fix_migrates_an_absolute_sccache_wrapper_to_a_working_kache' (57354805) panicked at tests/cli_commands_test.rs:1730:9:
+Cargo must execute its configured wrapper after migration: error: could not execute process `/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmph1DQBe/old-wrapper/kache rustc -vV` (never executed)
+
+Caused by:
+  No such file or directory (os error 2)
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- doctor_fix_preserves_cargo_config_without_an_sccache_wrapper stdout ----
+
+thread 'doctor_fix_preserves_cargo_config_without_an_sccache_wrapper' (57355350) panicked at tests/cli_commands_test.rs:1763:9:
+assertion `left == right` failed
+  left: "[build]\nrustc-wrapper = \"custom-wrapper\"\n[env]\nLABEL = \"kache\"\n"
+ right: "[build]\nrustc-wrapper = \"custom-wrapper\"\n[env]\nLABEL = \"sccache\"\n"
+
+
+failures:
+    doctor_fix_migrates_an_absolute_sccache_wrapper_to_a_working_kache
+    doctor_fix_preserves_cargo_config_without_an_sccache_wrapper
+
+test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 113 filtered out; finished in 0.66s
+
+error: test failed, to rerun pass `--test cli_commands_test`

@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized] target(s) in 7.87s
+     Running tests/fallback_recovery_test.rs (/Users/viktor/Developer/github/kache-prs/cargo-build-001/target/debug/deps/fallback_recovery_test-f38743893dd34a55)
+
+running 1 test
+test sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.95s
+

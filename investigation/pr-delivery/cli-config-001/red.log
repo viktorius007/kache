@@ -1,0 +1,22 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/cli-config-001)
+    Finished `test` profile [unoptimized] target(s) in 21.31s
+     Running tests/cli_commands_test.rs (/Users/viktor/Developer/github/kache-prs/cargo-build-001/target/debug/deps/cli_commands_test-02de9353427050e5)
+
+running 1 test
+test init_preserves_a_commented_cargo_build_table ... FAILED
+
+failures:
+
+---- init_preserves_a_commented_cargo_build_table stdout ----
+
+thread 'init_preserves_a_commented_cargo_build_table' (55996706) panicked at tests/cli_commands_test.rs:2714:55:
+init preserves valid Cargo config: Error { message: "duplicate key", input: Some("[build] # compiler settings\nrustc-wrapper = \"kache\"\n[env]\nHOST_CC = \"clang\"\nHOST_CXX = \"clang++\"\nCC_KNOWN_WRAPPER_CUSTOM = \"kache\"\n\n[build]\nrustdoc = \"/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpfT9XXT/.local/lib/kache/shims/rustdoc\"\n"), keys: [], span: Some(133..138) }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    init_preserves_a_commented_cargo_build_table
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 116 filtered out; finished in 0.53s
+
+error: test failed, to rerun pass `--test cli_commands_test`
