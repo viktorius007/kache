@@ -1,0 +1,2 @@
+[cache]
+event_log_max_size = "8GiB"

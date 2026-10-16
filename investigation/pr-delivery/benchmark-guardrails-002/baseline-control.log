@@ -1,0 +1,9 @@
+    Finished `test` profile [unoptimized] target(s) in 0.18s
+     Running unittests src/lib.rs (/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/pr-delivery/benchmark-guardrails-001/target/debug/deps/kache_e2e-777f2463f216f82f)
+
+running 1 test
+ÿ
+test bench_runner::tests::timed_build_accepts_clean_non_utf8_output ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 281 filtered out; finished in 0.01s
+

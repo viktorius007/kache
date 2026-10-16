@@ -1,0 +1,250 @@
+[
+  {
+    "id": "benchmark-guardrails-001",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:02:39.394074+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 inherited parent",
+      "mode": "production-readiness",
+      "slice": "benchmark-guardrails"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "A nonzero measurement exit leaves surviving members of its process group running.",
+    "scenario": "A selected benchmark command starts a worker in its measurement process group, redirects that worker's output, then exits nonzero. run_measurement raises CalledProcessError without terminating the group. The real worker writes a filesystem artifact after the failed helper returns; subsequent project cells or another benchmark invocation can overlap that worker.",
+    "evidence": [
+      {
+        "path": "scripts/bench/engine.py",
+        "lines": "23-41",
+        "point": "Only exceptions from process.wait enter killpg cleanup; the status != 0 exception is raised afterward."
+      },
+      {
+        "path": "scripts/bench/short.py",
+        "lines": "434-448",
+        "point": "The actual selected scenario instrument is run by this helper with its entire stdout/stderr redirected to engine.log."
+      },
+      {
+        "path": "scripts/bench/gate_local.py",
+        "lines": "259-263",
+        "point": "The gate measures subsequent projects after a failed project return status."
+      },
+      {
+        "path": "scripts/bench/tests/test_short.py",
+        "lines": "93-123",
+        "point": "Existing exit-failure check starts a childless command; timeout process cleanup is mocked."
+      }
+    ],
+    "trace": "perf-gate-local project loop -> bench.short.run -> bench.engine.run_measurement -> successful wait returning status 4 -> CalledProcessError outside cleanup -> child remains active after return",
+    "authority": {
+      "source": "failure-mode: process/resource isolation between benchmark cells",
+      "quote": "A failed measurement must not retain worker processes whose work can overlap later measurements or whose writes outlive scratch cleanup. The existing timeout cleanup explicitly recognizes that children can outlive the leader."
+    },
+    "proof": {
+      "red_test": "#!/usr/bin/env python3\n\"\"\"Baseline proof: failed measuring instrument must stop its child group.\"\"\"\nimport json\nimport os\nfrom pathlib import Path\nimport signal\nimport subprocess\nimport sys\nimport tempfile\nimport time\n\nsys.dont_write_bytecode = True\n\nROOT=Path(__file__).resolve().parents[2]\nsys.path.insert(0,str(ROOT/'scripts'))\nfrom bench.engine import run_measurement\n\ndef timeout_control():\n    with tempfile.TemporaryDirectory(dir=ROOT/'investigation',prefix='timeout-control-') as tmp:\n        home=Path(tmp)\n        marker=home/'post-timeout-write'\n        pidfile=home/'child-pid'\n        child=\"import pathlib,time; time.sleep(0.35); pathlib.Path(%r).write_text('survived'); time.sleep(15)\" % str(marker)\n        parent=\"import pathlib,subprocess,sys,time; p=subprocess.Popen([sys.executable,'-c',%r],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); pathlib.Path(%r).write_text(str(p.pid)); time.sleep(60)\" % (child,str(pidfile))\n        pid=None\n        try:\n            try:\n                run_measurement([sys.executable,'-c',parent],timeout=0.15)\n            except subprocess.TimeoutExpired:\n                pass\n            else:\n                raise AssertionError('timeout positive control did not time out')\n            pid=int(pidfile.read_text())\n            time.sleep(0.5)\n            assert not marker.exists(), 'timeout control left child running'\n            print(json.dumps({'timeout_control': 'pass', 'post_timeout_artifact': marker.exists()}),flush=True)\n        finally:\n            if pid is None and pidfile.exists(): pid=int(pidfile.read_text())\n            if pid is not None:\n                try: os.kill(pid,signal.SIGKILL)\n                except ProcessLookupError: pass\n\ntimeout_control()\n\nwith tempfile.TemporaryDirectory(dir=ROOT/'investigation',prefix='orphan-fixture-') as tmp:\n    home=Path(tmp)\n    marker=home/'post-failure-write'\n    pidfile=home/'child-pid'\n    child=\"import pathlib,time; time.sleep(0.35); pathlib.Path(%r).write_text('child ran after failure'); time.sleep(15)\" % str(marker)\n    parent=\"import pathlib,subprocess,sys; p=subprocess.Popen([sys.executable,'-c',%r],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); pathlib.Path(%r).write_text(str(p.pid)); raise SystemExit(4)\" % (child,str(pidfile))\n    pid=None\n    try:\n        try:\n            run_measurement([sys.executable,'-c',parent],timeout=3)\n        except subprocess.CalledProcessError as error:\n            assert error.returncode==4\n        else:\n            raise AssertionError('fixture did not drive nonzero measurement exit')\n        pid=int(pidfile.read_text())\n        # A deterministic filesystem consequence, not a load-sensitive benchmark.\n        deadline=time.monotonic()+2\n        while not marker.exists() and time.monotonic()<deadline:\n            time.sleep(0.02)\n        actual={'measurement_status':4,'post_failure_artifact':marker.exists(),'child_pid':pid}\n        print(json.dumps(actual),flush=True)\n        assert not marker.exists(), 'Failed measurement returned while its child survived and wrote an artifact after failure; a subsequent gate run can share its CPU/memory/I/O load'\n    finally:\n        if pid is None and pidfile.exists(): pid=int(pidfile.read_text())\n        if pid is not None:\n            try: os.kill(pid,signal.SIGKILL)\n            except ProcessLookupError: pass\n",
+      "name": "nonzero_measurement_orphan",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "{\"timeout_control\": \"pass\", \"post_timeout_artifact\": false}\n{\"measurement_status\": 4, \"post_failure_artifact\": true, \"child_pid\": 38584}\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/proofs/nonzero_measurement_orphan.py\", line 64, in <module>\n    assert not marker.exists(), 'Failed measurement returned while its child survived and wrote an artifact after failure; a subsequent gate run can share its CPU/memory/I/O load'\n           ^^^^^^^^^^^^^^^^^^^\nAssertionError: Failed measurement returned while its child survived and wrote an artifact after failure; a subsequent gate run can share its CPU/memory/I/O load\n"
+    },
+    "severity": "Requires a failing instrument/build with a surviving same-group child; normal childless exits and the tested timeout path are unaffected. Confirmed observable late filesystem write, not measured CPU contamination or data loss. Surviving compilers/build helpers may continue consuming CPU/memory/I/O after failure, contaminate following subject runs and race cleanup. Isolated fixture cleans its child in finally.",
+    "status": "open"
+  },
+  {
+    "id": "benchmark-guardrails-002",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:02:39.394074+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 inherited parent",
+      "mode": "production-readiness",
+      "slice": "benchmark-guardrails"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "The timed Cargo dependency-fetch guard scans stdout and accepts recognized fetch messages sent to stderr.",
+    "scenario": "An ordinary clone scenario's timed build writes a Cargo download/index status to stderr and exits successfully. The runner logs it but never passes it to FetchCount. The executed baseline CLI accepts the cell, writes result JSON and verdict.ok=true, whereas the same recognized download line on stdout exits 1 before a result is written.",
+    "evidence": [
+      {
+        "path": "crates/kache-e2e/src/bench_runner.rs",
+        "lines": "1573-1620",
+        "point": "stderr is connected directly to the build log; FetchCount observes only the stdout reader, then refuse is called."
+      },
+      {
+        "path": "crates/kache-e2e/src/bench_runner.rs",
+        "lines": "1625-1642",
+        "point": "refuse documents why timed network activity invalidates a cache comparison."
+      },
+      {
+        "path": "crates/kache-e2e/src/bench_runner/tests.rs",
+        "lines": "3223-3269",
+        "point": "Existing scanner tests feed byte lines directly; they do not exercise stderr wiring."
+      },
+      {
+        "path": "https://raw.githubusercontent.com/rust-lang/cargo/master/crates/cargo-util-terminal/src/shell.rs",
+        "lines": "43-59,73-88,152-158",
+        "point": "Current primary Cargo Shell::status uses print -> message_stderr; stderr stream initialized separately from stdout."
+      }
+    ],
+    "trace": "kache-scenario --select clone -> run_bench -> run_cold_phase -> build: stderr direct log, stdout-only FetchCount -> zero observed fetches -> refuse succeeds -> warm -> result JSON/verdict ok",
+    "authority": {
+      "source": "bench_runner.rs FetchCount::refuse lines 1625-1630; current Cargo Shell primary source",
+      "quote": "Network time inside a timed build is not cache time, and it lands on whichever tool builds first in a job, so a comparison built on it is wrong."
+    },
+    "proof": {
+      "red_test": "#!/usr/bin/env python3\n\"\"\"Replay actual baseline CLI: a recognized fetch line must reject either stream.\n\nThe local subject and cache CLI are explicit fixture adapters, not real cache or\nnetwork measurements. The production scenario CLI/build/FetchCount path runs\nunchanged. The stdout cell is the detector's positive control.\n\"\"\"\nimport json\nimport os\nfrom pathlib import Path\nimport subprocess\nimport sys\nimport tempfile\n\nROOT = Path(__file__).resolve().parents[2]\nENGINE = Path(sys.argv[1]).resolve()\nFIXTURE = Path(tempfile.mkdtemp(dir=ROOT / \"investigation\", prefix=\"fetch-replay-\"))\nrepo = FIXTURE / \"subject\"\nrepo.mkdir()\n(repo / \"README\").write_text(\"local subject; no compilations or downloads\\n\")\nfor command in ([\"git\", \"init\", \"-q\", str(repo)], [\"git\", \"-C\", str(repo), \"add\", \"README\"],\n                [\"git\", \"-C\", str(repo), \"-c\", \"user.name=Fixture\", \"-c\", \"user.email=fixture@example.invalid\", \"commit\", \"-qm\", \"fixture\"]):\n    subprocess.run(command, check=True)\nrevision = subprocess.check_output([\"git\", \"-C\", str(repo), \"rev-parse\", \"HEAD\"], text=True).strip()\nadapter = FIXTURE / \"kache-adapter\"\nadapter.write_text(\"#!\" + sys.executable + \"\\n\" + \"\"\"import json, sys\nif sys.argv[1:] == [\"--version\"]:\n    print(\"kache fixture-adapter 1.0\")\nelif sys.argv[1:2] == [\"report\"]:\n    if \"json\" in sys.argv:\n        print(json.dumps({\"schema_version\": 1, \"summary\": {\"hit_rate_pct\": 100.0,\n          \"total_crates\": 1, \"local_hits\": 1, \"prefetch_hits\": 0,\n          \"remote_hits\": 0, \"dups\": 0, \"misses\": 0}}))\n    elif \"perfetto\" in sys.argv:\n        print('{\"traceEvents\": []}')\n    else:\n        print(\"fixture report\")\n\"\"\")\nadapter.chmod(0o755)\nhome = FIXTURE / \"home\"\nhome.mkdir()\nenv = {k: v for k, v in os.environ.items() if not k.startswith((\"KACHE_\", \"RUSTC_\", \"CARGO_\"))}\nenv.update(HOME=str(home), XDG_CONFIG_HOME=str(home / \"config\"), KACHE_HOST_CONFIG=\"\",\n           KACHE_RUNTIME_DIR=str(FIXTURE / \"runtime\"), RUSTC_WRAPPER=\"\")\nobservations = []\nfor stream in (\"stdout\", \"stderr\"):\n    scenarios = FIXTURE / (stream + \"-scenarios\")\n    profile = scenarios / \"bench-fetch-proof\"\n    profile.mkdir(parents=True)\n    redirection = \" >&2\" if stream == \"stderr\" else \"\"\n    command = \"mkdir -p target; printf '  Downloaded anyhow v1.0.100\\\\n'\" + redirection\n    content = 'name = \"bench-fetch-proof\"\\nbuild = ' + json.dumps(command) + '\\n[source]\\nkind = \"clone\"\\nrepo = ' + json.dumps(str(repo)) + '\\nref = ' + json.dumps(revision) + '\\nobjdir = \"target\"\\n'\n    (profile / \"scenario.toml\").write_text(content)\n    work = FIXTURE / (stream + \"-work\")\n    run = subprocess.run([str(ENGINE), \"--kache\", str(adapter), \"--scenarios\", str(scenarios),\n                          \"--select\", \"name:fetch-proof\", \"--work-dir\", str(work)],\n                         cwd=ROOT, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)\n    (FIXTURE / (stream + \"-cli.stdout\")).write_text(run.stdout)\n    (FIXTURE / (stream + \"-cli.stderr\")).write_text(run.stderr)\n    build_log = (work / \"build-cold.log\").read_text()\n    result = work / \"bench-fetch-proof.json\"\n    observations.append({\"stream\": stream, \"exit\": run.returncode,\n        \"download_in_build_log\": \"Downloaded anyhow\" in build_log,\n        \"guardrail_error\": \"timed build fetched dependencies\" in run.stderr,\n        \"result_written\": result.exists(),\n        \"verdict\": json.loads(result.read_text()).get(\"verdict\") if result.exists() else None})\nassert observations[0][\"download_in_build_log\"] and observations[0][\"guardrail_error\"] and observations[0][\"exit\"] != 0, \"stdout positive control did not reach the detector\"\nassert observations[1][\"download_in_build_log\"], \"stderr fixture line did not reach the actual timed build log\"\n(FIXTURE / \"observations.json\").write_text(json.dumps(observations, indent=2) + \"\\n\")\nprint(json.dumps({\"fixture\": str(FIXTURE), \"observations\": observations}, indent=2), flush=True)\nassert observations[1][\"guardrail_error\"] and observations[1][\"exit\"] != 0, \"Timed Cargo fetch message on stderr was accepted; the same message on stdout was refused\"\n",
+      "name": "timed_fetch_stderr",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "{\n  \"fixture\": \"/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/fetch-replay-ikyyhwc1\",\n  \"observations\": [\n    {\n      \"stream\": \"stdout\",\n      \"exit\": 1,\n      \"download_in_build_log\": true,\n      \"guardrail_error\": true,\n      \"result_written\": false,\n      \"verdict\": null\n    },\n    {\n      \"stream\": \"stderr\",\n      \"exit\": 0,\n      \"download_in_build_log\": true,\n      \"guardrail_error\": false,\n      \"result_written\": true,\n      \"verdict\": {\n        \"ok\": true,\n        \"issues\": [],\n        \"checks\": []\n      }\n    }\n  ]\n}\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/proofs/timed_fetch_stderr.py\", line 71, in <module>\n    assert observations[1][\"guardrail_error\"] and observations[1][\"exit\"] != 0, \"Timed Cargo fetch message on stderr was accepted; the same message on stdout was refused\"\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Timed Cargo fetch message on stderr was accepted; the same message on stdout was refused\n"
+    },
+    "severity": "Affects clone benchmarks across all supported cache backends when a timed command emits Cargo fetch statuses on stderr; can silently include downloads/index activity on whichever comparison arm runs first. Shipped Cargo profiles prepare with cargo fetch --locked, reducing ordinary exposure; the unconditional fallback guard is still ineffective on the normal Cargo stream. Fixture demonstrates guard acceptance, not actual download cost or a measured release regression. Local Git subject and fake report CLI are explicit adapters; actual untouched baseline CLI/build/scanner runs.",
+    "status": "open"
+  },
+  {
+    "id": "benchmark-guardrails-dismissal-001",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:02:39.394074+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 inherited parent",
+      "mode": "production-readiness",
+      "slice": "benchmark-guardrails"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Malformed or degraded Kache phase results are rejected by the Python performance comparison.",
+    "checked": "Inspected validate, identities, complete pairs and error paths; test_refuses_invalid_measurements plus paired validation passed in the 58-test supported-interpreter suite. Rust direct CLI treats some invalid_reasons as advisory; this dismissal concerns the Python comparison only.",
+    "closed_by": {
+      "tier": "source corroboration plus existing Python controls where relevant",
+      "citation": [
+        "scripts/bench/stats.py:20-71",
+        "scripts/bench/short.py:457-484",
+        "scripts/bench/tests/test_short.py:125-195",
+        "investigation/raw/python-bench-tests-py314.log"
+      ]
+    },
+    "reopens_if": "Validation is bypassed, invalid phase reasons are dropped before validation, or the direct Rust advisory verdict is claimed equivalent to the strict Python comparison.",
+    "status": "no-action"
+  },
+  {
+    "id": "benchmark-guardrails-dismissal-002",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:02:39.394074+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 inherited parent",
+      "mode": "production-readiness",
+      "slice": "benchmark-guardrails"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Reused cold cells and partial deadline pairs do not become extra independent timing evidence.",
+    "checked": "Inspected cold_reused filter, complete_samples, stopped-before-cell logic and truncated/failure markers; related Python tests in the passing 58-test suite cover reuse, completeness and deadlines.",
+    "closed_by": {
+      "tier": "source corroboration plus existing Python controls where relevant",
+      "citation": [
+        "scripts/bench/stats.py:104-147",
+        "scripts/bench/short.py:386-494",
+        "scripts/bench/tests/test_short.py:157-194,623-693"
+      ]
+    },
+    "reopens_if": "Reused cold data enters cold sample counts or a half head/base pair reaches summarization.",
+    "status": "no-action"
+  },
+  {
+    "id": "benchmark-guardrails-dismissal-003",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:02:39.394074+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 inherited parent",
+      "mode": "production-readiness",
+      "slice": "benchmark-guardrails"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "A changed instrument is not used as its own local-gate comparison ruler.",
+    "checked": "stage_instrument stages the scenario engine, scripts and full bench package from instrument_ref, while base/head cache tools are built from their own refs; subprocess worktrees are cleaned in finally. Associated gate-local tests passed with the Python suite.",
+    "closed_by": {
+      "tier": "source corroboration plus existing Python controls where relevant",
+      "citation": [
+        "scripts/bench/gate_local.py:32-137,251-275",
+        "scripts/bench/tests/test_gate_local.py"
+      ]
+    },
+    "reopens_if": "Staging starts importing the live checkout's comparison modules or supplies a subject-specific scenario/ruler.",
+    "status": "no-action"
+  },
+  {
+    "id": "benchmark-guardrails-dismissal-004",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:02:39.394074+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 inherited parent",
+      "mode": "production-readiness",
+      "slice": "benchmark-guardrails"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Repeated contention warm cells start from the saved cold cache state rather than learning from earlier warm cells.",
+    "checked": "Inspected run_batches snapshots and controlled environments, failure/OOM/cache/prediction rejection, fresh targets and event log rotation; all 28 contention controls passed. Linux performance/resource sampling itself was not exercised on this macOS host.",
+    "closed_by": {
+      "tier": "source corroboration plus existing Python controls where relevant",
+      "citation": [
+        "scripts/bench-contention.py:246-339,414-628,1056-1248",
+        "scripts/test-bench-contention.py:233-379,695-805,867-884",
+        "investigation/raw/contention-tests-py314.log"
+      ]
+    },
+    "reopens_if": "Warm snapshots are skipped, error/prediction/OOM checks are bypassed, or log-rotation evidence is accepted.",
+    "status": "no-action"
+  },
+  {
+    "id": "benchmark-guardrails-dismissal-005",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:02:39.394074+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 inherited parent",
+      "mode": "production-readiness",
+      "slice": "benchmark-guardrails"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Phase rollup does not combine unrelated worker-thread nesting in the current wrapper recorder.",
+    "checked": "Suspected missing pid/tid discrimination in self_time; actual producer records the calling thread through a thread-local Recorder in one file per invocation. Diagnostic sums are documented as work rather than build wall time. No proof of consequential false gate found for current producer.",
+    "closed_by": {
+      "tier": "source corroboration plus existing Python controls where relevant",
+      "citation": [
+        "scripts/bench/phases.py:43-100",
+        "src/phase_trace.rs:1-39,44-78"
+      ]
+    },
+    "reopens_if": "Producer begins including multiple recording threads/processes in a single file or diagnostic self-time is used as a wall-time gate.",
+    "status": "no-action"
+  },
+  {
+    "id": "benchmark-guardrails-dismissal-006",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:02:39.394074+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 inherited parent",
+      "mode": "production-readiness",
+      "slice": "benchmark-guardrails"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Unknown host/weighted telemetry readings remain absent or null rather than becoming zero performance evidence.",
+    "checked": "Production host parser and OTLP exporter preserve Option values; pressure deltas require forward counters; wall durations retain milliseconds. Reviewed inline controls by source only, with no Rust unit-suite execution in this audit.",
+    "closed_by": {
+      "tier": "source corroboration plus existing Python controls where relevant",
+      "citation": [
+        "crates/kache-e2e/src/bench_host.rs:93-259,502-545,753-792",
+        "crates/kache-e2e/src/bench_otlp.rs:1-538,668-756,1007-1072"
+      ]
+    },
+    "reopens_if": "Unavailable metrics are serialized as zero, durations are truncated, or high-cardinality subject identities are promoted into metrics labels.",
+    "status": "no-action"
+  }
+]

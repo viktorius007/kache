@@ -1,0 +1,8 @@
+{
+  "id": "benchmark-guardrails-002",
+  "url": "https://github.com/kunobi-ninja/kache/pull/1514",
+  "branch": "fix/benchmark-guardrails-002",
+  "fix_commit": "80a55c9f08ce701d3f5aeaa367e95fdcd60f8c35",
+  "state": "draft",
+  "review": "investigation/pr-delivery/reviews/benchmark-guardrails-002.md"
+}

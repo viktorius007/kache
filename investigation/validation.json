@@ -1,0 +1,13 @@
+{
+  "result": "PASS",
+  "primary_paths": 16,
+  "covered_paths": 16,
+  "overlaps": 0,
+  "unreviewed": 0,
+  "findings": 2,
+  "dismissals": 6,
+  "red_proofs_admitted": 2,
+  "production_diff_empty": true,
+  "source_hashes_match": true,
+  "broad_performance_claim": false
+}

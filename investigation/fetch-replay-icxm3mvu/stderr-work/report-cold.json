@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "summary": {
+    "dups": 0,
+    "hit_rate_pct": 100.0,
+    "local_hits": 1,
+    "misses": 0,
+    "prefetch_hits": 0,
+    "remote_hits": 0,
+    "total_crates": 1
+  }
+}

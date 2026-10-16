@@ -1,0 +1,7 @@
+name = "bench-fetch-proof"
+build = "mkdir -p target; printf '  Downloaded anyhow v1.0.100\\n'"
+[source]
+kind = "clone"
+repo = "/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/fetch-replay-icxm3mvu/subject"
+ref = "9e7ea9222103f2964372e7bb60498aa63854b939"
+objdir = "target"

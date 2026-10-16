@@ -1,0 +1,19 @@
+{
+  "id": "benchmark-guardrails-002",
+  "branch": "fix/benchmark-guardrails-002",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/benchmark-guardrails-002",
+  "test_commit": "da013077c581cb55ec3c5a65939c698ae663b6be",
+  "fix_commit": "80a55c9f08ce701d3f5aeaa367e95fdcd60f8c35",
+  "title": "Detect dependency fetches on both benchmark output streams",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/pr-delivery/benchmark-guardrails-002/pr-body.md",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "gate_command": "env -u KACHE_RUNTIME_DIR CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/pr-delivery/benchmark-guardrails-001/target KACHE_HOST_CONFIG= python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py just check",
+  "gate_exit": 0,
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/pr-delivery/benchmark-guardrails-002/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/pr-delivery/benchmark-guardrails-002/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/pr-delivery/benchmark-guardrails-002/gate.log",
+  "changed_files": [
+    "crates/kache-e2e/src/bench_runner.rs",
+    "crates/kache-e2e/src/bench_runner/tests.rs"
+  ]
+}

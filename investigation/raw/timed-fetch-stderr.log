@@ -1,0 +1,27 @@
+[
+  {
+    "stream": "stdout",
+    "exit": 1,
+    "download_in_build_log": true,
+    "guardrail_error": true,
+    "result_written": false,
+    "verdict": null
+  },
+  {
+    "stream": "stderr",
+    "exit": 0,
+    "download_in_build_log": true,
+    "guardrail_error": false,
+    "result_written": true,
+    "verdict": {
+      "ok": true,
+      "issues": [],
+      "checks": []
+    }
+  }
+]
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/proofs/timed_fetch_stderr.py", line 72, in <module>
+    assert observations[1]["guardrail_error"] and observations[1]["exit"] != 0, "Timed Cargo fetch message on stderr was accepted; the same message on stdout was refused"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Timed Cargo fetch message on stderr was accepted; the same message on stdout was refused

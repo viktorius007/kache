@@ -1,0 +1,58 @@
+=== kache benchmark: bench-fetch-proof ===
+ref         : 3fe721c17bc66e6314746c7cd4df92e81552874f
+select      : name:fetch-proof
+work dir    : /Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/replay-fetch-fixture/stderr-work  (worktrees + objdirs + cache)
+clone ref   : /Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/replay-fetch-fixture/stderr-work-clone-ref  (persistent across runs)
+kache       : /Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/replay-fetch-fixture/kache-adapter
+version     : kache fixture-adapter 1.0
+
+[bench] no clone-ref yet — fetching /Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/replay-fetch-fixture/subject @ 3fe721c17bc66e6314746c7cd4df92e81552874f (one-time cost)
+From /Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/replay-fetch-fixture/subject
+ * branch            3fe721c17bc66e6314746c7cd4df92e81552874f -> FETCH_HEAD
+[bench] creating worktree /Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/replay-fetch-fixture/stderr-work/clone-a
+Preparing worktree (detached HEAD 3fe721c)
+[bench] creating worktree /Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/replay-fetch-fixture/stderr-work/clone-b
+Preparing worktree (detached HEAD 3fe721c)
+[bench] daemon started
+
+[bench] [cold] building bench-fetch-proof in /Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/replay-fetch-fixture/stderr-work/clone-a (`mkdir -p target; printf '  Downloaded anyhow v1.0.100\n' >&2`; output -> build-cold.log, kache wrapper log -> wrapper-cold.log)
+[bench] cache otlp written to /Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/replay-fetch-fixture/stderr-work/cache-otlp-cold/metrics.otlp.json
+[bench] daemon started
+
+[bench] [warm] building bench-fetch-proof in /Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/replay-fetch-fixture/stderr-work/clone-b (`mkdir -p target; printf '  Downloaded anyhow v1.0.100\n' >&2`; output -> build-warm.log, kache wrapper log -> wrapper-warm.log)
+[bench] cache otlp written to /Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/replay-fetch-fixture/stderr-work/cache-otlp-warm/metrics.otlp.json
+[bench] otlp written to /Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/replay-fetch-fixture/stderr-work/metrics.otlp.json
+
+================================================================
+  kache benchmark: bench-fetch-proof — 3fe721c17bc66e6314746c7cd4df92e81552874f
+  cache tool : kache fixture-adapter 1.0
+================================================================
+  cold build : 0m 00.0s   (empty cache, baseline)
+  warm build : 0m 00.0s   (cache populated by cold; DIFFERENT worktree path)
+  speedup    : 0.63x
+  warm cache : 1 hits / 0 dups / 0 misses   100.0% hit rate (n/a weighted)
+  bytes      : 0 B cached / 0 B recompiled   (0.0% of cacheable bytes)
+================================================================
+  restore    : warm build pulled 0 B from the cache
+               reflink 0 B / hardlink 0 B / copy 0 B   (0.0% zero-copy)
+================================================================
+  disk layout — three pools, sharing via reflink/hardlink
+    clone-a/obj          0 B   cold-built objdir
+    clone-b/obj          0 B   warm-built; 0 B shared from cache
+    kache cache          0 B   0 blobs; 0 B shared from build output, 0 B copied
+                               (0 B dedup vs 0 B raw)
+                  ──────────
+    sum apparent         0 B   what 3 independent pools would cost
+    ≈ on disk    ~       0 B   zero-copy sharing saves 0 B (0 B restore + 0 B store)
+    measured        901.1 KB   actual free-space delta (cold+warm builds)
+    footprint            0 B   all pools on disk, each inode once
+================================================================
+  key stability : n/a   (0 of 0 crates kept an identical key across clones)
+  kache saw     : 0 compiles -> 0 cached, 0 passed through, 0 errored
+  leak detector : 0 firing(s) (kache PathNormalizer; see wrapper-warm.log)
+================================================================
+  VERDICT: ok — no blocking assertions configured.
+================================================================
+  detailed reports: /Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/replay-fetch-fixture/stderr-work/runs/20261011T055847Z-kache-32316/{report,build,wrapper}-{cold,warm}.*
+================================================================
+[bench] summary written to /Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/replay-fetch-fixture/stderr-work/bench-fetch-proof.json

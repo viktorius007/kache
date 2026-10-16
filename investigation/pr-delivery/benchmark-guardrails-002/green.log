@@ -1,0 +1,350 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling kache-e2e v1.0.0 (/Users/viktor/Developer/github/kache-prs/benchmark-guardrails-002/crates/kache-e2e)
+    Finished `test` profile [unoptimized] target(s) in 2.10s
+     Running unittests src/lib.rs (/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/pr-delivery/benchmark-guardrails-001/target/debug/deps/kache_e2e-777f2463f216f82f)
+
+running 282 tests
+test assertions::tests::diff_artifact_check_fails_on_differing_bytes ... ok
+test assertions::tests::diff_artifact_check_fails_when_no_baseline ... ok
+test assertions::tests::diff_artifact_check_passes_on_identical_bytes ... ok
+test assertions::tests::metric_assertions_only_evaluate_declared_constraints ... ok
+test assertions::tests::daemon_store_assertion_rejects_fallback_and_failed_publications ... ok
+test assertions::tests::min_hits_fails_when_actual_below_threshold ... ok
+test assertions::tests::min_hits_passes_when_actual_meets_threshold ... ok
+test assertions::tests::noop_allows_probe_passthrough_events ... ok
+test assertions::tests::noop_fails_on_compile_shaped_passthrough ... ok
+test assertions::tests::noop_fails_when_any_event_spawned_the_compiler ... ok
+test assertions::tests::noop_fails_when_units_were_dispatched_even_as_hits ... ok
+test assertions::tests::noop_passes_on_an_empty_event_window ... ok
+test assertions::tests::noop_skipped_constraint_passes_unconditionally ... ok
+test assertions::tests::prediction_mismatches_are_summed_and_bounded ... ok
+test assertions::tests::relocate_diff_artifact_check_fails_on_differing_bytes ... ok
+test assertions::tests::relocate_diff_artifact_check_passes_on_identical_bytes ... ok
+test bench_host::tests::assemble_prefers_the_platform_cpu_count_and_sets_the_os ... ok
+test bench_host::tests::bsd_host_facts_leave_unreadable_values_unknown ... ok
+test bench_host::tests::bsd_load_sample_reads_the_sysctl_load_average ... ok
+test bench_host::tests::bsd_host_facts_map_each_sysctl_and_the_mount_table ... ok
+test bench_host::tests::bsd_mounts_take_the_first_option_as_the_type ... ok
+test bench_host::tests::cgroup_path_is_the_v2_line ... ok
+test bench_host::tests::counter_delta_needs_both_readings_and_forward_motion ... ok
+test bench_host::tests::cpu_max_reads_a_quota_or_no_limit ... ok
+test bench_host::tests::cpuinfo_counts_processors_and_names_the_model ... ok
+test bench_host::tests::fs_type_is_the_deepest_containing_mount ... ok
+test bench_host::tests::cgroup_cpu_max_prefers_the_process_group_then_the_root ... ok
+test bench_host::tests::linux_load_comes_from_a_proc_tree ... ok
+test bench_host::tests::loadavg_reads_both_platform_formats ... ok
+test bench_host::tests::meminfo_total_is_kib_times_1024 ... ok
+test bench_host::tests::phase_load_pairs_each_counter_with_its_own ... ok
+test bench_host::tests::pressure_reads_the_some_line_only ... ok
+test bench_host::tests::proc_mounts_decode_escaped_mount_points ... ok
+test bench_host::tests::runner_env_skips_blank_values_and_falls_back_for_the_node ... ok
+test bench_host::tests::linux_facts_come_from_a_proc_tree ... ok
+test bench_host::tests::unknown_host_values_serialize_as_null ... ok
+test bench_otlp::costliest_misses::a_phase_without_costly_misses_contributes_nothing ... ok
+test bench_otlp::costliest_misses::no_crate_name_is_emitted ... ok
+test bench_otlp::costliest_misses::the_costliest_miss_and_the_top_group_are_separate_series ... ok
+test bench_otlp::costliest_misses::what_was_never_consulted_is_its_own_series ... ok
+test bench_otlp::passthrough_split::a_phase_that_declined_nothing_contributes_nothing ... ok
+test bench_otlp::passthrough_split::the_two_categories_are_separate_series ... ok
+test bench_otlp::passthrough_split::the_vocabulary_stays_small ... ok
+test bench_otlp::tests::a_reason_without_a_category_is_filed_as_other ... ok
+test bench_otlp::tests::a_run_without_a_wrapper_breakdown_emits_none_of_its_metrics ... ok
+test bench_otlp::tests::a_run_without_load_readings_emits_no_host_metrics ... ok
+test bench_otlp::tests::an_unknown_weighted_rate_is_skipped_per_phase ... ok
+test bench_otlp::tests::attribute_set_is_the_allowlist ... ok
+test bench_otlp::tests::build_duration_is_fractional_seconds ... ok
+test bench_otlp::tests::cache_size_is_bytes_not_megabytes ... ok
+test bench_otlp::tests::compile_units_carry_result_and_phase ... ok
+test bench_otlp::tests::current_time_unix_nano_is_nonzero_decimal ... ok
+test bench_otlp::tests::degraded_run_still_emits_with_verdict_zero ... ok
+test bench_otlp::tests::disk_footprint_is_emitted_in_bytes ... ok
+test bench_otlp::tests::host_load_is_reported_beside_the_phase_it_was_measured_in ... ok
+test bench_otlp::tests::integer_counts_use_as_int_string ... ok
+test bench_otlp::tests::passthrough_reasons_carry_their_category_and_reason ... ok
+test bench_otlp::tests::pull_phase_is_a_dimension_not_a_new_metric ... ok
+test bench_host::tests::this_host_is_described ... ok
+test bench_otlp::tests::resource_carries_the_cache_tool_version ... ok
+test bench_otlp::tests::sccache_omits_kache_only_gauges ... ok
+test bench_otlp::tests::seconds_keeps_the_milliseconds ... ok
+test bench_otlp::tests::run_id_platform_and_cicd_are_absent ... ok
+test bench_otlp::tests::the_wrapper_breakdown_is_reported_per_stage_and_method ... ok
+test bench_otlp::tests::tool_version_is_the_summary_value_when_known ... ok
+test bench_otlp::tests::unknown_tool_version_names_the_tool ... ok
+test bench_otlp::tests::time_unix_nano_is_a_decimal_string ... ok
+test bench_otlp::tests::write_otlp_replaces_seeded_failure_artifact ... ok
+test bench_profile::tests::apply_files_write_and_append ... ok
+test bench_profile::tests::all_shipped_bench_schemas_load ... ok
+test bench_profile::tests::crlf_ified_patch_payload_applies_against_lf_target ... ok
+test bench_profile::tests::discover_disambiguates_mbx_hk_from_its_pull_variant ... ok
+test bench_profile::tests::every_shipped_cargo_bench_fetches_before_it_is_timed ... ok
+test bench_profile::tests::executable_in_dir_distinguishes_shell_and_native_programs ... ok
+test bench_profile::tests::file_mode_defaults_to_write_and_validates_payload ... ok
+test bench_profile::tests::discover_disambiguates_short_profile_to_exact_name ... ok
+test bench_profile::tests::firefox_mbx_arm_builds_the_firefox_tree_through_mbx_exec ... ok
+test bench_profile::tests::interpolate_forward_slashes_kache_path_for_shell_sourced_files ... ok
+test bench_profile::tests::interpolation_substitutes_kache_and_objdir ... ok
+test bench_profile::tests::loads_minimal_profile_and_defaults ... ok
+test bench_profile::tests::name_must_match_file_stem ... ok
+test bench_profile::tests::prepare_is_optional_and_interpolated ... ok
+test bench_profile::tests::rejects_misspelled_bench_fields ... ok
+test bench_profile::tests::setup_marker_skips_when_present ... ok
+test bench_profile::tests::shipped_cuda_oxide_patched_profile_matches_the_plain_arm_plus_patch ... ok
+test bench_profile::tests::shipped_cuda_oxide_profile_runs_upstream_examples_compile ... ok
+test bench_profile::tests::shipped_eza_profile_wires_host_cc_and_builds_release ... ok
+test bench_profile::tests::shipped_firefox_profile_renders_mozconfig ... ok
+test bench_profile::tests::shipped_firefox_windows_profile_uses_only_upstream_firefox_fixes ... ok
+test bench_profile::tests::shipped_lance_profile_is_rustc_wrapper_only ... ok
+test bench_profile::tests::shipped_opendal_profile_is_rustc_wrapper_only ... ok
+test bench_profile::tests::short_profiles_share_sources_and_fetch_before_timing ... ok
+test bench_profile::tests::source_ref_next_parses_and_marks_pull ... ok
+test bench_profile::tests::source_without_ref_next_is_not_pull ... ok
+test bench_profile::tests::genuinely_crlf_patch_still_applies_to_crlf_target ... ok
+test bench_profile::tests::stale_patch_still_fails_with_regenerate_hint ... ok
+test bench_runner::tests::a_footprint_past_a_fifth_of_the_prediction_warns ... ok
+test bench_runner::tests::a_footprint_within_a_fifth_of_the_prediction_does_not_warn ... ok
+test bench_runner::tests::a_known_weighted_rate_is_rounded_and_carried ... ok
+test bench_runner::tests::a_long_reason_label_is_cut_at_the_limit ... ok
+test bench_runner::tests::a_passthrough_reason_outside_the_known_list_warns ... ok
+test bench_runner::tests::a_reason_label_drops_paths_and_keeps_flags ... ok
+test bench_runner::tests::a_run_is_degraded_when_either_verdict_says_so ... ok
+test bench_runner::tests::a_saved_miss_without_milliseconds_is_backfilled_from_its_seconds ... ok
+test bench_runner::tests::a_saved_phase_without_wall_ms_is_backfilled_from_its_seconds ... ok
+test bench_runner::tests::a_timed_build_that_fetched_is_refused ... ok
+test bench_runner::tests::build_context_sets_the_load_and_the_invalid_reasons ... ok
+test bench_runner::tests::a_failed_prepare_fails_the_run_and_names_its_log ... ok
+test bench_runner::tests::bytes_to_mib_divides_and_rounds ... ok
+test bench_runner::tests::cache_backend_labels_are_the_names_the_arms_are_selected_by ... ok
+test bench_runner::tests::clone_ref_path_is_a_sibling_not_a_child_of_work_dir ... ok
+test bench_runner::tests::compute_key_divergence_buckets_diffs_by_field ... ok
+test bench_runner::tests::compute_key_divergence_drops_tu_matching_artifacts ... ok
+test bench_runner::tests::daemon_start_reports_whether_the_start_succeeded ... ok
+test bench_runner::tests::de_verbatim_strips_windows_extended_prefix ... ok
+test bench_runner::tests::default_work_dir_is_per_scenario_under_tmp_bench ... ok
+test bench_runner::tests::disk_delta_is_the_drop_in_free_space_or_nothing ... ok
+test bench_runner::tests::elapsed_ms_reports_milliseconds_and_saturates ... ok
+test bench_runner::tests::export_mbx_session_trace_writes_stdout_and_rejects_failure ... ok
+test bench_runner::tests::export_new_mbx_session_trace_is_a_noop_without_a_new_session ... ok
+test bench_runner::tests::export_new_mbx_session_trace_picks_the_session_this_phase_created ... ok
+test bench_runner::tests::external_measure_warnings_fire_per_threshold ... ok
+test bench_runner::tests::field_of_buckets_payloads_by_prefix ... ok
+test bench_runner::tests::fmt_pct_shows_one_decimal_or_not_available ... ok
+test bench_runner::tests::fmt_wall_clock_prints_minutes_seconds_and_truncated_tenths ... ok
+test bench_runner::tests::from_report_keeps_unknown_rates_and_sub_second_misses ... ok
+test bench_runner::tests::from_report_records_milliseconds_and_derives_whole_seconds ... ok
+test bench_runner::tests::invalid_reason_lines_skip_absent_and_clean_phases ... ok
+test bench_runner::tests::invalid_reasons_name_each_nonzero_count_and_a_missing_daemon ... ok
+test bench_runner::tests::kache_build_disables_target_seeding ... ok
+test bench_runner::tests::key_stability_check_passes_at_the_floor_and_skips_the_unknown ... ok
+test bench_runner::tests::key_stability_is_unknown_until_a_crate_was_cached_in_both_clones ... ok
+test bench_runner::tests::list_mbx_session_files_errors_when_sessions_is_not_a_directory ... ok
+test bench_runner::tests::list_mbx_session_files_skips_locks_and_missing_dirs ... ok
+test bench_runner::tests::mbx_cargo_shim_points_at_the_given_binary ... ok
+test bench_runner::tests::mbx_cold_phase_exports_the_session_as_a_chrome_trace ... ok
+test bench_runner::tests::mbx_every_phase_enables_share_workspace_root_env ... ok
+test bench_runner::tests::mbx_phase_metrics_reduce_the_stats_report ... ok
+test bench_runner::tests::build_times_the_build_command_in_milliseconds ... ok
+test bench_runner::tests::mbx_report_path_is_per_phase ... ok
+test bench_runner::tests::mbx_same_tree_build_owns_and_wipes_the_real_target ... ok
+test bench_runner::tests::mbx_session_order_uses_the_leading_timestamp_not_the_name ... ok
+test bench_runner::tests::mbx_shim_directory_goes_first_on_path ... ok
+test bench_runner::tests::mbx_trace_artifacts_lists_only_files_that_exist ... ok
+test bench_runner::tests::normalize_payload_preserves_keyed_source_identity ... ok
+test bench_runner::tests::normalize_payload_strips_display_only_link_lib_path ... ok
+test bench_runner::tests::nothing_predicted_never_warns ... ok
+test bench_runner::tests::only_a_plain_full_run_measures_its_disk_footprint ... ok
+test bench_runner::tests::only_cargo_network_lines_count_as_a_dependency_fetch ... ok
+test bench_runner::tests::only_real_compiles_outside_the_known_list_are_new ... ok
+test bench_runner::tests::otlp_mbx_phase_maps_lookups_and_time_saved ... ok
+test bench_runner::tests::otlp_phases_carry_the_same_tree_warm_only_when_it_ran ... ok
+test bench_runner::tests::parse_key_line_extracts_crate_and_payload_from_default_tracing_format ... ok
+test bench_runner::tests::parse_key_line_returns_none_for_non_key_lines ... ok
+test bench_runner::tests::passthrough_reasons_merge_by_label_and_rank_by_time ... ok
+test bench_runner::tests::phase_prepare_is_omitted_when_absent_and_recorded_when_present ... ok
+test bench_runner::tests::phase_speedup_divides_cold_by_the_phase_and_guards_zero ... ok
+test bench_runner::tests::phase_times_read_the_fields_the_schema_publishes_under_timing ... ok
+test bench_runner::tests::posix_sh_resolves_a_shell ... ok
+test bench_runner::tests::prepare_is_a_no_op_when_the_scenario_declares_none ... ok
+test bench_runner::tests::prepare_logs_are_archived_with_the_run ... ok
+From /private/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmp5meXqs/repo
+ * branch            db3deb7b4782db339c1c714c9145533ea9b024d6 -> FETCH_HEAD
+ * branch            dcc83217c6a17b3f451f37c5a85c1a3aedae96d3 -> FETCH_HEAD
+Preparing worktree (detached HEAD db3deb7)
+HEAD is now at db3deb7 parent
+Warning: you are leaving 1 commit behind, not connected to
+any of your branches:
+
+  db3deb7 parent
+
+If you want to keep it by creating a new branch, this may be a good time
+to do so with:
+
+ git branch <new-branch-name> db3deb7
+
+HEAD is now at dcc8321 child
+From /private/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmp5meXqs/repo
+ * branch            db3deb7b4782db339c1c714c9145533ea9b024d6 -> FETCH_HEAD
+ * branch            dcc83217c6a17b3f451f37c5a85c1a3aedae96d3 -> FETCH_HEAD
+Preparing worktree (detached HEAD db3deb7)
+HEAD is now at db3deb7 parent
+Warning: you are leaving 1 commit behind, not connected to
+any of your branches:
+
+  db3deb7 parent
+
+If you want to keep it by creating a new branch, this may be a good time
+to do so with:
+
+ git branch <new-branch-name> db3deb7
+
+HEAD is now at dcc8321 child
+parentchildparentchildtest bench_runner::tests::prepare_runs_in_the_clone_with_the_scenario_env_and_no_wrapper ... ok
+test bench_runner::tests::pull_bench_result_serializes_with_pull_phase ... ok
+test bench_runner::tests::reset_event_log_removes_the_log_and_tolerates_its_absence ... ok
+test bench_runner::tests::resolve_binary_prefers_existing_then_exe ... ok
+test bench_runner::tests::result_json_carries_both_wall_clocks_for_every_phase ... ok
+test bench_runner::tests::retry_load_cold_restores_the_snapshot_and_an_older_results_wall_clock ... ok
+test bench_runner::tests::retry_load_mbx_cold_requires_both_artifacts ... ok
+test bench_runner::tests::run_archive_keeps_otlp_sidecars ... ok
+test bench_runner::tests::sccache_cache_errors_are_budgeted_but_store_errors_are_not ... ok
+test bench_runner::tests::sccache_metrics_record_milliseconds_and_derive_whole_seconds ... ok
+test bench_runner::tests::mbx_pull_reports_both_revisions_and_rejects_empty_restores ... ok
+test bench_runner::tests::summary_distinguishes_an_unguarded_run_from_a_guarded_one ... ok
+test bench_runner::tests::summary_explains_a_degraded_same_tree_phase ... ok
+test bench_runner::tests::summary_marks_unknown_rates_and_lists_invalid_reasons ... ok
+test bench_runner::tests::summary_omits_the_same_tree_block_when_the_phase_did_not_run ... ok
+test bench_runner::tests::summary_reports_all_three_phase_wall_clocks ... ok
+test bench_runner::tests::summary_shows_optional_sections_only_when_they_have_content ... ok
+test bench_runner::tests::the_event_log_counts_the_annotations_that_invalidate_a_phase ... ok
+test bench_runner::tests::the_event_log_sums_count_and_time_per_reason ... ok
+test bench_runner::tests::the_load_a_phase_was_measured_under_reaches_the_payload ... ok
+test bench_runner::tests::the_passthrough_rate_divides_by_real_compiles_only ... ok
+test bench_runner::tests::the_payload_carries_the_costliest_passthrough_reasons ... ok
+test bench_runner::tests::the_prediction_line_counts_rustc_units_not_all_compiles ... ok
+test bench_runner::tests::the_refusal_categories_come_from_their_own_counters ... ok
+test bench_runner::tests::the_wrapper_breakdown_partitions_key_time_and_skips_uninstrumented_phases ... ok
+ÿ
+test bench_runner::tests::timed_build_accepts_clean_non_utf8_output ... ok
+  Downloaded a v1.0.0
+  Downloaded a v1.0.0
+test bench_runner::tests::timed_build_refuses_dependency_fetches_on_either_stream ... ok
+test bench_runner::tests::verdict_accepts_a_phase_that_hit_and_restored ... ok
+test bench_runner::tests::verdict_has_no_hidden_assertions_without_configured_checks ... ok
+test bench_runner::tests::verdict_passthrough_exactly_at_the_limit_passes ... ok
+test bench_runner::tests::verdict_rejects_a_phase_one_short_of_either_floor ... ok
+test bench_runner::tests::verdict_rejects_a_phase_that_consumed_no_cache ... ok
+test bench_runner::tests::verdict_rejects_hits_that_restored_nothing ... ok
+test bench_runner::tests::verdict_uses_configured_assert_thresholds ... ok
+test bench_runner::tests::verdict_uses_only_configured_assert_thresholds ... ok
+test bench_runner::tests::whole_seconds_truncates_like_as_secs ... ok
+test bench_runner::tests::work_dir_lock_is_exclusive ... ok
+test bench_runner::tests::wrapped_compile_failures_do_not_degrade_the_run ... ok
+test bench_runner::tests::write_cache_otlp_or_warn_is_false_when_kache_exits_nonzero ... ok
+test bench_runner::tests::write_cache_otlp_or_warn_is_false_when_kache_is_missing ... ok
+test bench_runner::tests::write_cache_otlp_or_warn_runs_telemetry_write ... ok
+test bench_runner::tests::write_mbx_trace_skips_empty_stdout ... ok
+test bench_runner::tests::write_otlp_or_warn_writes_artifact_pair ... ok
+test daemon::tests::a_lock_released_within_the_timeout_ends_the_wait ... ok
+test bench_runner::tests::sccache_same_tree_resets_artifacts_and_does_not_seed_cross_checkout ... ok
+test daemon::tests::draining_fails_when_the_lock_cannot_be_probed ... ok
+test daemon::tests::fixture_daemons_report_a_failed_start ... ok
+test daemon::tests::run_lock_child ... ok
+test disk_usage::tests::a_hardlink_is_counted_once_per_pool_and_once_in_total ... ok
+test disk_usage::tests::a_symlink_inside_a_pool_is_not_followed ... ok
+test disk_usage::tests::allocated_bytes_are_blocks_not_length ... ok
+test disk_usage::tests::an_objdir_moved_into_the_cache_counts_once_and_not_as_cache ... ok
+test disk_usage::tests::an_objdir_that_is_the_cache_dir_is_not_counted_as_cache ... ok
+test disk_usage::tests::disjoint_pools_add_up ... ok
+test disk_usage::tests::missing_pools_measure_zero ... ok
+test disk_usage::tests::subdirectories_count_their_own_blocks ... ok
+test disk_usage::tests::the_same_objdir_twice_counts_once_in_total ... ok
+test daemon::tests::drain_waits_for_the_process_even_without_a_socket_file ... ok
+test fixture::tests::expand_tokens_leaves_other_dollar_refs_alone ... ok
+test fixture::tests::expand_tokens_substitutes_compiler_shims_before_kache ... ok
+test fixture::tests::expand_tokens_substitutes_paths ... ok
+test fixture::tests::rejects_unknown_fixture_and_assertion_fields ... ok
+test fixture::tests::rejects_unknown_operating_systems ... ok
+test fixture_runner::tests::cargo_requirement_is_detected_on_path ... ok
+test phase::tests::pull_phase_name_and_flags ... ok
+test phase::tests::warm_same_tree_phase_name_is_artifact_stable ... ok
+test report::tests::delta_since_keeps_hits_dups_and_misses_separate ... ok
+test report::tests::kache_report_deserialization_accepts_supported_schema_version_and_additive_fields ... ok
+test report::tests::kache_report_rejects_missing_or_incompatible_schema_version ... ok
+test report::tests::parse_report_json_accepts_supported_version ... ok
+test report::tests::parse_report_json_rejects_unsupported_version ... ok
+test runner::tests::artifact_candidates_appends_windows_exe_suffix ... ok
+test runner::tests::artifact_candidates_does_not_double_suffix ... ok
+test runner::tests::artifact_candidates_unix_is_single_unchanged ... ok
+test runner::tests::compiler_shims_off_does_not_rewrite_the_fixture ... ok
+test runner::tests::compiler_shims_on_fails_when_kache_cannot_run ... ok
+test runner::tests::compiler_shims_on_prepends_path_and_drops_cc ... ok
+test runner::tests::inspect_restored_depinfo_catches_relativization_sentinel ... ok
+test runner::tests::inspect_restored_depinfo_no_d_files_is_clean ... ok
+test runner::tests::inspect_restored_depinfo_passes_on_absolute_paths ... ok
+test runner::tests::key_divergence_report_reads_both_phase_logs_from_disk ... ok
+test runner::tests::parse_keytrace_reads_the_crate_and_field_from_a_real_log_line ... ok
+test runner::tests::parse_keytrace_skips_unusable_lines ... ok
+test runner::tests::relocate_modified_skips_verify_without_an_edited_stdout ... ok
+test runner::tests::relocate_modified_verifies_the_edited_stdout ... ok
+test runner::tests::render_key_divergence_is_silent_without_a_divergence ... ok
+test runner::tests::render_key_divergence_reports_only_fields_that_moved ... ok
+test runner::tests::resolve_artifact_finds_existing_suffixless_binary ... ok
+test runner::tests::resolve_artifact_missing_is_none ... ok
+test runner::tests::unmodified_phases_verify_the_fixture_contract ... ok
+test scenario::tests::clone_gets_nightly_and_source_tags_by_default ... ok
+test fixture::tests::all_shipped_fixture_schemas_load ... ok
+test scenario::tests::explicit_tier_replaces_default_tier ... ok
+test scenario::tests::fixture_gets_gate_and_source_tags_by_default ... ok
+test scenario::tests::fixture_negative_control_exempt_must_be_top_level ... ok
+test scenario::tests::parses_unified_clone_scenario_config ... ok
+test scenario::tests::parses_unified_fixture_scenario_config ... ok
+test scenario::tests::pull_phase_gates_bind ... ok
+test scenario::tests::scenario_checks_reject_misspelled_fields ... ok
+test scenario::tests::scenario_source_config_parses_ref_next ... ok
+test scenario::tests::selectors_match_all_requested_tags ... ok
+test scenario::tests::selectors_support_name_filter_and_source_alias ... ok
+test scenario::tests::source_table_rejects_misplaced_fixture_fields ... ok
+test scenario::tests::warm_same_tree_phase_gates_bind ... ok
+test scenario_runner::tests::every_benchmark_option_is_recognised_on_its_own ... ok
+test scenario_runner::tests::profile_hint_matches_bench_recipe_arguments ... ok
+test scenario_runner::tests::the_runner_turns_the_host_layer_off_unless_the_caller_set_it ... ok
+test scenario::tests::discovers_scenario_metadata_from_shared_root ... ok
+test source::tests::clone_ref_path_is_a_sibling_not_a_child_of_work_dir ... ok
+test source::tests::a_snapshot_replaces_a_read_only_tree ... ok
+From /var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpsAYoyG/upstream
+ * branch            50ad5e11207ce7bcfdecbaf8fba0c1cd0a0da0e6 -> FETCH_HEAD
+From /var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmp68D5Po/upstream
+ * branch            57f26f2c2d9494e36d6b17ce4797f2db5dba3051 -> FETCH_HEAD
+ * branch            e5f24a3d25d321acb84d54a1723ca314db027c38 -> FETCH_HEAD
+Preparing worktree (detached HEAD 57f26f2)Preparing worktree (detached HEAD 50ad5e1)
+
+HEAD is now at 50ad5e1 pinned
+HEAD is now at 57f26f2 a
+Preparing worktree (detached HEAD 50ad5e1)
+Warning: you are leaving 1 commit behind, not connected to
+any of your branches:
+
+  57f26f2 a
+
+If you want to keep it by creating a new branch, this may be a good time
+to do so with:
+
+ git branch <new-branch-name> 57f26f2
+
+HEAD is now at e5f24a3 b
+test source::tests::clone_worktrees_pull_makes_both_commits_checkoutable ... ok
+HEAD is now at 50ad5e1 pinned
+test source::tests::copy_dir_recursive_preserves_symlinks ... ok
+test source::tests::copy_dir_recursive_round_trips_a_tree ... ok
+test source::tests::full_commit_sha_is_told_apart_from_a_tag ... ok
+test source::tests::prepare_relocated_dir_copies_fixture_contents ... ok
+test source::tests::remove_tree_accepts_a_missing_path ... ok
+test source::tests::remove_tree_reports_a_path_it_cannot_look_up ... ok
+test tests::flips_separators_without_verbatim_prefix ... ok
+test tests::leaves_unix_style_paths_untouched ... ok
+test tests::strips_verbatim_prefix_and_flips_separators ... ok
+test source::tests::clone_worktrees_accepts_a_full_commit_sha ... ok
+
+test result: ok. 282 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.17s
+

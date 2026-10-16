@@ -1,0 +1,351 @@
+{
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "scope": "exact 16 primary paths from worklist.json",
+  "graph_project": "Users-viktor-Developer-github-kache-investigations-coordinator",
+  "graph_generation": "2026-10-11T05:36:35Z",
+  "graph_limits": "16 exact paths metadata_match/no_recorded_issue; best-effort signal; Rust semantic_partial (binding oracle, expanded calls, impl relationships unavailable), source corroborated; no exhaustive caller claim",
+  "counts": {
+    "primary_paths": 16,
+    "reviewed": 14,
+    "sampled": 2,
+    "unreviewed": 0,
+    "collateral": 0
+  },
+  "paths": [
+    {
+      "path": "crates/kache-e2e/src/bench_host.rs",
+      "baseline_blob": "63d22989a1bbc039e489506fa913c2cdc3e521f2",
+      "review_state": "reviewed",
+      "executed_depth": "full-text-production-contract-risk-review",
+      "reviewed_ranges": [
+        [
+          1,
+          888
+        ]
+      ],
+      "evidence": [
+        "Full host collection and load parser production review; inline tests read, not executed in Rust.",
+        "investigation/raw/source-identity.json",
+        "investigation/raw/graph-coverage.txt"
+      ],
+      "limits": "No whole-repository coverage claim; no local mutation run; no general performance claims."
+    },
+    {
+      "path": "crates/kache-e2e/src/bench_otlp.rs",
+      "baseline_blob": "4c42a14c7159dcfb534c97bb07a23333ec8b4010",
+      "review_state": "sampled",
+      "executed_depth": "full-production-1-538; sampled-inline-tests",
+      "reviewed_ranges": [
+        [
+          1,
+          756
+        ],
+        [
+          1007,
+          1072
+        ]
+      ],
+      "evidence": [
+        "Full production serialization/export review; selected inline host/wrapper/duration/unknown/verdict controls read; remaining test suite sampled only.",
+        "investigation/raw/source-identity.json",
+        "investigation/raw/graph-coverage.txt"
+      ],
+      "limits": "No whole-repository coverage claim; no local mutation run; no general performance claims."
+    },
+    {
+      "path": "crates/kache-e2e/src/bench_profile.rs",
+      "baseline_blob": "87eda5ca59d57060dfcdabda7820fa9f8ea9e059",
+      "review_state": "sampled",
+      "executed_depth": "full-production-1-544; sampled-inline-tests",
+      "reviewed_ranges": [
+        [
+          1,
+          720
+        ],
+        [
+          772,
+          835
+        ]
+      ],
+      "evidence": [
+        "Full production scenario discovery/config/injection review; selected requirement/schema/fetch preparation/interpolation controls read; remaining large inline suite sampled only.",
+        "investigation/raw/source-identity.json",
+        "investigation/raw/graph-coverage.txt"
+      ],
+      "limits": "No whole-repository coverage claim; no local mutation run; no general performance claims."
+    },
+    {
+      "path": "crates/kache-e2e/src/bench_runner.rs",
+      "baseline_blob": "987a4da9ff348085bd845f3c1947ac4a36e37cbd",
+      "review_state": "reviewed",
+      "executed_depth": "full-text-production-contract-risk-review",
+      "reviewed_ranges": [
+        [
+          1,
+          5130
+        ]
+      ],
+      "evidence": [
+        "Full production lifecycle, timed build, reports, invalid-state verdicts, backend metrics and summary review; stdout/stderr actual baseline CLI proof executed.",
+        "investigation/raw/source-identity.json",
+        "investigation/raw/graph-coverage.txt"
+      ],
+      "limits": "No whole-repository coverage claim; no local mutation run; no general performance claims."
+    },
+    {
+      "path": "scripts/bench-contention.py",
+      "baseline_blob": "022d523a4d8ba278dc14f443a20f87dd8469739a",
+      "review_state": "reviewed",
+      "executed_depth": "full-text-production-contract-risk-review",
+      "reviewed_ranges": [
+        [
+          1,
+          1374
+        ]
+      ],
+      "evidence": [
+        "Full production environment, process lifecycle, snapshot, metrics/error validation, storage and output review; 28 local controls pass, Linux real contention runs not executed.",
+        "investigation/raw/source-identity.json",
+        "investigation/raw/graph-coverage.txt"
+      ],
+      "limits": "No whole-repository coverage claim; no local mutation run; no general performance claims."
+    },
+    {
+      "path": "scripts/bench-short.py",
+      "baseline_blob": "1d8f4069aec0f31a955e09da3aac32736fca9c33",
+      "review_state": "reviewed",
+      "executed_depth": "full-text-production-contract-risk-review",
+      "reviewed_ranges": [
+        [
+          1,
+          12
+        ]
+      ],
+      "evidence": [
+        "Full CLI adapter source review; dispatches bench.short.main.",
+        "investigation/raw/source-identity.json",
+        "investigation/raw/graph-coverage.txt"
+      ],
+      "limits": "No whole-repository coverage claim; no local mutation run; no general performance claims."
+    },
+    {
+      "path": "scripts/bench/__init__.py",
+      "baseline_blob": "242caf6b8e32439012b3a4ac42555d0b6bfadf96",
+      "review_state": "reviewed",
+      "executed_depth": "full-text-production-contract-risk-review",
+      "reviewed_ranges": [
+        [
+          1,
+          16
+        ]
+      ],
+      "evidence": [
+        "Full package source review; baseline instrument staging includes package.",
+        "investigation/raw/source-identity.json",
+        "investigation/raw/graph-coverage.txt"
+      ],
+      "limits": "No whole-repository coverage claim; no local mutation run; no general performance claims."
+    },
+    {
+      "path": "scripts/bench/engine.py",
+      "baseline_blob": "403101315e21f82ece5262d9a149f2c1852c65b6",
+      "review_state": "reviewed",
+      "executed_depth": "full-text-production-contract-risk-review",
+      "reviewed_ranges": [
+        [
+          1,
+          64
+        ]
+      ],
+      "evidence": [
+        "Full source review and real nonzero worker-survival red with real timeout-cleanup control.",
+        "investigation/raw/source-identity.json",
+        "investigation/raw/graph-coverage.txt"
+      ],
+      "limits": "No whole-repository coverage claim; no local mutation run; no general performance claims."
+    },
+    {
+      "path": "scripts/bench/gate_local.py",
+      "baseline_blob": "c76745b032b9986da0b7349a36beb32d80c1c0da",
+      "review_state": "reviewed",
+      "executed_depth": "full-text-production-contract-risk-review",
+      "reviewed_ranges": [
+        [
+          1,
+          275
+        ]
+      ],
+      "evidence": [
+        "Full source review of independent instrument staging, git worktree lifecycle and final report selection; supported Python suite associated controls pass.",
+        "investigation/raw/source-identity.json",
+        "investigation/raw/graph-coverage.txt"
+      ],
+      "limits": "No whole-repository coverage claim; no local mutation run; no general performance claims."
+    },
+    {
+      "path": "scripts/bench/job_telemetry.py",
+      "baseline_blob": "56afaf3a6f5a7eaf52f022f83674a111be80bf57",
+      "review_state": "reviewed",
+      "executed_depth": "full-text-production-contract-risk-review",
+      "reviewed_ranges": [
+        [
+          1,
+          87
+        ]
+      ],
+      "evidence": [
+        "Full measurement envelope/OTLP grouping consistency source review; associated supported Python controls pass.",
+        "investigation/raw/source-identity.json",
+        "investigation/raw/graph-coverage.txt"
+      ],
+      "limits": "No whole-repository coverage claim; no local mutation run; no general performance claims."
+    },
+    {
+      "path": "scripts/bench/phases.py",
+      "baseline_blob": "565021d1621e2cfaaeaa2c5ed8bbd52b87913191",
+      "review_state": "reviewed",
+      "executed_depth": "full-text-production-contract-risk-review",
+      "reviewed_ranges": [
+        [
+          1,
+          151
+        ]
+      ],
+      "evidence": [
+        "Full diagnostic rollup source review plus producer source corroboration; associated supported Python controls pass.",
+        "investigation/raw/source-identity.json",
+        "investigation/raw/graph-coverage.txt"
+      ],
+      "limits": "No whole-repository coverage claim; no local mutation run; no general performance claims."
+    },
+    {
+      "path": "scripts/bench/report.py",
+      "baseline_blob": "1ed79c28549586c04925496883440323ae569cd8",
+      "review_state": "reviewed",
+      "executed_depth": "full-text-production-contract-risk-review",
+      "reviewed_ranges": [
+        [
+          1,
+          430
+        ]
+      ],
+      "evidence": [
+        "Full report rendering/invalid result handling/count/disk interpretation source review; supported Python suite associated controls pass.",
+        "investigation/raw/source-identity.json",
+        "investigation/raw/graph-coverage.txt"
+      ],
+      "limits": "No whole-repository coverage claim; no local mutation run; no general performance claims."
+    },
+    {
+      "path": "scripts/bench/short.py",
+      "baseline_blob": "d166ea3339cc88592898499f578b9c65ab01ba28",
+      "review_state": "reviewed",
+      "executed_depth": "full-text-production-contract-risk-review",
+      "reviewed_ranges": [
+        [
+          1,
+          641
+        ]
+      ],
+      "evidence": [
+        "Full driver, budget, sampling, validation and export review; supported Python suite associated controls pass.",
+        "investigation/raw/source-identity.json",
+        "investigation/raw/graph-coverage.txt"
+      ],
+      "limits": "No whole-repository coverage claim; no local mutation run; no general performance claims."
+    },
+    {
+      "path": "scripts/bench/stats.py",
+      "baseline_blob": "6baf719d6bf06d1681ab2c0d98a41c4adfa06208",
+      "review_state": "reviewed",
+      "executed_depth": "full-text-production-contract-risk-review",
+      "reviewed_ranges": [
+        [
+          1,
+          213
+        ]
+      ],
+      "evidence": [
+        "Full result validation and paired/count regression review; supported Python suite associated controls pass.",
+        "investigation/raw/source-identity.json",
+        "investigation/raw/graph-coverage.txt"
+      ],
+      "limits": "No whole-repository coverage claim; no local mutation run; no general performance claims."
+    },
+    {
+      "path": "scripts/install-bench-mbx.sh",
+      "baseline_blob": "c0ce973623df9192fa970f665a948e84147465f5",
+      "review_state": "reviewed",
+      "executed_depth": "full-text-production-contract-risk-review",
+      "reviewed_ranges": [
+        [
+          1,
+          28
+        ]
+      ],
+      "evidence": [
+        "Full install script review as benchmark tool provenance seam; no network install or external mutation executed.",
+        "investigation/raw/source-identity.json",
+        "investigation/raw/graph-coverage.txt"
+      ],
+      "limits": "No whole-repository coverage claim; no local mutation run; no general performance claims."
+    },
+    {
+      "path": "scripts/test-bench-contention.py",
+      "baseline_blob": "644b7129f4debab0466df99cccb3a94a675841fa",
+      "review_state": "reviewed",
+      "executed_depth": "full-text-production-contract-risk-review",
+      "reviewed_ranges": [
+        [
+          1,
+          888
+        ]
+      ],
+      "evidence": [
+        "Full test source read; all 28 tests executed with supported Python 3.14.",
+        "investigation/raw/source-identity.json",
+        "investigation/raw/graph-coverage.txt"
+      ],
+      "limits": "No whole-repository coverage claim; no local mutation run; no general performance claims."
+    }
+  ],
+  "secondary_coverage": [
+    {
+      "path": "crates/kache-e2e/src/bench_runner/tests.rs",
+      "reviewed_ranges": [
+        [
+          3223,
+          3269
+        ]
+      ],
+      "state": "sampled",
+      "purpose": "FetchCount scanner coverage versus real stream wiring"
+    },
+    {
+      "path": "scripts/bench/tests/test_short.py",
+      "reviewed_ranges": [
+        [
+          93,
+          195
+        ],
+        [
+          507,
+          692
+        ]
+      ],
+      "state": "sampled",
+      "purpose": "process cleanup, result validation, deadline evidence; full suite execution is distinct from source review"
+    },
+    {
+      "path": "src/phase_trace.rs",
+      "reviewed_ranges": [
+        [
+          1,
+          85
+        ]
+      ],
+      "state": "sampled",
+      "purpose": "diagnostic phase producer thread/file contract"
+    }
+  ]
+}

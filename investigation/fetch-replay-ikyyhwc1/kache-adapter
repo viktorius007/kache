@@ -1,0 +1,13 @@
+#!/opt/homebrew/opt/python@3.14/bin/python3.14
+import json, sys
+if sys.argv[1:] == ["--version"]:
+    print("kache fixture-adapter 1.0")
+elif sys.argv[1:2] == ["report"]:
+    if "json" in sys.argv:
+        print(json.dumps({"schema_version": 1, "summary": {"hit_rate_pct": 100.0,
+          "total_crates": 1, "local_hits": 1, "prefetch_hits": 0,
+          "remote_hits": 0, "dups": 0, "misses": 0}}))
+    elif "perfetto" in sys.argv:
+        print('{"traceEvents": []}')
+    else:
+        print("fixture report")

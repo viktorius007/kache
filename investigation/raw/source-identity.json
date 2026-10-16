@@ -1,0 +1,103 @@
+[
+  {
+    "path": "crates/kache-e2e/src/bench_host.rs",
+    "baseline_blob": "63d22989a1bbc039e489506fa913c2cdc3e521f2",
+    "actual_blob": "63d22989a1bbc039e489506fa913c2cdc3e521f2",
+    "matches": true
+  },
+  {
+    "path": "crates/kache-e2e/src/bench_otlp.rs",
+    "baseline_blob": "4c42a14c7159dcfb534c97bb07a23333ec8b4010",
+    "actual_blob": "4c42a14c7159dcfb534c97bb07a23333ec8b4010",
+    "matches": true
+  },
+  {
+    "path": "crates/kache-e2e/src/bench_profile.rs",
+    "baseline_blob": "87eda5ca59d57060dfcdabda7820fa9f8ea9e059",
+    "actual_blob": "87eda5ca59d57060dfcdabda7820fa9f8ea9e059",
+    "matches": true
+  },
+  {
+    "path": "crates/kache-e2e/src/bench_runner.rs",
+    "baseline_blob": "987a4da9ff348085bd845f3c1947ac4a36e37cbd",
+    "actual_blob": "987a4da9ff348085bd845f3c1947ac4a36e37cbd",
+    "matches": true
+  },
+  {
+    "path": "scripts/bench-contention.py",
+    "baseline_blob": "022d523a4d8ba278dc14f443a20f87dd8469739a",
+    "actual_blob": "022d523a4d8ba278dc14f443a20f87dd8469739a",
+    "matches": true
+  },
+  {
+    "path": "scripts/bench-short.py",
+    "baseline_blob": "1d8f4069aec0f31a955e09da3aac32736fca9c33",
+    "actual_blob": "1d8f4069aec0f31a955e09da3aac32736fca9c33",
+    "matches": true
+  },
+  {
+    "path": "scripts/bench/__init__.py",
+    "baseline_blob": "242caf6b8e32439012b3a4ac42555d0b6bfadf96",
+    "actual_blob": "242caf6b8e32439012b3a4ac42555d0b6bfadf96",
+    "matches": true
+  },
+  {
+    "path": "scripts/bench/engine.py",
+    "baseline_blob": "403101315e21f82ece5262d9a149f2c1852c65b6",
+    "actual_blob": "403101315e21f82ece5262d9a149f2c1852c65b6",
+    "matches": true
+  },
+  {
+    "path": "scripts/bench/gate_local.py",
+    "baseline_blob": "c76745b032b9986da0b7349a36beb32d80c1c0da",
+    "actual_blob": "c76745b032b9986da0b7349a36beb32d80c1c0da",
+    "matches": true
+  },
+  {
+    "path": "scripts/bench/job_telemetry.py",
+    "baseline_blob": "56afaf3a6f5a7eaf52f022f83674a111be80bf57",
+    "actual_blob": "56afaf3a6f5a7eaf52f022f83674a111be80bf57",
+    "matches": true
+  },
+  {
+    "path": "scripts/bench/phases.py",
+    "baseline_blob": "565021d1621e2cfaaeaa2c5ed8bbd52b87913191",
+    "actual_blob": "565021d1621e2cfaaeaa2c5ed8bbd52b87913191",
+    "matches": true
+  },
+  {
+    "path": "scripts/bench/report.py",
+    "baseline_blob": "1ed79c28549586c04925496883440323ae569cd8",
+    "actual_blob": "1ed79c28549586c04925496883440323ae569cd8",
+    "matches": true
+  },
+  {
+    "path": "scripts/bench/short.py",
+    "baseline_blob": "d166ea3339cc88592898499f578b9c65ab01ba28",
+    "actual_blob": "d166ea3339cc88592898499f578b9c65ab01ba28",
+    "matches": true
+  },
+  {
+    "path": "scripts/bench/stats.py",
+    "baseline_blob": "6baf719d6bf06d1681ab2c0d98a41c4adfa06208",
+    "actual_blob": "6baf719d6bf06d1681ab2c0d98a41c4adfa06208",
+    "matches": true
+  },
+  {
+    "path": "scripts/install-bench-mbx.sh",
+    "baseline_blob": "c0ce973623df9192fa970f665a948e84147465f5",
+    "actual_blob": "c0ce973623df9192fa970f665a948e84147465f5",
+    "matches": true
+  },
+  {
+    "path": "scripts/test-bench-contention.py",
+    "baseline_blob": "644b7129f4debab0466df99cccb3a94a675841fa",
+    "actual_blob": "644b7129f4debab0466df99cccb3a94a675841fa",
+    "matches": true
+  },
+  {
+    "binary": "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/investigation/target/debug/kache-scenario",
+    "sha256": "92dadb2165dde98a4241234851db7e41e28ac660b2d1739994c3ab91d544f7b6",
+    "provenance": "audit_guardrails shared read-only -j2 build at pinned baseline; no production source edits"
+  }
+]

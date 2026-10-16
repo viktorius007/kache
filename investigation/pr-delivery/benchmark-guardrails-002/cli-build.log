@@ -1,0 +1,7 @@
+   Compiling libc v0.2.189
+   Compiling errno v0.3.14
+   Compiling getrandom v0.4.3
+   Compiling rustix v1.1.4
+   Compiling tempfile v3.27.0
+   Compiling kache-e2e v1.0.0 (/Users/viktor/Developer/github/kache-prs/benchmark-guardrails-002/crates/kache-e2e)
+    Finished `dev` profile [unoptimized] target(s) in 4.96s

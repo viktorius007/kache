@@ -1,0 +1,1 @@
+{"verdict": "ADMITTED", "exit_code": 1, "expected_failure_found": true, "assertion_found": true, "log": "investigation/raw/nonzero-orphan-replay.log"}
