@@ -1,0 +1,12 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/rd-credential-child-001)
+    Finished `test` profile [unoptimized] target(s) in 20.70s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target/debug/deps/kache-1216026e9547a40d)
+
+running 4 tests
+test remote_backend::tests::credential_process_executor_preserves_quoted_arguments ... ok
+test remote_backend::tests::credential_process_held_lock_fixture ... ignored, subprocess fixture for credential_process_releases_owned_resources
+test remote_backend::tests::credential_process_child_sees_the_configured_profile ... ok
+test remote_backend::tests::credential_process_releases_owned_resources ... ok
+
+test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 4393 filtered out; finished in 0.05s
+

@@ -1,0 +1,134 @@
+[
+  {
+    "id": "rd-credential-child-001",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:12:26.197363+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6",
+      "mode": "production-readiness",
+      "slice": "remote-daemon"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "A timed-out S3 credential_process keeps running after the remote operation is cancelled.",
+    "scenario": "An isolated daemon configured with S3 profile audit and a credential_process that takes four seconds receives an ordinary RemoteCheck with a one-second budget. It returns {ok:true,found:false} after 1.027 seconds; the helper remains running and writes its completion marker later while the daemon remains alive.",
+    "evidence": [
+      {
+        "path": "src/remote_backend.rs",
+        "lines": "1053-1084",
+        "point": "KacheCommandExecute creates tokio::process::Command and awaits output() without enabling kill_on_drop."
+      },
+      {
+        "path": "src/remote_layout.rs",
+        "lines": "175-187",
+        "point": "RemoteDeadline::run wraps get_into, including credential acquisition, and drops the operation when the deadline expires."
+      },
+      {
+        "path": "src/daemon.rs",
+        "lines": "4505-4533",
+        "point": "Normal socket RemoteCheck constructs a deadline from configured/client budgets and runs the leader under it."
+      },
+      {
+        "path": "investigation/probe_credentials.daemon.log",
+        "lines": "13-20",
+        "point": "The baseline demand GET reports Timeout at 05:47:45; protocol shutdown occurs only at 05:47:49, after the helper survival observation."
+      },
+      {
+        "path": "investigation/probe_credentials.execution.txt",
+        "lines": "1-5",
+        "point": "Executed tool transcript: response at 1.027s, helper_started=True, survival marker=True, expected assertion failure."
+      }
+    ],
+    "trace": "daemon IPC RemoteCheck -> handle_remote_check_started_at -> handle_remote_check_leader -> RemoteLayout::download_entry_observed -> backend S3 get_into/signing credential provider -> KacheCommandExecute::command_execute -> timeout drops output future -> default Tokio child remains running -> helper finishes after response.",
+    "authority": {
+      "source": "Resource ownership failure-mode; Tokio Command cancellation documentation, https://docs.rs/tokio/latest/tokio/process/struct.Command.html#method.kill_on_drop",
+      "quote": "By default, this value is assumed to be false",
+      "interpretation": "The operation budget ends the request but must not abandon an owned helper indefinitely; the executed marker demonstrates continued child execution."
+    },
+    "proof": {
+      "red_test": "import json, os, pathlib, socket, subprocess, tempfile, time, sys\nBIN = \"/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache\"\nROOT = pathlib.Path(__file__).resolve().parent\ndef main():\n    with tempfile.TemporaryDirectory(prefix=\"kache-rd-\", dir=\"/private/tmp\") as td:\n        d=pathlib.Path(td); (d/\"home\").mkdir(); (d/\"cache\").mkdir()\n        helper=d/\"helper.py\"\n        helper.write_text(\"import pathlib,time,os\\np=pathlib.Path(\"+repr(str(d))+ \")\\n(p/'helper.pid').write_text(str(os.getpid()))\\ntime.sleep(4)\\n(p/'survived').write_text('credential child still active')\\nprint('{\\\"Version\\\":1,\\\"AccessKeyId\\\":\\\"test\\\",\\\"SecretAccessKey\\\":\\\"test\\\"}')\\n\")\n        aws=d/\"aws.conf\"\n        aws.write_text('[profile audit]\\ncredential_process = '+sys.executable+' '+str(helper)+'\\n')\n        config=d/\"config.toml\"\n        config.write_text('[cache]\\nlocal_store = '+json.dumps(str(d/\"cache\"))+'\\nruntime_dir = '+json.dumps(str(d))+ '\\nprefetch_enabled = false\\nremote_key_listing = false\\nremote_restore_timeout_secs = 1\\n[cache.remote]\\ntype = \"s3\"\\nbucket = \"fixture\"\\nendpoint = \"http://127.0.0.1:9\"\\nprofile = \"audit\"\\n')\n        env=dict(os.environ)\n        for k in list(env):\n            if k.startswith(('KACHE_', 'AWS_', 'GITHUB_', 'GITLAB_', 'CI_')) or k in ['CI','RUSTC_WRAPPER']: env.pop(k,None)\n        env.update(HOME=str(d/\"home\"),KACHE_CONFIG=str(config),KACHE_LOG='kache=debug',KACHE_LOG_FILE='off',AWS_CONFIG_FILE=str(aws),AWS_SHARED_CREDENTIALS_FILE=str(d/\"missing-credentials\"),RUSTC_WRAPPER='')\n        daemon=subprocess.Popen([BIN,'daemon','run'],env=env,cwd=d,stdout=subprocess.PIPE,stderr=subprocess.PIPE)\n        try:\n            path=d/'daemon.sock'\n            for _ in range(200):\n                if path.exists(): break\n                if daemon.poll() is not None: raise RuntimeError(daemon.communicate())\n                time.sleep(.02)\n            key='a'*64\n            s=socket.socket(socket.AF_UNIX);s.settimeout(8);s.connect(str(path))\n            start=time.monotonic();s.sendall((json.dumps({'remote_check':{'key':key,'crate_name':'fixture','entry_dir':str(d/'cache'/'store'/key),'deadline_ms':1000}})+'\\n').encode())\n            reply=s.makefile('rb').readline();elapsed=time.monotonic()-start;s.close()\n            print('remote_check:',reply.decode().strip(),'elapsed:',round(elapsed,3),flush=True)\n            print('helper_started:',(d/'helper.pid').exists(),flush=True)\n            time.sleep(4.5)\n            survived=(d/'survived').exists()\n            print('helper_survived_cancelled_remote_operation:',survived,flush=True)\n            assert not survived, 'CREDENTIAL_CHILD_SURVIVED: cancelled remote operation left credential helper running'\n        finally:\n            try:\n                s=socket.socket(socket.AF_UNIX);s.settimeout(5);s.connect(str(d/'daemon.sock'));s.sendall(b'\"shutdown\"\\n');s.close()\n            except OSError: pass\n            try: out,err=daemon.communicate(timeout=10)\n            except subprocess.TimeoutExpired: daemon.terminate();out,err=daemon.communicate(timeout=10)\n            (ROOT/'probe_credentials.daemon.log').write_bytes(out+err)\nif __name__ == '__main__': main()\n",
+      "name": "credential_child_is_stopped_when_remote_deadline_cancels_operation",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "Executed on untouched baseline CLI; tool stdout/stderr transcript retained below. Exit code: 1 (expected red).\nremote_check: {\"ok\":true,\"found\":false} elapsed: 1.027\nhelper_started: True\nhelper_survived_cancelled_remote_operation: True\nAssertionError: CREDENTIAL_CHILD_SURVIVED: cancelled remote operation left credential helper running\n",
+      "replay_case": "investigation/credential-child.case.json",
+      "raw_daemon_log": "investigation/probe_credentials.daemon.log",
+      "oracle": "Independent helper writes a marker only after its four-second delay; request returns after one second and the marker appears while the daemon remains alive. No production source modification or transport mock creates the child cancellation boundary.",
+      "limits": "One macOS baseline run; no repeated-request growth measurement, hung-helper run, process-group kill assertion, or green fast-helper control execution. Prepared refined discriminator is explicitly unexecuted."
+    },
+    "severity": "Resource/cancellation defect reachable for file-configured AWS profiles using slow or hung credential_process helpers. An abandoned helper can keep CPU/network/login activity and process resources alive; repeated requests can accumulate helpers (source inference, not measured here). Static-credential users are outside this trigger. No compiler artifact corruption or data loss established.",
+    "status": "open"
+  },
+  {
+    "id": "rd-pack-memory-002",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:12:26.197363+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6",
+      "mode": "production-readiness",
+      "slice": "remote-daemon"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Buffered pack downloads do not demonstrate a reservation deadlock in the reviewed path.",
+    "checked": "Followed download-memory permits, get_into implementations, catalog lifetime, pack GET collection and buffer_unordered consumption.",
+    "closed_by": "Tier 2 source: remote_backend/download_memory.rs 1-61; remote_backend.rs get_into implementations; remote_backend/oci.rs get_into; daemon.rs packed-prefetch source. Catalog bytes are dropped before pack GETs; large entry restores stream to an anonymous file; completed pack bodies are consumed as they arrive.",
+    "reopens_if": "A transport bypasses streaming/reservations, or an executed concurrent fixture shows held permits preventing all consumers from advancing.",
+    "status": "dismissed-by-evidence"
+  },
+  {
+    "id": "rd-noncas-metadata-003",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:12:26.197363+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6",
+      "mode": "production-readiness",
+      "slice": "remote-daemon"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Lost merged metadata updates on backends without conditional writes are a documented limitation.",
+    "checked": "Compared conditional update conflict loops and ordinary-write fallback with GCS/OCI setup contracts.",
+    "closed_by": "Tier 4 docs/remote-cache/gcs-setup.mdx and docs/remote-cache/oci-setup.mdx explicitly state no compare-and-swap support/fallback and possible concurrent merged-metadata loss; Tier 2 remote_backend.rs and remote.rs use the advertised conditional capability.",
+    "reopens_if": "A backend advertises conditional support but the wired path loses updates, or exact immutable compiler outputs are corrupted rather than metadata losing entries.",
+    "status": "dismissed-by-evidence"
+  },
+  {
+    "id": "rd-filesystem-trust-004",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:12:26.197363+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6",
+      "mode": "production-readiness",
+      "slice": "remote-daemon"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "A shared writable filesystem remote is not an isolation boundary against its trusted writers.",
+    "checked": "Examined relative-key validation, symlink checks, temporary publish/rename, and remote writer trust.",
+    "closed_by": "Tier 4 docs/remote-cache/overview.mdx 47-48: \"A remote contains compiler outputs. Only give write access to jobs and people you trust to produce those outputs.\" Filesystem setup documents defense in depth, not writer isolation.",
+    "reopens_if": "A nonwriter or unauthenticated actor reaches a publication boundary, or an ordinary trusted write tears an immutable artifact under a real cross-client fixture.",
+    "status": "dismissed-by-evidence"
+  },
+  {
+    "id": "rd-drain-ownership-005",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:12:26.197363+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6",
+      "mode": "production-readiness",
+      "slice": "remote-daemon"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "The reviewed accept loop keeps ownership of accepted response handlers through drain.",
+    "checked": "Followed admission closure, handler JoinSet, drain deadline and runtime shutdown; sampled tests 1050-1200.",
+    "closed_by": "Tier 2 daemon.rs accept_loop and drain_connection_handlers own and join accepted handlers; Tier 5 sampled tests illustrate gated response and abort ownership, but were not executed in this audit. This closes only the detached-handler source hypothesis, not all shutdown interleavings.",
+    "reopens_if": "An executed baseline request is lost before the documented drain deadline or a handler is detached from the JoinSet.",
+    "status": "dismissed-by-evidence"
+  }
+]

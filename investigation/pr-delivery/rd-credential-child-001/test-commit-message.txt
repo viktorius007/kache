@@ -1,0 +1,10 @@
+test: require cancelled credential helpers to release resources
+
+A cancelled remote operation must not abandon its running credential helper.
+Observe a real helper-owned lock from another process while the caller runtime
+remains alive, with ordinary completion as a positive control and cancellation
+as the red discriminator. Cleanup happens only after the observed verdict.
+
+This requested test-only commit is deliberately red until the narrow repair.
+The fixture uses the executor's existing profile override for isolated child
+arguments; no production hook or process-global environment mutation is added.

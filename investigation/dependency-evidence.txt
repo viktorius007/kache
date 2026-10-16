@@ -1,0 +1,3 @@
+Primary dependency documentation checked 2026-10-11:
+https://docs.rs/tokio/latest/tokio/process/struct.Command.html#method.kill_on_drop
+Tokio documents that default kill_on_drop is false; dropping a Child/output future does not kill its running child unless configured to do so. This corroborates the directly executed helper-survival observation.

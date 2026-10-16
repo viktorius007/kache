@@ -1,0 +1,6 @@
+fix: terminate credential helpers when their operation is cancelled
+
+Dropping a timed-out signing future left its owned credential_process running.
+Tie the spawned child's lifetime to the output future so cancellation stops
+helper activity and releases resources, retaining successful output and profile
+forwarding through the existing executor.

@@ -1,0 +1,12 @@
+{
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "worktree_head": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "baseline_binary": "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+  "production_diff": "",
+  "graph_project": "Users-viktor-Developer-github-kache-investigations-coordinator",
+  "primary_paths": 36,
+  "reviewed_primary_paths": 19,
+  "sampled_primary_paths": 17,
+  "primary_inventory_text_lines": 46737,
+  "execution_transcript_note": "probe_credentials.execution.txt preserves the executed tool transcript, not a newly rerun shell capture; probe_credentials.daemon.log is raw output from that execution."
+}

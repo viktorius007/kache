@@ -1,0 +1,22 @@
+[
+  {
+    "command": "CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py cargo test --bin kache remote_backend::tests::credential_process_releases_owned_resources -- --exact",
+    "observed_exit": 101,
+    "head": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+    "tracked_tests": "new uncommitted regression",
+    "log": "/Users/viktor/Developer/github/kache-investigations/audit-remote-daemon/investigation/pr-delivery/rd-credential-child-001/red.log"
+  },
+  {
+    "command": "CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py cargo test --bin kache remote_backend::tests::credential_process",
+    "observed_exit": 0,
+    "head": "3fec813d36446717b746217b2f660dc022420f7f",
+    "tracked_fix": "one uncommitted kill_on_drop(true) line",
+    "log": "/Users/viktor/Developer/github/kache-investigations/audit-remote-daemon/investigation/pr-delivery/rd-credential-child-001/green.log"
+  },
+  {
+    "command": "CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py just check",
+    "observed_exit": 0,
+    "head": "52f94c5059975855621037381721032dc23537f9",
+    "log": "/Users/viktor/Developer/github/kache-investigations/audit-remote-daemon/investigation/pr-delivery/rd-credential-child-001/gate.log"
+  }
+]

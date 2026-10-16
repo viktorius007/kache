@@ -1,0 +1,847 @@
+{
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "slice": "remote-daemon",
+  "title": "Remote object transport, synchronization and daemon lifecycle/concurrency",
+  "primary_paths": [
+    {
+      "path": "docs/daemon/lifecycle.mdx",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "e3f177ed72216c7bada6aa3e944262a33a1929a3",
+      "bytes": 11712,
+      "text_lines": 127,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 127,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/daemon/meta.json",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "92bfdc0ab7a61e823f57cdc98880a57726e87022",
+      "bytes": 62,
+      "text_lines": 4,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 4,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/daemon/overview.mdx",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "7b90e58dc0a0ba7715f9a6a800e1ec054760f308",
+      "bytes": 5109,
+      "text_lines": 62,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 62,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/remote-cache/bounding.mdx",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "31907be431c7227bd02c7bac4448d27bc45f4a08",
+      "bytes": 4601,
+      "text_lines": 93,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 93,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/remote-cache/ci.mdx",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "90291a76766330cf672db0ddfac85036e25a5fcf",
+      "bytes": 11867,
+      "text_lines": 169,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 169,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/remote-cache/filesystem-setup.mdx",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "24747616bf8bd01f1358c69698795f3de6897f8c",
+      "bytes": 2778,
+      "text_lines": 62,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 62,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/remote-cache/gcs-setup.mdx",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "82f9c261723e7870041725cdffed45a8c8b1a839",
+      "bytes": 2237,
+      "text_lines": 44,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 44,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/remote-cache/meta.json",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "e0c0b7bb6298f528271db97cfa2cbda320cfc7b1",
+      "bytes": 175,
+      "text_lines": 13,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 13,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/remote-cache/oci-setup.mdx",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "f6f8ac2bb3b33d0d6b9826d19c7d5d9eee767d99",
+      "bytes": 3327,
+      "text_lines": 74,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 74,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/remote-cache/overview.mdx",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "e372866657cf2173a690bb4a739678aad9f9414f",
+      "bytes": 2571,
+      "text_lines": 58,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 58,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/remote-cache/s3-setup.mdx",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "bb20c09ed289b73cd0f8e16ea6c22abe071575f1",
+      "bytes": 8548,
+      "text_lines": 145,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 145,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/remote-cache/sync.mdx",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "e8c42cfee9a0963b8d72f8e900a97dc13bec18a5",
+      "bytes": 2742,
+      "text_lines": 45,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 45,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/cache_remote.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "0b3b1c684f164d5fc702508baa99a81af6effd43",
+      "bytes": 14422,
+      "text_lines": 457,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 457,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/daemon.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "6d8f08ace816a4e9ec6f534605ae0c6486dd420a",
+      "bytes": 402027,
+      "text_lines": 9963,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 6000,
+          "state": "queued"
+        },
+        {
+          "start_line": 6001,
+          "end_line": 9963,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/daemon/tests.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "00523a45ebb6d7e5b1872af5881450e1c2aa6e68",
+      "bytes": 530301,
+      "text_lines": 14900,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 6000,
+          "state": "queued"
+        },
+        {
+          "start_line": 6001,
+          "end_line": 12000,
+          "state": "queued"
+        },
+        {
+          "start_line": 12001,
+          "end_line": 14900,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/daemon_control.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "efe9a4b24b076e918adb3a2784c13131ef4bd50a",
+      "bytes": 19921,
+      "text_lines": 491,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 491,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/daemon_lifecycle.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "188850135296303985ba105df93192c47d8aad41",
+      "bytes": 31184,
+      "text_lines": 781,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 781,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/daemon_publish.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "494aaa4501a4934163ba4717ffebb89544660470",
+      "bytes": 77035,
+      "text_lines": 1806,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1806,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/heartbeat.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "5986894804c5b0cd39fcbe85f3fa402e92ca0fce",
+      "bytes": 16794,
+      "text_lines": 448,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 448,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/prediction_share.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "0d230b5aa49178ae46abe3d7c07ab1fdc550015b",
+      "bytes": 16672,
+      "text_lines": 435,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 435,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/remote.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "c08a1bf9861db92ffa2495660939f31cd5a312b8",
+      "bytes": 51994,
+      "text_lines": 1434,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1434,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/remote_backend.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "dd4192436049485e68d9cd6806a587283e40b7c7",
+      "bytes": 123736,
+      "text_lines": 3182,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 3182,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/remote_backend/download_memory.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "3ae2528bed8fa307be9adecdd3a8e5a0daaa79ce",
+      "bytes": 5297,
+      "text_lines": 147,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 147,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/remote_backend/oci.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "59c7b6b16e05538bb5b1137a9f1cfc6e45bf18ed",
+      "bytes": 25450,
+      "text_lines": 678,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 678,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/remote_backend/oci/auth.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "5c82297085fe207b3fc87da5e2b39989f1dac9cc",
+      "bytes": 3794,
+      "text_lines": 105,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 105,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/remote_backend/oci/tests.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "78f3a0db69a5ed103cb4d0936ea8f058b9155c9c",
+      "bytes": 59203,
+      "text_lines": 1679,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1679,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/remote_backend/oci/transport.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "35a00417bcf90edb48f546d5ea218ea75e4d612d",
+      "bytes": 8944,
+      "text_lines": 268,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 268,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/remote_backend/s3_credentials.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "20fb7f23cb97247b39a784e7e6b0cecbe8a2a27e",
+      "bytes": 18164,
+      "text_lines": 502,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 502,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/remote_backend/s3_credentials/tests.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "9ae11ee3d6e22d82d2898f4fa42131427af29cbd",
+      "bytes": 21205,
+      "text_lines": 617,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 617,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/remote_layout.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "55777425bfbdaefda0fc17ced5c887cf23946cb5",
+      "bytes": 82397,
+      "text_lines": 2156,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 2156,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/remote_pack.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "87598ad968992918453328d1c86698173a3373a3",
+      "bytes": 50953,
+      "text_lines": 1403,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1403,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/remote_resilience.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "0b47cb986b2f39ce66311d6a836bae7e90f96dfb",
+      "bytes": 71515,
+      "text_lines": 2012,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 2012,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/shards.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "f74158b6a8923f5a1dac0cbf1335c65675bcbcb8",
+      "bytes": 6737,
+      "text_lines": 228,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 228,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/transport.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "8f9108611966c6750e37670d45792120e4428b93",
+      "bytes": 12555,
+      "text_lines": 309,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 309,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/filesystem_remote_test.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "21a1927387226b9d45a521224758bec131eaf3e7",
+      "bytes": 51303,
+      "text_lines": 1322,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1322,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/s3_remote_test.rs",
+      "primary_slice": "remote-daemon",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "b477cf757b4724851240420e6d7965024b13911f",
+      "bytes": 17645,
+      "text_lines": 518,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 518,
+          "state": "queued"
+        }
+      ]
+    }
+  ],
+  "reading_batches": [
+    {
+      "id": "daemon-lifecycle-handoff",
+      "paths": [
+        "src/daemon.rs",
+        "src/daemon/tests.rs",
+        "src/daemon_control.rs",
+        "src/daemon_lifecycle.rs",
+        "src/daemon_publish.rs",
+        "src/heartbeat.rs",
+        "src/transport.rs"
+      ],
+      "text_lines": 28698,
+      "review_state": "queued"
+    },
+    {
+      "id": "remote-object-backends-and-layout",
+      "paths": [
+        "docs/daemon/lifecycle.mdx",
+        "docs/daemon/meta.json",
+        "docs/daemon/overview.mdx",
+        "docs/remote-cache/bounding.mdx",
+        "docs/remote-cache/ci.mdx",
+        "docs/remote-cache/filesystem-setup.mdx",
+        "docs/remote-cache/gcs-setup.mdx",
+        "docs/remote-cache/meta.json",
+        "docs/remote-cache/oci-setup.mdx",
+        "docs/remote-cache/overview.mdx",
+        "docs/remote-cache/s3-setup.mdx",
+        "docs/remote-cache/sync.mdx",
+        "src/cache_remote.rs",
+        "src/prediction_share.rs",
+        "src/remote.rs",
+        "src/remote_backend.rs",
+        "src/remote_backend/download_memory.rs",
+        "src/remote_backend/oci.rs",
+        "src/remote_backend/oci/auth.rs",
+        "src/remote_backend/oci/tests.rs",
+        "src/remote_backend/oci/transport.rs",
+        "src/remote_backend/s3_credentials.rs",
+        "src/remote_backend/s3_credentials/tests.rs",
+        "src/remote_layout.rs",
+        "src/remote_pack.rs",
+        "src/remote_resilience.rs",
+        "src/shards.rs",
+        "tests/filesystem_remote_test.rs",
+        "tests/s3_remote_test.rs"
+      ],
+      "text_lines": 18039,
+      "review_state": "queued"
+    }
+  ],
+  "obligations": [
+    "Trace exact remote reads, bounded metadata/blob/pack downloads, validation before local import, publish/merge/conditional-update conflict paths, retry/offline behavior, queued uploads and bounded growth.",
+    "Trace daemon startup, readiness negotiation, exclusive replacement, peer admission, socket identity, draining/shutdown, task cancellation, compile handoff and transfer spools under multiple clients.",
+    "Review credentials and CI read-only policy through the daemon environment and every transport (S3/GCS/filesystem/OCI); input source and publisher trust determine consequences."
+  ],
+  "contracts": [
+    {
+      "id": "remote-publisher-trust",
+      "path": "docs/remote-cache/overview.mdx",
+      "line": 47,
+      "quote": "A remote contains compiler outputs. Only give write access to jobs and people",
+      "primary_slice": "remote-daemon"
+    }
+  ],
+  "owned_interactions": [
+    {
+      "id": "compile-daemon-handoff",
+      "primary_slice": "remote-daemon",
+      "consult_slice": "compiler-reuse",
+      "contract": "wrapper/remote \u2192 daemon/daemon_publish; failed handoff, cancellation, child ownership and spooled artifacts"
+    },
+    {
+      "id": "daemon-service-config",
+      "primary_slice": "remote-daemon",
+      "consult_slice": "cli-operations",
+      "contract": "Config/socket paths/service environment \u2194 daemon control/replacement; read-only credential lifetime and readiness"
+    }
+  ],
+  "consult_interactions": [
+    {
+      "id": "store-import-publish",
+      "primary_slice": "store-filesystem",
+      "consult_slice": "remote-daemon",
+      "contract": "kache-format validators + kache-store imported entries \u2194 remote_pack/remote_backend; verify sizes/names/hashes before publication"
+    },
+    {
+      "id": "daemon-planner",
+      "primary_slice": "planner-service",
+      "consult_slice": "remote-daemon",
+      "contract": "daemon build sessions/manifests \u2194 planner_client/build_intent/remote_plan; fallback and bounded prefetch"
+    },
+    {
+      "id": "guardrail-domain-oracles",
+      "primary_slice": "guardrails",
+      "consult_slice": "all",
+      "contract": "kache-e2e/scripts/CI/scenario oracles \u2194 each domain-specific test; real compiler/process/remote observations and meaningful failure discrimination"
+    }
+  ],
+  "sampling_needs": [
+    "Use fixture filesystem and local wire servers; live cloud/registry credential/ETag semantics require primary documentation and declared nonexecution.",
+    "Timeout, replacement and cancellation interleavings are selected explicitly; no exhaustive concurrency claim."
+  ],
+  "expected_coverage_report": "Record every path as fully read, sampled with bounds, or pending. Mapped is not reviewed. Fully read production/framework/configuration paths and explicitly record runtime sampling."
+}

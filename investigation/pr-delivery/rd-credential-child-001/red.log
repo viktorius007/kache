@@ -1,0 +1,27 @@
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/rd-credential-child-001/crates/kache-fs)
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/rd-credential-child-001/crates/kache-format)
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/rd-credential-child-001)
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/rd-credential-child-001/crates/kache-store)
+   Compiling kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-prs/rd-credential-child-001/crates/kache-shims)
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/rd-credential-child-001/crates/kache-core)
+    Finished `test` profile [unoptimized] target(s) in 52.01s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+test remote_backend::tests::credential_process_releases_owned_resources ... FAILED
+
+failures:
+
+---- remote_backend::tests::credential_process_releases_owned_resources stdout ----
+
+thread 'remote_backend::tests::credential_process_releases_owned_resources' (52450885) panicked at src/remote_backend.rs:2863:13:
+cancelled credential executor left its helper resource locked
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    remote_backend::tests::credential_process_releases_owned_resources
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 2.06s
+
+error: test failed, to rerun pass `--bin kache`

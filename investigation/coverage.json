@@ -1,0 +1,947 @@
+[
+  {
+    "path": "docs/daemon/lifecycle.mdx",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "e3f177ed72216c7bada6aa3e944262a33a1929a3",
+    "total_lines": 127,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 127,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full contract text read and compared against service lifecycle, remote policy, bounds, transport capability and publisher-trust production wiring.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "docs/daemon/meta.json",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "92bfdc0ab7a61e823f57cdc98880a57726e87022",
+    "total_lines": 4,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 4,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full contract text read and compared against service lifecycle, remote policy, bounds, transport capability and publisher-trust production wiring.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "docs/daemon/overview.mdx",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "7b90e58dc0a0ba7715f9a6a800e1ec054760f308",
+    "total_lines": 62,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 62,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full contract text read and compared against service lifecycle, remote policy, bounds, transport capability and publisher-trust production wiring.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "docs/remote-cache/bounding.mdx",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "31907be431c7227bd02c7bac4448d27bc45f4a08",
+    "total_lines": 93,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 93,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full contract text read and compared against service lifecycle, remote policy, bounds, transport capability and publisher-trust production wiring.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "docs/remote-cache/ci.mdx",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "90291a76766330cf672db0ddfac85036e25a5fcf",
+    "total_lines": 169,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 169,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full contract text read and compared against service lifecycle, remote policy, bounds, transport capability and publisher-trust production wiring.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "docs/remote-cache/filesystem-setup.mdx",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "24747616bf8bd01f1358c69698795f3de6897f8c",
+    "total_lines": 62,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 62,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full contract text read and compared against service lifecycle, remote policy, bounds, transport capability and publisher-trust production wiring.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "docs/remote-cache/gcs-setup.mdx",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "82f9c261723e7870041725cdffed45a8c8b1a839",
+    "total_lines": 44,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 44,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full contract text read and compared against service lifecycle, remote policy, bounds, transport capability and publisher-trust production wiring.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "docs/remote-cache/meta.json",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "e0c0b7bb6298f528271db97cfa2cbda320cfc7b1",
+    "total_lines": 13,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 13,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full contract text read and compared against service lifecycle, remote policy, bounds, transport capability and publisher-trust production wiring.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "docs/remote-cache/oci-setup.mdx",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "f6f8ac2bb3b33d0d6b9826d19c7d5d9eee767d99",
+    "total_lines": 74,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 74,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full contract text read and compared against service lifecycle, remote policy, bounds, transport capability and publisher-trust production wiring.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "docs/remote-cache/overview.mdx",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "e372866657cf2173a690bb4a739678aad9f9414f",
+    "total_lines": 58,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 58,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full contract text read and compared against service lifecycle, remote policy, bounds, transport capability and publisher-trust production wiring.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "docs/remote-cache/s3-setup.mdx",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "bb20c09ed289b73cd0f8e16ea6c22abe071575f1",
+    "total_lines": 145,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 145,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full contract text read and compared against service lifecycle, remote policy, bounds, transport capability and publisher-trust production wiring.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "docs/remote-cache/sync.mdx",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "e8c42cfee9a0963b8d72f8e900a97dc13bec18a5",
+    "total_lines": 45,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 45,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full contract text read and compared against service lifecycle, remote policy, bounds, transport capability and publisher-trust production wiring.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/cache_remote.rs",
+    "state": "sampled",
+    "primary_slice": "remote-daemon",
+    "blob": "0b3b1c684f164d5fc702508baa99a81af6effd43",
+    "total_lines": 457,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 255,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full production/contract source read; input validation, error outcomes and resource/publication lifetimes reviewed. Embedded or dedicated tests only read within the listed bounds.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/daemon.rs",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "6d8f08ace816a4e9ec6f534605ae0c6486dd420a",
+    "total_lines": 9963,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 9963,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "All production and inline helpers read; startup/readiness, peer admission, service identity, drain, remote checks, shard import, downloads, queued uploads, prediction publication and task lifetimes traced. Demand credential cancellation fixture executed. All other runtime interleavings sampled or unexecuted.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "credential cancellation fixture",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/daemon/tests.rs",
+    "state": "sampled",
+    "primary_slice": "remote-daemon",
+    "blob": "00523a45ebb6d7e5b1872af5881450e1c2aa6e68",
+    "total_lines": 14900,
+    "production_fully_read": false,
+    "reviewed_ranges": [
+      {
+        "start_line": 1050,
+        "end_line": 1200,
+        "depth": "full-text"
+      },
+      {
+        "start_line": 2350,
+        "end_line": 2435,
+        "depth": "full-text"
+      },
+      {
+        "start_line": 5320,
+        "end_line": 5354,
+        "depth": "full-text"
+      },
+      {
+        "start_line": 8519,
+        "end_line": 8908,
+        "depth": "full-text"
+      },
+      {
+        "start_line": 10790,
+        "end_line": 10885,
+        "depth": "full-text"
+      },
+      {
+        "start_line": 12610,
+        "end_line": 12680,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Deliberate samples: drain ownership; shard wire/validation; BuildStarted IPC; successful shard import and failed-leader retries; same-store singleflight; disabled-prefetch session tracking. No repository Rust test suite executed.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/daemon_control.rs",
+    "state": "sampled",
+    "primary_slice": "remote-daemon",
+    "blob": "efe9a4b24b076e918adb3a2784c13131ef4bd50a",
+    "total_lines": 491,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 209,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full production/contract source read; input validation, error outcomes and resource/publication lifetimes reviewed. Embedded or dedicated tests only read within the listed bounds.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/daemon_lifecycle.rs",
+    "state": "sampled",
+    "primary_slice": "remote-daemon",
+    "blob": "188850135296303985ba105df93192c47d8aad41",
+    "total_lines": 781,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 374,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full production/contract source read; input validation, error outcomes and resource/publication lifetimes reviewed. Embedded or dedicated tests only read within the listed bounds.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/daemon_publish.rs",
+    "state": "sampled",
+    "primary_slice": "remote-daemon",
+    "blob": "494aaa4501a4934163ba4717ffebb89544660470",
+    "total_lines": 1806,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 860,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full production/contract source read; input validation, error outcomes and resource/publication lifetimes reviewed. Embedded or dedicated tests only read within the listed bounds.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/heartbeat.rs",
+    "state": "sampled",
+    "primary_slice": "remote-daemon",
+    "blob": "5986894804c5b0cd39fcbe85f3fa402e92ca0fce",
+    "total_lines": 448,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 371,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full production/contract source read; input validation, error outcomes and resource/publication lifetimes reviewed. Embedded or dedicated tests only read within the listed bounds.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/prediction_share.rs",
+    "state": "sampled",
+    "primary_slice": "remote-daemon",
+    "blob": "0d230b5aa49178ae46abe3d7c07ab1fdc550015b",
+    "total_lines": 435,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 202,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full production/contract source read; input validation, error outcomes and resource/publication lifetimes reviewed. Embedded or dedicated tests only read within the listed bounds.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/remote.rs",
+    "state": "sampled",
+    "primary_slice": "remote-daemon",
+    "blob": "c08a1bf9861db92ffa2495660939f31cd5a312b8",
+    "total_lines": 1434,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 445,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full production/contract source read; input validation, error outcomes and resource/publication lifetimes reviewed. Embedded or dedicated tests only read within the listed bounds.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/remote_backend.rs",
+    "state": "sampled",
+    "primary_slice": "remote-daemon",
+    "blob": "dd4192436049485e68d9cd6806a587283e40b7c7",
+    "total_lines": 3182,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 1447,
+        "depth": "full-text"
+      },
+      {
+        "start_line": 2770,
+        "end_line": 2884,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "All production read: filesystem atomic writes/path checks, OpenDAL S3/GCS conditional operations/streaming/retry layers, credential command lexer and AWS profile chain, CI PR overlay. Selected credential-process tests read; helper cancellation fixture red.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "credential cancellation fixture",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/remote_backend/download_memory.rs",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "3ae2528bed8fa307be9adecdd3a8e5a0daaa79ce",
+    "total_lines": 147,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 147,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full text source/contract read; relevant risk paths and contracts inspected. Runtime execution is limited to the credential cancellation fixture.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/remote_backend/oci.rs",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "59c7b6b16e05538bb5b1137a9f1cfc6e45bf18ed",
+    "total_lines": 678,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 678,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full text source/contract read; relevant risk paths and contracts inspected. Runtime execution is limited to the credential cancellation fixture.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/remote_backend/oci/auth.rs",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "5c82297085fe207b3fc87da5e2b39989f1dac9cc",
+    "total_lines": 105,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 105,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full text source/contract read; relevant risk paths and contracts inspected. Runtime execution is limited to the credential cancellation fixture.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/remote_backend/oci/tests.rs",
+    "state": "sampled",
+    "primary_slice": "remote-daemon",
+    "blob": "78f3a0db69a5ed103cb4d0936ea8f058b9155c9c",
+    "total_lines": 1679,
+    "production_fully_read": false,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 120,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full production/contract source read; input validation, error outcomes and resource/publication lifetimes reviewed. Embedded or dedicated tests only read within the listed bounds.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/remote_backend/oci/transport.rs",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "35a00417bcf90edb48f546d5ea218ea75e4d612d",
+    "total_lines": 268,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 268,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full text source/contract read; relevant risk paths and contracts inspected. Runtime execution is limited to the credential cancellation fixture.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/remote_backend/s3_credentials.rs",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "20fb7f23cb97247b39a784e7e6b0cecbe8a2a27e",
+    "total_lines": 502,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 502,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full text source/contract read; relevant risk paths and contracts inspected. Runtime execution is limited to the credential cancellation fixture.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/remote_backend/s3_credentials/tests.rs",
+    "state": "sampled",
+    "primary_slice": "remote-daemon",
+    "blob": "9ae11ee3d6e22d82d2898f4fa42131427af29cbd",
+    "total_lines": 617,
+    "production_fully_read": false,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 160,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full production/contract source read; input validation, error outcomes and resource/publication lifetimes reviewed. Embedded or dedicated tests only read within the listed bounds.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/remote_layout.rs",
+    "state": "sampled",
+    "primary_slice": "remote-daemon",
+    "blob": "55777425bfbdaefda0fc17ced5c887cf23946cb5",
+    "total_lines": 2156,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 1110,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "All production read; exact pack download and bounded extraction, metadata/schema/hash/name checks, immutable prefetch binding, object key selection, list filtering. Test sample through line 1110; exact-request binding runtime candidate unexecuted.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "credential cancellation fixture",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/remote_pack.rs",
+    "state": "sampled",
+    "primary_slice": "remote-daemon",
+    "blob": "87598ad968992918453328d1c86698173a3373a3",
+    "total_lines": 1403,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 667,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "All production read; immutable pack index/catalog digests, size arithmetic, selector binding, frame extraction and object names; remaining embedded tests unreviewed.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/remote_resilience.rs",
+    "state": "sampled",
+    "primary_slice": "remote-daemon",
+    "blob": "0b47cb986b2f39ce66311d6a836bae7e90f96dfb",
+    "total_lines": 2012,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 1255,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "All production read; deadline composition, retry classification, breaker/negative cache, keyed singleflight ownership/aborted leaders, credential environment policy. Tests sampled through 1255.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "credential cancellation fixture",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/shards.rs",
+    "state": "sampled",
+    "primary_slice": "remote-daemon",
+    "blob": "f74158b6a8923f5a1dac0cbf1335c65675bcbcb8",
+    "total_lines": 228,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 76,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full production/contract source read; input validation, error outcomes and resource/publication lifetimes reviewed. Embedded or dedicated tests only read within the listed bounds.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "src/transport.rs",
+    "state": "reviewed",
+    "primary_slice": "remote-daemon",
+    "blob": "8f9108611966c6750e37670d45792120e4428b93",
+    "total_lines": 309,
+    "production_fully_read": true,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 309,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full text source/contract read; relevant risk paths and contracts inspected. Runtime execution is limited to the credential cancellation fixture.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "tests/filesystem_remote_test.rs",
+    "state": "sampled",
+    "primary_slice": "remote-daemon",
+    "blob": "21a1927387226b9d45a521224758bec131eaf3e7",
+    "total_lines": 1322,
+    "production_fully_read": false,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 201,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full production/contract source read; input validation, error outcomes and resource/publication lifetimes reviewed. Embedded or dedicated tests only read within the listed bounds.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "tests/s3_remote_test.rs",
+    "state": "sampled",
+    "primary_slice": "remote-daemon",
+    "blob": "b477cf757b4724851240420e6d7965024b13911f",
+    "total_lines": 518,
+    "production_fully_read": false,
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 180,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Full production/contract source read; input validation, error outcomes and resource/publication lifetimes reviewed. Embedded or dedicated tests only read within the listed bounds.",
+      "Baseline source identity checked at 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9; graph limits in investigation/graph-index-status.txt."
+    ],
+    "runtime_execution": "not executed in this audit",
+    "reopen_conditions": [
+      "Changes to this path or the stated contract.",
+      "Execute previously unsampled test regions and runtime/cloud/interleaving cases before treating test/runtime coverage as complete."
+    ]
+  },
+  {
+    "path": "crates/kache-store/src/store.rs",
+    "state": "collateral",
+    "reviewed_ranges": [
+      {
+        "start_line": 2970,
+        "end_line": 3030,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Consultation from /root/audit_store_core: import_downloaded_entry 2947-3105 verifies names/sizes/hashes but does not bind meta.cache_key to request; verified batch import 3214-3235 does bind metadata. This seam remains an unexecuted candidate owned by remote-daemon."
+    ],
+    "reopen_conditions": [
+      "Execute baseline wrong-valid pack fixture; inspect all downstream lookup gates."
+    ]
+  },
+  {
+    "path": "src/config.rs",
+    "state": "collateral",
+    "reviewed_ranges": [
+      {
+        "start_line": 3130,
+        "end_line": 3185,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "Configured [cache.volumes] parsing read to prepare, but not execute, cross-shard singleflight fixture."
+    ],
+    "reopen_conditions": [
+      "Execute baseline simultaneous main/shard requests."
+    ]
+  },
+  {
+    "path": "crates/kache-format/src/lib.rs",
+    "state": "collateral",
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 90,
+        "depth": "full-text"
+      }
+    ],
+    "evidence": [
+      "EntryMeta key/schema/crate/files shape and emit coverage contract read for unexecuted exact-binding fixture."
+    ],
+    "reopen_conditions": [
+      "Execute wrong-valid artifact binding and compiler-consumer discriminator."
+    ]
+  }
+]
