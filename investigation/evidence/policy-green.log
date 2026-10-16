@@ -1,0 +1,6 @@
+event=pull_request ref_type=branch protected=false: readonly=true
+event=pull_request_target ref_type=branch protected=true: readonly=true
+event=workflow_run ref_type=branch protected=true: readonly=true
+event=release ref_type=tag protected=true: readonly=true
+event=push ref_type=branch protected=true: readonly=false
+event=push ref_type=branch protected=false: readonly=true

@@ -1,0 +1,8 @@
+{
+  "mode": "disabled",
+  "read": false,
+  "requests": 0,
+  "commands": "daemon status\n",
+  "config": "",
+  "exit": 0
+}

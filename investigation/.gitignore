@@ -1,0 +1,6 @@
+/upstream/
+/uv-cache/
+/uv-tools/
+/fixtures/job-*/
+/fixtures/zizmor-cache/
+/fixtures/policy-probe

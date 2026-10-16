@@ -1,0 +1,22 @@
+warning: function `forced_remote_readonly` is never used
+  --> investigation/../src/policy.rs:18:15
+   |
+18 | pub(crate) fn forced_remote_readonly() -> Option<ForcedReadonly> {
+   |               ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `pull_request_job` is never used
+  --> investigation/../src/policy.rs:71:15
+   |
+71 | pub(crate) fn pull_request_job() -> bool {
+   |               ^^^^^^^^^^^^^^^^
+
+warning: function `pull_request_job_with` is never used
+  --> investigation/../src/policy.rs:75:15
+   |
+75 | pub(crate) fn pull_request_job_with(get_env: impl Fn(&str) -> Option<String>) -> bool {
+   |               ^^^^^^^^^^^^^^^^^^^^^
+
+warning: 3 warnings emitted
+

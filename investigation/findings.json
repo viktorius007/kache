@@ -1,0 +1,96 @@
+[
+  {
+    "id": "cache-poisoning-1034-001",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T05:44:02.469052+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited",
+      "mode": "production-readiness",
+      "slice": "issue-1034-cache-poisoning"
+    },
+    "category": "gap",
+    "domain": "code",
+    "summary": "Current released zizmor does not recognize kache-action cache reads in publishing workflows.",
+    "scenario": "Release-trigger workflow restores kache-action state and publishes an artifact; zizmor emits zero cache-poisoning warnings, while equivalent actions/cache fixture emits one.",
+    "evidence": [
+      {
+        "path": "investigation/upstream/zizmor/crates/zizmor/src/audit/cache_poisoning.rs",
+        "lines": "88-339",
+        "point": "Complete known cache-aware action initializer omits kunobi-ninja/kache-action at main 7ee88b504e400997876d88bf782ade1dd3869e32."
+      },
+      {
+        "path": "investigation/evidence/zizmor-recognition-red.log",
+        "lines": "1-6",
+        "point": "kache-publish.yml: cache-poisoning count=0; scanner exit=14\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/cache-poisoning-audit/investigation/zizmor-probe.py\", line 11, in <module>\n    assert count==expected, f'expected {expected} cache-poisoning finding, got {count}'\nAssertionError: expected 1 cache-poisoning finding, got 0\n"
+      }
+    ],
+    "trace": "workflow release trigger -> audit_normal_job -> evaluate_cache_usage -> no registered action -> no finding",
+    "authority": {
+      "source": "https://github.com/kunobi-ninja/kache/issues/1034; https://docs.zizmor.sh/audits/#cache-poisoning",
+      "quote": "Publishing workflows that use `kunobi-ninja/kache-action` are not classified as cache-aware."
+    },
+    "proof": {
+      "red_test": "import json, subprocess, pathlib, sys\nroot=pathlib.Path(__file__).resolve().parent\nbinary=next(root.glob('uv-cache/archive-v0/*/bin/zizmor'))\nfile=sys.argv[1] if len(sys.argv)>1 else 'kache-publish.yml'\np=subprocess.run([str(binary),'--offline','--no-config','--cache-dir',str(root/'fixtures/zizmor-cache'),'--format','json',str(root/'fixtures'/file)],capture_output=True,text=True)\nassert p.returncode in [0,10,11,12,13,14], p.stderr\nfindings=json.loads(p.stdout)\ncount=sum(x['ident']=='cache-poisoning' for x in findings)\nprint(f'{file}: cache-poisoning count={count}; scanner exit={p.returncode}')\nexpected=0 if 'disabled' in file else 1\nassert count==expected, f'expected {expected} cache-poisoning finding, got {count}'\n\n# Fixture investigation/fixtures/kache-publish.yml:\nname: Publish fixture\non:\n  release:\n    types: [published]\npermissions:\n  contents: write\njobs:\n  publish:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          persist-credentials: false\n      - uses: kunobi-ninja/kache-action@1a33fb2ff51be23eb9e87abeae6edb65be78f71c\n        with:\n          save-cache: false\n      - run: cargo build --release\n      - uses: softprops/action-gh-release@v2\n        with:\n          files: target/release/fixture\n",
+      "name": "python3 investigation/zizmor-probe.py kache-publish.yml",
+      "fails_on": "zizmor v1.30.1 99a054ed9283c90abdd2d5b9fb5101d27dde9783",
+      "output": "kache-publish.yml: cache-poisoning count=0; scanner exit=14\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/cache-poisoning-audit/investigation/zizmor-probe.py\", line 11, in <module>\n    assert count==expected, f'expected {expected} cache-poisoning finding, got {count}'\nAssertionError: expected 1 cache-poisoning finding, got 0\n"
+    },
+    "severity": "Indirect CI supply-chain blind spot for users relying on zizmor; conditional on an attacker-writable shared cache. No Kache exploit or compromised release demonstrated.",
+    "status": "open"
+  },
+  {
+    "id": "cache-poisoning-1034-002",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:44:02.469052+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited",
+      "mode": "production-readiness",
+      "slice": "issue-1034-cache-poisoning"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "The proposed save-cache:false publishing mitigation does not suppress reads.",
+    "checked": "Executed unchanged deployed setup bundle in restore-only, backend-disabled and S3 fixture modes; reviewed write/read gates.",
+    "closed_by": "Tier 1: evidence/restore-only-red.log proves request; evidence/disabled-green.log rejects it; evidence/s3-green.log records sync --pull. This closes a proposed-remediation claim, not an implementation defect against the action contract.",
+    "reopens_if": "The control is changed to suppress restoration, or an actual read-authentication requirement is supplied.",
+    "status": "dismissed"
+  },
+  {
+    "id": "cache-poisoning-1034-003",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:44:02.469052+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited",
+      "mode": "production-readiness",
+      "slice": "issue-1034-cache-poisoning"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "A normal fork PR is not proven able to poison a release GitHub cache.",
+    "checked": "Compared source/sink scopes and current low-trust cache-mode policy.",
+    "closed_by": "Tier 3: GitHub dependency-caching reference merge-ref isolation and read-only low-trust default; documentation snapshot evidence/github-dependency-caching.html.",
+    "reopens_if": "A production workflow with write-capable override or another same-scope authorized writer is supplied.",
+    "status": "dismissed"
+  },
+  {
+    "id": "cache-poisoning-1034-004",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:44:02.469052+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited",
+      "mode": "production-readiness",
+      "slice": "issue-1034-cache-poisoning"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "No exploitable Kache artifact-integrity defect is admitted by this investigation.",
+    "checked": "Executed read requests and policy functions; inspected remote acquisition and write gating; did not forge cache artifacts or execute a hosted source-to-sink chain.",
+    "closed_by": "Tier 1 bounds: localhost service intentionally returned a miss; fake Kache only recorded S3 commands. These do not prove a malicious artifact is accepted.",
+    "reopens_if": "A fixture supplies hostile artifact bytes accepted and used across the production trust boundary on unchanged Kache.",
+    "status": "dismissed"
+  }
+]

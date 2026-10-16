@@ -1,0 +1,21 @@
+{
+  "mode": "restore-only",
+  "read": true,
+  "requests": 1,
+  "commands": "daemon status\n",
+  "config": "",
+  "exit": 0
+}
+AssertionError [ERR_ASSERTION]: restore-only publishing still reads cache
+
+true !== false
+
+    at /Users/viktor/Developer/github/kache-investigations/cache-poisoning-audit/investigation/fixture-probe.cjs:52:56
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: true,
+  expected: false,
+  operator: 'strictEqual',
+  diff: 'simple'
+}

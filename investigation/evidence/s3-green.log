@@ -1,0 +1,8 @@
+{
+  "mode": "s3",
+  "read": true,
+  "requests": 0,
+  "commands": "daemon status\nsync --pull\ndaemon start\nstats\n",
+  "config": "# Written by kunobi-ninja/kache-action. The kache daemon does not inherit\n# KACHE_S3_* from the build environment (kunobi-ninja/kache#706), so the\n# remote lives here, in the config file the daemon watches.\n# Credentials stay in masked environment variables, never in this file.\n[cache]\nremote_readonly = true\n\n[cache.remote]\ntype = \"s3\"\nbucket = \"fixture-bucket\"\nregion = \"us-east-1\"\nprefix = \"artifacts\"\n",
+  "exit": 0
+}

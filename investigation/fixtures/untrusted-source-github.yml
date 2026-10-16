@@ -1,0 +1,19 @@
+name: Untrusted cache writer threat fixture
+on: pull_request_target
+# Explicitly defeats the current default low-trust cache restriction.
+cache-mode: write
+permissions:
+  contents: read
+jobs:
+  untrusted-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: kunobi-ninja/kache-action@1a33fb2ff51be23eb9e87abeae6edb65be78f71c
+        with:
+          save-cache: true
+      # Rust build scripts and proc macros permit code execution from checkout.
+      - run: cargo build

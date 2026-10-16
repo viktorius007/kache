@@ -1,0 +1,8 @@
+{
+  "mode": "restore-only",
+  "read": true,
+  "requests": 1,
+  "commands": "daemon status\n",
+  "config": "",
+  "exit": 0
+}

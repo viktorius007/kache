@@ -1,0 +1,552 @@
+[
+  {
+    "ident": "unpinned-uses",
+    "desc": "unpinned action reference",
+    "url": "https://docs.zizmor.sh/audits/#unpinned-uses",
+    "determinations": {
+      "confidence": "High",
+      "severity": "High",
+      "persona": "Regular"
+    },
+    "locations": [
+      {
+        "symbolic": {
+          "key": {
+            "Local": {
+              "verbatim_path": "investigation/fixtures/cache-publish.yml"
+            }
+          },
+          "annotation": "this step",
+          "route": {
+            "route": [
+              {
+                "Key": "jobs"
+              },
+              {
+                "Key": "publish"
+              },
+              {
+                "Key": "steps"
+              },
+              {
+                "Index": 0
+              }
+            ]
+          },
+          "feature_kind": "Normal",
+          "kind": "Hidden"
+        },
+        "concrete": {
+          "location": {
+            "start_point": {
+              "row": 10,
+              "column": 8
+            },
+            "end_point": {
+              "row": 12,
+              "column": 36
+            },
+            "offset_span": {
+              "start": 154,
+              "end": 230
+            }
+          },
+          "feature": "uses: actions/checkout@v4\n        with:\n          persist-credentials: false",
+          "comments": []
+        }
+      },
+      {
+        "symbolic": {
+          "key": {
+            "Local": {
+              "verbatim_path": "investigation/fixtures/cache-publish.yml"
+            }
+          },
+          "annotation": "action is not pinned to a hash (required by blanket policy)",
+          "route": {
+            "route": [
+              {
+                "Key": "jobs"
+              },
+              {
+                "Key": "publish"
+              },
+              {
+                "Key": "steps"
+              },
+              {
+                "Index": 0
+              },
+              {
+                "Key": "uses"
+              }
+            ]
+          },
+          "feature_kind": {
+            "Subfeature": {
+              "after": 0,
+              "fragment": {
+                "Raw": "actions/checkout@v4"
+              }
+            }
+          },
+          "kind": "Primary"
+        },
+        "concrete": {
+          "location": {
+            "start_point": {
+              "row": 10,
+              "column": 14
+            },
+            "end_point": {
+              "row": 10,
+              "column": 33
+            },
+            "offset_span": {
+              "start": 160,
+              "end": 179
+            }
+          },
+          "feature": "actions/checkout@v4",
+          "comments": []
+        }
+      }
+    ],
+    "ignored": false,
+    "fixes": []
+  },
+  {
+    "ident": "unpinned-uses",
+    "desc": "unpinned action reference",
+    "url": "https://docs.zizmor.sh/audits/#unpinned-uses",
+    "determinations": {
+      "confidence": "High",
+      "severity": "High",
+      "persona": "Regular"
+    },
+    "locations": [
+      {
+        "symbolic": {
+          "key": {
+            "Local": {
+              "verbatim_path": "investigation/fixtures/cache-publish.yml"
+            }
+          },
+          "annotation": "this step",
+          "route": {
+            "route": [
+              {
+                "Key": "jobs"
+              },
+              {
+                "Key": "publish"
+              },
+              {
+                "Key": "steps"
+              },
+              {
+                "Index": 3
+              }
+            ]
+          },
+          "feature_kind": "Normal",
+          "kind": "Hidden"
+        },
+        "concrete": {
+          "location": {
+            "start_point": {
+              "row": 18,
+              "column": 8
+            },
+            "end_point": {
+              "row": 21,
+              "column": 0
+            },
+            "offset_span": {
+              "start": 411,
+              "end": 502
+            }
+          },
+          "feature": "uses: softprops/action-gh-release@v2\n        with:\n          files: target/release/fixture\n",
+          "comments": []
+        }
+      },
+      {
+        "symbolic": {
+          "key": {
+            "Local": {
+              "verbatim_path": "investigation/fixtures/cache-publish.yml"
+            }
+          },
+          "annotation": "action is not pinned to a hash (required by blanket policy)",
+          "route": {
+            "route": [
+              {
+                "Key": "jobs"
+              },
+              {
+                "Key": "publish"
+              },
+              {
+                "Key": "steps"
+              },
+              {
+                "Index": 3
+              },
+              {
+                "Key": "uses"
+              }
+            ]
+          },
+          "feature_kind": {
+            "Subfeature": {
+              "after": 0,
+              "fragment": {
+                "Raw": "softprops/action-gh-release@v2"
+              }
+            }
+          },
+          "kind": "Primary"
+        },
+        "concrete": {
+          "location": {
+            "start_point": {
+              "row": 18,
+              "column": 14
+            },
+            "end_point": {
+              "row": 18,
+              "column": 44
+            },
+            "offset_span": {
+              "start": 417,
+              "end": 447
+            }
+          },
+          "feature": "softprops/action-gh-release@v2",
+          "comments": []
+        }
+      }
+    ],
+    "ignored": false,
+    "fixes": []
+  },
+  {
+    "ident": "cache-poisoning",
+    "desc": "runtime artifacts potentially vulnerable to a cache poisoning attack",
+    "url": "https://docs.zizmor.sh/audits/#cache-poisoning",
+    "determinations": {
+      "confidence": "Low",
+      "severity": "High",
+      "persona": "Regular"
+    },
+    "locations": [
+      {
+        "symbolic": {
+          "key": {
+            "Local": {
+              "verbatim_path": "investigation/fixtures/cache-publish.yml"
+            }
+          },
+          "annotation": "generally used when publishing artifacts generated at runtime",
+          "route": {
+            "route": [
+              {
+                "Key": "on"
+              }
+            ]
+          },
+          "feature_kind": "Normal",
+          "kind": "Related"
+        },
+        "concrete": {
+          "location": {
+            "start_point": {
+              "row": 1,
+              "column": 0
+            },
+            "end_point": {
+              "row": 3,
+              "column": 22
+            },
+            "offset_span": {
+              "start": 22,
+              "end": 59
+            }
+          },
+          "feature": "on:\n  release:\n    types: [published]",
+          "comments": []
+        }
+      },
+      {
+        "symbolic": {
+          "key": {
+            "Local": {
+              "verbatim_path": "investigation/fixtures/cache-publish.yml"
+            }
+          },
+          "annotation": "omitting `lookup-only` enables caching",
+          "route": {
+            "route": [
+              {
+                "Key": "jobs"
+              },
+              {
+                "Key": "publish"
+              },
+              {
+                "Key": "steps"
+              },
+              {
+                "Index": 1
+              },
+              {
+                "Key": "uses"
+              }
+            ]
+          },
+          "feature_kind": "Normal",
+          "kind": "Primary"
+        },
+        "concrete": {
+          "location": {
+            "start_point": {
+              "row": 13,
+              "column": 8
+            },
+            "end_point": {
+              "row": 13,
+              "column": 68
+            },
+            "offset_span": {
+              "start": 239,
+              "end": 299
+            }
+          },
+          "feature": "uses: actions/cache@1a33fb2ff51be23eb9e87abeae6edb65be78f71c",
+          "comments": []
+        }
+      },
+      {
+        "symbolic": {
+          "key": {
+            "Local": {
+              "verbatim_path": "investigation/fixtures/cache-publish.yml"
+            }
+          },
+          "annotation": "this step",
+          "route": {
+            "route": [
+              {
+                "Key": "jobs"
+              },
+              {
+                "Key": "publish"
+              },
+              {
+                "Key": "steps"
+              },
+              {
+                "Index": 1
+              }
+            ]
+          },
+          "feature_kind": "Normal",
+          "kind": "Hidden"
+        },
+        "concrete": {
+          "location": {
+            "start_point": {
+              "row": 13,
+              "column": 8
+            },
+            "end_point": {
+              "row": 16,
+              "column": 22
+            },
+            "offset_span": {
+              "start": 239,
+              "end": 367
+            }
+          },
+          "feature": "uses: actions/cache@1a33fb2ff51be23eb9e87abeae6edb65be78f71c\n        with:\n          path: ~/.cache/kache\n          key: fixture",
+          "comments": []
+        }
+      }
+    ],
+    "ignored": false,
+    "fixes": [
+      {
+        "title": "Set lookup-only: true to disable caching",
+        "key": {
+          "Local": {
+            "verbatim_path": "investigation/fixtures/cache-publish.yml"
+          }
+        },
+        "disposition": "unsafe"
+      }
+    ]
+  },
+  {
+    "ident": "superfluous-actions",
+    "desc": "action functionality is already included by the runner",
+    "url": "https://docs.zizmor.sh/audits/#superfluous-actions",
+    "determinations": {
+      "confidence": "High",
+      "severity": "Informational",
+      "persona": "Regular"
+    },
+    "locations": [
+      {
+        "symbolic": {
+          "key": {
+            "Local": {
+              "verbatim_path": "investigation/fixtures/cache-publish.yml"
+            }
+          },
+          "annotation": "this step",
+          "route": {
+            "route": [
+              {
+                "Key": "jobs"
+              },
+              {
+                "Key": "publish"
+              },
+              {
+                "Key": "steps"
+              },
+              {
+                "Index": 3
+              }
+            ]
+          },
+          "feature_kind": "Normal",
+          "kind": "Related"
+        },
+        "concrete": {
+          "location": {
+            "start_point": {
+              "row": 18,
+              "column": 8
+            },
+            "end_point": {
+              "row": 21,
+              "column": 0
+            },
+            "offset_span": {
+              "start": 411,
+              "end": 502
+            }
+          },
+          "feature": "uses: softprops/action-gh-release@v2\n        with:\n          files: target/release/fixture\n",
+          "comments": []
+        }
+      },
+      {
+        "symbolic": {
+          "key": {
+            "Local": {
+              "verbatim_path": "investigation/fixtures/cache-publish.yml"
+            }
+          },
+          "annotation": "use `gh release` in a script step",
+          "route": {
+            "route": [
+              {
+                "Key": "jobs"
+              },
+              {
+                "Key": "publish"
+              },
+              {
+                "Key": "steps"
+              },
+              {
+                "Index": 3
+              },
+              {
+                "Key": "uses"
+              }
+            ]
+          },
+          "feature_kind": {
+            "Subfeature": {
+              "after": 0,
+              "fragment": {
+                "Raw": "softprops/action-gh-release@v2"
+              }
+            }
+          },
+          "kind": "Primary"
+        },
+        "concrete": {
+          "location": {
+            "start_point": {
+              "row": 18,
+              "column": 14
+            },
+            "end_point": {
+              "row": 18,
+              "column": 44
+            },
+            "offset_span": {
+              "start": 417,
+              "end": 447
+            }
+          },
+          "feature": "softprops/action-gh-release@v2",
+          "comments": []
+        }
+      },
+      {
+        "symbolic": {
+          "key": {
+            "Local": {
+              "verbatim_path": "investigation/fixtures/cache-publish.yml"
+            }
+          },
+          "annotation": "this step",
+          "route": {
+            "route": [
+              {
+                "Key": "jobs"
+              },
+              {
+                "Key": "publish"
+              },
+              {
+                "Key": "steps"
+              },
+              {
+                "Index": 3
+              }
+            ]
+          },
+          "feature_kind": "Normal",
+          "kind": "Hidden"
+        },
+        "concrete": {
+          "location": {
+            "start_point": {
+              "row": 18,
+              "column": 8
+            },
+            "end_point": {
+              "row": 21,
+              "column": 0
+            },
+            "offset_span": {
+              "start": 411,
+              "end": 502
+            }
+          },
+          "feature": "uses: softprops/action-gh-release@v2\n        with:\n          files: target/release/fixture\n",
+          "comments": []
+        }
+      }
+    ],
+    "ignored": false,
+    "fixes": []
+  }
+]
