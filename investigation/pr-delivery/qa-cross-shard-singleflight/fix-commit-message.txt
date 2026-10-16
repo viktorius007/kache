@@ -1,0 +1,13 @@
+fix: scope remote restore singleflight to its validated destination
+
+A leader hit includes publication in one local store. Sharing that answer
+by cache key alone lets a concurrent request for another configured store
+report found even though its entry was never committed.
+
+Claim the existing singleflight with the validated expected entry directory.
+Use concrete PathBuf/Path identity in the existing coordinator so native
+paths are preserved and aliases use Path equality; adapt its existing
+primitive tests mechanically.
+This keeps same-store aliases coalesced and lets each distinct store perform
+its own import under the existing download guard and request deadline.
+No new validator, production helper or indirection is introduced.

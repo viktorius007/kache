@@ -1,0 +1,4 @@
+$ ["git", "-C", "/Users/viktor/Developer/github/kache-investigations/coordinator", "diff", "--name-only", "HEAD", "--", "src", "crates", "Cargo.toml", "Cargo.lock"]
+exit: 0
+
+STDERR:

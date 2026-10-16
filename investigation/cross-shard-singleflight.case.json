@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/probe_remote_validation.py",
+    "shards",
+    "concurrent"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation",
+  "timeout_seconds": 60,
+  "expected_exit_code": 1,
+  "expected_failure_regex": "AssertionError: SHARD_SINGLEFLIGHT_FALSE_HIT: both requests report found but a requested store has no committed entry",
+  "assertion_regex": "SHARD_SINGLEFLIGHT_FALSE_HIT"
+}

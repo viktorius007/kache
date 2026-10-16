@@ -1,0 +1,8 @@
+{
+  "id": "qa-remote-binding",
+  "url": "https://github.com/kunobi-ninja/kache/pull/1500",
+  "branch": "fix/qa-remote-binding",
+  "fix_commit": "b06aba292b0cabb5d47fa0ad6a7c0a77b31206a1",
+  "state": "draft",
+  "review": "investigation/pr-delivery/reviews/qa-remote-binding.md"
+}

@@ -1,0 +1,5 @@
+qa-remote-binding: source syntax valid; gate fields present; saved executed red matches both regexes
+qa-cross-shard-singleflight: source syntax valid; gate fields present; saved executed red matches both regexes
+findings: 2 dismissals: 5
+production diff: empty; no full suite or root replay gate claimed
+saved artifact count excluding preexisting brief: 42

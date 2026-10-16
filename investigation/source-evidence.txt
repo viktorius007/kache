@@ -1,0 +1,2467 @@
+
+src/cache_remote.rs:1-457
+1: //! Entry-level access to the remote cache.
+2: //!
+3: //! Callers ask for cache entries, build manifests, shards and packed-prefetch
+4: //! objects. `V3Remote` answers with the existing v3 object layout over a
+5: //! `RemoteBackend`, delegating to `RemoteLayout` and `crate::remote`.
+6: 
+7: use std::collections::{HashMap, HashSet};
+8: use std::path::Path;
+9: use std::sync::Arc;
+10: use std::time::Instant;
+11: 
+12: use anyhow::Result;
+13: use async_trait::async_trait;
+14: 
+15: use crate::config::RemoteConfig;
+16: use crate::remote::{self, BuildManifest, DownloadResult, Shard};
+17: use crate::remote_backend::{GetObject, RemoteBackend};
+18: use crate::remote_layout::{DownloadObserver, ListObserver, RemoteLayout, RemoteUploadResult};
+19: 
+20: #[async_trait]
+21: pub trait CacheRemote: Send + Sync {
+22:     async fn exists_entry(&self, cache_key: &str, crate_name: &str) -> Result<bool>;
+23: 
+24:     async fn download_entry(
+25:         &self,
+26:         cache_key: &str,
+27:         crate_name: &str,
+28:         entry_dir: &Path,
+29:         blobs_dir: &Path,
+30:         deadline: Option<Instant>,
+31:     ) -> Result<DownloadResult>;
+32: 
+33:     async fn download_entry_observed(
+34:         &self,
+35:         cache_key: &str,
+36:         crate_name: &str,
+37:         entry_dir: &Path,
+38:         blobs_dir: &Path,
+39:         deadline: Option<Instant>,
+40:         observer: &mut dyn DownloadObserver,
+41:     ) -> Result<DownloadResult>;
+42: 
+43:     async fn upload_entry(
+44:         &self,
+45:         cache_key: &str,
+46:         crate_name: &str,
+47:         entry_dir: &Path,
+48:         blobs_dir: &Path,
+49:         compression_level: i32,
+50:         deadline: Option<Instant>,
+51:     ) -> Result<RemoteUploadResult>;
+52: 
+53:     async fn list_keys(&self) -> Result<HashMap<String, String>>;
+54: 
+55:     async fn list_keys_observed(
+56:         &self,
+57:         observer: &mut dyn ListObserver,
+58:     ) -> Result<HashMap<String, String>>;
+59: 
+60:     async fn list_keys_for_crates(
+61:         &self,
+62:         crate_names: &HashSet<String>,
+63:     ) -> Result<HashMap<String, String>>;
+64: }
+65: 
+66: /// v3 client-planner objects: build manifests, planner shards and
+67: /// packed-prefetch catalogs and packs. Only the v3 layout has them.
+68: #[async_trait]
+69: pub trait V3Prefetch: Send + Sync {
+70:     async fn get_build_manifest(&self, manifest_key: &str) -> Result<Option<BuildManifest>>;
+71: 
+72:     /// Publish `manifest` merged with what the remote holds for `manifest_key`;
+73:     /// `commit` is the commit this build ran on, when CI says.
+74:     async fn put_build_manifest(
+75:         &self,
+76:         manifest_key: &str,
+77:         manifest: &BuildManifest,
+78:         commit: Option<&str>,
+79:     ) -> Result<()>;
+80: 
+81:     async fn get_shard(&self, namespace: &str, shard_hash: &str) -> Result<Option<Shard>>;
+82: 
+83:     /// Publish `shard` merged with what the remote holds for it; `commit` as
+84:     /// for [`V3Prefetch::put_build_manifest`].
+85:     async fn put_shard(
+86:         &self,
+87:         namespace: &str,
+88:         shard_hash: &str,
+89:         shard: &Shard,
+90:         commit: Option<&str>,
+91:     ) -> Result<()>;
+92: 
+93:     /// Object keys under `prefix` for packed prefetch discovery.
+94:     async fn list_prefetch_objects(&self, prefix: &str) -> Result<Vec<String>>;
+95: 
+96:     /// One packed-prefetch object (catalog or pack), capped at `max_bytes`.
+97:     async fn get_prefetch_object(&self, key: &str, max_bytes: u64) -> Result<Option<GetObject>>;
+98: }
+99: 
+100: /// The v3 object layout over a byte-object backend.
+101: pub struct V3Remote {
+102:     backend: Arc<dyn RemoteBackend>,
+103:     remote: RemoteConfig,
+104: }
+105: 
+106: impl V3Remote {
+107:     pub fn new(backend: Arc<dyn RemoteBackend>, remote: RemoteConfig) -> Self {
+108:         Self { backend, remote }
+109:     }
+110: 
+111:     fn layout(&self) -> RemoteLayout<'_> {
+112:         RemoteLayout::new(self.backend.as_ref(), &self.remote)
+113:     }
+114: }
+115: 
+116: #[async_trait]
+117: impl CacheRemote for V3Remote {
+118:     async fn exists_entry(&self, cache_key: &str, crate_name: &str) -> Result<bool> {
+119:         self.layout().exists_entry(cache_key, crate_name).await
+120:     }
+121: 
+122:     async fn download_entry(
+123:         &self,
+124:         cache_key: &str,
+125:         crate_name: &str,
+126:         entry_dir: &Path,
+127:         blobs_dir: &Path,
+128:         deadline: Option<Instant>,
+129:     ) -> Result<DownloadResult> {
+130:         self.layout()
+131:             .download_entry_until(cache_key, crate_name, entry_dir, blobs_dir, deadline)
+132:             .await
+133:     }
+134: 
+135:     async fn download_entry_observed(
+136:         &self,
+137:         cache_key: &str,
+138:         crate_name: &str,
+139:         entry_dir: &Path,
+140:         blobs_dir: &Path,
+141:         deadline: Option<Instant>,
+142:         observer: &mut dyn DownloadObserver,
+143:     ) -> Result<DownloadResult> {
+144:         self.layout()
+145:             .download_entry_observed(
+146:                 cache_key,
+147:                 crate_name,
+148:                 entry_dir,
+149:                 blobs_dir,
+150:                 deadline,
+151:                 Some(observer),
+152:             )
+153:             .await
+154:     }
+155: 
+156:     async fn upload_entry(
+157:         &self,
+158:         cache_key: &str,
+159:         crate_name: &str,
+160:         entry_dir: &Path,
+161:         blobs_dir: &Path,
+162:         compression_level: i32,
+163:         deadline: Option<Instant>,
+164:     ) -> Result<RemoteUploadResult> {
+165:         self.layout()
+166:             .upload_entry_until(
+167:                 cache_key,
+168:                 crate_name,
+169:                 entry_dir,
+170:                 blobs_dir,
+171:                 compression_level,
+172:                 deadline,
+173:             )
+174:             .await
+175:     }
+176: 
+177:     async fn list_keys(&self) -> Result<HashMap<String, String>> {
+178:         self.layout().list_keys().await
+179:     }
+180: 
+181:     async fn list_keys_observed(
+182:         &self,
+183:         observer: &mut dyn ListObserver,
+184:     ) -> Result<HashMap<String, String>> {
+185:         self.layout().list_keys_observed(Some(observer)).await
+186:     }
+187: 
+188:     async fn list_keys_for_crates(
+189:         &self,
+190:         crate_names: &HashSet<String>,
+191:     ) -> Result<HashMap<String, String>> {
+192:         self.layout().list_keys_for_crates(crate_names).await
+193:     }
+194: }
+195: 
+196: #[async_trait]
+197: impl V3Prefetch for V3Remote {
+198:     async fn get_build_manifest(&self, manifest_key: &str) -> Result<Option<BuildManifest>> {
+199:         remote::try_download_manifest(self.backend.as_ref(), &self.remote.prefix, manifest_key)
+200:             .await
+201:     }
+202: 
+203:     async fn put_build_manifest(
+204:         &self,
+205:         manifest_key: &str,
+206:         manifest: &BuildManifest,
+207:         commit: Option<&str>,
+208:     ) -> Result<()> {
+209:         remote::upload_manifest(
+210:             self.backend.as_ref(),
+211:             &self.remote.prefix,
+212:             manifest_key,
+213:             manifest,
+214:             commit,
+215:         )
+216:         .await
+217:     }
+218: 
+219:     async fn get_shard(&self, namespace: &str, shard_hash: &str) -> Result<Option<Shard>> {
+220:         remote::download_shard(
+221:             self.backend.as_ref(),
+222:             &self.remote.prefix,
+223:             namespace,
+224:             shard_hash,
+225:         )
+226:         .await
+227:     }
+228: 
+229:     async fn put_shard(
+230:         &self,
+231:         namespace: &str,
+232:         shard_hash: &str,
+233:         shard: &Shard,
+234:         commit: Option<&str>,
+235:     ) -> Result<()> {
+236:         remote::upload_shard(
+237:             self.backend.as_ref(),
+238:             &self.remote.prefix,
+239:             namespace,
+240:             shard_hash,
+241:             shard,
+242:             commit,
+243:         )
+244:         .await
+245:     }
+246: 
+247:     async fn list_prefetch_objects(&self, prefix: &str) -> Result<Vec<String>> {
+248:         self.backend.list(prefix).await
+249:     }
+250: 
+251:     async fn get_prefetch_object(&self, key: &str, max_bytes: u64) -> Result<Option<GetObject>> {
+252:         self.backend.get(key, Some(max_bytes)).await
+253:     }
+254: }
+255: 
+256: #[cfg(test)]
+257: impl V3Remote {
+258:     /// Prefix for one packed-prefetch catalog's objects. `selector` must be a
+259:     /// lowercase BLAKE3 digest, matching what callers derive it from.
+260:     fn catalog_prefix(&self, selector: &str) -> Result<String> {
+261:         crate::remote_pack::catalog_prefix(&self.remote.prefix, selector)
+262:     }
+263: 
+264:     pub fn backend(&self) -> &Arc<dyn RemoteBackend> {
+265:         &self.backend
+266:     }
+267: }
+268: 
+269: #[cfg(test)]
+270: mod tests {
+271:     use super::*;
+272:     use crate::remote_backend::{RemoteBackend, memory_backend};
+273: 
+274:     fn v3() -> (Arc<dyn RemoteBackend>, V3Remote) {
+275:         let backend: Arc<dyn RemoteBackend> = Arc::new(memory_backend());
+276:         let remote = V3Remote::new(
+277:             Arc::clone(&backend),
+278:             RemoteConfig::test_s3("bucket", "artifacts"),
+279:         );
+280:         (backend, remote)
+281:     }
+282: 
+283:     /// A 64-char lowercase hex digest, the shape `is_valid_cache_key` and the
+284:     /// packed-prefetch selector/digest validation both require.
+285:     fn digest(label: &str) -> String {
+286:         blake3::hash(label.as_bytes()).to_hex().to_string()
+287:     }
+288: 
+289:     #[tokio::test]
+290:     async fn exists_entry_reads_the_v3_manifest_key() {
+291:         let (backend, remote) = v3();
+292:         backend
+293:             .put(
+294:                 "artifacts/v3/manifests/foo/key123.json",
+295:                 b"{}".to_vec(),
+296:                 Some("application/json"),
+297:             )
+298:             .await
+299:             .unwrap();
+300:         assert!(remote.exists_entry("key123", "foo").await.unwrap());
+301:         assert!(!remote.exists_entry("missing", "foo").await.unwrap());
+302:     }
+303: 
+304:     #[tokio::test]
+305:     async fn list_keys_and_list_keys_for_crates_match_the_layout() {
+306:         let (backend, remote) = v3();
+307:         // `list_keys`/`list_keys_for_crates` filter out cache keys that are
+308:         // not 64-char lowercase-hex BLAKE3 digests, so the fixture keys must
+309:         // be real digests rather than short literals.
+310:         let key1 = digest("k1");
+311:         let key2 = digest("k2");
+312:         for (crate_name, key) in [("foo", &key1), ("bar", &key2)] {
+313:             backend
+314:                 .put(
+315:                     &format!("artifacts/v3/manifests/{crate_name}/{key}.json"),
+316:                     b"{}".to_vec(),
+317:                     Some("application/json"),
+318:                 )
+319:                 .await
+320:                 .unwrap();
+321:         }
+322:         let all = remote.list_keys().await.unwrap();
+323:         assert_eq!(all.len(), 2);
+324:         assert_eq!(all.get(&key1).map(String::as_str), Some("foo"));
+325: 
+326:         let only_foo: HashSet<String> = ["foo".to_string()].into();
+327:         let some = remote.list_keys_for_crates(&only_foo).await.unwrap();
+328:         assert_eq!(some.len(), 1);
+329:         assert!(some.contains_key(&key1));
+330:     }
+331: 
+332:     #[tokio::test]
+333:     async fn build_manifest_round_trips() {
+334:         let (_backend, remote) = v3();
+335:         assert!(remote.get_build_manifest("m1").await.unwrap().is_none());
+336:         let manifest = remote::BuildManifest {
+337:             version: 3,
+338:             created: "2025-01-01T00:00:00Z".to_string(),
+339:             manifest_key: "m1".to_string(),
+340:             entries: vec![remote::ManifestEntry {
+341:                 cache_key: digest("k1"),
+342:                 crate_name: "foo".to_string(),
+343:                 compile_time_ms: 1234,
+344:                 artifact_size: 5678,
+345:             }],
+346:         };
+347:         remote
+348:             .put_build_manifest("m1", &manifest, None)
+349:             .await
+350:             .unwrap();
+351:         let fetched = remote.get_build_manifest("m1").await.unwrap().unwrap();
+352:         // `BuildManifest` has no `PartialEq`; compare the serialized shape instead.
+353:         assert_eq!(
+354:             serde_json::to_value(&fetched).unwrap(),
+355:             serde_json::to_value(&manifest).unwrap()
+356:         );
+357:     }
+358: 
+359:     #[tokio::test]
+360:     async fn shard_round_trips() {
+361:         let (_backend, remote) = v3();
+362:         assert!(remote.get_shard("ns", "h1").await.unwrap().is_none());
+363:         let shard = remote::Shard {
+364:             version: 3,
+365:             entries: vec![remote::ShardEntry {
+366:                 cache_key: digest("k1"),
+367:                 crate_name: "foo".to_string(),
+368:                 compile_time_ms: Some(1234),
+369:                 artifact_size: Some(5678),
+370:             }],
+371:         };
+372:         remote.put_shard("ns", "h1", &shard, None).await.unwrap();
+373:         let fetched = remote.get_shard("ns", "h1").await.unwrap().unwrap();
+374:         // `Shard` has no `PartialEq`; compare the serialized shape instead.
+375:         assert_eq!(
+376:             serde_json::to_value(&fetched).unwrap(),
+377:             serde_json::to_value(&shard).unwrap()
+378:         );
+379:     }
+380: 
+381:     #[tokio::test]
+382:     async fn prefetch_objects_are_listed_and_fetched_under_the_prefix() {
+383:         let (backend, remote) = v3();
+384:         let selector = digest("selector");
+385:         let prefix = remote.catalog_prefix(&selector).unwrap();
+386:         let key = format!("{prefix}{:020}-{}.json", 1, digest("catalog"));
+387:         backend
+388:             .put(&key, b"catalog".to_vec(), Some("application/json"))
+389:             .await
+390:             .unwrap();
+391:         let listed = remote.list_prefetch_objects(&prefix).await.unwrap();
+392:         assert_eq!(listed, vec![key.clone()]);
+393:         let object = remote
+394:             .get_prefetch_object(&key, 1024)
+395:             .await
+396:             .unwrap()
+397:             .unwrap();
+398:         assert_eq!(object.body, b"catalog".to_vec());
+399:         assert!(
+400:             remote
+401:                 .get_prefetch_object("artifacts/none", 1024)
+402:                 .await
+403:                 .unwrap()
+404:                 .is_none()
+405:         );
+406:     }
+407: 
+408:     #[tokio::test]
+409:     async fn upload_then_download_entry_round_trips_through_v3() {
+410:         let (_tmp, store, entry_dir) = crate::remote_layout::tests::populated_entry();
+411:         let (backend, remote) = v3();
+412: 
+413:         let uploaded = remote
+414:             .upload_entry("key123", "foo", &entry_dir, &store.blobs_dir(), 3, None)
+415:             .await
+416:             .unwrap();
+417:         assert!(uploaded.transfer.compressed_bytes > 0);
+418:         assert!(
+419:             backend
+420:                 .head("artifacts/v3/packs/foo/key123.tar.zst")
+421:                 .await
+422:                 .unwrap()
+423:         );
+424:         assert!(remote.exists_entry("key123", "foo").await.unwrap());
+425: 
+426:         let restore_dir = tempfile::tempdir().unwrap();
+427:         let downloaded = remote
+428:             .download_entry(
+429:                 "key123",
+430:                 "foo",
+431:                 restore_dir.path(),
+432:                 &store.blobs_dir(),
+433:                 None,
+434:             )
+435:             .await
+436:             .unwrap();
+437:         assert_eq!(downloaded.format, "v3");
+438:         assert!(restore_dir.path().join("meta.json").exists());
+439:     }
+440: 
+441:     #[tokio::test]
+442:     async fn download_entry_keeps_the_entry_not_found_chain() {
+443:         let (_backend, remote) = v3();
+444:         let tmp = tempfile::tempdir().unwrap();
+445:         let error = match remote
+446:             .download_entry("missing", "foo", tmp.path(), tmp.path(), None)
+447:             .await
+448:         {
+449:             Ok(_) => panic!("expected a miss for an absent entry"),
+450:             Err(error) => error,
+451:         };
+452:         assert_eq!(
+453:             crate::remote_resilience::classify_remote_error(&error),
+454:             crate::remote_resilience::RemoteErrorClass::Miss
+455:         );
+456:     }
+457: }
+
+src/wrapper/remote.rs:1-81
+1: //! Remote coordination shared by compiler wrappers. Restoration stays compiler-owned.
+2: 
+3: use crate::config::Config;
+4: use crate::events::EventResult;
+5: use crate::store::{EntryMeta, Store};
+6: use std::path::Path;
+7: 
+8: pub(super) fn compiler_remote_enabled(config: &Config, publishes_to_remote: bool) -> bool {
+9:     publishes_to_remote && config.remote.is_some()
+10: }
+11: 
+12: pub(super) fn compiler_upload_enabled(config: &Config, publishes_to_remote: bool) -> bool {
+13:     compiler_remote_enabled(config, publishes_to_remote) && !config.remote_readonly
+14: }
+15: 
+16: pub(super) fn maybe_enqueue_upload(
+17:     config: &Config,
+18:     store: &Store,
+19:     cache_key: &str,
+20:     crate_name: &str,
+21:     publishes_to_remote: bool,
+22: ) {
+23:     if !compiler_remote_enabled(config, publishes_to_remote) {
+24:         return;
+25:     }
+26:     let entry_dir = store.entry_dir(cache_key);
+27:     if let Err(e) = crate::daemon::send_upload_job(config, cache_key, &entry_dir, crate_name) {
+28:         tracing::warn!("failed to send upload job to daemon: {e}");
+29:     }
+30: }
+31: 
+32: /// Preserve each compiler path's policy for an entry published during the wait.
+33: #[derive(Clone, Copy, PartialEq, Eq)]
+34: pub(super) enum NegativeReply {
+35:     ContinueCompile,
+36:     CheckConcurrentEntry,
+37: }
+38: 
+39: /// Reload validated metadata after the daemon's reply. The result describes
+40: /// availability, not a completed hit; callers must restore before reporting it.
+41: pub(super) fn acquire_entry(
+42:     config: &Config,
+43:     store: &Store,
+44:     cache_key: &str,
+45:     crate_name: &str,
+46:     negative_reply: NegativeReply,
+47: ) -> Option<(EntryMeta, EventResult)> {
+48:     config.remote.as_ref()?;
+49:     let entry_dir = store.entry_dir(cache_key);
+50:     let shard_dir = crate::daemon::remote_check_shard_dir_arg(&config.cache_dir, store.cache_dir());
+51:     crate::demand::record(cache_key);
+52:     let waiting = std::time::Instant::now();
+53:     let reply = crate::daemon::send_remote_check(
+54:         config,
+55:         cache_key,
+56:         &entry_dir,
+57:         crate_name,
+58:         shard_dir.as_deref().map(Path::new),
+59:     );
+60:     crate::demand::remote_wait(cache_key, waiting.elapsed());
+61:     let reply = reply?;
+62:     if !reply.found && negative_reply == NegativeReply::ContinueCompile {
+63:         return None;
+64:     }
+65:     let meta = store.get(cache_key).ok()??;
+66:     let origin = if !reply.found {
+67:         // A negative remote reply cannot establish remote or prefetch provenance.
+68:         EventResult::LocalHit
+69:     } else if reply.prefetched {
+70:         EventResult::PrefetchHit
+71:     } else {
+72:         EventResult::RemoteHit
+73:     };
+74:     tracing::debug!(
+75:         crate_name,
+76:         cache_key,
+77:         ?origin,
+78:         "entry available after remote check"
+79:     );
+80:     Some((meta, origin))
+81: }
+
+src/remote_layout.rs:1-234
+1: use anyhow::{Context, Result, bail};
+2: pub(crate) use kache_format::{is_blob_hash, is_safe_artifact_name};
+3: use serde::{Deserialize, Serialize};
+4: use std::collections::{HashMap, HashSet};
+5: use std::io::Seek;
+6: use std::path::{Path, PathBuf};
+7: use std::time::Instant;
+8: 
+9: use crate::config::RemoteConfig;
+10: use crate::remote::{DownloadResult, UploadResult};
+11: use crate::remote_backend::{GetTransfer, PutIfAbsentResult, RemoteBackend};
+12: use crate::store::{EntryMeta, VerifiedRestoredEntry};
+13: 
+14: const V3_ROOT: &str = "v3";
+15: const V3_MANIFESTS: &str = "manifests";
+16: const V3_PACKS: &str = "packs";
+17: const V3_PREDICTIONS: &str = "predictions";
+18: const V3_MANIFEST_VERSION: u32 = 3;
+19: 
+20: /// Cap on total bytes written while extracting one downloaded entry pack.
+21: /// Generous for real artifact packs (a large crate's rlib + rmeta + debug
+22: /// info), but lethal to a decompression bomb that expands a few KB into
+23: /// terabytes. Paired with [`MAX_ZSTD_WINDOW_LOG`] on the decoder (#212).
+24: const MAX_EXTRACTED_BYTES: u64 = 8 * 1024 * 1024 * 1024; // 8 GiB
+25: 
+26: /// Cap compressed bytes downloaded to the temporary file before extraction.
+27: const MAX_COMPRESSED_BYTES: u64 = 8 * 1024 * 1024 * 1024; // 8 GiB
+28: 
+29: /// Max zstd window-log accepted on decode (2^27 = 128 MiB). Bounds the
+30: /// decoder's allocation regardless of what the frame header claims (#212).
+31: const MAX_ZSTD_WINDOW_LOG: u32 = 27;
+32: 
+33: #[derive(Debug, Clone, Serialize, Deserialize)]
+34: struct V3Manifest {
+35:     version: u32,
+36:     cache_key: String,
+37:     crate_name: String,
+38:     pack_key: String,
+39:     pack_bytes: u64,
+40:     original_bytes: u64,
+41:     file_count: usize,
+42: }
+43: 
+44: /// Remote cache layout for the `v3` pack-first format.
+45: ///
+46: /// `v3` stores:
+47: /// - a small manifest object for listing/existence checks
+48: /// - one packed tar.zst object per entry for restore/upload
+49: ///
+50: /// The local store stays content-addressed; remote transport is optimized for
+51: /// cold object-store restores with low request fan-out.
+52: pub struct RemoteLayout<'a> {
+53:     backend: &'a dyn RemoteBackend,
+54:     remote: &'a RemoteConfig,
+55: }
+56: 
+57: pub struct RemoteUploadResult {
+58:     pub format: &'static str,
+59:     pub transfer: UploadResult,
+60: }
+61: 
+62: /// Observes the backend boundary while the caller retains ownership across
+63: /// extraction and import. A missing completion leaves body bytes unknown.
+64: pub trait DownloadObserver: Send {
+65:     fn started(&mut self, object_key: &str);
+66:     fn received(&mut self, transfer: Option<&GetTransfer>);
+67: }
+68: 
+69: /// One start/completion pair per backend LIST, including each crate prefix.
+70: /// Result counts describe returned object keys before layout filtering.
+71: pub trait ListObserver: Send {
+72:     fn started(&mut self, prefix: &str);
+73:     fn completed(&mut self, result_count: usize);
+74: }
+75: 
+76: /// A packed-prefetch entry validated while its artifact bytes were streamed
+77: /// to disk. The store can batch-register this without hashing the artifacts a
+78: /// second time.
+79: pub(crate) struct VerifiedPackEntry {
+80:     pub restored: VerifiedRestoredEntry,
+81:     pub original_bytes: u64,
+82:     pub extract_ms: u64,
+83: }
+84: 
+85: struct ExpectedEntryBinding<'a> {
+86:     cache_key: &'a str,
+87:     crate_name: &'a str,
+88:     meta_digest: &'a str,
+89: }
+90: 
+91: impl<'a> RemoteLayout<'a> {
+92:     pub fn new(backend: &'a dyn RemoteBackend, remote: &'a RemoteConfig) -> Self {
+93:         Self { backend, remote }
+94:     }
+95: 
+96:     /// The input prediction row the remote holds for `identity`
+97:     /// (kunobi-ninja/kache#1011). A missing or malformed object is no row; a
+98:     /// failed transfer or an object past the size cap is an error.
+99:     pub async fn download_prediction(
+100:         &self,
+101:         identity: &str,
+102:     ) -> Result<Option<crate::prediction_share::SharedPrediction>> {
+103:         let key = v3_prediction_key(&self.remote.prefix, identity);
+104:         let Some(object) = self
+105:             .backend
+106:             .get(&key, Some(crate::prediction_share::SHARED_ROW_MAX_BYTES))
+107:             .await?
+108:         else {
+109:             return Ok(None);
+110:         };
+111:         Ok(crate::prediction_share::decode(&object.body, identity))
+112:     }
+113: 
+114:     /// Store `row` as the remote's answer for `identity`. A row that may not
+115:     /// travel is skipped.
+116:     pub async fn upload_prediction(
+117:         &self,
+118:         identity: &str,
+119:         row: &crate::prediction_share::SharedPrediction,
+120:     ) -> Result<()> {
+121:         let Some(body) = crate::prediction_share::encode(identity, row) else {
+122:             return Ok(());
+123:         };
+124:         let key = v3_prediction_key(&self.remote.prefix, identity);
+125:         self.backend.put(&key, body, Some("application/json")).await
+126:     }
+127: 
+128:     pub async fn exists_entry(&self, cache_key: &str, crate_name: &str) -> Result<bool> {
+129:         let object_key = v3_manifest_key(&self.remote.prefix, cache_key, crate_name);
+130:         self.backend.head(&object_key).await
+131:     }
+132: 
+133:     /// Deadline-aware restore used by every daemon download path. The same
+134:     /// monotonic instant covers GET and synchronous decompression/extraction.
+135:     pub async fn download_entry_until(
+136:         &self,
+137:         cache_key: &str,
+138:         crate_name: &str,
+139:         entry_dir: &Path,
+140:         blobs_dir: &Path,
+141:         deadline: Option<Instant>,
+142:     ) -> Result<DownloadResult> {
+143:         self.download_entry_observed(cache_key, crate_name, entry_dir, blobs_dir, deadline, None)
+144:             .await
+145:     }
+146: 
+147:     pub async fn download_entry_observed(
+148:         &self,
+149:         cache_key: &str,
+150:         crate_name: &str,
+151:         entry_dir: &Path,
+152:         _blobs_dir: &Path,
+153:         deadline: Option<Instant>,
+154:         mut observer: Option<&mut dyn DownloadObserver>,
+155:     ) -> Result<DownloadResult> {
+156:         let object_key = v3_pack_key(&self.remote.prefix, cache_key, crate_name);
+157: 
+158:         tracing::debug!("downloading v3 pack {}", self.backend.describe(&object_key));
+159: 
+160:         deadline_io_check(deadline, "download setup")?;
+161:         let parent = entry_dir
+162:             .parent()
+163:             .context("v3 entry has no parent directory")?;
+164:         std::fs::create_dir_all(parent)?;
+165:         // Keep the spool on the cache disk, including when the cache is on an
+166:         // external volume. The anonymous file is removed when its handle closes,
+167:         // including cancellation and failed validation.
+168:         let spool = tempfile::tempfile_in(parent).context("creating v3 download file")?;
+169:         let mut spool = tokio::fs::File::from_std(spool);
+170: 
+171:         // A missing object is a clean miss, not a transfer failure. Callers
+172:         // downcast to `EntryNotFound` to take the miss path (#485 Phase 0):
+173:         // likely-present keys go straight to GET, and a stale key-cache
+174:         // positive degrades to a miss, not an error.
+175:         let fetched = crate::remote_resilience::RemoteDeadline::from_instant(deadline)
+176:             .run("remote object GET", async {
+177:                 if let Some(observer) = observer.as_deref_mut() {
+178:                     observer.started(&object_key);
+179:                 }
+180:                 self.backend
+181:                     .get_into(&object_key, Some(MAX_COMPRESSED_BYTES), &mut spool)
+182:                     .await
+183:             })
+184:             .await
+185:             .context("downloading v3 pack")?;
+186:         // Record the received body before the spool conversion yields or
+187:         // decoding rejects it. Both can happen after the transport completed.
+188:         if let Some(observer) = observer {
+189:             observer.received(fetched.as_ref());
+190:         }
+191:         let fetched = fetched.ok_or_else(|| {
+192:             anyhow::Error::new(EntryNotFound).context(format!(
+193:                 "v3 pack not found: {}",
+194:                 self.backend.describe(&object_key)
+195:             ))
+196:         })?;
+197:         let request_ms = fetched.request_ms;
+198:         let body_ms = fetched.body_ms;
+199:         let compressed_len = fetched.bytes;
+200:         let mut compressed = spool.into_std().await;
+201:         compressed.rewind().context("rewinding v3 download file")?;
+202: 
+203:         let extract_start = std::time::Instant::now();
+204:         let guarded = DeadlineReader {
+205:             inner: compressed,
+206:             deadline,
+207:         };
+208:         let mut decoder =
+209:             zstd::stream::Decoder::new(guarded).context("creating v3 zstd decoder")?;
+210:         // Bound the decompression window so a hostile/buggy frame can't force a
+211:         // huge allocation. 27 = 128 MiB, well above what level-3 packs use and
+212:         // independent of the bomb guard on extracted bytes below (#212).
+213:         decoder
+214:             .window_log_max(MAX_ZSTD_WINDOW_LOG)
+215:             .context("setting v3 zstd window-log cap")?;
+216:         let extracted = extract_entry_pack_until(decoder, entry_dir, deadline, None)?;
+217:         let extract_ms = extract_start.elapsed().as_millis() as u64;
+218: 
+219:         Ok(DownloadResult {
+220:             format: "v3",
+221:             object_key,
+222:             compressed_bytes: compressed_len,
+223:             original_bytes: extracted.original_bytes,
+224:             network_ms: request_ms + body_ms,
+225:             request_ms,
+226:             body_ms,
+227:             request_count: 1,
+228:             decompress_ms: 0,
+229:             extract_ms,
+230:             disk_io_ms: 0,
+231:             blobs_skipped: 0,
+232:             blobs_total: 0,
+233:         })
+234:     }
+
+src/remote_layout.rs:399-451
+399: 
+400:         Ok(keys)
+401:     }
+402: }
+403: 
+404: /// Extract one existing v3 payload carried inside an immutable prefetch pack.
+405: /// The outer pack binds cache key, crate and exact `meta.json` digest; this
+406: /// function verifies those bindings plus every artifact hash before publishing
+407: /// the entry directory.
+408: pub(crate) fn extract_verified_prefetch_entry(
+409:     cache_key: &str,
+410:     crate_name: &str,
+411:     meta_digest: &str,
+412:     payload: &[u8],
+413:     entry_dir: &Path,
+414:     deadline: Option<Instant>,
+415: ) -> Result<VerifiedPackEntry> {
+416:     if !crate::cache_key::is_valid_cache_key(cache_key)
+417:         || !crate::cache_key::is_valid_crate_name(crate_name)
+418:         || !crate::cache_key::is_valid_cache_key(meta_digest)
+419:     {
+420:         bail!("invalid packed-prefetch entry binding");
+421:     }
+422:     let extract_start = Instant::now();
+423:     let guarded = DeadlineReader {
+424:         inner: std::io::Cursor::new(payload),
+425:         deadline,
+426:     };
+427:     let mut decoder = zstd::stream::Decoder::new(guarded)
+428:         .context("creating packed-prefetch entry zstd decoder")?;
+429:     decoder
+430:         .window_log_max(MAX_ZSTD_WINDOW_LOG)
+431:         .context("setting packed-prefetch zstd window-log cap")?;
+432:     let extracted = extract_entry_pack_until(
+433:         decoder,
+434:         entry_dir,
+435:         deadline,
+436:         Some(ExpectedEntryBinding {
+437:             cache_key,
+438:             crate_name,
+439:             meta_digest,
+440:         }),
+441:     )?;
+442:     Ok(VerifiedPackEntry {
+443:         restored: VerifiedRestoredEntry {
+444:             cache_key: cache_key.to_string(),
+445:             meta: extracted.meta,
+446:         },
+447:         original_bytes: extracted.original_bytes,
+448:         extract_ms: extract_start.elapsed().as_millis() as u64,
+449:     })
+450: }
+451: 
+
+src/remote_layout.rs:462-481
+462:         &format!(
+463:             "{V3_ROOT}/{V3_PREDICTIONS}/{}",
+464:             crate::prediction_share::object_name(identity)
+465:         ),
+466:     )
+467: }
+468: 
+469: fn v3_pack_key(prefix: &str, cache_key: &str, crate_name: &str) -> String {
+470:     crate::config::join_remote_key(
+471:         prefix,
+472:         &format!("{V3_ROOT}/{V3_PACKS}/{crate_name}/{cache_key}.tar.zst"),
+473:     )
+474: }
+475: 
+476: /// Marker error: the requested entry does not exist in the remote (GET 404).
+477: /// Downcast target for callers that treat absence as a clean miss rather than
+478: /// a transfer failure (#485 Phase 0).
+479: #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+480: pub struct EntryNotFound;
+481: 
+
+src/remote_layout.rs:639-809
+639: fn extract_entry_pack_until<R: std::io::Read>(
+640:     reader: R,
+641:     dest_dir: &Path,
+642:     deadline: Option<Instant>,
+643:     expected: Option<ExpectedEntryBinding<'_>>,
+644: ) -> Result<ExtractedEntry> {
+645:     deadline_io_check(deadline, "extraction setup")?;
+646:     let parent = dest_dir.parent().unwrap_or(Path::new("/tmp"));
+647:     std::fs::create_dir_all(parent)?;
+648:     let tmp_dir = tempfile::tempdir_in(parent).context("creating temp dir for v3 extraction")?;
+649: 
+650:     let mut archive = tar::Archive::new(reader);
+651:     let mut total_bytes = 0u64;
+652:     // blake3 of each extracted file, computed in the same pass that writes it to
+653:     // disk (no second read) so we can verify against meta.json below.
+654:     let mut computed_hashes: HashMap<PathBuf, String> = HashMap::new();
+655: 
+656:     for entry in archive.entries()? {
+657:         deadline_io_check(deadline, "tar extraction")?;
+658:         let mut entry = entry?;
+659:         // Bomb guard: a tar can declare an enormous entry that a tiny zstd
+660:         // frame expands to. tar framing means the reader below yields at most
+661:         // `entry.size()` bytes, so the running declared total upper-bounds what
+662:         // we will ever write to disk — reject before writing anything (#212).
+663:         total_bytes = total_bytes.saturating_add(entry.size());
+664:         if total_bytes > MAX_EXTRACTED_BYTES {
+665:             bail!(
+666:                 "entry pack exceeds the {MAX_EXTRACTED_BYTES}-byte extraction cap \
+667:                  (possible decompression bomb)"
+668:             );
+669:         }
+670:         let path = entry.path()?.to_path_buf();
+671: 
+672:         if is_rooted_path(&path) {
+673:             bail!("tar entry contains absolute path: {}", path.display());
+674:         }
+675:         if path
+676:             .components()
+677:             .any(|c| c == std::path::Component::ParentDir)
+678:         {
+679:             bail!("tar entry contains path traversal: {}", path.display());
+680:         }
+681:         if entry.header().entry_type().is_symlink() || entry.header().entry_type().is_hard_link() {
+682:             bail!(
+683:                 "tar entry contains link (rejected for security): {}",
+684:                 path.display()
+685:             );
+686:         }
+687: 
+688:         let dest = tmp_dir.path().join(&path);
+689:         if entry.header().entry_type().is_dir() {
+690:             entry.unpack(&dest)?;
+691:             continue;
+692:         }
+693:         if let Some(parent) = dest.parent() {
+694:             std::fs::create_dir_all(parent)?;
+695:         }
+696: 
+697:         // Tee the bytes through blake3 as we write them — one pass, no re-read.
+698:         let file =
+699:             std::fs::File::create(&dest).with_context(|| format!("creating {}", dest.display()))?;
+700:         let mut writer = HashingWriter {
+701:             inner: file,
+702:             hasher: blake3::Hasher::new(),
+703:             deadline,
+704:         };
+705:         std::io::copy(&mut entry, &mut writer)
+706:             .with_context(|| format!("extracting {}", path.display()))?;
+707:         computed_hashes.insert(path, writer.hasher.finalize().to_hex().to_string());
+708:     }
+709: 
+710:     // Integrity gate (#178): every artifact the entry declares must hash to the
+711:     // content address meta.json advertises. A remote that serves corrupt,
+712:     // truncated, or swapped bytes is rejected here, before the entry is
+713:     // imported or any build can hardlink it. (Authenticating the meta.json ↔
+714:     // key binding itself is the separate signing work in #179.)
+715:     let meta_path = tmp_dir.path().join("meta.json");
+716:     deadline_io_check(deadline, "integrity validation")?;
+717:     let meta_content =
+718:         std::fs::read_to_string(&meta_path).context("reading downloaded meta.json")?;
+719:     let meta: EntryMeta =
+720:         serde_json::from_str(&meta_content).context("parsing downloaded meta.json")?;
+721:     if meta.key_schema != crate::cache_key::CACHE_KEY_VERSION {
+722:         bail!(
+723:             "downloaded entry uses incompatible key schema {}",
+724:             meta.key_schema
+725:         );
+726:     }
+727:     if let Some(expected) = expected {
+728:         if meta.cache_key != expected.cache_key || meta.crate_name != expected.crate_name {
+729:             bail!("packed-prefetch cache-key or crate binding mismatch");
+730:         }
+731:         let actual_meta_digest = computed_hashes
+732:             .get(Path::new("meta.json"))
+733:             .context("missing streamed meta.json digest")?;
+734:         if actual_meta_digest != expected.meta_digest {
+735:             bail!(
+736:                 "packed-prefetch meta.json digest mismatch (expected {}, got {})",
+737:                 expected.meta_digest,
+738:                 actual_meta_digest
+739:             );
+740:         }
+741:     }
+742:     // Validate declared fields from the untrusted meta.json before they flow
+743:     // into hash/path logic (#211). A malformed hash or an unsafe file name is a
+744:     // hostile/corrupt remote — reject loudly rather than build a bad path.
+745:     for cached_file in &meta.files {
+746:         if !is_blob_hash(&cached_file.hash) {
+747:             bail!(
+748:                 "downloaded entry declares a malformed blob hash for {}: {:?}",
+749:                 cached_file.name,
+750:                 cached_file.hash
+751:             );
+752:         }
+753:         if !is_safe_artifact_name(&cached_file.name) {
+754:             bail!(
+755:                 "downloaded entry declares an unsafe file name: {:?}",
+756:                 cached_file.name
+757:             );
+758:         }
+759:     }
+760:     for cached_file in &meta.files {
+761:         match computed_hashes.get(Path::new(&cached_file.name)) {
+762:             Some(actual) if actual == &cached_file.hash => {}
+763:             Some(actual) => bail!(
+764:                 "content hash mismatch for {} (expected {}, got {})",
+765:                 cached_file.name,
+766:                 cached_file.hash,
+767:                 actual
+768:             ),
+769:             None => bail!(
+770:                 "downloaded entry pack is missing declared file {}",
+771:                 cached_file.name
+772:             ),
+773:         }
+774:     }
+775: 
+776:     if dest_dir.exists() {
+777:         deadline_io_check(deadline, "entry publication")?;
+778:         std::fs::remove_dir_all(dest_dir).context("removing existing extracted v3 entry dir")?;
+779:     }
+780: 
+781:     let tmp_path = tmp_dir.keep();
+782:     std::fs::rename(&tmp_path, dest_dir).or_else(|_| {
+783:         copy_dir_all_until(&tmp_path, dest_dir, deadline).and_then(|()| {
+784:             std::fs::remove_dir_all(&tmp_path).context("removing temp dir after v3 copy")
+785:         })
+786:     })?;
+787: 
+788:     deadline_io_check(deadline, "entry publication")?;
+789: 
+790:     Ok(ExtractedEntry {
+791:         original_bytes: total_bytes,
+792:         meta,
+793:     })
+794: }
+795: 
+796: #[cfg(test)]
+797: fn copy_dir_all(src: &Path, dst: &Path) -> Result<()> {
+798:     copy_dir_all_until(src, dst, None)
+799: }
+800: 
+801: fn copy_dir_all_until(src: &Path, dst: &Path, deadline: Option<Instant>) -> Result<()> {
+802:     deadline_io_check(deadline, "entry copy")?;
+803:     std::fs::create_dir_all(dst)?;
+804:     for entry in std::fs::read_dir(src)? {
+805:         deadline_io_check(deadline, "entry copy")?;
+806:         let entry = entry?;
+807:         let dest = dst.join(entry.file_name());
+808:         if entry.path().is_dir() {
+809:             copy_dir_all_until(&entry.path(), &dest, deadline)?;
+
+src/daemon.rs:448-475
+448: pub(crate) enum Request {
+449:     Upload(UploadJob),
+450:     /// Legacy GC wire command accepted from older clients.
+451:     Gc(GcRequest),
+452:     /// Policy-v2 GC command. Older daemons reject this unknown variant before
+453:     /// mutation, closing the capability-probe/replacement race.
+454:     GcV2(GcRequest),
+455:     /// A wrapper saw the store over the automatic trigger. The daemon
+456:     /// acknowledges at once and sweeps in the background; hints that arrive
+457:     /// meanwhile coalesce. Older daemons reject the unknown variant, and the
+458:     /// wrapper then spawns its own worker.
+459:     GcHint,
+460:     RemoteCheck(RemoteCheckRequest),
+461:     Stats(StatsRequest),
+462:     Health,
+463:     BatchRemoteCheck(BatchRemoteCheckRequest),
+464:     HashFiles(HashFilesRequest),
+465:     Prefetch(PrefetchRequest),
+466:     BuildStarted(BuildStartedRequest),
+467:     CompileStarted(CompileStartedRequest),
+468:     CompileFinished(CompileFinishedRequest),
+469:     /// A wrapper hands the daemon a finished cc compile to store.
+470:     /// Older handlers lack the atomic receipt; reject their protocol instead
+471:     /// of allowing an ambiguous timeout to publish and log twice.
+472:     #[serde(rename = "publish_cc_v2")]
+473:     PublishCc(Box<crate::daemon_publish::PublishCcRequest>),
+474:     /// A wrapper with no local input prediction row asks for the remote's
+475:     /// (kunobi-ninja/kache#1011). Older daemons reject the unknown variant,
+
+src/daemon.rs:985-1096
+985: pub struct RemoteCheckRequest {
+986:     pub key: String,
+987:     pub entry_dir: String,
+988:     #[serde(default)]
+989:     pub crate_name: String,
+990:     /// Client-side end-to-end budget. New daemons use the stricter of this,
+991:     /// their own configured budget, and the legacy three-second demand cap, so
+992:     /// config drift cannot make the client time out while the daemon keeps
+993:     /// doing abandoned work. Missing/zero values retain that legacy cap for
+994:     /// compatibility with old clients.
+995:     #[serde(default)]
+996:     pub deadline_ms: Option<u64>,
+997:     /// Volume-shard cache dir to import into. Missing or empty keeps the
+998:     /// main store so older clients stay on the historical path; a value
+999:     /// must equal the main cache dir or a configured `[cache.volumes]`
+1000:     /// shard. Unknown paths are rejected rather than writing off-tree.
+1001:     #[serde(default, skip_serializing_if = "Option::is_none")]
+1002:     pub shard_dir: Option<String>,
+1003: }
+1004: 
+1005: /// Cache dir a RemoteCheck should import into.
+1006: ///
+1007: /// `None` / blank keeps the main store. A path is admitted only when it is
+1008: /// the main cache dir or a configured volume shard.
+1009: fn remote_check_cache_dir<'a>(
+1010:     main_cache_dir: &'a Path,
+1011:     volume_stores: &'a [crate::config::VolumeStore],
+1012:     shard_dir: Option<&str>,
+1013: ) -> Result<&'a Path, &'static str> {
+1014:     let Some(raw) = shard_dir.map(str::trim).filter(|s| !s.is_empty()) else {
+1015:         return Ok(main_cache_dir);
+1016:     };
+1017:     let requested = Path::new(raw);
+1018:     if requested == main_cache_dir {
+1019:         return Ok(main_cache_dir);
+1020:     }
+1021:     for shard in volume_stores {
+1022:         if requested == shard.store.as_path() {
+1023:             return Ok(shard.store.as_path());
+1024:         }
+1025:     }
+1026:     Err("remote-check shard_dir is not a configured volume store")
+1027: }
+1028: 
+1029: fn remote_check_entry_dir(cache_dir: &Path, key: &str) -> PathBuf {
+1030:     cache_dir.join("store").join(key)
+1031: }
+1032: 
+1033: fn remote_check_blobs_dir(cache_dir: &Path) -> PathBuf {
+1034:     cache_dir.join("store").join("blobs")
+1035: }
+1036: 
+1037: fn remote_check_uses_main_store(cache_dir: &Path, main_cache_dir: &Path) -> bool {
+1038:     cache_dir == main_cache_dir
+1039: }
+1040: 
+1041: /// `Some` only when the wrapper opened a volume shard rather than the main
+1042: /// store. Older daemons ignore the field.
+1043: pub(crate) fn remote_check_shard_dir_arg(
+1044:     main_cache_dir: &Path,
+1045:     store_cache_dir: &Path,
+1046: ) -> Option<String> {
+1047:     if remote_check_uses_main_store(store_cache_dir, main_cache_dir) {
+1048:         None
+1049:     } else {
+1050:         Some(store_cache_dir.to_string_lossy().into_owned())
+1051:     }
+1052: }
+1053: 
+1054: #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+1055: pub struct StatsRequest {
+1056:     pub include_entries: bool,
+1057:     /// Include the bounded recent session-summary tail. False for TUI/health
+1058:     /// polling so they do not rescan the append-only summary log every tick.
+1059:     #[serde(default)]
+1060:     pub include_summaries: bool,
+1061:     pub sort_by: Option<String>,
+1062:     /// Event window in whole hours. Older clients send only this; newer ones
+1063:     /// send it rounded up beside `event_secs` so an older daemon still
+1064:     /// answers with a superset of the requested window.
+1065:     pub event_hours: Option<u64>,
+1066:     /// Event window in seconds (kunobi-ninja/kache#897). Wins over
+1067:     /// `event_hours` when present, so `--since 15m` is a 15 minute window.
+1068:     #[serde(default)]
+1069:     pub event_secs: Option<u64>,
+1070:     /// Client executable mtime, or zero for reads that must not request a
+1071:     /// drain. Daemons from 1.0.x and earlier drain when it is newer than their
+1072:     /// own; later daemons ignore it.
+1073:     #[serde(default)]
+1074:     pub client_epoch: u64,
+1075:     /// Release requesting an upgrade. Absent from legacy and read-only requests.
+1076:     #[serde(default, skip_serializing_if = "Option::is_none")]
+1077:     pub client_version: Option<String>,
+1078: }
+1079: 
+1080: impl StatsRequest {
+1081:     /// The event window this request asks for: `event_secs` from a current
+1082:     /// client, else `event_hours` from an older one, else the 24h default.
+1083:     pub(crate) fn window(&self) -> crate::since::SinceWindow {
+1084:         use crate::since::SinceWindow;
+1085:         match (self.event_secs, self.event_hours) {
+1086:             (Some(secs), _) => SinceWindow::from_secs(secs),
+1087:             (None, Some(hours)) => SinceWindow::from_hours(hours).unwrap_or(SinceWindow::DEFAULT),
+1088:             (None, None) => SinceWindow::DEFAULT,
+1089:         }
+1090:     }
+1091: }
+1092: 
+1093: #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+1094: pub struct BatchRemoteCheckRequest {
+1095:     pub checks: Vec<RemoteCheckRequest>,
+1096: }
+
+src/daemon.rs:1408-1500
+1408: pub struct EffectiveConfig {
+1409:     /// `[cache] local_max_size` / `KACHE_MAX_SIZE` as the daemon resolved it.
+1410:     pub max_size: u64,
+1411:     /// The store directory the daemon's numbers describe.
+1412:     pub cache_dir: String,
+1413:     /// The job/process-lifetime state directory the daemon resolved.
+1414:     /// Empty when reported by a daemon that predates runtime-dir support.
+1415:     #[serde(default)]
+1416:     pub runtime_dir: String,
+1417:     /// The config-file path the daemon resolved at startup (the file its
+1418:     /// fingerprint watcher tracks). The file may not exist — defaults then
+1419:     /// applied — but the path still names where the daemon would read one.
+1420:     pub config_path: String,
+1421:     /// Fingerprint of the exact path/presence/content snapshot parsed at
+1422:     /// daemon startup. This detects same-path edits beyond the rendered field
+1423:     /// subset and ties the watcher baseline to what was actually loaded.
+1424:     #[serde(default)]
+1425:     pub config_fingerprint: Option<String>,
+1426:     /// `[cache] prefetch_enabled` / `KACHE_PREFETCH_ENABLED` as resolved.
+1427:     pub prefetch_enabled: bool,
+1428:     /// `[cache] remote_key_listing` / `KACHE_REMOTE_KEY_LISTING` as resolved.
+1429:     #[serde(default = "default_effective_remote_key_listing")]
+1430:     pub remote_key_listing: bool,
+1431:     /// Credential-free remote description (for example `s3://bucket/prefix`)
+1432:     /// as resolved by the daemon. `None` means no usable remote.
+1433:     #[serde(default)]
+1434:     pub remote_description: Option<String>,
+1435:     /// Whether the daemon started in strict local-only mode.
+1436:     #[serde(default)]
+1437:     pub local_only: bool,
+1438:     /// Whether the daemon skips remote uploads. A daemon keeps the read-only
+1439:     /// setting it started with, so a writable build can still reach a
+1440:     /// read-only daemon. `None` from daemons that predate the field.
+1441:     #[serde(default)]
+1442:     pub remote_readonly: Option<bool>,
+1443:     /// Why a configured remote was unusable, when configuration degraded to
+1444:     /// local-only operation. This is the same user-facing reason the daemon
+1445:     /// logs; credentials are never included.
+1446:     #[serde(default)]
+1447:     pub remote_error: Option<String>,
+1448:     /// Remote key-index refresh cadence used by the daemon.
+1449:     #[serde(default = "default_effective_remote_key_cache_refresh_secs")]
+1450:     pub remote_key_cache_refresh_secs: u64,
+1451:     /// The socket endpoint the daemon serves on.
+1452:     pub socket_path: String,
+1453:     /// Unix millis when the daemon captured this config (process startup),
+1454:     /// so a mismatch warning can say how old the in-effect config is.
+1455:     #[serde(default)]
+1456:     pub started_at_ms: u64,
+1457: }
+1458: 
+1459: /// Daemons from before `remote_key_listing` listed whenever prefetch was on.
+1460: fn default_effective_remote_key_listing() -> bool {
+1461:     true
+1462: }
+1463: 
+1464: fn default_effective_remote_key_cache_refresh_secs() -> u64 {
+1465:     crate::config::DEFAULT_REMOTE_KEY_CACHE_REFRESH_SECS
+1466: }
+1467: 
+1468: impl EffectiveConfig {
+1469:     /// Snapshot the reportable view of `config` plus the exact path/content
+1470:     /// provenance parsed by [`Config::load_with_provenance`]. The watcher uses
+1471:     /// the same fingerprint as its baseline, so an edit between load and
+1472:     /// watcher startup is detected on the first poll.
+1473:     pub(crate) fn capture(
+1474:         config: &Config,
+1475:         provenance: &crate::config::ConfigFileProvenance,
+1476:     ) -> Self {
+1477:         Self {
+1478:             max_size: config.max_size,
+1479:             cache_dir: config.cache_dir.display().to_string(),
+1480:             runtime_dir: config.runtime_dir.display().to_string(),
+1481:             config_path: provenance.path.display().to_string(),
+1482:             config_fingerprint: Some(provenance.fingerprint.clone()),
+1483:             prefetch_enabled: config.prefetch_enabled,
+1484:             remote_key_listing: config.remote_key_listing,
+1485:             remote_description: config.remote.as_ref().map(|remote| remote.describe()),
+1486:             local_only: config.local_only,
+1487:             remote_readonly: Some(config.remote_readonly),
+1488:             remote_error: config.remote_error.clone(),
+1489:             remote_key_cache_refresh_secs: config.remote_key_cache_refresh_secs,
+1490:             socket_path: config.socket_path().display().to_string(),
+1491:             started_at_ms: unix_time_ms(),
+1492:         }
+1493:     }
+1494: }
+1495: 
+1496: /// One in-flight compile as reported to stats consumers (`kache monitor`'s
+1497: /// "In flight" panel). Elapsed/ETA are computed at snapshot time from the
+1498: /// registry's wall-clock start.
+1499: #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+1500: pub struct InFlightEntry {
+
+src/daemon.rs:4481-4949
+4481:     async fn handle_remote_check_started_at(
+4482:         &self,
+4483:         req: &RemoteCheckRequest,
+4484:         request_started_at: Instant,
+4485:     ) -> Response {
+4486:         if !crate::cache_key::is_valid_cache_key(&req.key) {
+4487:             return Response::err("invalid cache key");
+4488:         }
+4489:         if !crate::cache_key::is_valid_crate_name(&req.crate_name) {
+4490:             return Response::err("invalid crate name");
+4491:         }
+4492:         let cache_dir = match remote_check_cache_dir(
+4493:             &self.config.cache_dir,
+4494:             &self.config.volume_stores,
+4495:             req.shard_dir.as_deref(),
+4496:         ) {
+4497:             Ok(dir) => dir,
+4498:             Err(msg) => return Response::err(msg),
+4499:         };
+4500:         let expected_entry_dir = remote_check_entry_dir(cache_dir, &req.key);
+4501:         if Path::new(&req.entry_dir) != expected_entry_dir {
+4502:             return Response::err("remote-check entry directory does not match daemon store");
+4503:         }
+4504: 
+4505:         // The same monotonic budget is handed through every stage below and
+4506:         // mirrored by the client socket wait. Socket-handler queueing happens
+4507:         // before this function, so derive both budgets from the accept-time
+4508:         // instant rather than restarting the clock at dispatch. Claiming then
+4509:         // also counts singleflight queue time against that original budget.
+4510:         let deadline = RemoteDeadline::from_millis_at(
+4511:             request_started_at,
+4512:             remote_check_budget_ms(self.config.remote_restore_timeout_secs, req.deadline_ms).get(),
+4513:         );
+4514:         match self.remote_checks.claim(&req.key) {
+4515:             SingleflightClaim::Follower(follower) => follower
+4516:                 .wait(deadline)
+4517:                 .await
+4518:                 .unwrap_or_else(|| Response::found(false)),
+4519:             SingleflightClaim::AtCapacity => {
+4520:                 tracing::warn!(
+4521:                     key = key_prefix(&req.key),
+4522:                     max = REMOTE_CHECK_SINGLEFLIGHT_MAX_KEYS,
+4523:                     "remote-check singleflight at capacity; treating as miss"
+4524:                 );
+4525:                 Response::found(false)
+4526:             }
+4527:             SingleflightClaim::Leader(leader) => {
+4528:                 let response = self.handle_remote_check_leader(req, deadline).await;
+4529:                 leader.complete(response.clone());
+4530:                 response
+4531:             }
+4532:         }
+4533:     }
+4534: 
+4535:     async fn handle_remote_check_leader(
+4536:         &self,
+4537:         req: &RemoteCheckRequest,
+4538:         deadline: RemoteDeadline,
+4539:     ) -> Response {
+4540:         let cache_dir = match remote_check_cache_dir(
+4541:             &self.config.cache_dir,
+4542:             &self.config.volume_stores,
+4543:             req.shard_dir.as_deref(),
+4544:         ) {
+4545:             Ok(dir) => dir.to_path_buf(),
+4546:             Err(msg) => return Response::err(msg),
+4547:         };
+4548:         let Some(_) = &self.config.remote else {
+4549:             return Response::err("no remote configured");
+4550:         };
+4551: 
+4552:         let warmed = deadline
+4553:             .run("warming barrier", async {
+4554:                 Ok(self.wait_for_warming(REMOTE_CHECK_WARMING_GRACE).await)
+4555:             })
+4556:             .await
+4557:             .unwrap_or(false);
+4558:         tracing::debug!(
+4559:             warmed,
+4560:             grace_ms = REMOTE_CHECK_WARMING_GRACE.as_millis(),
+4561:             "remote check warming barrier completed"
+4562:         );
+4563: 
+4564:         // Adaptive prefetch cancellation (#581, #583 P0.5): per-plan demand
+4565:         // tracking. Every distinct demanded key counts (candidate or not) —
+4566:         // the old daemon-lifetime counters only incremented on prefetched
+4567:         // keys, making the hit ratio 100% by construction so cancellation
+4568:         // never fired. The decision itself is `should_cancel_prefetch`,
+4569:         // which counts downloaded-but-not-yet-demanded keys as potential
+4570:         // hits (they may have been consumed via the wrapper's local store
+4571:         // path without reaching the daemon).
+4572:         {
+4573:             let is_prefetched = self.prefetched_keys.read().await.contains(&req.key);
+4574:             if is_prefetched {
+4575:                 // Phase-0 telemetry: count each prefetched key as "used" once
+4576:                 // (distinct keys; daemon-visible lower bound).
+4577:                 if self
+4578:                     .prefetch_used_keys
+4579:                     .write()
+4580:                     .await
+4581:                     .insert(req.key.clone())
+4582:                 {
+4583:                     self.prefetch_stats
+4584:                         .keys_used
+4585:                         .fetch_add(1, Ordering::Relaxed);
+4586:                 }
+4587:             }
+4588:             let fire_cancel = {
+4589:                 let mut plan = self.active_plan.lock().unwrap_or_else(|p| p.into_inner());
+4590:                 match plan.as_mut() {
+4591:                     Some(p) => p.record_demand(&req.key),
+4592:                     None => false,
+4593:                 }
+4594:             };
+4595:             if fire_cancel {
+4596:                 let _ = self.prefetch_cancel.send(true);
+4597:                 let (demanded, hits) = {
+4598:                     let plan = self.active_plan.lock().unwrap_or_else(|p| p.into_inner());
+4599:                     plan.as_ref()
+4600:                         .map(|p| (p.demanded.len(), p.demanded_candidates.len()))
+4601:                         .unwrap_or((0, 0))
+4602:                 };
+4603:                 tracing::info!(
+4604:                     "adaptive prefetch cancel: {hits}/{demanded} demanded keys were plan candidates, cancelling remaining downloads"
+4605:                 );
+4606:             }
+4607:         }
+4608: 
+4609:         if deadline.check("demand preparation").is_err() {
+4610:             return Response::found(false);
+4611:         }
+4612: 
+4613:         let cn = &req.crate_name;
+4614:         let head_ms = 0u64;
+4615:         let mut semaphore_wait_ms = 0u64;
+4616: 
+4617:         // Negative-result cache (#564): a definitive remote miss recorded
+4618:         // within the TTL answers immediately, so parallel wrappers demanding
+4619:         // the same absent key don't each pay an S3 round trip. A successful
+4620:         // upload of the key clears its entry, so this can only delay
+4621:         // visibility of another machine's upload — the same staleness class
+4622:         // the key cache's LIST refresh already has.
+4623:         if self.negative_keys.check(&req.key) {
+4624:             tracing::debug!(
+4625:                 "negative cache: {} definitively missed recently, skipping remote",
+4626:                 &req.key
+4627:             );
+4628:             return Response::found(false);
+4629:         }
+4630:         let knowledge = self
+4631:             .negative_keys
+4632:             .begin_observation(&req.key)
+4633:             .expect("validated remote-check key must admit a knowledge epoch");
+4634: 
+4635:         // A fresh authoritative index can answer a miss without transport.
+4636:         // Otherwise fetch the known pack key directly; a GET 404 is definitive
+4637:         // and the restore verifies the pack before publishing it locally.
+4638:         if self.key_cache.check(&req.key).await == Some(false) {
+4639:             let authoritative = key_cache_miss_is_authoritative(
+4640:                 self.config.remote_key_cache_refresh_secs,
+4641:                 self.key_cache.age().await,
+4642:             );
+4643:             if authoritative {
+4644:                 tracing::debug!("key cache: {} not found (skipping remote)", &req.key);
+4645:                 return Response::found(false);
+4646:             }
+4647:         }
+4648: 
+4649:         let remote_cache = match deadline
+4650:             .run("demand backend initialization", self.cache_remote())
+4651:             .await
+4652:         {
+4653:             Ok(b) => b,
+4654:             Err(e) => {
+4655:                 let class = classify_remote_error(&e);
+4656:                 return if class.poisons_breaker() {
+4657:                     Response::found(false)
+4658:                 } else {
+4659:                     Response::err(format!("remote backend init failed: {e}"))
+4660:                 };
+4661:             }
+4662:         };
+4663:         let plan = crate::remote_plan::RemotePlanner::new(&self.config)
+4664:             .plan(crate::remote_plan::RemoteWorkload::RestoreCheck);
+4665: 
+4666:         // Download dedup — atomically claim this key. Exactly one task per key
+4667:         // is the leader that performs the download; everyone else receives the
+4668:         // leader's per-key `Notify` and parks on it until the leader's claim
+4669:         // guard drops (success OR failure), instead of polling the map at
+4670:         // 100ms for up to 30s. Claiming under one write lock collapses the old
+4671:         // read-check-then-write window where two tasks both saw "not
+4672:         // downloading" and both downloaded (racing on the destructive
+4673:         // entry_dir remove/recreate inside extraction) (#213).
+4674:         let mut reclaimed = false;
+4675:         if let Some(notify) = claim_download(&self.downloading, &req.key).await {
+4676:             tracing::debug!("already downloading {}, waiting for completion", &req.key);
+4677:             let join_start = Instant::now();
+4678:             let join_deadline = download_join_deadline(
+4679:                 tokio::time::Instant::now(),
+4680:                 deadline.at().map(tokio::time::Instant::from_std),
+4681:             );
+4682:             let entry_dir = remote_check_entry_dir(&cache_dir, &req.key);
+4683:             let outcome = join_inflight_download(
+4684:                 &self.downloading,
+4685:                 &req.key,
+4686:                 &entry_dir,
+4687:                 notify,
+4688:                 join_deadline,
+4689:             )
+4690:             .await;
+4691:             // Phase-0 telemetry: how often and how long RemoteCheck blocks
+4692:             // behind another task's in-flight download (total elapsed wait,
+4693:             // bumped once per waiter).
+4694:             self.prefetch_stats
+4695:                 .dedup_join_waits
+4696:                 .fetch_add(1, Ordering::Relaxed);
+4697:             self.prefetch_stats
+4698:                 .dedup_join_wait_ms
+4699:                 .fetch_add(join_start.elapsed().as_millis() as u64, Ordering::Relaxed);
+4700:             match outcome {
+4701:                 JoinOutcome::Found => {
+4702:                     // `meta.json` is only a wake-up hint: extraction writes it
+4703:                     // before Store publication, and an import failure may leave
+4704:                     // residue. Only a committed Store row is a cache hit.
+4705:                     let committed = self
+4706:                         .with_import_store(&cache_dir, |store| Ok(store.contains(&req.key)))
+4707:                         .unwrap_or(false);
+4708:                     if committed {
+4709:                         let was_prefetched = self.prefetched_keys.read().await.contains(&req.key);
+4710:                         return Response::found_prefetched(true, was_prefetched);
+4711:                     }
+4712:                     return Response::found(false);
+4713:                 }
+4714:                 JoinOutcome::Reclaimed => reclaimed = true,
+4715:                 JoinOutcome::GaveUp => {
+4716:                     // The join budget expired with a leader still holding the
+4717:                     // claim. Post-#613 a live claim means a task is actively
+4718:                     // downloading, so becoming a second, unclaimed writer here
+4719:                     // would race the leader's destructive extraction over the
+4720:                     // same entry_dir — the exact hazard the claim exists to
+4721:                     // prevent (#620, #213). Report a miss instead: the wrapper
+4722:                     // compiles locally (always safe), and later same-key
+4723:                     // demand keeps deduplicating behind the leader. The
+4724:                     // wrapper's RemoteCheck read timeout is far below this
+4725:                     // budget, so no live request is waiting on this response.
+4726:                     return Response::found(false);
+4727:                 }
+4728:             }
+4729:         }
+4730:         // Leader path: reached only with the claim held — either the first
+4731:         // claim above succeeded or this task won the re-claim. The claim is
+4732:         // released on every exit path below (incl. panic) by Drop, which also
+4733:         // wakes all waiters.
+4734:         let _dl_guard = DownloadingGuard::new(self.downloading.clone(), req.key.clone());
+4735: 
+4736:         // The previous leader may have landed the entry between our
+4737:         // pre-re-claim meta.json check and its claim release. Re-check under
+4738:         // the claim we now hold so we don't destructively re-download over
+4739:         // the freshly published entry (#620, cross-family review finding —
+4740:         // the same re-check-under-claim defence the prefetch path uses).
+4741:         if reclaimed
+4742:             && self
+4743:                 .with_import_store(&cache_dir, |store| Ok(store.contains(&req.key)))
+4744:                 .unwrap_or(false)
+4745:         {
+4746:             let was_prefetched = self.prefetched_keys.read().await.contains(&req.key);
+4747:             return Response::found_prefetched(true, was_prefetched);
+4748:         }
+4749: 
+4750:         // Re-check/admit under the claim: after cooldown exactly one demand
+4751:         // GET becomes the half-open read probe.
+4752:         let Some(breaker_permit) = self.remote_breaker.try_acquire(RemoteOperation::DemandGet)
+4753:         else {
+4754:             self.transfer_counters
+4755:                 .downloads_suppressed
+4756:                 .fetch_add(1, Ordering::Relaxed);
+4757:             tracing::debug!(
+4758:                 "remote degraded before downloading {}, treating as miss",
+4759:                 &req.key
+4760:             );
+4761:             return Response::found(false);
+4762:         };
+4763: 
+4764:         // Acquire semaphore for download
+4765:         let semaphore_start = Instant::now();
+4766:         let semaphore_permit = match deadline
+4767:             .run("demand GET queue", async {
+4768:                 self.s3_semaphore
+4769:                     .acquire()
+4770:                     .await
+4771:                     .map_err(|_| anyhow::anyhow!("remote semaphore closed"))
+4772:             })
+4773:             .await
+4774:         {
+4775:             Ok(permit) => permit,
+4776:             Err(error) => {
+4777:                 let class = classify_remote_error(&error);
+4778:                 breaker_permit.failure(class, &format!("{error:#}"));
+4779:                 return Response::found(false);
+4780:             }
+4781:         };
+4782:         semaphore_wait_ms =
+4783:             semaphore_wait_ms.saturating_add(semaphore_start.elapsed().as_millis() as u64);
+4784: 
+4785:         // Download to local store using the current remote layout, bounded by
+4786:         // the restore deadline (#327): on elapse the future is dropped (which
+4787:         // cancels the in-flight request) and the wrapper gets a miss — a
+4788:         // recompile is always cheaper than an unbounded wait. A partially
+4789:         // extracted entry_dir is safe to abandon: nothing consumes it before
+4790:         // `meta.json` lands, and the next download re-extracts from scratch —
+4791:         // the same tolerance the design already has for a daemon crash
+4792:         // mid-download.
+4793:         let entry_dir = remote_check_entry_dir(&cache_dir, &req.key);
+4794:         let blobs_dir = remote_check_blobs_dir(&cache_dir);
+4795:         let started_at_unix_ms = unix_time_ms();
+4796:         let start = Instant::now();
+4797:         self.transfer_counters
+4798:             .remote_check_roundtrips
+4799:             .fetch_add(1, Ordering::Relaxed);
+4800:         let download_result = deadline
+4801:             .run(
+4802:                 "demand GET and extraction",
+4803:                 remote_cache.download_entry(&req.key, cn, &entry_dir, &blobs_dir, deadline.at()),
+4804:             )
+4805:             .await;
+4806:         drop(semaphore_permit);
+4807: 
+4808:         match download_result {
+4809:             Ok(dl) => {
+4810:                 breaker_permit.success();
+4811:                 if self.negative_keys.record_present(&knowledge) {
+4812:                     self.key_cache
+4813:                         .insert(req.key.clone(), Some(cn.as_str()))
+4814:                         .await;
+4815:                 }
+4816:                 let (import_result, import_lock_wait_ms, import_ms) = self
+4817:                     .with_import_store_timed(&cache_dir, |store| {
+4818:                         store.import_restored_entry(&req.key)
+4819:                     });
+4820:                 let import_ok = match import_result {
+4821:                     Ok(()) => true,
+4822:                     Err(e) => {
+4823:                         tracing::warn!("failed to import downloaded entry {}: {e:#}", &req.key);
+4824:                         false
+4825:                     }
+4826:                 };
+4827:                 let elapsed_ms = start.elapsed().as_millis() as u64;
+4828:                 let finished_at_unix_ms = unix_time_ms();
+4829:                 if import_ok {
+4830:                     self.transfer_counters
+4831:                         .downloads_completed
+4832:                         .fetch_add(1, Ordering::Relaxed);
+4833:                 } else {
+4834:                     self.transfer_counters
+4835:                         .downloads_failed
+4836:                         .fetch_add(1, Ordering::Relaxed);
+4837:                 }
+4838:                 // The pack crossed the wire even when local publication failed.
+4839:                 self.transfer_counters
+4840:                     .bytes_downloaded
+4841:                     .fetch_add(dl.compressed_bytes, Ordering::Relaxed);
+4842:                 self.push_transfer_event(TransferEvent {
+4843:                     accounting: None,
+4844:                     prefetch: None,
+4845:                     outcome: String::new(),
+4846:                     schema: default_transfer_schema(),
+4847:                     crate_name: cn.to_string(),
+4848:                     direction: TransferDirection::Download,
+4849:                     format: dl.format.to_string(),
+4850:                     cache_key: req.key.clone(),
+4851:                     object_key: dl.object_key,
+4852:                     compressed_bytes: dl.compressed_bytes,
+4853:                     started_at_unix_ms,
+4854:                     finished_at_unix_ms,
+4855:                     elapsed_ms,
+4856:                     network_ms: dl.network_ms,
+4857:                     semaphore_wait_ms,
+4858:                     head_ms,
+4859:                     request_ms: dl.request_ms,
+4860:                     body_ms: dl.body_ms,
+4861:                     request_count: dl.request_count,
+4862:                     original_bytes: dl.original_bytes,
+4863:                     decompress_ms: dl.decompress_ms,
+4864:                     extract_ms: dl.extract_ms,
+4865:                     disk_io_ms: dl.disk_io_ms,
+4866:                     import_lock_wait_ms,
+4867:                     import_ms,
+4868:                     compression_ms: 0,
+4869:                     head_checks_ms: 0,
+4870:                     blobs_skipped: dl.blobs_skipped,
+4871:                     blobs_total: dl.blobs_total,
+4872:                     ok: import_ok,
+4873:                     timestamp: finished_at_unix_ms / 1_000,
+4874:                 })
+4875:                 .await;
+4876:                 Response::found(import_ok)
+4877:             }
+4878:             Err(e) if classify_remote_error(&e) == RemoteErrorClass::Miss => {
+4879:                 // GET 404 = clean miss (#485 Phase 0). Reached when a
+4880:                 // key-cache positive was stale (upload evicted/GC'd) or the
+4881:                 // direct-GET path raced an upload. Correct the cache so the
+4882:                 // next check doesn't repeat the GET, and report a miss — the
+4883:                 // wrapper compiles as usual. Not a transfer failure: the
+4884:                 // remote answered, so the breaker counts it as a success, and
+4885:                 // the 404 is definitive, so the negative cache remembers it
+4886:                 // (#564).
+4887:                 tracing::debug!("remote GET 404 for {} — treating as miss", &req.key);
+4888:                 breaker_permit.success();
+4889:                 if self.negative_keys.record_miss(&knowledge) {
+4890:                     self.key_cache.remove(&req.key).await;
+4891:                 }
+4892:                 Response::found(false)
+4893:             }
+4894:             Err(e) => {
+4895:                 let elapsed_ms = start.elapsed().as_millis() as u64;
+4896:                 let finished_at_unix_ms = unix_time_ms();
+4897:                 self.transfer_counters
+4898:                     .downloads_failed
+4899:                     .fetch_add(1, Ordering::Relaxed);
+4900:                 self.push_transfer_event(TransferEvent {
+4901:                     accounting: None,
+4902:                     prefetch: None,
+4903:                     outcome: String::new(),
+4904:                     schema: default_transfer_schema(),
+4905:                     crate_name: cn.to_string(),
+4906:                     direction: TransferDirection::Download,
+4907:                     format: plan.transfer_format().to_string(),
+4908:                     cache_key: req.key.clone(),
+4909:                     object_key: String::new(),
+4910:                     compressed_bytes: 0,
+4911:                     started_at_unix_ms,
+4912:                     finished_at_unix_ms,
+4913:                     elapsed_ms,
+4914:                     network_ms: 0,
+4915:                     semaphore_wait_ms,
+4916:                     head_ms,
+4917:                     request_ms: 0,
+4918:                     body_ms: 0,
+4919:                     request_count: 0,
+4920:                     original_bytes: 0,
+4921:                     decompress_ms: 0,
+4922:                     extract_ms: 0,
+4923:                     disk_io_ms: 0,
+4924:                     import_lock_wait_ms: 0,
+4925:                     import_ms: 0,
+4926:                     compression_ms: 0,
+4927:                     head_checks_ms: 0,
+4928:                     blobs_skipped: 0,
+4929:                     blobs_total: 0,
+4930:                     ok: false,
+4931:                     timestamp: finished_at_unix_ms / 1_000,
+4932:                 })
+4933:                 .await;
+4934:                 // Feed the breaker with the failure class (#327) so a dead or
+4935:                 // stalling remote degrades and later restores skip S3
+4936:                 // entirely. A Timeout (transport deadline or the restore
+4937:                 // deadline above) reports a plain miss: the wrapper's answer
+4938:                 // is "recompile locally" either way, and an error response
+4939:                 // would suggest the check itself malfunctioned.
+4940:                 let class = classify_remote_error(&e);
+4941:                 breaker_permit
+4942:                     .failure(class, &format!("remote download failed ({class:?}): {e:#}"));
+4943:                 if matches!(
+4944:                     class,
+4945:                     RemoteErrorClass::Timeout | RemoteErrorClass::Transient
+4946:                 ) {
+4947:                     tracing::warn!(
+4948:                         "remote download of {} failed after {elapsed_ms}ms — treating as miss",
+4949:                         &req.key
+
+src/daemon.rs:4960-4980
+4960:     pub async fn handle_batch_remote_check(
+4961:         self: &Arc<Self>,
+4962:         req: &BatchRemoteCheckRequest,
+4963:     ) -> Response {
+4964:         self.handle_batch_remote_check_started_at(req, Instant::now())
+4965:             .await
+4966:     }
+4967: 
+4968:     async fn handle_batch_remote_check_started_at(
+4969:         self: &Arc<Self>,
+4970:         req: &BatchRemoteCheckRequest,
+4971:         request_started_at: Instant,
+4972:     ) -> Response {
+4973:         let futures: Vec<_> = req
+4974:             .checks
+4975:             .iter()
+4976:             .map(|check| self.handle_remote_check_started_at(check, request_started_at))
+4977:             .collect();
+4978:         let results = futures::future::join_all(futures).await;
+4979:         Response::ok_batch(results)
+4980:     }
+
+src/daemon.rs:8640-8730
+8640:     // does not shut it down", which causes the reader to never see EOF and
+8641:     // hangs the server loop (and tarpaulin coverage runs).
+8642:     let mut reader = BufReader::new(&stream);
+8643:     let mut frame = Vec::new();
+8644: 
+8645:     loop {
+8646:         let line = match read_request_before_shutdown(
+8647:             lifecycle,
+8648:             read_bounded_line(&mut reader, &mut frame),
+8649:         )
+8650:         .await
+8651:         {
+8652:             Ok(Some(l)) => l,
+8653:             Ok(None) => break,
+8654:             Err(e) if is_client_disconnect(&e) => {
+8655:                 // Fire-and-forget client closed abruptly — not an error.
+8656:                 tracing::debug!("client disconnected mid-read: {e}");
+8657:                 break;
+8658:             }
+8659:             Err(e) => return Err(e.into()),
+8660:         };
+8661:         let Some(_request) = lifecycle.begin() else {
+8662:             break;
+8663:         };
+8664:         let start = Instant::now();
+8665:         let parsed = serde_json::from_str::<Request>(&line);
+8666: 
+8667:         let client_version = parsed
+8668:             .as_ref()
+8669:             .ok()
+8670:             .and_then(Request::client_version)
+8671:             .map(str::to_owned);
+8672: 
+8673:         if parsed.as_ref().is_ok_and(Request::is_build_activity) {
+8674:             daemon.request_clock.touch(Instant::now());
+8675:         }
+8676: 
+8677:         let resp = match parsed {
+8678:             Ok(Request::Upload(ref job)) => {
+8679:                 tracing::debug!(
+8680:                     crate_name = job.crate_name,
+8681:                     key = key_prefix(&job.key),
+8682:                     "handling upload request"
+8683:                 );
+8684:                 daemon.handle_upload(job).await
+8685:             }
+8686:             Ok(Request::Gc(req) | Request::GcV2(req)) => {
+8687:                 // Offload: a GC sweep is seconds of `std::fs` work holding the
+8688:                 // store mutex — never run it on an async worker (#281).
+8689:                 let d = Arc::clone(daemon);
+8690:                 offload(move || d.handle_gc(&req)).await
+8691:             }
+8692:             Ok(Request::GcHint) => daemon.handle_gc_hint(),
+8693:             Ok(Request::Prestage(req)) => daemon.handle_prestage(&req),
+8694:             Ok(Request::SeedTarget(req)) => {
+8695:                 let config = daemon.config.clone();
+8696:                 offload(move || handle_seed_target(&config, &req)).await
+8697:             }
+8698:             Ok(Request::RemoteCheck(req)) => {
+8699:                 daemon
+8700:                     .handle_remote_check_started_at(&req, request_started_at)
+8701:                     .await
+8702:             }
+8703:             Ok(Request::Health) => daemon.handle_health(),
+8704:             Ok(Request::Stats(req)) => {
+8705:                 let d = Arc::clone(daemon);
+8706:                 offload(move || d.handle_stats(&req)).await
+8707:             }
+8708:             Ok(Request::BatchRemoteCheck(req)) => {
+8709:                 daemon
+8710:                     .handle_batch_remote_check_started_at(&req, request_started_at)
+8711:                     .await
+8712:             }
+8713:             Ok(Request::HashFiles(req)) => {
+8714:                 // Offload: full-file blake3 hashing is blocking I/O (#281).
+8715:                 let d = Arc::clone(daemon);
+8716:                 offload(move || d.handle_hash_files(&req)).await
+8717:             }
+8718:             Ok(Request::Prefetch(req)) => daemon.handle_prefetch(&req).await,
+8719:             Ok(Request::BuildStarted(req)) => daemon.handle_build_started(&req).await,
+8720:             Ok(Request::CompileStarted(req)) => daemon.handle_compile_started(req),
+8721:             Ok(Request::CompileFinished(req)) => daemon.handle_compile_finished(&req),
+8722:             Ok(Request::PublishCc(req)) => daemon.handle_publish_cc(*req).await,
+8723:             Ok(Request::PredictionFetch(req)) => daemon.handle_prediction_fetch(&req).await,
+8724:             Ok(Request::PredictionPublish(req)) => daemon.handle_prediction_publish(req),
+8725:             Ok(Request::Shutdown) => {
+8726:                 lifecycle.start_drain();
+8727:                 // Wake the accept loop so it breaks now rather than on the next
+8728:                 // periodic tick (issue #288).
+8729: 
+8730:                 Response::ok()
+
+src/daemon.rs:9050-9120
+9050: }
+9051: 
+9052: fn remote_check_result_from_response_line(resp_str: &str) -> Option<RemoteCheckResult> {
+9053:     match serde_json::from_str::<Response>(resp_str) {
+9054:         Ok(resp) if resp.ok => resp.found.map(|found| RemoteCheckResult {
+9055:             found,
+9056:             prefetched: resp.prefetched.unwrap_or(false),
+9057:         }),
+9058:         Ok(resp) => {
+9059:             tracing::warn!(
+9060:                 "remote check error: {}",
+9061:                 resp.error.as_deref().unwrap_or("unknown")
+9062:             );
+9063:             None
+9064:         }
+9065:         Err(e) => {
+9066:             tracing::warn!("remote check response parse error: {e}");
+9067:             None
+9068:         }
+9069:     }
+9070: }
+9071: 
+9072: pub fn send_remote_check(
+9073:     config: &Config,
+9074:     key: &str,
+9075:     entry_dir: &Path,
+9076:     crate_name: &str,
+9077:     shard_dir: Option<&Path>,
+9078: ) -> Option<RemoteCheckResult> {
+9079:     let socket_path = config.socket_path();
+9080: 
+9081:     // Fast path: if the daemon is not reachable, skip the full request.
+9082:     // On Unix this checks if the socket file exists and accepts connections.
+9083:     // On Windows (named pipes), this attempts a quick connect probe.
+9084:     if !crate::transport::is_reachable(&socket_path) {
+9085:         return None;
+9086:     }
+9087: 
+9088:     let client_budget_ms = remote_check_budget_ms(config.remote_restore_timeout_secs, None);
+9089:     let req = Request::RemoteCheck(RemoteCheckRequest {
+9090:         key: key.to_string(),
+9091:         entry_dir: entry_dir.to_string_lossy().into_owned(),
+9092:         crate_name: crate_name.to_string(),
+9093:         deadline_ms: Some(client_budget_ms.get()),
+9094:         shard_dir: shard_dir.map(|dir| dir.to_string_lossy().into_owned()),
+9095:     });
+9096: 
+9097:     // This wait is on rustc's synchronous miss path. Preserve the historical
+9098:     // hard three-second ceiling even when talking to an older daemon that
+9099:     // ignores `deadline_ms`; configuration may only shorten the wait.
+9100:     let client_timeout = Duration::from_millis(client_budget_ms.get());
+9101:     match send_request_with_timeout(&socket_path, &req, client_timeout) {
+9102:         Ok(resp_str) => remote_check_result_from_response_line(&resp_str),
+9103:         Err(e) => {
+9104:             tracing::debug!("remote check: daemon unreachable ({e})");
+9105:             None
+9106:         }
+9107:     }
+9108: }
+9109: 
+9110: /// Ask the daemon for the remote's input prediction row for `identity`
+9111: /// (kunobi-ninja/kache#1011). `None` for no row, no remote, no daemon, or a
+9112: /// daemon too old to know the request.
+9113: pub fn send_prediction_fetch(
+9114:     config: &Config,
+9115:     identity: &str,
+9116: ) -> Option<crate::prediction_share::SharedPrediction> {
+9117:     config.remote.as_ref()?;
+9118:     let socket_path = config.socket_path();
+9119:     if !crate::transport::is_reachable(&socket_path) {
+9120:         return None;
+
+crates/kache-store/src/store.rs:2438-2560
+2438:     /// just stored the entry and wants its file list.
+2439:     pub fn stored_meta(&self, cache_key: &str) -> Option<EntryMeta> {
+2440:         let content = fs::read(self.entry_dir(cache_key).join("meta.json")).ok()?;
+2441:         serde_json::from_slice(&content).ok()
+2442:     }
+2443: 
+2444:     /// Load metadata for a cached entry and record a hit.
+2445:     pub fn get(&self, cache_key: &str) -> Result<Option<EntryMeta>> {
+2446:         if self.read_only {
+2447:             return self.get_read_only(cache_key);
+2448:         }
+2449:         if !self.contains(cache_key) {
+2450:             // If we previously evicted this key, this miss is the demand
+2451:             // signal an eviction policy needs and a live-store snapshot can
+2452:             // never show (kunobi-ninja/kache#594). Read-only unless a
+2453:             // not-yet-demanded tombstone actually matches.
+2454:             self.note_tombstone_demand(cache_key);
+2455:             return Ok(None);
+2456:         }
+2457: 
+2458:         let entry_dir = self.entry_dir(cache_key);
+2459:         let meta_path = entry_dir.join("meta.json");
+2460:         let content = fs::read_to_string(&meta_path).context("reading entry meta.json")?;
+2461:         let meta: EntryMeta = serde_json::from_str(&content).context("parsing entry meta.json")?;
+2462: 
+2463:         // Lazy migration: if legacy artifacts still live in the entry dir, migrate them
+2464:         let needs_migration = meta.files.iter().any(|f| entry_dir.join(&f.name).exists());
+2465:         if needs_migration && let Err(e) = self.migrate_entry_to_blobs(&meta) {
+2466:             tracing::warn!(
+2467:                 "lazy migration failed for {}: {e}",
+2468:                 &cache_key[..16.min(cache_key.len())]
+2469:             );
+2470:         }
+2471: 
+2472:         // Decide once per hit whether to content-verify, so all of an entry's
+2473:         // blobs are checked together (or none) and `Sampled` advances its
+2474:         // counter once per hit, not once per blob (kunobi-ninja/kache#332).
+2475:         // An entry stored without an fsync (deferred durability) is verified
+2476:         // byte for byte until the flush lands: a crash between the two could
+2477:         // have left a blob whose size is right and whose bytes are not.
+2478:         let pending_durability = !self.entry_is_durable(cache_key);
+2479:         let verify_content =
+2480:             pending_durability || should_verify_this_restore(verify_restores_mode());
+2481: 
+2482:         // Verify all cached blobs still exist on disk and match expected size
+2483:         for cached_file in &meta.files {
+2484:             let blob = self.blob_path(&cached_file.hash);
+2485:             if let Err(error) = validate_blob_metadata(&blob, cached_file.size) {
+2486:                 tracing::warn!(
+2487:                     "cache entry {} file {} has invalid blob metadata ({error:#}), evicting",
+2488:                     cache_key.get(..16).unwrap_or(cache_key),
+2489:                     cached_file.name,
+2490:                 );
+2491:                 let _ = self.remove_entry(cache_key);
+2492:                 return Ok(None);
+2493:             }
+2494: 
+2495:             // Content verification (KACHE_VERIFY_RESTORES=off|sampled|always):
+2496:             // re-hash the blob against its content address to catch silent
+2497:             // corruption / bit rot before it reaches the compiler. A mismatch is
+2498:             // routed through the same evict-and-miss path as a missing blob, so
+2499:             // the build recompiles rather than consuming a poisoned artifact.
+2500:             // `sampled` amortizes the extra read across ~1/16 of hits; `always`
+2501:             // checks every hit; `off` (default) relies on the size check above
+2502:             // (kunobi-ninja/kache#332).
+2503:             if verify_content {
+2504:                 match crate::file_hash::hash_file(&blob) {
+2505:                     Ok(actual) if actual == cached_file.hash => {}
+2506:                     Ok(actual) => {
+2507:                         tracing::warn!(
+2508:                             "cache entry {} file {} content mismatch (expected {}, got {}), evicting",
+2509:                             cache_key.get(..16).unwrap_or(cache_key),
+2510:                             cached_file.name,
+2511:                             &cached_file.hash[..16.min(cached_file.hash.len())],
+2512:                             &actual[..16.min(actual.len())],
+2513:                         );
+2514:                         let _ = self.remove_entry(cache_key);
+2515:                         return Ok(None);
+2516:                     }
+2517:                     Err(e) => {
+2518:                         tracing::warn!(
+2519:                             "cache entry {} file {} unreadable for verification ({e}), evicting",
+2520:                             cache_key.get(..16).unwrap_or(cache_key),
+2521:                             cached_file.name,
+2522:                         );
+2523:                         let _ = self.remove_entry(cache_key);
+2524:                         return Ok(None);
+2525:                     }
+2526:                 }
+2527:             }
+2528:         }
+2529: 
+2530:         // Update access time and hit count. The stamp pins the entry against
+2531:         // eviction for [`EVICTION_IDLE_GRACE`]; one that is already fresh
+2532:         // needs no write, and in a contended cell every hit's write would
+2533:         // queue behind the misses' store transactions. Hit counts therefore
+2534:         // count at most one hit per entry per [`HIT_STAMP_INTERVAL`].
+2535:         let age_seconds: Option<i64> = self
+2536:             .db
+2537:             .query_row(
+2538:                 "SELECT strftime('%s', 'now') - strftime('%s', last_accessed) FROM entries \
+2539:                  WHERE cache_key = ?1",
+2540:                 params![cache_key],
+2541:                 |row| row.get(0),
+2542:             )
+2543:             .optional()?;
+2544:         if age_seconds.is_none_or(|age| age >= HIT_STAMP_INTERVAL.as_secs() as i64) {
+2545:             self.db.execute(
+2546:                 "UPDATE entries SET last_accessed = datetime('now'), hit_count = hit_count + 1 \
+2547:                  WHERE cache_key = ?1",
+2548:                 params![cache_key],
+2549:             )?;
+2550:         }
+2551: 
+2552:         Ok(Some(meta))
+2553:     }
+2554: 
+2555:     /// Acquire a build lock for a cache key. Returns None if another process holds it.
+2556:     pub fn try_lock(&self, cache_key: &str) -> Result<Option<KeyLock>> {
+2557:         self.refuse_write("acquire a build lock")?;
+2558:         StoreLock::try_acquire(&self.entry_dir(cache_key).with_extension("lock"))
+2559:     }
+2560: 
+
+crates/kache-store/src/store.rs:2940-3130
+2940:     /// Import a remotely downloaded entry into the database.
+2941:     ///
+2942:     /// Downloaded entries arrive as tar archives extracted into the entry
+2943:     /// directory (old format: artifact files alongside meta.json). This
+2944:     /// method moves the artifact files into the content-addressed blob
+2945:     /// store and records them in the `blobs` table, leaving only
+2946:     /// `meta.json` in the entry directory.
+2947:     pub fn import_downloaded_entry(&self, cache_key: &str) -> Result<()> {
+2948:         self.refuse_write("import an entry")?;
+2949:         let entry_dir = self.entry_dir(cache_key);
+2950:         let meta_path = entry_dir.join("meta.json");
+2951:         let content = fs::read_to_string(&meta_path).context("reading downloaded meta.json")?;
+2952:         let meta: EntryMeta =
+2953:             serde_json::from_str(&content).context("parsing downloaded meta.json")?;
+2954: 
+2955:         // Remote `meta.json` is untrusted (a shared / MITM'd bucket can poison
+2956:         // its `files[]`), so validate the trust boundary before any field reaches
+2957:         // path construction, the blob store, or the user's `target/` (#211).
+2958:         let short_key = cache_key.get(..16).unwrap_or(cache_key);
+2959:         for cached_file in &meta.files {
+2960:             // C: a malformed `hash` becomes a shard path component (`&hash[..2]`)
+2961:             // — reject anything that isn't a 64-char blake3 hex digest so it can
+2962:             // never panic a slice or escape the blob shard.
+2963:             if !kache_format::is_blob_hash(&cached_file.hash) {
+2964:                 anyhow::bail!(
+2965:                     "downloaded entry {short_key}: rejecting file {} — malformed blob hash {:?}",
+2966:                     cached_file.name,
+2967:                     cached_file.hash,
+2968:                 );
+2969:             }
+2970:             // B: a `name` that is absolute or contains `..` escapes the entry dir
+2971:             // on join — require a single normal component.
+2972:             if !kache_format::is_safe_artifact_name(&cached_file.name) {
+2973:                 anyhow::bail!(
+2974:                     "downloaded entry {short_key}: rejecting unsafe artifact name {:?}",
+2975:                     cached_file.name,
+2976:                 );
+2977:             }
+2978: 
+2979:             let file_path = entry_dir.join(&cached_file.name);
+2980:             if !file_path.is_file() {
+2981:                 anyhow::bail!(
+2982:                     "downloaded entry {short_key} missing file: {}",
+2983:                     cached_file.name
+2984:                 );
+2985:             }
+2986:             let file_meta = fs::metadata(&file_path).with_context(|| {
+2987:                 format!("downloaded entry {short_key}: stat {}", cached_file.name)
+2988:             })?;
+2989:             if file_meta.len() != cached_file.size {
+2990:                 anyhow::bail!(
+2991:                     "downloaded entry {short_key} file {} size mismatch (expected {}, got {})",
+2992:                     cached_file.name,
+2993:                     cached_file.size,
+2994:                     file_meta.len(),
+2995:                 );
+2996:             }
+2997:             // A: re-hash the bytes and reject if they don't match the claimed
+2998:             // address. Size-only is insufficient for untrusted content — a
+2999:             // same-length substituted/corrupted object would otherwise be
+3000:             // installed under its claimed hash and hardlinked into the build as
+3001:             // if content-verified. blake3 is fast; do it before any rename/INSERT.
+3002:             let actual = crate::file_hash::hash_file(&file_path).with_context(|| {
+3003:                 format!(
+3004:                     "downloaded entry {short_key}: hashing {} for trust-boundary check",
+3005:                     cached_file.name
+3006:                 )
+3007:             })?;
+3008:             if actual != cached_file.hash {
+3009:                 anyhow::bail!(
+3010:                     "downloaded entry {short_key}: content hash mismatch for {} \
+3011:                      (claimed {}, actual {})",
+3012:                     cached_file.name,
+3013:                     cached_file.hash,
+3014:                     actual,
+3015:                 );
+3016:             }
+3017:         }
+3018: 
+3019:         // Phase 1: move each *new* blob into the content-addressed store and make
+3020:         // it durable. For blobs that already exist (shared), keep the downloaded
+3021:         // copy in the entry dir for now — it's the fallback Phase 2 restores from
+3022:         // if a concurrent remove unlinks the blob.
+3023:         for cached_file in &meta.files {
+3024:             let blob = self.blob_path(&cached_file.hash);
+3025:             if !blob.is_file() {
+3026:                 let file_path = entry_dir.join(&cached_file.name);
+3027:                 fs::create_dir_all(blob.parent().unwrap())
+3028:                     .context("creating blob shard directory")?;
+3029:                 fs::rename(&file_path, &blob).with_context(|| {
+3030:                     format!(
+3031:                         "moving downloaded artifact {} to blob store",
+3032:                         file_path.display()
+3033:                     )
+3034:                 })?;
+3035:                 crate::atomic::fsync_file(&blob).context("flushing downloaded blob to disk")?;
+3036:                 set_blob_readonly(&blob);
+3037:             }
+3038:         }
+3039: 
+3040:         let total_size: u64 = meta.files.iter().map(|f| f.size).sum();
+3041: 
+3042:         let content_hash = compute_content_hash(&meta.files);
+3043: 
+3044:         // Phase 2: register blob references and the entry row atomically, so the
+3045:         // entry only becomes visible once every blob is in place. The write lock
+3046:         // the INSERT/UPDATE holds also serializes us against `remove_entry`'s
+3047:         // unlink, so we can safely restore a blob a concurrent remove reclaimed.
+3048:         let crate_type_str = meta.crate_types.join(",");
+3049:         let num_features = meta.features.len() as i64;
+3050:         let tx = self.db.unchecked_transaction()?;
+3051:         // A second download of a committed key (two daemons, a retried
+3052:         // prefetch) replaces a generation that already holds references.
+3053:         release_entry_blob_refs(&tx, cache_key)?;
+3054:         for cached_file in &meta.files {
+3055:             let inserted = tx.execute(
+3056:                 "INSERT OR IGNORE INTO blobs (hash, size, refcount) VALUES (?1, ?2, 1)",
+3057:                 params![cached_file.hash, cached_file.size as i64],
+3058:             )?;
+3059:             if inserted == 0 {
+3060:                 tx.execute(
+3061:                     "UPDATE blobs SET refcount = refcount + 1 WHERE hash = ?1",
+3062:                     params![cached_file.hash],
+3063:                 )?;
+3064:             }
+3065:             let blob = self.blob_path(&cached_file.hash);
+3066:             if !blob.is_file() {
+3067:                 // A concurrent remove unlinked this shared blob; restore it from
+3068:                 // the downloaded copy kept in Phase 1 (still under the lock).
+3069:                 let file_path = entry_dir.join(&cached_file.name);
+3070:                 if !file_path.is_file() {
+3071:                     anyhow::bail!(
+3072:                         "downloaded blob {} vanished during import",
+3073:                         &cached_file.hash[..16.min(cached_file.hash.len())]
+3074:                     );
+3075:                 }
+3076:                 fs::create_dir_all(blob.parent().unwrap())
+3077:                     .context("creating blob shard directory")?;
+3078:                 fs::rename(&file_path, &blob).with_context(|| {
+3079:                     format!(
+3080:                         "restoring downloaded artifact {} to blob store",
+3081:                         file_path.display()
+3082:                     )
+3083:                 })?;
+3084:                 crate::atomic::fsync_file(&blob).context("flushing downloaded blob to disk")?;
+3085:                 set_blob_readonly(&blob);
+3086:             }
+3087:         }
+3088:         record_entry_blobs(&tx, cache_key, &meta.files)?;
+3089:         tx.execute(
+3090:             "INSERT OR REPLACE INTO entries (cache_key, crate_name, crate_type, profile, num_features, size, content_hash, compile_time_ms, key_schema, committed, imported_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1, unixepoch())",
+3091:             params![cache_key, meta.crate_name, crate_type_str, meta.profile, num_features, total_size as i64, content_hash, meta.compile_time_ms as i64, meta.key_schema],
+3092:         )?;
+3093:         tx.commit()?;
+3094: 
+3095:         // Remove any downloaded duplicates kept as fallbacks but not needed
+3096:         // (their blob already existed and survived).
+3097:         for cached_file in &meta.files {
+3098:             let file_path = entry_dir.join(&cached_file.name);
+3099:             if file_path.is_file() {
+3100:                 let _ = fs::remove_file(&file_path);
+3101:             }
+3102:         }
+3103: 
+3104:         Ok(())
+3105:     }
+3106: 
+3107:     /// Import a restored entry into the local store.
+3108:     ///
+3109:     /// This is the format-agnostic seam future remote layouts should call.
+3110:     /// A failed import must not leave an uncommitted `meta.json` behind: daemon
+3111:     /// download waiters use the extracted directory as a wake-up hint, and the
+3112:     /// residue could otherwise be mistaken for a published entry. Cleanup is
+3113:     /// serialized with Store publishers and preserves any committed generation
+3114:     /// that won the race.
+3115:     pub fn import_restored_entry(&self, cache_key: &str) -> Result<()> {
+3116:         self.refuse_write("import an entry")?;
+3117:         match self.import_downloaded_entry(cache_key) {
+3118:             Ok(()) => Ok(()),
+3119:             Err(import_error) => match self.discard_uncommitted_restored_entry(cache_key) {
+3120:                 Ok(()) => Err(import_error),
+3121:                 Err(cleanup_error) => Err(import_error.context(format!(
+3122:                     "also failed to discard uncommitted restored entry: {cleanup_error:#}"
+3123:                 ))),
+3124:             },
+3125:         }
+3126:     }
+3127: 
+3128:     /// Remove extraction residue only when no committed row owns this key.
+3129:     ///
+3130:     /// An immediate transaction acquires SQLite's cross-process writer lock
+
+crates/kache-store/src/store.rs:3200-3260
+3200:     /// transaction for the whole batch.
+3201:     ///
+3202:     /// Artifact content is not hashed again: callers may only construct
+3203:     /// [`VerifiedRestoredEntry`] after extraction verified each byte against
+3204:     /// `meta.files[].hash`. This method still performs a complete metadata and
+3205:     /// on-disk length preflight before moving blobs or opening the transaction.
+3206:     pub fn import_verified_restored_entries(
+3207:         &self,
+3208:         entries: &[VerifiedRestoredEntry],
+3209:     ) -> Result<usize> {
+3210:         self.refuse_write("import entries")?;
+3211:         let mut cache_keys = std::collections::HashSet::new();
+3212:         for entry in entries {
+3213:             if !kache_format::is_valid_cache_key(&entry.cache_key)
+3214:                 || entry.meta.cache_key != entry.cache_key
+3215:             {
+3216:                 anyhow::bail!("verified restore has an invalid cache-key binding");
+3217:             }
+3218:             if entry.meta.key_schema != kache_format::CACHE_KEY_VERSION {
+3219:                 anyhow::bail!(
+3220:                     "verified restore {} uses incompatible key schema {}",
+3221:                     &entry.cache_key[..16],
+3222:                     entry.meta.key_schema
+3223:                 );
+3224:             }
+3225:             if !kache_format::is_valid_crate_name(&entry.meta.crate_name) {
+3226:                 anyhow::bail!("verified restore has an unsafe crate name");
+3227:             }
+3228:             if !cache_keys.insert(entry.cache_key.as_str()) {
+3229:                 anyhow::bail!("verified restore batch contains a duplicate cache key");
+3230:             }
+3231: 
+3232:             let entry_dir = self.entry_dir(&entry.cache_key);
+3233:             let meta_bytes = fs::read(entry_dir.join("meta.json"))
+3234:                 .context("reading stream-verified entry metadata")?;
+3235:             let disk_meta: EntryMeta = serde_json::from_slice(&meta_bytes)
+3236:                 .context("parsing stream-verified entry metadata")?;
+3237:             if disk_meta != entry.meta {
+3238:                 anyhow::bail!("verified restore metadata changed after extraction");
+3239:             }
+3240: 
+3241:             let mut artifact_names = std::collections::HashSet::new();
+3242:             for file in &entry.meta.files {
+3243:                 if !kache_format::is_safe_artifact_name(&file.name)
+3244:                     || !kache_format::is_valid_cache_key(&file.hash)
+3245:                     || !artifact_names.insert(file.name.as_str())
+3246:                 {
+3247:                     anyhow::bail!(
+3248:                         "verified restore contains unsafe or duplicate artifact metadata"
+3249:                     );
+3250:                 }
+3251:                 let artifact = entry_dir.join(&file.name);
+3252:                 let actual_size = fs::metadata(&artifact)
+3253:                     .with_context(|| format!("stat verified artifact {}", file.name))?
+3254:                     .len();
+3255:                 if actual_size != file.size {
+3256:                     anyhow::bail!(
+3257:                         "verified artifact {} size mismatch (expected {}, got {})",
+3258:                         file.name,
+3259:                         file.size,
+3260:                         actual_size
+
+src/config.rs:645-653
+645: pub struct S3RemoteConfig {
+646:     pub bucket: String,
+647:     pub endpoint: Option<String>,
+648:     pub region: String,
+649:     /// AWS profile name for credential lookup (e.g. "ceph").
+650:     pub profile: Option<String>,
+651:     /// Custom User-Agent header for S3 HTTP requests.
+652:     pub user_agent: Option<String>,
+653: }
+
+src/config.rs:1530-1590
+1530:             warn_ignored_env_overrides();
+1531:         }
+1532: 
+1533:         // NOTE: `KACHE_DISABLED` is intentionally NOT gated by `ignore_env` —
+1534:         // it's an operational kill switch, not a file-backed setting.
+1535:         let disabled = std::env::var("KACHE_DISABLED")
+1536:             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+1537:             .unwrap_or(false);
+1538: 
+1539:         let cache_dir = env_or_ignored("KACHE_CACHE_DIR", ignore_env)
+1540:             .map(|s| shellexpand(&s))
+1541:             .or_else(|_| {
+1542:                 file_config
+1543:                     .as_ref()
+1544:                     .ok()
+1545:                     .and_then(|c| c.cache.as_ref())
+1546:                     .and_then(|c| c.local_store.as_ref())
+1547:                     .map(|s| shellexpand(s))
+1548:                     .ok_or(())
+1549:             })
+1550:             .unwrap_or_else(|_| default_cache_dir());
+1551: 
+1552:         let readonly_store = env_or_ignored("KACHE_READONLY_STORE", ignore_env)
+1553:             .ok()
+1554:             .or_else(|| {
+1555:                 file_config
+1556:                     .as_ref()
+1557:                     .ok()
+1558:                     .and_then(|c| c.cache.as_ref())
+1559:                     .and_then(|c| c.readonly_store.clone())
+1560:             })
+1561:             .filter(|s| !s.is_empty())
+1562:             .map(|s| shellexpand(&s));
+1563: 
+1564:         // Keep the historical single-directory layout unless explicitly split.
+1565:         // Resolve this once alongside `cache_dir`: wrappers and their daemon must
+1566:         // agree on every runtime path even if ambient env changes later.
+1567:         let runtime_dir = env_or_ignored("KACHE_RUNTIME_DIR", ignore_env)
+1568:             .map(|s| shellexpand(&s))
+1569:             .or_else(|_| {
+1570:                 file_config
+1571:                     .as_ref()
+1572:                     .ok()
+1573:                     .and_then(|c| c.cache.as_ref())
+1574:                     .and_then(|c| c.runtime_dir.as_ref())
+1575:                     .map(|s| shellexpand(s))
+1576:                     .ok_or(())
+1577:             })
+1578:             .unwrap_or_else(|_| cache_dir.clone());
+1579:         let runtime_follows_cache = runtime_dir == cache_dir;
+1580: 
+1581:         // Trusted node-local L1 (#811): isolate the persistent store under a
+1582:         // single path-safe label. Invalid or unusable labels fail open to the
+1583:         // unscoped cache dir. Do not export this on public/fork jobs.
+1584:         let trust_domain = std::env::var("KACHE_TRUST_DOMAIN").ok();
+1585:         let cache_dir = isolate_cache_dir_for_trust_domain(cache_dir, trust_domain.as_deref());
+1586:         let runtime_dir = if runtime_follows_cache {
+1587:             cache_dir.clone()
+1588:         } else {
+1589:             runtime_dir
+1590:         };
+
+docs/remote-cache/overview.mdx:40-48
+40: 
+41: Use [CI setup](/docs/remote-cache/ci) for write policy and credential examples.
+42: On GitHub Actions and GitLab CI, remote writes normally require a push to a
+43: protected branch. An optional pull-request prefix permits isolated writes on
+44: supported backends. OCI pull requests remain read-only because registry tag
+45: prefixes cannot isolate write permissions.
+46: 
+47: A remote contains compiler outputs. Only give write access to jobs and people
+48: you trust to produce those outputs.
+
+docs/getting-started/configuration.mdx:7-78
+7: 
+8: 1. environment variable
+9: 2. config file
+10: 3. [host config](#host-config)
+11: 4. built-in default
+12: 
+13: Some settings exist only as environment variables, among them `KACHE_DISABLED`, `KACHE_CONFIG`, `KACHE_HOST_CONFIG`, `KACHE_SOCKET_PATH`, `KACHE_TRUST_DOMAIN`, the logging and progress controls, and the S3 and OCI credentials. Where the tables below list one, its TOML key is `none`.
+14: 
+15: ## Config file
+16: 
+17: Open the editor:
+18: 
+19: ```bash
+20: kache config
+21: ```
+22: 
+23: Or edit TOML directly. Kache chooses the first file in this order:
+24: 
+25: 1. `KACHE_CONFIG`
+26: 2. the nearest `.kache.toml`, walking up from the current directory
+27: 3. `$XDG_CONFIG_HOME/kache/config.toml` or `~/.config/kache/config.toml`
+28: 
+29: Kache reads only that one file, plus the [host config](#host-config); a `.kache.toml` does not merge with your user config.
+30: 
+31: Each process walks up from its own current directory. Cargo compiles packages under the workspace root from the workspace root, but compiles registry and git dependencies, and runs their build scripts, from each package's source directory under `$CARGO_HOME`, so those compiles do not see your project's `.kache.toml`. A daemon that a build starts resolves its file from the directory of the compile that started it, which can be a dependency's source directory. To apply a setting to every compile and to the daemon, put it in your user config or the host config, or point `KACHE_CONFIG` at the file.
+32: 
+33: If the chosen file is not valid TOML, or a key has the wrong type, Kache ignores the whole file, and the host config with it, and runs on environment variables and defaults without a warning. Size keys (`local_max_size`, `event_log_max_size`, `prefetch_max_bytes`) take quoted strings such as `"50GiB"`.
+34: 
+35: The editor covers common fields and keeps the other settings Kache knows. Saving rewrites the whole file: comments and keys Kache does not recognize are dropped, and a file that does not parse is replaced. The editor asks before it first overwrites an existing file.
+36: 
+37: ```toml title="~/.config/kache/config.toml"
+38: [cache]
+39: cache_executables = true
+40: 
+41: [cache.remote]
+42: type = "s3"
+43: bucket = "my-build-cache"
+44: region = "us-east-1"
+45: ```
+46: 
+47: Use `type = "filesystem"` with `path = "/mnt/kache"` for a shared filesystem remote. Kache also supports `gcs` and `oci` remotes; see [Remote settings](#remote-settings).
+48: 
+49: ### Host config
+50: 
+51: A machine owner can set keys for every build on the machine in `/etc/kache/config.toml`. Kache merges it with the chosen file key by key: a key the chosen file sets wins, and a key it leaves unset comes from the host file. Environment variables still win over both.
+52: 
+53: The host file reaches CI jobs too. kache-action points `KACHE_CONFIG` at a file of its own that only sets `[cache.remote]`, so a host file like this applies to every job on the runner:
+54: 
+55: ```toml title="/etc/kache/config.toml"
+56: [cache]
+57: local_max_size = "200GiB"
+58: ```
+59: 
+60: - `[cache.remote]`, `[cache.planner]` and `[cache.volumes]` are replaced whole. If the chosen file declares one, none of the host file's keys for it apply.
+61: - A remote set only through `KACHE_S3_*` variables also replaces the host remote, as long as the chosen file declares no `[cache.remote]`. The same goes for `KACHE_PLANNER_*` and `[cache.planner]`, so a host planner token is never sent to an endpoint the environment picked. A daemon started by a build, `kache daemon start` or `kache daemon restart` does not inherit the variables that select the remote, so it uses the host remote; Kache warns when it starts one that way.
+62: - The host file never contributes `[workspace]` declarations. Those belong to a project's `.kache.toml`.
+63: - The host file cannot set `ignore_env`. Kache ignores it with a warning, so the host file can never turn environment overrides off. Only the chosen file can; see [Pin file-backed settings](#pin-file-backed-settings).
+64: - A host file that cannot be read or parsed is ignored with a warning. `kache doctor` reports it, and lists each host key with whatever overrides it.
+65: - `KACHE_HOST_CONFIG` reads another path instead. An empty value turns the host layer off.
+66: - `kache config` edits the chosen file, never the host file.
+67: 
+68: ## Core settings
+69: 
+70: | Environment | TOML key | Default | Purpose |
+71: | --- | --- | --- | --- |
+72: | `KACHE_CACHE_DIR` | `cache.local_store` | OS cache directory | Persistent store |
+73: | `KACHE_TRUST_DOMAIN` | none | unset | Isolate the local store under `<cache dir>/<label>/`; a runtime dir left at its default moves with it. The label is one path component of up to 64 characters from `[A-Za-z0-9._-]`, and not `.` or `..`. Invalid labels are ignored with a warning. Do not set this on public or fork jobs. |
+74: | `KACHE_RUNTIME_DIR` | `cache.runtime_dir` | local store | Socket, locks, logs, state, and session markers |
+75: | `KACHE_READONLY_STORE` | `cache.readonly_store` | unset | Another store on this machine to read after the local one, never written. See [Read-only store](#read-only-store). |
+76: | none | `cache.volumes` | unset | Volume-local store shards, e.g. `[cache.volumes] "D:" = "D:/kache-store"`. Builds on a mapped volume share inodes there instead of copying across mounts. Unmapped volumes use the main store. GC sweeps each shard with its own budget; see [Volume shards](#volume-shards). |
+77: | `KACHE_SOCKET_PATH` | none | `<runtime_dir>/daemon.sock` | Absolute daemon endpoint override |
+78: | `KACHE_MAX_SIZE` | `cache.local_max_size` | 5% of the cache disk, rounded to the nearest GiB, floored at 5GiB and capped at 100GiB; 50GiB when the disk size cannot be read | Registered blob bytes allowed before GC. An explicit size always wins. `none` is not allowed. |

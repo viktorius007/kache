@@ -1,0 +1,98 @@
+[
+  {
+    "argv": [
+      "python3",
+      "investigation/probe_remote_validation.py",
+      "binding",
+      "valid"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation",
+    "timeout_seconds": 60,
+    "observed_exit": 0,
+    "raw_log": "binding-valid.execution.txt"
+  },
+  {
+    "argv": [
+      "python3",
+      "investigation/probe_remote_validation.py",
+      "shards",
+      "sequential"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation",
+    "timeout_seconds": 60,
+    "observed_exit": 0,
+    "raw_log": "shards-sequential.execution.txt"
+  },
+  {
+    "argv": [
+      "python3",
+      "investigation/probe_remote_validation.py",
+      "binding",
+      "swap"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation",
+    "timeout_seconds": 60,
+    "observed_exit": 1,
+    "raw_log": "binding-swap.execution.txt"
+  },
+  {
+    "argv": [
+      "python3",
+      "investigation/probe_remote_validation.py",
+      "shards",
+      "concurrent"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation",
+    "timeout_seconds": 60,
+    "observed_exit": 1,
+    "raw_log": "shards-concurrent.execution.txt"
+  },
+  {
+    "argv": [
+      "python3",
+      "investigation/probe_remote_validation.py",
+      "shards",
+      "reverse"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation",
+    "timeout_seconds": 60,
+    "observed_exit": 1,
+    "raw_log": "shards-reverse.execution.txt"
+  },
+  {
+    "argv": [
+      "python3",
+      "investigation/probe_remote_validation.py",
+      "shards",
+      "same-store"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation",
+    "timeout_seconds": 60,
+    "observed_exit": 0,
+    "raw_log": "shards-same-store.execution.txt"
+  },
+  {
+    "argv": [
+      "python3",
+      "investigation/probe_remote_validation.py",
+      "binding",
+      "corrupt"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation",
+    "timeout_seconds": 60,
+    "observed_exit": 0,
+    "raw_log": "binding-corrupt.execution.txt"
+  },
+  {
+    "argv": [
+      "python3",
+      "investigation/probe_remote_validation.py",
+      "shards",
+      "sockets"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation",
+    "timeout_seconds": 60,
+    "observed_exit": 1,
+    "raw_log": "shards-sockets.execution.txt"
+  }
+]

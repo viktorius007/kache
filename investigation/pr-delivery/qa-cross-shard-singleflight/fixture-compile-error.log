@@ -1,0 +1,14 @@
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/qa-cross-shard-singleflight/crates/kache-fs)
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/qa-cross-shard-singleflight/crates/kache-format)
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/qa-cross-shard-singleflight)
+   Compiling kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-prs/qa-cross-shard-singleflight/crates/kache-shims)
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/qa-cross-shard-singleflight/crates/kache-store)
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/qa-cross-shard-singleflight/crates/kache-core)
+error[E0308]: mismatched types
+     --> src/daemon/tests.rs:10869:21
+      |
+10869 |             volume: dir.path().join("volume"),
+      |                     ^^^^^^^^^^^^^^^^^^^^^^^^^ expected `String`, found `PathBuf`
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `kache` (bin "kache" test) due to 1 previous error

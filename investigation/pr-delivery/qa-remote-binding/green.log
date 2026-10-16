@@ -1,0 +1,35 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/qa-remote-binding)
+    Finished `test` profile [unoptimized] target(s) in 15.59s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 27 tests
+test remote_layout::tests::a_pack_without_its_manifest_gets_one_from_the_next_upload ... ok
+test remote_layout::tests::a_second_upload_of_a_key_keeps_the_first_objects ... ok
+test remote_layout::tests::blob_path_is_panic_safe_for_short_hash ... ok
+test remote_layout::tests::a_store_without_create_only_writes_gets_plain_puts ... ok
+test remote_layout::tests::copy_dir_all_replicates_nested_tree ... ok
+test remote_layout::tests::cc_object_pack_round_trips_through_v3 ... ok
+test remote_layout::tests::empty_prefix_addresses_the_root_and_round_trips ... ok
+test remote_layout::tests::download_entry_extracts_a_stored_pack ... ok
+test remote_layout::tests::exists_entry_propagates_unexpected_errors ... ok
+test remote_layout::tests::exists_entry_reports_present_and_missing_objects ... ok
+test remote_layout::tests::expired_deadline_interrupts_synchronous_read_and_write_work ... ok
+test remote_layout::tests::is_rooted_path_flags_absolute_and_prefixed_paths ... ok
+test remote_layout::tests::list_keys_for_crates_queries_each_crate_prefix ... ok
+test remote_layout::tests::list_keys_maps_manifest_objects_to_crate_and_key ... ok
+test remote_layout::tests::observed_backend_errors_keep_started_attempts_without_fabricated_body_or_list_results ... ok
+test remote_layout::tests::observed_download_before_admission_has_no_backend_attempt ... ok
+test remote_layout::tests::exact_download_rejects_a_valid_pack_for_another_entry ... ok
+test remote_layout::tests::observed_lists_count_backend_results_before_filtering_and_each_crate_call ... ok
+test remote_layout::tests::observed_download_retains_received_bytes_on_decode_failure_and_distinguishes_miss ... ok
+test remote_layout::tests::packed_prefetch_checks_each_outer_and_inner_binding_independently ... ok
+test remote_layout::tests::upload_entry_puts_pack_and_manifest ... ok
+test remote_layout::tests::v3_extract_rejects_absolute_path ... ok
+test remote_layout::tests::v3_extract_rejects_content_hash_mismatch ... ok
+test remote_layout::tests::v3_extract_rejects_path_traversal ... ok
+test remote_layout::tests::v3_keys_follow_the_documented_layout ... ok
+test remote_layout::tests::v3_pack_roundtrip_restores_meta_and_files ... ok
+test remote_layout::tests::property_v3_pack_round_trips_multiple_binary_artifacts ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 4369 filtered out; finished in 0.34s
+

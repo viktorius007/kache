@@ -1,0 +1,11 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/qa-cross-shard-singleflight)
+    Finished `test` profile [unoptimized] target(s) in 13.61s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target/debug/deps/kache-1216026e9547a40d)
+
+running 3 tests
+test daemon::tests::direct_restore_coalesces_simultaneous_unknown_key_hits ... ok
+test daemon::tests::direct_restore_fetches_one_pack_without_a_listing_manifest ... ok
+test daemon::tests::direct_restore_same_key_commits_to_each_requested_store ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 4393 filtered out; finished in 0.27s
+

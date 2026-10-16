@@ -1,0 +1,26 @@
+[2m2026-10-11T07:11:56.399227Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m daemon listening on /Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/s736d5c
+[2m2026-10-11T07:11:56.399431Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m cache filesystem locality check [3mcache_dir[0m[2m=[0m/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/f-v8_32451/seed/cache [3mverdict[0m[2m=[0mLocal
+[2m2026-10-11T07:11:56.399464Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m durable upload replay scan complete [3mreplay_count[0m[2m=[0m0
+[2m2026-10-11T07:11:56.399530Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m started 16 upload workers
+[2m2026-10-11T07:11:56.400446Z[0m [34mDEBUG[0m [2mkache_store::store[0m[2m:[0m retrying transient SQLite open failure: database is locked [3mpath[0m[2m=[0m/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/f-v8_32451/seed/cache/index.db [3mattempt[0m[2m=[0m1 [3mdelay[0m[2m=[0m25ms
+[2m2026-10-11T07:11:56.400891Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m periodic GC sweep starting
+[2m2026-10-11T07:11:56.412316Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m gc: pruned C/C++ memos [3mmemos[0m[2m=[0m0 [3minputs[0m[2m=[0m0
+[2m2026-10-11T07:11:56.412355Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m gc: pruned build-session markers [3mmarkers[0m[2m=[0m0
+[2m2026-10-11T07:11:56.412745Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m periodic GC: size pass not due (under the trigger or backing off)
+[2m2026-10-11T07:11:56.412778Z[0m [34mDEBUG[0m [2mkache::build_script[0m[2m:[0m build-script run sweep: Sweep { removed: 0, kept: 0 }
+[2m2026-10-11T07:11:56.413060Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m gc: housekeeping [3mkey_locks_removed[0m[2m=[0m0 [3mkey_locks_remaining[0m[2m=[0m0 [3mpredictions_pruned[0m[2m=[0m0 [3mfile_hashes_pruned[0m[2m=[0m0 [3mprestage_pruned[0m[2m=[0m0
+[2m2026-10-11T07:11:56.413074Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m gc complete: 0 entries evicted, 0 B freed, 0 blobs removed in 7ms
+[2m2026-10-11T07:11:56.564770Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m build-started: speculative prefetch disabled
+[2m2026-10-11T07:11:56.564812Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m response write failed (client likely closed): Broken pipe (os error 32)
+[2m2026-10-11T07:11:56.564956Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m remote check warming barrier completed [3mwarmed[0m[2m=[0mtrue [3mgrace_ms[0m[2m=[0m750
+[2m2026-10-11T07:11:56.565206Z[0m [34mDEBUG[0m [2mkache::remote_layout[0m[2m:[0m downloading v3 pack file:///Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/f-v8_32451/remote/artifacts/v3/packs/fixture/79b44bda8b7ec333918629b98af4e305c84a19cc192c78cde5d4e63c8746d7ea.tar.zst
+[2m2026-10-11T07:11:56.565511Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m remote GET 404 for 79b44bda8b7ec333918629b98af4e305c84a19cc192c78cde5d4e63c8746d7ea — treating as miss
+[2m2026-10-11T07:11:56.567223Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m response write failed (client likely closed): Broken pipe (os error 32)
+[2m2026-10-11T07:11:56.650198Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m response write failed (client likely closed): Broken pipe (os error 32)
+[2m2026-10-11T07:11:56.669186Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m handling upload request [3mcrate_name[0m[2m=[0m"fixture" [3mkey[0m[2m=[0m"79b44bda8b7ec333"
+[2m2026-10-11T07:11:56.679083Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m response write failed (client likely closed): Broken pipe (os error 32)
+[2m2026-10-11T07:11:56.679313Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m starting remote upload [3mcrate_name[0m[2m=[0m"fixture" [3mkey[0m[2m=[0m"79b44bda8b7ec333" [3mremote[0m[2m=[0mfile:///Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/f-v8_32451/remote/artifacts
+[2m2026-10-11T07:11:56.696559Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m shutdown requested via protocol, draining...
+[2m2026-10-11T07:11:56.710650Z[0m [34mDEBUG[0m [2mkache::blob_heal[0m[2m:[0m blob index heal not needed
+[2m2026-10-11T07:11:56.711048Z[0m [34mDEBUG[0m [2mkache::index_compact[0m[2m:[0m index compaction not needed
+[2m2026-10-11T07:11:56.711137Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m daemon stopped

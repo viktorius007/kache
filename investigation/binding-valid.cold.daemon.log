@@ -1,0 +1,21 @@
+[2m2026-10-11T07:03:06.548487Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m daemon listening on /Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/s767f61
+[2m2026-10-11T07:03:06.548667Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m cache filesystem locality check [3mcache_dir[0m[2m=[0m/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/f-r01iqk8h/cold/cache [3mverdict[0m[2m=[0mLocal
+[2m2026-10-11T07:03:06.548704Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m durable upload replay scan complete [3mreplay_count[0m[2m=[0m0
+[2m2026-10-11T07:03:06.548828Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m started 16 upload workers
+[2m2026-10-11T07:03:06.549474Z[0m [34mDEBUG[0m [2mkache_store::store[0m[2m:[0m retrying transient SQLite open failure: database is locked [3mpath[0m[2m=[0m/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/f-r01iqk8h/cold/cache/index.db [3mattempt[0m[2m=[0m1 [3mdelay[0m[2m=[0m25ms
+[2m2026-10-11T07:03:06.550206Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m periodic GC sweep starting
+[2m2026-10-11T07:03:06.563282Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m gc: pruned C/C++ memos [3mmemos[0m[2m=[0m0 [3minputs[0m[2m=[0m0
+[2m2026-10-11T07:03:06.563316Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m gc: pruned build-session markers [3mmarkers[0m[2m=[0m0
+[2m2026-10-11T07:03:06.563701Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m periodic GC: size pass not due (under the trigger or backing off)
+[2m2026-10-11T07:03:06.563740Z[0m [34mDEBUG[0m [2mkache::build_script[0m[2m:[0m build-script run sweep: Sweep { removed: 0, kept: 0 }
+[2m2026-10-11T07:03:06.564004Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m gc: housekeeping [3mkey_locks_removed[0m[2m=[0m0 [3mkey_locks_remaining[0m[2m=[0m0 [3mpredictions_pruned[0m[2m=[0m0 [3mfile_hashes_pruned[0m[2m=[0m0 [3mprestage_pruned[0m[2m=[0m0
+[2m2026-10-11T07:03:06.564023Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m gc complete: 0 entries evicted, 0 B freed, 0 blobs removed in 13ms
+[2m2026-10-11T07:03:06.640523Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m build-started: speculative prefetch disabled
+[2m2026-10-11T07:03:06.640589Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m response write failed (client likely closed): Broken pipe (os error 32)
+[2m2026-10-11T07:03:06.640734Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m remote check warming barrier completed [3mwarmed[0m[2m=[0mtrue [3mgrace_ms[0m[2m=[0m750
+[2m2026-10-11T07:03:06.641059Z[0m [34mDEBUG[0m [2mkache::remote_layout[0m[2m:[0m downloading v3 pack s3://fixture/artifacts/v3/packs/fixture/79b44bda8b7ec333918629b98af4e305c84a19cc192c78cde5d4e63c8746d7ea.tar.zst
+[2m2026-10-11T07:03:06.641323Z[0m [32m INFO[0m [2mkache::remote_backend::s3_credentials[0m[2m:[0m loaded S3 credentials from KACHE_S3_ACCESS_KEY and KACHE_S3_SECRET_KEY
+[2m2026-10-11T07:03:06.927466Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m shutdown requested via protocol, draining...
+[2m2026-10-11T07:03:06.940857Z[0m [34mDEBUG[0m [2mkache::blob_heal[0m[2m:[0m blob index heal not needed
+[2m2026-10-11T07:03:06.943688Z[0m [34mDEBUG[0m [2mkache::index_compact[0m[2m:[0m index compaction not needed
+[2m2026-10-11T07:03:06.944096Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m daemon stopped

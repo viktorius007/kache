@@ -1,0 +1,8 @@
+{
+  "id": "qa-cross-shard-singleflight",
+  "url": "https://github.com/kunobi-ninja/kache/pull/1512",
+  "branch": "fix/qa-cross-shard-singleflight",
+  "fix_commit": "9e469c9a6e319339c9a3146461a2fcfc2e12c8f4",
+  "state": "draft",
+  "review": "investigation/pr-delivery/reviews/qa-cross-shard-singleflight.md"
+}

@@ -1,0 +1,17 @@
+$ ["codebase-memory-mcp", "cli", "list_projects"]
+exit: 0
+projects: 8  (cols: name root_path branch)
+  Users-viktor-Developer-github-codex /Users/viktor/Developer/github/codex local/customizations
+  Users-viktor-Developer-github-kache-investigations-cache-poisoning-audit-investigation-upstream-kache-action /Users/viktor/Developer/github/kache-investigations/cache-poisoning-audit/investigation/upstream/kache-action main
+  Users-viktor-Developer-github-kache-investigations-cache-poisoning-audit-investigation-upstream-zizmor /Users/viktor/Developer/github/kache-investigations/cache-poisoning-audit/investigation/upstream/zizmor main
+  Users-viktor-Developer-github-kache-investigations-coordinator /Users/viktor/Developer/github/kache-investigations/coordinator investigation/coordinator
+  Users-viktor-Developer-jmap /Users/viktor/Developer/jmap main
+  Users-viktor-Developer-jmapmail /Users/viktor/Developer/jmapmail main
+  Users-viktor-Documents-Codex-2026-10-11-extract-the-coordinator-role-prompt-from /Users/viktor/Documents/Codex/2026-10-11/extract-the-coordinator-role-prompt-from -
+  private-tmp-kache-d5-investigation /private/tmp/kache-d5-investigation -
+total: 8
+returned: 8
+has_more: false
+
+
+STDERR:

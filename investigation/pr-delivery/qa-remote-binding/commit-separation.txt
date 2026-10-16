@@ -1,0 +1,5 @@
+Base: 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9
+Test-only commit: 8abea96f17c48f425d733da01d51803b3c817fa8
+Fix-only commit: b06aba292b0cabb5d47fa0ad6a7c0a77b31206a1
+Verified test diff hunks all lie in #[cfg(test)] module; production diff hunks all precede test module.
+Only src/remote_layout.rs is changed.

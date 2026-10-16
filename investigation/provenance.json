@@ -1,0 +1,10 @@
+{
+  "baseline_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "binary": "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+  "binary_sha256": "45840941809ca7c45622027f84d2c653c737e7ff35d375cfbf355b619456120f",
+  "binary_size": 65586752,
+  "production_diff": [],
+  "coordinator_production_diff": [],
+  "rustc": "/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/rustc",
+  "fixture_isolation": "Every CLI child gets explicit fixture HOME/KACHE_CONFIG/KACHE_CACHE_DIR/KACHE_RUNTIME_DIR/CARGO_HOME/TMPDIR/TMP/TEMP inside investigation; real RUSTUP_HOME retained; no ambient environment inherited; effective paths asserted through daemon stats before operations."
+}

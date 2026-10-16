@@ -1,0 +1,25 @@
+{
+  "id": "qa-cross-shard-singleflight",
+  "status": "READY",
+  "branch": "fix/qa-cross-shard-singleflight",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/qa-cross-shard-singleflight",
+  "test_commit": "4a1a2994b86eb43d114cafe74608d17323f95b76",
+  "fix_commit": "9e469c9a6e319339c9a3146461a2fcfc2e12c8f4",
+  "title": "Publish same-key remote restores into each requested store",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/pr-delivery/qa-cross-shard-singleflight/pr-body.md",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "gate_command": "CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py just check",
+  "gate_exit": 0,
+  "gate_head": "9e469c9a6e319339c9a3146461a2fcfc2e12c8f4",
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/pr-delivery/qa-cross-shard-singleflight/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/pr-delivery/qa-cross-shard-singleflight/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/pr-delivery/qa-cross-shard-singleflight/gate.log",
+  "changed_files": [
+    "src/daemon.rs",
+    "src/daemon/tests.rs",
+    "src/remote_resilience.rs"
+  ],
+  "oracle_notes": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/pr-delivery/qa-cross-shard-singleflight/oracle-notes.md",
+  "original_proof": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/cross-shard-singleflight.case.json",
+  "mutation_testing": "CI only; not run locally"
+}

@@ -1,0 +1,116 @@
+{
+  "project": "Users-viktor-Developer-github-kache-investigations-coordinator",
+  "baseline": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "source_ranges": {
+    "src/cache_remote.rs": [
+      [
+        1,
+        457
+      ]
+    ],
+    "src/wrapper/remote.rs": [
+      [
+        1,
+        81
+      ]
+    ],
+    "src/remote_layout.rs": [
+      [
+        1,
+        234
+      ],
+      [
+        399,
+        451
+      ],
+      [
+        462,
+        481
+      ],
+      [
+        639,
+        809
+      ]
+    ],
+    "src/daemon.rs": [
+      [
+        448,
+        475
+      ],
+      [
+        985,
+        1096
+      ],
+      [
+        1408,
+        1500
+      ],
+      [
+        4481,
+        4949
+      ],
+      [
+        4960,
+        4980
+      ],
+      [
+        8640,
+        8730
+      ],
+      [
+        9050,
+        9120
+      ]
+    ],
+    "crates/kache-store/src/store.rs": [
+      [
+        2438,
+        2560
+      ],
+      [
+        2940,
+        3130
+      ],
+      [
+        3200,
+        3260
+      ]
+    ],
+    "src/config.rs": [
+      [
+        645,
+        653
+      ],
+      [
+        1530,
+        1590
+      ]
+    ],
+    "docs/remote-cache/overview.mdx": [
+      [
+        40,
+        48
+      ]
+    ],
+    "docs/getting-started/configuration.mdx": [
+      [
+        7,
+        78
+      ]
+    ]
+  },
+  "full_files_read": [
+    "src/cache_remote.rs",
+    "src/wrapper/remote.rs"
+  ],
+  "scope": "two exact restore/request scheduling seams; bounded methods in larger modules",
+  "graph_limits": [
+    "Rust semantic_partial: binding_oracle_unavailable, expanded_calls_unavailable, impl_relationships_unavailable",
+    "127041 unresolved calls; 193239 unresolved references; no exhaustive caller absence claim"
+  ],
+  "runtime_limits": [
+    "macOS aarch64 baseline debug CLI; fixture directory stores share a physical volume",
+    "loopback GET transport only; no cloud credential, provider consistency, live registry, Linux or Windows claim",
+    "no extra dependency/baseline builds, full suite, mutation run, workload frequency measurement or production repairs"
+  ]
+}

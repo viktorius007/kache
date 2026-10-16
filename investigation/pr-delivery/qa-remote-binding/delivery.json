@@ -1,0 +1,22 @@
+{
+  "id": "qa-remote-binding",
+  "status": "READY",
+  "branch": "fix/qa-remote-binding",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/qa-remote-binding",
+  "test_commit": "8abea96f17c48f425d733da01d51803b3c817fa8",
+  "fix_commit": "b06aba292b0cabb5d47fa0ad6a7c0a77b31206a1",
+  "title": "Validate exact remote packs against the requested entry",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/pr-delivery/qa-remote-binding/pr-body.md",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "gate_command": "CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py just check",
+  "gate_exit": 0,
+  "gate_head": "b06aba292b0cabb5d47fa0ad6a7c0a77b31206a1",
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/pr-delivery/qa-remote-binding/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/pr-delivery/qa-remote-binding/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/pr-delivery/qa-remote-binding/gate.log",
+  "changed_files": [
+    "src/remote_layout.rs"
+  ],
+  "oracle_notes": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/pr-delivery/qa-remote-binding/oracle-notes.md",
+  "mutation_testing": "CI only; not run locally"
+}

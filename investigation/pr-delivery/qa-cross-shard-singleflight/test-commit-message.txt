@@ -1,0 +1,15 @@
+test: require same-key remote hits to populate each requested store
+
+Force overlapping restores with the existing gated backend, elect both
+store destinations as leader, and require committed rows and fixture bytes
+in each store. Strengthen same-store dedup with an explicit main store and
+a dot-component alias of its validated entry directory.
+
+The recorded red on unchanged production reports a hit but leaves the
+follower store uncommitted. The user requested this deliberately red
+regression commit before the separate repair.
+
+Reuse search: graph name-pattern direct_restore returned two tests.
+Reuse their DirectRestoreBackend, request and pack helpers; extend the
+coalescing control. Neither existing test exercised distinct stores, so a
+focused two-store regression is added inside the same private test module.

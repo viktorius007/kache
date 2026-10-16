@@ -1,0 +1,24 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/qa-cross-shard-singleflight)
+    Finished `test` profile [unoptimized] target(s) in 15.79s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+test daemon::tests::direct_restore_same_key_commits_to_each_requested_store ... FAILED
+
+failures:
+
+---- daemon::tests::direct_restore_same_key_commits_to_each_requested_store stdout ----
+
+thread 'daemon::tests::direct_restore_same_key_commits_to_each_requested_store' (54120011) panicked at src/daemon/tests.rs:10910:13:
+assertion `left == right` failed: same-key remote hit must commit to every requested store: /var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmp0OVuPA/shard (shard_leads=false)
+  left: None
+ right: Some([114, 101, 97, 108, 32, 97, 114, 116, 105, 102, 97, 99, 116, 32, 98, 121, 116, 101, 115])
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    daemon::tests::direct_restore_same_key_commits_to_each_requested_store
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4395 filtered out; finished in 0.07s
+
+error: test failed, to rerun pass `--bin kache`

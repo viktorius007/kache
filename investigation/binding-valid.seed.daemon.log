@@ -1,0 +1,34 @@
+[2m2026-10-11T07:03:06.227189Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m daemon listening on /Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/sb23a14
+[2m2026-10-11T07:03:06.227358Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m cache filesystem locality check [3mcache_dir[0m[2m=[0m/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/f-r01iqk8h/seed/cache [3mverdict[0m[2m=[0mLocal
+[2m2026-10-11T07:03:06.227393Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m durable upload replay scan complete [3mreplay_count[0m[2m=[0m0
+[2m2026-10-11T07:03:06.227440Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m started 16 upload workers
+[2m2026-10-11T07:03:06.228066Z[0m [34mDEBUG[0m [2mkache_store::store[0m[2m:[0m retrying transient SQLite open failure: database is locked [3mpath[0m[2m=[0m/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/f-r01iqk8h/seed/cache/index.db [3mattempt[0m[2m=[0m1 [3mdelay[0m[2m=[0m25ms
+[2m2026-10-11T07:03:06.228826Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m periodic GC sweep starting
+[2m2026-10-11T07:03:06.250778Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m gc: pruned C/C++ memos [3mmemos[0m[2m=[0m0 [3minputs[0m[2m=[0m0
+[2m2026-10-11T07:03:06.250821Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m gc: pruned build-session markers [3mmarkers[0m[2m=[0m0
+[2m2026-10-11T07:03:06.251215Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m periodic GC: size pass not due (under the trigger or backing off)
+[2m2026-10-11T07:03:06.251251Z[0m [34mDEBUG[0m [2mkache::build_script[0m[2m:[0m build-script run sweep: Sweep { removed: 0, kept: 0 }
+[2m2026-10-11T07:03:06.251550Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m gc: housekeeping [3mkey_locks_removed[0m[2m=[0m0 [3mkey_locks_remaining[0m[2m=[0m0 [3mpredictions_pruned[0m[2m=[0m0 [3mfile_hashes_pruned[0m[2m=[0m0 [3mprestage_pruned[0m[2m=[0m0
+[2m2026-10-11T07:03:06.251564Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m gc complete: 0 entries evicted, 0 B freed, 0 blobs removed in 19ms
+[2m2026-10-11T07:03:06.325801Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m build-started: speculative prefetch disabled
+[2m2026-10-11T07:03:06.325853Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m response write failed (client likely closed): Broken pipe (os error 32)
+[2m2026-10-11T07:03:06.326002Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m remote check warming barrier completed [3mwarmed[0m[2m=[0mtrue [3mgrace_ms[0m[2m=[0m750
+[2m2026-10-11T07:03:06.326279Z[0m [34mDEBUG[0m [2mkache::remote_layout[0m[2m:[0m downloading v3 pack file:///Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/f-r01iqk8h/remote/artifacts/v3/packs/fixture/79b44bda8b7ec333918629b98af4e305c84a19cc192c78cde5d4e63c8746d7ea.tar.zst
+[2m2026-10-11T07:03:06.326625Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m remote GET 404 for 79b44bda8b7ec333918629b98af4e305c84a19cc192c78cde5d4e63c8746d7ea — treating as miss
+[2m2026-10-11T07:03:06.328624Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m response write failed (client likely closed): Broken pipe (os error 32)
+[2m2026-10-11T07:03:06.351178Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m response write failed (client likely closed): Broken pipe (os error 32)
+[2m2026-10-11T07:03:06.370101Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m handling upload request [3mcrate_name[0m[2m=[0m"fixture" [3mkey[0m[2m=[0m"79b44bda8b7ec333"
+[2m2026-10-11T07:03:06.381063Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m response write failed (client likely closed): Broken pipe (os error 32)
+[2m2026-10-11T07:03:06.381283Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m starting remote upload [3mcrate_name[0m[2m=[0m"fixture" [3mkey[0m[2m=[0m"79b44bda8b7ec333" [3mremote[0m[2m=[0mfile:///Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/f-r01iqk8h/remote/artifacts
+[2m2026-10-11T07:03:06.409017Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m remote check warming barrier completed [3mwarmed[0m[2m=[0mtrue [3mgrace_ms[0m[2m=[0m750
+[2m2026-10-11T07:03:06.409087Z[0m [34mDEBUG[0m [2mkache::remote_layout[0m[2m:[0m downloading v3 pack file:///Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/f-r01iqk8h/remote/artifacts/v3/packs/fixture/31e7bf6ac17fd77707a6be8a1c8a6c73dc16b27e072f864a532471deed273ef0.tar.zst
+[2m2026-10-11T07:03:06.409421Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m remote GET 404 for 31e7bf6ac17fd77707a6be8a1c8a6c73dc16b27e072f864a532471deed273ef0 — treating as miss
+[2m2026-10-11T07:03:06.431064Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m response write failed (client likely closed): Broken pipe (os error 32)
+[2m2026-10-11T07:03:06.452721Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m response write failed (client likely closed): Broken pipe (os error 32)
+[2m2026-10-11T07:03:06.470284Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m handling upload request [3mcrate_name[0m[2m=[0m"fixture" [3mkey[0m[2m=[0m"31e7bf6ac17fd777"
+[2m2026-10-11T07:03:06.479099Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m response write failed (client likely closed): Broken pipe (os error 32)
+[2m2026-10-11T07:03:06.479270Z[0m [34mDEBUG[0m [2mkache::daemon[0m[2m:[0m starting remote upload [3mcrate_name[0m[2m=[0m"fixture" [3mkey[0m[2m=[0m"31e7bf6ac17fd777" [3mremote[0m[2m=[0mfile:///Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/f-r01iqk8h/remote/artifacts
+[2m2026-10-11T07:03:06.494734Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m shutdown requested via protocol, draining...
+[2m2026-10-11T07:03:06.505817Z[0m [34mDEBUG[0m [2mkache::blob_heal[0m[2m:[0m blob index heal not needed
+[2m2026-10-11T07:03:06.506242Z[0m [34mDEBUG[0m [2mkache::index_compact[0m[2m:[0m index compaction not needed
+[2m2026-10-11T07:03:06.506340Z[0m [32m INFO[0m [2mkache::daemon[0m[2m:[0m daemon stopped

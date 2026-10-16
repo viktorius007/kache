@@ -1,0 +1,45 @@
+    Blocking waiting for file lock on package cache
+   Compiling getrandom v0.3.4
+   Compiling predicates-core v1.0.10
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/qa-remote-binding/crates/kache-fs)
+   Compiling rand_core v0.9.5
+   Compiling float-cmp v0.10.0
+   Compiling termtree v0.5.1
+   Compiling assert_cmd v2.2.2
+   Compiling difflib v0.4.0
+   Compiling normalize-line-endings v0.3.0
+   Compiling predicates v3.1.4
+   Compiling predicates-tree v1.0.13
+   Compiling rand_xorshift v0.4.0
+   Compiling rand_chacha v0.9.0
+   Compiling rand v0.9.5
+   Compiling bstr v1.13.1
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/qa-remote-binding/crates/kache-format)
+   Compiling wait-timeout v0.2.1
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/qa-remote-binding)
+   Compiling unarray v0.1.4
+   Compiling proptest v1.11.0
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/qa-remote-binding/crates/kache-store)
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/qa-remote-binding/crates/kache-core)
+   Compiling kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-prs/qa-remote-binding/crates/kache-shims)
+    Finished `test` profile [unoptimized] target(s) in 49.84s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+test remote_layout::tests::exact_download_rejects_a_valid_pack_for_another_entry ... FAILED
+
+failures:
+
+---- remote_layout::tests::exact_download_rejects_a_valid_pack_for_another_entry stdout ----
+
+thread 'remote_layout::tests::exact_download_rejects_a_valid_pack_for_another_entry' (51475798) panicked at src/remote_layout.rs:1653:22:
+a valid pack for another entry must be rejected
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    remote_layout::tests::exact_download_rejects_a_valid_pack_for_another_entry
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4395 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `--bin kache`

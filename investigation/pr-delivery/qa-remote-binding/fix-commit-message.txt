@@ -1,0 +1,10 @@
+fix: bind exact remote restores to the requested entry
+
+Exact restores omitted the expected identity when calling the shared extractor,
+so a complete valid pack for another entry could be published under the
+requested key and reused as a successful compiler result. Supply the requested
+key and crate before publication, keeping the prefetch-only digest optional.
+
+Reuse search: codebase-memory search_graph name-pattern
+ExpectedEntryBinding|extract_entry_pack_until returned 2 relevant symbols.
+Reuse that binding and validator; no duplicate validator or new indirection.

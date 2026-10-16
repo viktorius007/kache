@@ -1,0 +1,10 @@
+test: reject exact remote packs with mismatched entry identity
+
+A valid archive routed under another requested object key must be refused
+before local publication, even though its metadata and artifact hashes agree.
+Cover matching, key-only and crate-only requests independently, and preserve
+packed-prefetch metadata-digest enforcement with matching and wrong digests.
+
+The test-only commit is intentionally red as requested; the production repair
+follows separately. Fixtures use existing Store/pack helpers and replace only
+object transport, leaving the validation/publication boundary intact.
