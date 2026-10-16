@@ -1,0 +1,542 @@
+{
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "checkpoint": true,
+  "scope": "store-core",
+  "graph_project": "Users-viktor-Developer-github-kache-investigations-coordinator",
+  "graph_limits": "Rust binding oracle, expanded calls and impl relationships unavailable; graph positive facts are candidates/lower bounds. Source fallback used.",
+  "paths": [
+    {
+      "path": "crates/kache-format/Cargo.toml",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 19
+        }
+      ],
+      "production_source_complete": null,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-format/README.md",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 24
+        }
+      ],
+      "production_source_complete": null,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-format/src/lib.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 344
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-format/tests/compatibility.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 49
+        }
+      ],
+      "production_source_complete": null,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-format/tests/fixtures/entry-v31.json",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 27
+        }
+      ],
+      "production_source_complete": null,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/Cargo.toml",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 57
+        }
+      ],
+      "production_source_complete": null,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/README.md",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 30
+        }
+      ],
+      "production_source_complete": null,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/examples/bench-cc-memos.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 131
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/src/atomic.rs",
+      "state": "sampled",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 360
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": "Complement of reviewed_ranges within 1..650",
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/src/blob_drift.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 177
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/src/blob_validation.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 56
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/src/cc_memo.rs",
+      "state": "sampled",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 720
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": "Complement of reviewed_ranges within 1..1299",
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/src/config.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 33
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/src/eviction.rs",
+      "state": "sampled",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 420
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": "Complement of reviewed_ranges within 1..660",
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/src/eviction_evidence.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 182
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/src/eviction_evidence/tests.rs",
+      "state": "sampled",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 160
+        }
+      ],
+      "production_source_complete": null,
+      "omitted_ranges": "Complement of reviewed_ranges within 1..279",
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/src/file_hash.rs",
+      "state": "sampled",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 1100
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": "Complement of reviewed_ranges within 1..1897",
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/src/filesystem.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 309
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/src/index_compaction.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 334
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/src/lib.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 32
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/src/link.rs",
+      "state": "collateral",
+      "evidence": "Primary review transferred by /root to audit-store-link; not reviewed here.",
+      "reviewed_ranges": [],
+      "owner": "/root/cache_poisoning_audit",
+      "reopen_conditions": "Import helper coverage/report before closing overall store-core audit."
+    },
+    {
+      "path": "crates/kache-store/src/markers.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 548
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/src/opcounts.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 283
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/src/sharing.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 325
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/src/store.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 6568
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/src/store/tests.rs",
+      "state": "sampled",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 5760,
+          "end_line": 5940
+        },
+        {
+          "start_line": 7050,
+          "end_line": 7107
+        },
+        {
+          "start_line": 12820,
+          "end_line": 12965
+        }
+      ],
+      "production_source_complete": null,
+      "omitted_ranges": "Complement of reviewed_ranges within 1..13183",
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/src/test_support.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 79
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/tests/byte_counters.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 116
+        }
+      ],
+      "production_source_complete": null,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/tests/staged_publication.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 80
+        }
+      ],
+      "production_source_complete": null,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "crates/kache-store/tests/thread_store_counters.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 38
+        }
+      ],
+      "production_source_complete": null,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "src/cache_fs.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 773
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "src/compiler_store.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 158
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "src/opcounts.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 344
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "src/store_view.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 218
+        }
+      ],
+      "production_source_complete": true,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "src/store_view/tests.rs",
+      "state": "sampled",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 100
+        }
+      ],
+      "production_source_complete": null,
+      "omitted_ranges": "Complement of reviewed_ranges within 1..393",
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "tests/eviction_evidence_test.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 52
+        }
+      ],
+      "production_source_complete": null,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    },
+    {
+      "path": "tests/readonly_store_test.rs",
+      "state": "reviewed",
+      "evidence": "Read source at untouched 4ee0f9e via explicit bounded cat/sed source reads; no executed behavioral test in this checkpoint.",
+      "reviewed_ranges": [
+        {
+          "start_line": 1,
+          "end_line": 313
+        }
+      ],
+      "production_source_complete": null,
+      "omitted_ranges": [],
+      "reopen_conditions": "Runtime crash/failure/concurrency proof remains sampled; revisit on production diff or changed contract."
+    }
+  ],
+  "collateral": [
+    {
+      "path": "src/daemon.rs",
+      "state": "sampled",
+      "reviewed_ranges": [
+        {
+          "start_line": 3827,
+          "end_line": 3972
+        }
+      ],
+      "evidence": "get_code_snippet Daemon.handle_hash_files_at source_mode full; settlement guard before persistent memo write."
+    }
+  ]
+}

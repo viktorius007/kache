@@ -1,0 +1,77 @@
+[
+  {
+    "id": "store-core-d01",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:12:34.853051+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited",
+      "mode": "production-readiness",
+      "slice": "store-core"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Removal avoids physical blob deletion before logical SQL deletion commits.",
+    "checked": "Read remove_entry_attempt writer transaction, generation check, commit and second cleanup transaction.",
+    "closed_by": "Tier 2: store.rs 6009-6221, specifically tx.commit precedes cleanup unlinks, each unlink checks readoption.",
+    "reopens_if": "Cleanup moved back inside rollbackable deletion transaction or writer-lock/readoption guards change.",
+    "evidence": [
+      {
+        "path": "crates/kache-store/src/store.rs",
+        "lines": "6009-6221",
+        "point": "Logical deletion commits before directory/blob cleanup; cleanup holds writer lock and rechecks adopted blobs."
+      }
+    ],
+    "status": "no-action"
+  },
+  {
+    "id": "store-core-d02",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:12:34.853051+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited",
+      "mode": "production-readiness",
+      "slice": "store-core"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Daemon memo miss path does not persist recently changed fingerprints without the settle check.",
+    "checked": "Traced file_hash_record to Daemon.handle_hash_files_at and read full caller source.",
+    "closed_by": "Tier 2: daemon.rs 3860-3929 guards store.file_hash_record with stamp_is_settled(fp, observed_ns).",
+    "reopens_if": "Another production caller writes an unproven stamp, or clock/fingerprint proof changes.",
+    "evidence": [
+      {
+        "path": "src/daemon.rs",
+        "lines": "3860-3929",
+        "point": "Observation clock is sampled before stat and persistent write is conditional on settlement of the lookup fingerprint."
+      }
+    ],
+    "status": "no-action"
+  },
+  {
+    "id": "store-core-d03",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:12:34.853051+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited",
+      "mode": "production-readiness",
+      "slice": "store-core"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Already stream-verified batch imports reject key binding/schema/name errors before adopting blobs.",
+    "checked": "Read import_verified_restored_entries full preflight and transaction; compared legacy exact import seam.",
+    "closed_by": "Tier 2: store.rs 3206-3281 explicitly validates argument-to-metadata key binding, schema, crate name, distinct artifact names and lengths.",
+    "reopens_if": "Remote code constructs VerifiedRestoredEntry without content proof, or batch importer preflight changes.",
+    "evidence": [
+      {
+        "path": "crates/kache-store/src/store.rs",
+        "lines": "3206-3281",
+        "point": "Complete preflight runs before blob movement and row adoption; content hashing remains transport-owned."
+      }
+    ],
+    "status": "no-action"
+  }
+]

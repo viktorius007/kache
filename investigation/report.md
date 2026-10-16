@@ -1,0 +1,24 @@
+STATUS: DONE
+COMMIT: none
+CHANGED: 9 files
+OPEN: 2 unresolved items
+BLOCKERS: Coordinator requested checkpoint and prohibited extending/executing the proposed database-error fixture; runtime/build hold remains.
+CONFIRMED: 0
+LIMITS: Source checkpoint, no executed red proof; link.rs transferred; embedded and dedicated tests deliberately sampled; Linux/Windows runtime not exercised.
+---
+
+Checkpoint for baseline 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9. This completes the requested checkpoint, not a clean bill of health or the outstanding behavioral investigation. No production source or committed test suite was changed. `git diff --exit-code HEAD -- crates src tests` exited zero; its empty output is saved in evidence/production-diff.txt.
+
+All remaining assigned non-test production code was read through bounded source pages. Every inventoried path has a record in coverage.json. link.rs primary ownership was transferred by the coordinator to audit-store-link; this report does not claim its review. Dedicated store tests were sampled at 5760–5940 (migration/reference ownership), 7050–7107 (zero-byte output guard), and 12820–12965 (readonly restoration and maintenance). Embedded test omissions and shorter dedicated-suite samples are explicitly recorded as complements of reviewed ranges. Config, format metadata/validators, policy adapter, physical accounting, atomic publication, eviction selection, index compaction, target/incremental registration, store aggregation and readonly paths were source-reviewed. No benchmark or test suite was executed in this checkpoint.
+
+Three bounded source dismissals are recorded in findings.json: removal commits SQL before physical cleanup and checks re-adoption under the writer lock; the daemon persistent file-hash miss writer checks settlement; and verified batch import validates key binding/schema/artifact metadata before adopting blobs. These close those specific questions at source tier only. They do not establish exhaustive runtime safety.
+
+Two leads remain unadmitted in open-items.json. The higher-priority lead is same-key publication rollback. `put_with_compile_time_policy` replaces meta.json before its final entries INSERT and transaction commit (store.rs 2926–2933). The old committed row/mappings can therefore remain after a failed replacement while the filesystem describes the attempted replacement. `remove_entry_attempt` reads metadata hashes, drops the mapping and decrements those hashes (store.rs 5856–6221). The proposed public API probe asks whether removal after an aborted republication can reclaim a different entry's only blob. The full proposed source is preserved in repro-publication-rollback.rs. It was not compiled or executed, in accordance with the coordinator's latest instruction. There is no red-test claim and no admitted finding.
+
+To settle that lead, the coordinator can compile the saved standalone Rust source against the untouched coordinator dependency rlibs (kache_store, rusqlite, tempfile; include the baseline deps directory as the dependency search path), run it once with CONTROL=1 as the normal two-entry put/remove control, and then without CONTROL to exercise the saved fixture. A replay must require the particular peer-survival assertion and output, not accept any nonzero exit. If trigger-based error discrimination does not establish the requested production failure class, repeat at an actual SQL/disk failure or natural crash cut point. All fixture storage is TempDir-owned, independent from user caches.
+
+The second lead is hardlinked staging cleanup making an existing shared inode writable: stage_blob_from_source may choose a hardlink; publish_staged_blob_with sees an existing blob and discards the stage; discard_staged_blob calls unlink_blob, which clears readonly permissions (store.rs 270–288, 3884–4054, 4059–4086). A normal nonCoW production fixture is required; APFS clone success usually selects an independent inode. The coordinator routed the lead to the link helper, and this checkpoint adds no proof or severity claim.
+
+Remote exact-download metadata binding is consultation owned by audit_remote_daemon. Source inspection confirmed legacy import_downloaded_entry checks file hashes/names/sizes/content but does not bind meta.cache_key to its argument or validate schema/crate_name; verified batch import does. The remote agent is independently tracing its production reachability and owns any proof/report for that seam.
+
+Graph evidence is in evidence/graph-status.txt, put-callers.txt and file-hash-callers.txt. Project Users-viktor-Developer-github-kache-investigations-coordinator was ready at baseline 4ee0f9e, but Rust semantic coverage was partial: binding oracle, expanded calls and implementation relationships unavailable. Graph caller counts are lower bounds. Full source fallback supplied this checkpoint; exhaustive consumer claims are not made.

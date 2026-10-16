@@ -1,0 +1,19 @@
+[
+  {
+    "id": "store-core-open-publication-rollback",
+    "status": "unexecuted",
+    "not_an_admitted_finding": true,
+    "source": "repro-publication-rollback.rs",
+    "trace": "put_with_compile_time_policy atomically replaces filesystem metadata (2926-2928), then writes entry row and commits (2929-2933); SQL rollback cannot roll back metadata. remove_entry_attempt decrements metadata hashes (6098 onward) after deleting the mapping.",
+    "settling_evidence": "Coordinator replay of untouched baseline public API fixture and CONTROL=1 control; independently confirm reachability on an actual disk/SQL error if trigger discrimination is not accepted.",
+    "note": "Per coordinator instruction, test preserved without extending, compiling or executing. No runtime assertion claimed."
+  },
+  {
+    "id": "store-core-open-shared-stage-permissions",
+    "status": "unexecuted",
+    "not_an_admitted_finding": true,
+    "trace": "Hardlinked stage -> existing blob check -> discard_staged_blob -> unlink_blob clears readonly permissions, potentially on the published inode.",
+    "settling_evidence": "Run a normal nonCoW production fixture demonstrating shared source/blob identity and readonly state after duplicate put; link helper owns platform execution.",
+    "owner": "audit-store-link; /root coordinating"
+  }
+]
