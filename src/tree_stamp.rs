@@ -128,6 +128,7 @@ impl Stamper {
 
     /// [`Self::walk`], leaving out every entry `skips` names by its path and
     /// its listing entry, wherever it appears below `root`.
+    #[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
     pub(crate) fn walk_skipping(
         &mut self,
         root: &Path,

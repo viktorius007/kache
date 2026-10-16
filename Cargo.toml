@@ -35,7 +35,11 @@ members = [
 exclude = ["tmp"]
 resolver = "3"
 
+[features]
+profile-hotpath = ["dep:hotpath", "hotpath/hotpath"]
+
 [dependencies]
+hotpath = { version = "=0.28.6", optional = true, default-features = false }
 foldhash = "0.2"
 kunobi-daemon = { version = "0.9.0", features = ["wire-async", "local-async", "launch"] }
 kache-format = { version = "1.0.0", path = "crates/kache-format" }

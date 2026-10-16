@@ -1,0 +1,22 @@
+results_refs: 4  (cols: id prefix)
+  0 Users-viktor-Developer-github-kache-investigations-coordinator.src.cache_key.
+  1 Users-viktor-Developer-github-kache-investigations-coordinator.src.wrapper.
+  2 src/cache_key.rs
+  3 src/wrapper.rs
+results_ref_rule: @N+suffix=prefix+suffix
+results: 10  (cols: qn label file lines in out)
+  @0+compute_key_into Function @2+ 2954-3817 1 114
+  @0+needs_tree_guard Function @2+ 6664-6666 3 3
+  @1+observe_adaptive_hit Function @3+ 7739-7750 2 3
+  @0+FileHasher.record_input_prediction Method @2+ 7361-7382 9 6
+  @1+record_input_prediction Function @3+ 6457-6544 6 23
+  @0+resolve_key_inputs Function @2+ 2783-2886 5 33
+  @1+restore_from_cache_with_memo_store Function @3+ 7282-7535 2 48
+  @0+root_digest Function @2+ 1287-1323 1 16
+  @0+tree_digest_memoised Function @2+ 1209-1282 17 23
+  Users-viktor-Developer-github-kache-investigations-coordinator.src.tree_stamp.Stamper.walk_skipping Method src/tree_stamp.rs 131-242 2 16
+total: 10
+returned: 10
+has_more: false
+truncated: false
+

@@ -1,0 +1,75 @@
+STATUS: DONE
+COMMIT: none
+CHANGED: 470 files
+OPEN: 1 unresolved items
+BLOCKERS: none
+CONFIRMED: 0
+LIMITS: Synthetic macOS workload; exact Biome/Kobe release fixture and gate remain unverified; bounded source audit and partial Rust graph semantics.
+---
+
+The investigation reproduced a warm-build regression on unmodified current main, located the expensive prediction/tree-guard path, and produced a correctness-preserving optimization design. It did not reproduce the maintainer's exact Biome benchmark or clear release PR #1494. There are zero admitted correctness defects; the executed performance measurements below are reported separately from defect findings. No production behavior was repaired.
+
+Current [release PR #1494](https://github.com/kunobi-ninja/kache/pull/1494) reports maintainer results of +25.05% for unchanged Biome builds and +22.09% for documentation edits, with 674 restores, zero misses and three passthroughs. Those are testimony about the maintainer's Kobe host and Biome workload. API snapshots are in raw/pr-1494.json and raw/pr-1497.json. The sampled PR bodies/comments and checked-in benchmark scenarios did not supply the exact Biome revision, command/configuration, environment and raw samples. The checked-in bench-kobe scenario names a project, and does not establish the identity of that host's Biome fixture. This is the one remaining investigation item.
+
+The local comparison used main 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9 versus tag v1.0.0 at 36d50814a9379392d5ee637290015193d7f206ce. The main-disabled executable was built before any instrumentation changes. Binary and baseline source hashes, commit IDs and build logs are preserved in raw/. All binaries identify themselves as version 1.0.0, so commit and binary hashes distinguish the arms.
+
+The fixture has 24 independent local library crates with constant tiny Rust sources, four Cargo jobs and incremental compilation disabled. Its README and optional 4,000 approximately 100-byte documentation files are outside the compiler input closures. Both arms received separate two-build seed caches. Each timed sample started with an empty target and the same arm's restored seed snapshot; deletion/copying occurred outside the timer. Order alternated within six pairs. README was rewritten immediately before each documentation-edit arm, preserving the fresh-edit metadata condition. Only the number of non-input documentation files changed between the two fixture sizes. All homes, configuration, cache stores and cargo data were isolated under investigation/fixture/. No daemon, user configuration, real cache, installed wrapper or launchd service was changed.
+
+These measurements ran during the coordinator's reserved quiet window, after other agents held expensive build/probe work. The host was macOS 15.8.1 arm64 with rustc 1.99.0 (b940084d7 2026-09-28). Historical load averages are stored per sample; reservation does not guarantee an otherwise idle host. Bounded samples cannot establish host-independent performance.
+
+All main/v1 wall-clock comparisons below used unprofiled release executables and no phase tracing. The percentage is the median of six within-pair changes, not the ratio of the displayed independent arm medians. The interval uses the repository's fixed-seed 10,000-resample paired bootstrap. Its gate requires a lower bound above 5% and median absolute paired increase above 250 ms.
+
+| Extra non-input files | Workload | v1 median | Main median | Paired change | 95% interval | Repository gate |
+| --- | --- | ---: | ---: | ---: | --- | --- |
+| 0 | Unchanged | 0.236 s | 0.263 s | -1.43% | -12.92% to +13.35% | Inconclusive |
+| 0 | Fresh README edit | 0.238 s | 0.453 s | +90.42% | +87.15% to +92.56% | Inconclusive: absolute increase below 250 ms |
+| 4,000 | Unchanged | 0.237 s | 0.347 s | +45.22% | +43.55% to +49.66% | Inconclusive: absolute increase about 110 ms |
+| 4,000 | Fresh README edit | 0.239 s | 1.754 s | +550.10% | +522.92% to +644.21% | Regression |
+
+Every measured warm sample restored 24 local units, with zero misses and five Cargo query/probe passthroughs. Unchanged main samples recorded zero dep-info runs. Every documentation-edit main sample recorded 24 dep-info runs while compiler_runs remained zero: rustc performed expansion/input discovery and stopped before full compilation. Zero cache misses therefore did not eliminate compiler work. Raw per-event values and wall times are in raw/paired-0.json and raw/paired-4000.json, with every Cargo log retained. summary.json contains the paired calculations. No assertion about Biome's percentage follows from these local percentages.
+
+The file-count perturbation is causal evidence for the local guard cost: compiler sources, unit count and build configuration stayed constant, v1 remained near 0.238 s after README edits, and main's fresh-edit median rose from 0.453 s to 1.754 s when the extra files entered the guarded workspace tree. This experiment does not measure the benefit of a code optimization; its independent variable is tree width.
+
+The production path is Cargo RUSTC_WRAPPER → wrapper::run → compute_rustc_cache_key → compute_key_into → resolve_key_inputs → predicted_key_inputs → workspace_tree_digest → tree_digest_memoised → stamp_roots → Stamper::walk_skipping. Current needs_tree_guard covers local/path crates even without a direct dylib extern. The v1 rule was narrower. Current predicted_key_inputs digests the guarded tree before comparing the saved prediction. A changed README changes that digest, which rejects the old prediction even though the eventual authoritative compiler closure and artifact key are unchanged.
+
+On rejection, the flight owner can defer key discovery into compile_before_key. Its callback keys from emitted dep-info, discovers the stored entry and stops rustc before forwarding output to Cargo. It then provides that closure and re-enters run_parsed_rustc to compute the key and restore. The diagnostic documentation run measured 72 compute_rustc_cache_key calls for 24 units: initial prediction, emitted-dep-info callback and restore re-entry. Source excerpts from the untouched commit are preserved with line numbers in raw/baseline-path-source.txt; current instrumented source adds attributes only.
+
+On a root memo hit, tree_digest_memoised still stamps all entries before it knows the digest can be reused. On a miss, root_digest recursively folds each path, kind and content. crate_tree_fold calls hash_unkeyed for ordinary files. FileHasher::hash_inner bypasses persistent hash lookup for files below MIN_PERSISTED_HASH_BYTES, currently 64 KiB (crates/kache-store/src/file_hash.rs:9). All generated documentation files are below that threshold. After a recent README rewrite, a fresh root digest cannot initially be stored until its stamp has settled for two seconds and the walk still holds. Multiple wrapper processes consequently reread the unchanged small documents while computing their own root digest. The diagnostic run observed eight root misses and sixteen hits rather than assuming every unit missed.
+
+The separate profiler controls reused the same main cache snapshot without phase tracing. Their median paired overhead was +23.50% (three pairs, no extra docs) and +12.19% (three pairs, 4,000 docs). These are descriptive controls, with no confidence interval at n=3. They show material overhead from enabling/reporting this profiler configuration; function timing is used for attribution only. The profiler and its reports do not determine the main/v1 verdict.
+
+In the first 4,000-file unchanged hotpath control, 29 wrapper reports contained these cumulative function times:
+
+| Function | Calls | Sum across processes |
+| --- | ---: | ---: |
+| compute_rustc_cache_key | 24 | 628.71 ms |
+| tree_digest_memoised | 24 | 554.27 ms |
+| stamp_roots | 24 | 550.84 ms |
+| Stamper::walk_skipping | 24 | 550.74 ms |
+| root_digest | 24 | 1.47 ms |
+| restore_from_cache_with_memo_store | 24 | 36.41 ms |
+| record_known_file_hashes | 24 | 0.179 ms |
+
+The stamp walk accounts for about 88% of measured compute-key duration in that diagnostic control; root content lookup is cheap once memoized. The independent disabled-binary phase run corroborates the path: all 24 tree memo lookups hit and all predictions validate, workspace_tree totals 416.89 ms, key totals 445.00 ms and restore totals 27.01 ms. It had no dropped events.
+
+The 4,000-file documentation diagnostic measured 2.449 s cumulative tree_digest_memoised, 2.005 s root_digest, 1.050 s stamp_roots over 52 calls and 0.584 s record_input_prediction, including its tree-held recheck. Phase decisions show 24 tree-changed predictions, 48 emitted closures, eight root memo misses, sixteen hits and 24 successful tree rechecks; 32,456 input_hash spans were captured. Rustc expansion/discovery totals 578 ms. These sums overlap between nested functions and concurrent processes; they cannot be added or interpreted as predicted wall-clock savings. In particular crate_tree_fold is recursive, so its inclusive aggregate double-counts children. Eight documentation trace files reached the 4,096-event cap and each dropped two events (16 total); phase-summary.json records this limit. Hotpath reports had no function-row limit.
+
+Final event key_ms also under-represents this discovery path: the fresh-doc main samples sum only 22–36 ms of final key_ms despite the preceding guarded key/discovery work. The callback/re-entry source and 72 diagnostic key calls explain why final event key_ms should not be used as complete attribution here. This accounting observation was sampled to interpret the benchmark, and is not admitted as a separate telemetry defect.
+
+A minimal optimization hypothesis targets the content rereads while preserving the guard:
+
+1. Keep the complete entry stamp walk, root budgets, skip policy, path/kind/symlink/unreadable folding and final digest bytes unchanged. Collect exact observed file fingerprints for a root content fold and make one batched memo lookup for ordinary files.
+2. Allow stable small tree-guard files to participate in that content-hash memo. Reuse the existing CC-header design: memoised_hashes/get_many and header_hash already support small files, exact fingerprints, read/restat on misses and deferred memo publication. Add the corresponding unkeyed tree operation; do not copy header key-input bookkeeping indiscriminately.
+3. Publish only hashes whose pre-read observation was settled and whose post-read fingerprint agrees. Retain whole-tree settled/held checks and prediction-record guard validation. A changed or unsettled README remains a content read; the old, settled 4,000 documents can reuse their exact-stamp hashes.
+
+This is a design for review, with no repaired binary or measured speedup. It should reduce small-file rereads after unrelated fresh edits. It cannot remove the required unchanged tree stat walks, and a genuinely changed tree still rejects its previous prediction and can trigger rustc discovery. The approximately 215 ms fresh-edit cost in the zero-extra-file control remains relevant. Per-file SQL calls could erase the benefit, hence batching; memo growth/eviction and concurrency must also remain bounded.
+
+Correctness proof obligations for any implementation are digest equality against the current fold; additions/deletions/renames and file-kind/symlink/unreadable transitions; same-size writes with restored mtimes; coarse timestamp ticks and too-new observations; writes between stat/read/restat and before prediction publication; exact fingerprint matching and memo failure fallback; multiple writers sharing a workspace root and changing OUT_DIR/target directories; and all arbitrary include_str!, include_bytes!, module, procedural-macro and build-script inputs. Memoizing content does not exclude any such input. Filename/extension filtering of documentation, caching a tree stamp by TTL, dropping the settle check, or restoring v1's direct-dylib-only rule are not established safe optimizations. A future implementation must run paired unprofiled unchanged/fresh-edit benchmarks, separate profiler controls, and the exact final-head Biome release gate.
+
+A smaller secondary hypothesis is carrying the callback's fully qualified computed key into the restore continuation to avoid the third computation/re-open. That requires carrying all key outputs and too-new/guard state, preserving the second lookup and normal restore validation against concurrent entry eviction or mutation. The sampled callback key timings indicate this is smaller than the tree-fold/stat cost; it is not a substitute for addressing the dominant path.
+
+The only source diff is optional hotpath 0.28.6 wiring and feature-gated measurement attributes in five tracked files (Cargo.toml, Cargo.lock, src/cache_key.rs, src/tree_stamp.rs, src/wrapper.rs). Guard creation is inside wrapper::run, whose scope returns before main's process::exit, and is enabled only when both profile-hotpath and KACHE_HOTPATH_DIR are present. Output filenames include the wrapper PID. Official [hotpath function documentation](https://hotpath.rs/functions), [configuration](https://hotpath.rs/configuration), [overhead guidance](https://hotpath.rs/profiling_overhead) and [upstream source](https://github.com/pawurb/hotpath-rs) informed this wiring. No init command launching another agent was invoked.
+
+Validation passed: the original disabled release build; enabled release build; post-instrumentation --no-default-features release build; cargo fmt --all -- --check; dependency trees confirming hotpath absent with features disabled and present at 0.28.6 when enabled; and all executed isolated seed/paired/control builds. Build and format logs are under raw/. No full suite, CI release gate or local mutation-testing claim is made. Repository instructions assign mutation runs to CI. Added scripts/artifacts are investigation support rather than production repair. No commit or GitHub write was made.
+
+Graph navigation used the coordinator's pinned baseline index. Coverage of inspected Rust files is semantic_partial (binding oracle, expanded calls and impl relationships unavailable, many unresolved sites); production statements and call sites were checked in source. .cargo was excluded by the graph and read directly. The audit samples the warm prediction/tree/restore path rather than certifying whole files or repository correctness. scope.md describes these limits. findings.json has no admitted defect/gap finding and four evidence-cited dismissals. reproduction.md, paired.py and summarize.py describe and reconstruct the measurements; summary.json and phase-summary.json are derived from retained raw outputs. Generated binaries, fixtures and archived baseline sources remain locally available in ignored investigation directories. Build targets used roughly 2 GiB in private temporary storage; generated investigation artifacts occupy roughly 117 MiB locally. The exact release-gate rerun needs its missing workload/host provenance and is still open.

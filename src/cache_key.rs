@@ -886,6 +886,7 @@ enum StampRefusal {
 
 /// One stat walk per root, each of them and all of them together within
 /// `max_entries`: the stamp of each, with the entries it holds.
+#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
 fn stamp_roots(
     roots: &[WalkedRoot],
     max_entries: usize,
@@ -1206,6 +1207,7 @@ const TREE_ROOTS_VERSION: &[u8] = b"kache-crate-tree-roots-v1\n";
 /// once the root has settled ([`crate::tree_stamp::TreeStamp::settled_at`]).
 /// Several roots' digests fold into one. The walks go to `file_hasher` for
 /// the guard ([`tree_guard_of`]).
+#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
 fn tree_digest_memoised(
     mut roots: Vec<TreeRoot<'_>>,
     file_hasher: &FileHasher<'_>,
@@ -1284,6 +1286,7 @@ fn tree_digest_memoised(
 /// The digest of `root`, which `walk` stamped as `stamp`: the memoised one
 /// while the root has the stamp it was recorded under, otherwise a read of
 /// every file in it within `budget` entries.
+#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
 fn root_digest(
     root: &TreeRoot<'_>,
     walk: &GuardWalk,
@@ -1333,6 +1336,7 @@ fn root_digest(
 /// On Unix a lookup needs only the same entries. The root's own times also
 /// move when a name it leaves out, such as the target directory, is created
 /// or removed, and every entry the digest read stays as it was.
+#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
 fn memoise_tree_digest(
     memo: &Path,
     walk: &GuardWalk,
@@ -1421,6 +1425,7 @@ fn registry_src_root(manifest_dir: &Path) -> Option<&Path> {
 /// proc macro this process starts cannot read it either. `Some(false)` when
 /// that includes a file: where there is no change time, a file that becomes
 /// readable keeps its stamp.
+#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
 fn crate_tree_fold(
     root: &Path,
     directory: &Path,
@@ -2062,6 +2067,7 @@ fn closures_agree(predicted: &DepInfo, discovered: &DepInfo) -> bool {
 /// and env values, and each one is re-checked. Any doubt is a `Rejection`,
 /// and every `Rejection` means the same thing to the caller — spawn the
 /// pre-pass and discover the closure for real.
+#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
 fn predicted_key_inputs(
     args: &RustcArgs,
     file_hasher: &FileHasher<'_>,
@@ -2780,6 +2786,7 @@ fn discovery_flight_identity(args: &RustcArgs, file_hasher: &FileHasher<'_>) -> 
 ///
 /// `None` when the invocation names no source file: there is no closure to
 /// discover, and the key simply folds no source or env-dep group.
+#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
 fn resolve_key_inputs(
     args: &RustcArgs,
     file_hasher: &FileHasher<'_>,
@@ -2950,6 +2957,8 @@ pub(crate) fn compute_cache_key(
 ) -> Result<String> {
     compute_cache_key_with_outputs(args, file_hasher, path_normalizer, env).0
 }
+
+#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
 
 fn compute_key_into(
     args: &RustcArgs,

@@ -778,6 +778,7 @@ fn spawn_auto_gc_worker(config: &Config) {
 /// entry is flushed here and now. That costs what an inline fsync always
 /// cost, and it keeps a store that never sees a daemon from accumulating
 /// entries whose every hit re-reads them to verify.
+#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
 fn flush_or_hand_off_durability(config: &Config, store: &Store, cache_key: &str) {
     let _trace = crate::phase_trace::phase("durability_flush");
     if !config.deferred_durability {
@@ -996,6 +997,7 @@ fn volume_cache_dirs_match(routed: &Path, main: &Path) -> bool {
 
 /// Open the volume shard (or main store) plus the stores read after it: the
 /// main store when the route maps to a shard, then [`Config::readonly_store`].
+#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
 fn open_primary_and_fallback(config: &Config, route: &Path) -> Result<(Store, Vec<Store>)> {
     crate::link::set_mapped_target(config.volume_store_for(route).is_some());
     let routed = config.routed_for_path(route);
@@ -3305,6 +3307,15 @@ fn cc_try_remote_hit(
 /// This is the hot path — called once per crate by cargo.
 /// Flow: parse args → compute cache key → check store → link on hit → compile on miss → store → link
 pub fn run(config: &Config, wrapper_args: &[String]) -> Result<i32> {
+    // This scope returns before main exits the process, so the profiler can drain.
+    #[cfg(feature = "profile-hotpath")]
+    let _hotpath = std::env::var_os("KACHE_HOTPATH_DIR").map(|directory| {
+        hotpath::HotpathGuardBuilder::new("rustc-wrapper")
+            .output_path(
+                PathBuf::from(directory).join(format!("wrapper-{}.json", std::process::id())),
+            )
+            .build()
+    });
     let _trace = crate::phase_trace::start("rustc", wrapper_args);
     let start = wrapper_entry();
     crate::link::set_windows_hardlink_restore(config.windows_hardlink);
@@ -6454,6 +6465,7 @@ fn fetches_remote_predictions(config: &Config) -> bool {
 /// Silent and best-effort throughout. Every reason to give up (feature off, no
 /// store, no closure to record, no identity) costs a future pre-pass and
 /// nothing else, so none of them is worth a warning on a successful build.
+#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
 fn record_input_prediction(
     config: &Config,
     store: Option<&Store>,
@@ -6753,6 +6765,7 @@ struct ExtraInputsKey<'a> {
 /// the cache only changes how it's computed. What the event log records of
 /// the computation goes into `key_record`, whether or not a key comes back.
 #[allow(clippy::too_many_arguments)]
+#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
 fn compute_rustc_cache_key(
     config: &Config,
     compiler: &RustcCompiler,
@@ -7044,6 +7057,7 @@ fn try_rustc_remote_hit(
 ///
 /// Best-effort by construction — `record_verified_file_hash` drops files
 /// below the memo's size floor, which the hasher would not consult anyway.
+#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
 fn record_known_file_hashes(store: &Store, restored: &[(crate::cache_key::FileFingerprint, &str)]) {
     let _trace = crate::phase_trace::phase("memo_restored");
     let restored: Vec<_> = restored
@@ -7279,6 +7293,7 @@ fn restore_from_cache(
 }
 
 #[allow(clippy::too_many_arguments)]
+#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
 fn restore_from_cache_with_memo_store(
     config: &Config,
     compiler: &RustcCompiler,
@@ -7736,6 +7751,7 @@ fn passthrough_args(
 /// A hit restored a unit's outputs without its incremental state. Count it as
 /// the unit's first build, so the next edit seeds state instead of first
 /// compiling once more without it.
+#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
 fn observe_adaptive_hit(
     unit: Option<&AdaptiveUnit>,
     fields: Option<&std::collections::BTreeMap<String, String>>,
@@ -8563,6 +8579,7 @@ impl KeyEventRecord {
 /// The event for one invocation, built from its measurements and this
 /// process's counters. Written by [`write_event`], here or, for a compile
 /// handed to the daemon, there.
+#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
 pub(crate) fn build_event_details(config: &Config, inputs: EventInputs<'_>) -> BuildEvent {
     let EventInputs {
         root,

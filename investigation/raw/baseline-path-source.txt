@@ -1,0 +1,951 @@
+
+4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9:src/cache_key.rs:889-916
+889: fn stamp_roots(
+890:     roots: &[WalkedRoot],
+891:     max_entries: usize,
+892: ) -> std::result::Result<Vec<(crate::tree_stamp::TreeStamp, usize)>, StampRefusal> {
+893:     let mut stamps = Vec::with_capacity(roots.len());
+894:     for (index, root) in roots.iter().enumerate() {
+895:         #[cfg(test)]
+896:         BEFORE_STAMP.with(|hook| {
+897:             if let Some(hook) = hook.borrow_mut().as_mut() {
+898:                 hook(&root.path);
+899:             }
+900:         });
+901:         let mut stamper = crate::tree_stamp::Stamper::new();
+902:         let mut budget = max_entries;
+903:         stamper.label(&root.role);
+904:         match stamper.walk(&root.path, &root.excluded, root.rules, &mut budget) {
+905:             crate::tree_stamp::WalkOutcome::Fits => {
+906:                 stamps.push((stamper.finish(), max_entries - budget));
+907:             }
+908:             crate::tree_stamp::WalkOutcome::TooLarge => return Err(StampRefusal::TooLarge(index)),
+909:             crate::tree_stamp::WalkOutcome::Unreadable => return Err(StampRefusal::Unwalkable),
+910:         }
+911:     }
+912:     if stamps.iter().map(|(_, entries)| entries).sum::<usize>() > max_entries {
+913:         return Err(StampRefusal::TooLargeTogether);
+914:     }
+915:     Ok(stamps)
+916: }
+
+4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9:src/cache_key.rs:1210-1346
+1210:     mut roots: Vec<TreeRoot<'_>>,
+1211:     file_hasher: &FileHasher<'_>,
+1212:     max_entries: usize,
+1213:     memo_dir: &Path,
+1214:     now: std::time::SystemTime,
+1215: ) -> Option<String> {
+1216:     for root in &mut roots {
+1217:         root.own = own_dirs_within(&root.path, &file_hasher.own_dirs);
+1218:     }
+1219:     if roots.iter().any(|root| {
+1220:         marked_recently(
+1221:             &oversized_tree_marker(memo_dir, &root.path, max_entries),
+1222:             now,
+1223:         )
+1224:     }) {
+1225:         return None;
+1226:     }
+1227:     let walked: Vec<WalkedRoot> = roots.iter().map(TreeRoot::walked).collect();
+1228:     let together = oversized_roots_marker(memo_dir, &walked, max_entries);
+1229:     if marked_recently(&together, now) {
+1230:         return None;
+1231:     }
+1232:     let stamps = match stamp_roots(&walked, max_entries) {
+1233:         Ok(stamps) => stamps,
+1234:         Err(StampRefusal::TooLarge(index)) => {
+1235:             write_marker(&oversized_tree_marker(
+1236:                 memo_dir,
+1237:                 &walked[index].path,
+1238:                 max_entries,
+1239:             ));
+1240:             return None;
+1241:         }
+1242:         Err(StampRefusal::TooLargeTogether) => {
+1243:             write_marker(&together);
+1244:             return None;
+1245:         }
+1246:         Err(StampRefusal::Unwalkable) => return None,
+1247:     };
+1248:     let total: usize = stamps.iter().map(|(_, entries)| entries).sum();
+1249:     let mut digests = Vec::with_capacity(roots.len());
+1250:     let mut walks = Vec::with_capacity(roots.len());
+1251:     for ((root, walked), (stamp, entries)) in roots.iter().zip(walked).zip(stamps) {
+1252:         let walk = GuardWalk {
+1253:             root: walked,
+1254:             max_entries,
+1255:             stamp: stamp.digest.clone(),
+1256:         };
+1257:         // A read may spend what the other roots leave of the budget.
+1258:         let budget = max_entries - (total - entries);
+1259:         digests.push(root_digest(
+1260:             root,
+1261:             &walk,
+1262:             &stamp,
+1263:             budget,
+1264:             file_hasher,
+1265:             memo_dir,
+1266:             now,
+1267:         )?);
+1268:         walks.push(walk);
+1269:     }
+1270:     for walk in walks {
+1271:         file_hasher.note_tree_walk(walk);
+1272:     }
+1273:     if let [digest] = digests.as_slice() {
+1274:         return Some(digest.clone());
+1275:     }
+1276:     let mut hasher = blake3::Hasher::new();
+1277:     hasher.update(TREE_ROOTS_VERSION);
+1278:     for digest in &digests {
+1279:         fold_field(&mut hasher, b"digest:", digest.as_bytes());
+1280:     }
+1281:     Some(hasher.finalize().to_hex().to_string())
+1282: }
+1283: 
+1284: /// The digest of `root`, which `walk` stamped as `stamp`: the memoised one
+1285: /// while the root has the stamp it was recorded under, otherwise a read of
+1286: /// every file in it within `budget` entries.
+1287: fn root_digest(
+1288:     root: &TreeRoot<'_>,
+1289:     walk: &GuardWalk,
+1290:     stamp: &crate::tree_stamp::TreeStamp,
+1291:     mut budget: usize,
+1292:     file_hasher: &FileHasher<'_>,
+1293:     memo_dir: &Path,
+1294:     now: std::time::SystemTime,
+1295: ) -> Option<String> {
+1296:     let memo = tree_digest_memo(memo_dir, root);
+1297:     if let Some(digest) = crate::tree_stamp::memoised_digest(&memo, stamp.memo_key())
+1298:         .filter(|digest| digest.len() == 64 && digest.bytes().all(|b| b.is_ascii_hexdigit()))
+1299:     {
+1300:         crate::phase_trace::decision("tree_memo", "hit");
+1301:         return Some(digest);
+1302:     }
+1303:     crate::phase_trace::decision("tree_memo", "miss");
+1304:     let mut hasher = blake3::Hasher::new();
+1305:     hasher.update(TREE_DIGEST_VERSION);
+1306:     fold_field(&mut hasher, b"root:", root.role);
+1307:     let read_every_file = crate_tree_fold(
+1308:         &root.path,
+1309:         &root.path,
+1310:         &root.excluded(),
+1311:         root.skips_build_dirs,
+1312:         file_hasher,
+1313:         &mut hasher,
+1314:         &mut budget,
+1315:     )?;
+1316:     let digest = hasher.finalize().to_hex().to_string();
+1317:     // The stamp shows a directory becoming listable, but not a file becoming
+1318:     // readable where there is no change time.
+1319:     if read_every_file {
+1320:         memoise_tree_digest(&memo, walk, stamp, &digest, now);
+1321:     }
+1322:     Some(digest)
+1323: }
+1324: 
+1325: /// Record `digest` at `memo` under the memo key of `stamp`, the stamp `walk`
+1326: /// gave before the files were read. A tree written in the last moments could
+1327: /// be written again within the same timestamp tick, keeping its stamp with
+1328: /// other bytes, so it has to have settled. A tree that moved while it was
+1329: /// read has a digest of no state it was in, so the walk has to give the same
+1330: /// stamp again, the root's own times included: they show a name that came
+1331: /// and went meanwhile.
+1332: ///
+1333: /// On Unix a lookup needs only the same entries. The root's own times also
+1334: /// move when a name it leaves out, such as the target directory, is created
+1335: /// or removed, and every entry the digest read stays as it was.
+1336: fn memoise_tree_digest(
+1337:     memo: &Path,
+1338:     walk: &GuardWalk,
+1339:     stamp: &crate::tree_stamp::TreeStamp,
+1340:     digest: &str,
+1341:     now: std::time::SystemTime,
+1342: ) {
+1343:     if stamp.settled_at(now) && walk.holds() {
+1344:         crate::tree_stamp::record_digest(memo, stamp.memo_key(), digest);
+1345:     }
+1346: }
+
+4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9:src/cache_key.rs:1424-1490
+1424: fn crate_tree_fold(
+1425:     root: &Path,
+1426:     directory: &Path,
+1427:     excluded: &[PathBuf],
+1428:     skips_build_dirs: bool,
+1429:     file_hasher: &FileHasher<'_>,
+1430:     hasher: &mut blake3::Hasher,
+1431:     budget: &mut usize,
+1432: ) -> Option<bool> {
+1433:     let listed = std::fs::read_dir(directory)
+1434:         .and_then(|entries| entries.collect::<std::io::Result<Vec<_>>>());
+1435:     let mut entries = match listed {
+1436:         Ok(entries) => entries,
+1437:         Err(_) if directory != root => {
+1438:             fold_field(hasher, b"unreadable:", b"");
+1439:             return Some(true);
+1440:         }
+1441:         Err(_) => return None,
+1442:     };
+1443:     entries.sort_by_key(std::fs::DirEntry::file_name);
+1444:     if skips_build_dirs && directory != root {
+1445:         crate::tree_stamp::keep_only_build_tag(&mut entries);
+1446:     }
+1447:     let mut read_every_file = true;
+1448:     for entry in entries {
+1449:         let path = entry.path();
+1450:         if excluded.contains(&path) {
+1451:             continue;
+1452:         }
+1453:         *budget = budget.checked_sub(1)?;
+1454:         let relative = path.strip_prefix(root).ok()?;
+1455:         fold_field(hasher, b"path:", relative.as_os_str().as_encoded_bytes());
+1456:         let Ok(metadata) = std::fs::symlink_metadata(&path) else {
+1457:             fold_field(hasher, b"unreadable:", b"");
+1458:             continue;
+1459:         };
+1460:         if metadata.file_type().is_symlink() {
+1461:             match std::fs::read_link(&path) {
+1462:                 Ok(target) => {
+1463:                     fold_field(hasher, b"symlink:", target.as_os_str().as_encoded_bytes());
+1464:                 }
+1465:                 Err(_) => fold_field(hasher, b"unreadable:", b""),
+1466:             }
+1467:         } else if metadata.is_dir() {
+1468:             fold_field(hasher, b"dir:", b"");
+1469:             read_every_file &= crate_tree_fold(
+1470:                 root,
+1471:                 &path,
+1472:                 excluded,
+1473:                 skips_build_dirs,
+1474:                 file_hasher,
+1475:                 hasher,
+1476:                 budget,
+1477:             )?;
+1478:         } else if metadata.is_file() {
+1479:             match file_hasher.hash_unkeyed(&path) {
+1480:                 Ok(hash) => fold_field(hasher, b"file:", hash.as_bytes()),
+1481:                 Err(_) => {
+1482:                     fold_field(hasher, b"unreadable:", b"");
+1483:                     read_every_file = false;
+1484:                 }
+1485:             }
+1486:         } else {
+1487:             fold_field(hasher, b"other:", b"");
+1488:         }
+1489:     }
+1490:     Some(read_every_file)
+
+4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9:src/cache_key.rs:2065-2145
+2065: fn predicted_key_inputs(
+2066:     args: &RustcArgs,
+2067:     file_hasher: &FileHasher<'_>,
+2068:     tree_guard: &mut Option<TreeGuard>,
+2069: ) -> std::result::Result<DepInfo, Rejection> {
+2070:     let _trace = crate::phase_trace::phase("prediction_validate");
+2071:     *tree_guard = None;
+2072:     if !file_hasher.uses_input_predictions() {
+2073:         return Err(Rejection::Disabled);
+2074:     }
+2075:     let vars: Vec<_> = std::env::vars_os().collect();
+2076:     let workspace = workspace_roots(args, &vars);
+2077:     let manifest_dir = env_var_in(&vars, "CARGO_MANIFEST_DIR").map(Path::new);
+2078:     // A unit under the tree guard is predictable only while the record carries
+2079:     // the tree digest and the digest still matches. The tree is the package
+2080:     // for a registry or vendored unit and the whole workspace for any other
+2081:     // workspace or path one. Computed here and handed back in `tree_guard`,
+2082:     // because the same digest is what a record made from this invocation has
+2083:     // to carry.
+2084:     let tree = if needs_tree_guard(&args.externs, manifest_dir) {
+2085:         let _trace = crate::phase_trace::phase(if workspace.is_some() {
+2086:             "workspace_tree"
+2087:         } else {
+2088:             "crate_tree"
+2089:         });
+2090:         let guard = tree_guard_of(file_hasher, || match &workspace {
+2091:             Some(workspace) => workspace_tree_digest(workspace, file_hasher),
+2092:             None => crate_tree_digest(file_hasher),
+2093:         })
+2094:         .ok_or(Rejection::NotEligible)?;
+2095:         let digest = guard.digest.clone();
+2096:         *tree_guard = Some(guard);
+2097:         Some(digest)
+2098:     } else {
+2099:         None
+2100:     };
+2101:     let identity = rustc_prediction_identity(args).ok_or(Rejection::Disabled)?;
+2102:     let shared = rustc_shared_prediction_identity(args);
+2103:     // Filled when the record came from the remote, so a record that checks
+2104:     // out is kept here and not asked for again.
+2105:     let mut from_remote = None;
+2106:     let Some(record) = file_hasher
+2107:         .input_prediction(&identity)
+2108:         .or_else(|| file_hasher.input_prediction(shared.as_deref()?))
+2109:         .or_else(|| {
+2110:             let shared = shared.as_deref()?;
+2111:             let record = remote_plain_row(shared, &registry_src_of(&vars)?)?;
+2112:             from_remote = Some(shared);
+2113:             Some(record)
+2114:         })
+2115:     else {
+2116:         return match &workspace {
+2117:             Some(workspace) => workspace_key_inputs(args, file_hasher, workspace, vars, tree),
+2118:             None => relocated_key_inputs(args, file_hasher, tree, tree_guard),
+2119:         };
+2120:     };
+2121:     if let Some(tree) = &tree {
+2122:         match &record.tree {
+2123:             Some(recorded) if recorded == tree => {}
+2124:             Some(_) => return Err(Rejection::TreeChanged),
+2125:             None => return Err(Rejection::NoRecord),
+2126:         }
+2127:     }
+2128:     // The digest only vouches for files its walk sees. A shared row written
+2129:     // before this check carries the digest whatever its closure names.
+2130:     if let Some(workspace) = &workspace
+2131:         && !guard_covers(&record.sources, workspace)
+2132:     {
+2133:         return Err(Rejection::NoRecord);
+2134:     }
+2135:     let validated = validate_prediction(
+2136:         &record,
+2137:         |path| std::fs::metadata(path).ok(),
+2138:         |path| path.exists(),
+2139:         |var| std::env::var(var).ok(),
+2140:     );
+2141:     if let Some(shared) = from_remote {
+2142:         keep_remote_plain_row(file_hasher, shared, args, &record, &validated);
+2143:     }
+2144:     validated
+2145: }
+
+4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9:src/cache_key.rs:2783-2890
+2783: fn resolve_key_inputs(
+2784:     args: &RustcArgs,
+2785:     file_hasher: &FileHasher<'_>,
+2786:     crate_name: &str,
+2787:     env: &KeyEnv,
+2788:     out: &mut KeyOutputs,
+2789: ) -> Result<Option<DepInfo>> {
+2790:     if let Some((provided, tree)) = PROVIDED_DEP_INFO.with(|cell| cell.borrow_mut().take()) {
+2791:         out.tree_guard = tree;
+2792:         crate::phase_trace::decision("prediction", "emitted");
+2793:         tracing::trace!("[key:{}] inputs=emitted-dep-info", crate_name);
+2794:         return Ok(Some(provided));
+2795:     }
+2796:     if args.source_file.is_some() {
+2797:         let mut prediction = predicted_key_inputs(args, file_hasher, &mut out.tree_guard);
+2798:         // Whether this process holds the unit's discovery flight. Only the
+2799:         // holder may compile before keying: a peer that also found nothing
+2800:         // would compile the same unit a second time instead of waiting for
+2801:         // the entry the holder stores.
+2802:         let mut owns_flight = false;
+2803:         if prediction.is_err()
+2804:             && let Some(cache_dir) = &file_hasher.prediction_flight_dir
+2805:             && let Some(identity) = discovery_flight_identity(args, file_hasher)
+2806:         {
+2807:             let flight = crate::scheduler::join_discovery_flight(cache_dir, &identity);
+2808:             owns_flight = flight.lock.is_some();
+2809:             *file_hasher.discovery_flight.borrow_mut() = flight.lock;
+2810:             // The previous owner may have published while this process
+2811:             // waited; a flight taken at once had no owner to publish. The
+2812:             // tree is digested again: the owner's record carries the digest
+2813:             // from before its compile, and the tree may have changed since.
+2814:             if flight.waited {
+2815:                 prediction = predicted_key_inputs(args, file_hasher, &mut out.tree_guard);
+2816:             }
+2817:         }
+2818:         match prediction {
+2819:             Ok(dep_info) => {
+2820:                 crate::phase_trace::decision("prediction", "validated");
+2821:                 let mode =
+2822:                     parse_verify_predictions(env.var("KACHE_VERIFY_INPUT_PREDICTIONS").as_deref());
+2823:                 // Verification is the exceptional path: it runs the pre-pass
+2824:                 // anyway and uses ITS answer, so a disagreement is reported
+2825:                 // rather than acted on.
+2826:                 if verifies_prediction(mode, args, env.cwd(), |var| env.var_os(var)) {
+2827:                     crate::phase_trace::decision("prediction", "verify-sampled");
+2828:                     let discovered = dep_info_pre_pass(args)?;
+2829:                     if discovered
+2830:                         .as_ref()
+2831:                         .is_some_and(|discovered| closures_agree(&dep_info, discovered))
+2832:                     {
+2833:                         tracing::trace!("[key:{}] inputs=predicted(verified)", crate_name);
+2834:                     } else {
+2835:                         tracing::warn!(
+2836:                             "[key:{}] input prediction disagreed with the dep-info pass; \
+2837:                              using the pass. Please report this with the crate and its \
+2838:                              dependencies (kunobi-ninja/kache).",
+2839:                             crate_name
+2840:                         );
+2841:                         crate::opcounts::record_prediction_mismatch();
+2842:                     }
+2843:                     return Ok(discovered);
+2844:                 }
+2845:                 tracing::trace!("[key:{}] inputs=predicted", crate_name);
+2846:                 out.used_prediction = true;
+2847:                 return Ok(Some(dep_info));
+2848:             }
+2849:             // A missing prediction only describes this checkout. Another
+2850:             // checkout may have stored a portable entry, so compile first
+2851:             // only when the store has never held this unit.
+2852:             Err(Rejection::NoRecord | Rejection::Disabled | Rejection::NotEligible)
+2853:                 if owns_flight
+2854:                     && DEFER_DISCOVERY.with(std::cell::Cell::get)
+2855:                     && file_hasher.store_lacks_unit(
+2856:                         crate_name,
+2857:                         args.get_codegen_opt("metadata").unwrap_or(""),
+2858:                     ) =>
+2859:             {
+2860:                 crate::phase_trace::decision("prediction", "deferred-new-crate");
+2861:                 tracing::trace!("[key:{}] inputs=deferred(new crate)", crate_name);
+2862:                 return Err(anyhow::Error::new(DeferredDiscovery { miss_certain: true }));
+2863:             }
+2864:             Err(reason)
+2865:                 if owns_flight
+2866:                     && DEFER_DISCOVERY.with(std::cell::Cell::get)
+2867:                     && COMPILE_WHILE_KEYING.with(std::cell::Cell::get) =>
+2868:             {
+2869:                 crate::phase_trace::decision("prediction", reason.as_str());
+2870:                 tracing::trace!(
+2871:                     "[key:{}] inputs=compile-while-keying({})",
+2872:                     crate_name,
+2873:                     reason.as_str()
+2874:                 );
+2875:                 return Err(anyhow::Error::new(DeferredDiscovery {
+2876:                     miss_certain: false,
+2877:                 }));
+2878:             }
+2879:             Err(reason) => {
+2880:                 crate::phase_trace::decision("prediction", reason.as_str());
+2881:                 tracing::trace!("[key:{}] inputs=dep-info({})", crate_name, reason.as_str())
+2882:             }
+2883:         }
+2884:     }
+2885:     dep_info_pre_pass(args)
+2886: }
+2887: 
+2888: /// Spawn rustc to enumerate the closure. The slow, authoritative answer.
+2889: fn dep_info_pre_pass(args: &RustcArgs) -> Result<Option<DepInfo>> {
+2890:     let _trace = crate::phase_trace::phase("dep-info");
+
+4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9:src/cache_key.rs:7606-7685
+7606:     pub(crate) fn cc_preprocess_fingerprints(
+7607:         &self,
+7608:         paths: &[(String, PathBuf)],
+7609:         maps_key: &str,
+7610:         mapped_content: &impl Fn(&Path) -> Option<CcContentHashes>,
+7611:     ) -> Option<Vec<CcPreprocessMemoInput>> {
+7612:         if paths.is_empty() {
+7613:             return None;
+7614:         }
+7615:         let _trace = crate::phase_trace::phase("cc_fingerprints");
+7616:         // Every stamp first, then one lookup for all of them. A translation
+7617:         // unit reads a couple of hundred headers, most of them the same ones
+7618:         // its neighbours read; opening and hashing each again cost more than
+7619:         // the compile's own header work did on macOS.
+7620:         let mut stamped: Vec<(&String, &PathBuf, ObservedFingerprint)> =
+7621:             Vec::with_capacity(paths.len());
+7622:         for (name, path) in paths {
+7623:             let observed = match ObservedFingerprint::from_path(path) {
+7624:                 Ok(observed) => observed,
+7625:                 Err(error) => {
+7626:                     tracing::debug!(
+7627:                         "cc preprocess memo input {} could not be fingerprinted: {error}",
+7628:                         path.display()
+7629:                     );
+7630:                     return None;
+7631:                 }
+7632:             };
+7633:             self.note_too_new(&observed.fingerprint);
+7634:             stamped.push((name, path, observed));
+7635:         }
+7636:         let memoised = self.memoised_hashes(stamped.iter().map(|(_, _, stamp)| &stamp.fingerprint));
+7637:         let mut pending: Vec<(String, ObservedFingerprint, String, PathBuf)> =
+7638:             Vec::with_capacity(stamped.len());
+7639:         for (name, path, observed) in stamped {
+7640:             let content = match self.header_hash(path, &observed, &memoised) {
+7641:                 Ok(content) => content,
+7642:                 Err(error) => {
+7643:                     tracing::debug!(
+7644:                         "cc preprocess memo input {} could not be hashed: {error}",
+7645:                         path.display()
+7646:                     );
+7647:                     return None;
+7648:                 }
+7649:             };
+7650:             pending.push((name.clone(), observed, content, path.clone()));
+7651:         }
+7652:         let memo = self.cache.as_ref().filter(|_| !maps_key.is_empty());
+7653:         let known = match memo {
+7654:             Some(cache) => {
+7655:                 let contents: Vec<&str> = pending.iter().map(|p| p.2.as_str()).collect();
+7656:                 cache
+7657:                     .get_cc_mapped_hashes(maps_key, &contents)
+7658:                     .unwrap_or_else(|error| {
+7659:                         tracing::debug!("cc mapped hash memo lookup failed: {error}");
+7660:                         Default::default()
+7661:                     })
+7662:             }
+7663:             None => Default::default(),
+7664:         };
+7665:         let mut known = known;
+7666:         let mut learned: Vec<(String, String)> = Vec::new();
+7667:         let mut inputs = Vec::with_capacity(pending.len());
+7668:         for (name, observed, content, path) in pending {
+7669:             let mapped = match known.get(&content) {
+7670:                 Some(mapped) => mapped.clone(),
+7671:                 None => {
+7672:                     let read = mapped_content(&path)?;
+7673:                     if read.raw != content {
+7674:                         // Written since it was hashed: the mapped hash is of
+7675:                         // other bytes than the content hash names.
+7676:                         tracing::debug!(
+7677:                             "cc preprocess memo input {} changed while it was fingerprinted",
+7678:                             path.display()
+7679:                         );
+7680:                         return None;
+7681:                     }
+7682:                     known.insert(content.clone(), read.mapped.clone());
+7683:                     learned.push((content.clone(), read.mapped.clone()));
+7684:                     read.mapped
+7685:                 }
+
+4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9:src/cache_key.rs:7890-8001
+7890:     pub(crate) fn hash_unkeyed(&self, path: &Path) -> Result<String> {
+7891:         let _trace = crate::phase_trace::phase("input_hash");
+7892:         self.hash_inner(path, false).map(|(hash, _)| hash)
+7893:     }
+7894: 
+7895:     /// With `keyed`, the file is a key input and the too-new guard sees it.
+7896:     fn hash_inner(
+7897:         &self,
+7898:         path: &Path,
+7899:         keyed: bool,
+7900:     ) -> Result<(String, Option<ObservedFingerprint>)> {
+7901:         let Some(cache) = &self.cache else {
+7902:             // Read before any stat and before the bytes, so it is no later
+7903:             // than whichever stamp is returned.
+7904:             let observed_ns = wall_clock_ns();
+7905:             let observed = |fingerprint| ObservedFingerprint {
+7906:                 fingerprint,
+7907:                 observed_ns,
+7908:             };
+7909:             if !keyed || self.too_new.invocation_start_ns == 0 {
+7910:                 let hash = hash_file(path)?;
+7911:                 return Ok((hash, FileFingerprint::from_path(path).ok().map(observed)));
+7912:             }
+7913:             let Ok(before) = FileFingerprint::from_path(path).map(observed) else {
+7914:                 // No stamp before the read: whatever follows it is too new.
+7915:                 let hash = read_file_hash(path)?;
+7916:                 let after = FileFingerprint::from_path(path).ok();
+7917:                 if after.is_some() {
+7918:                     self.too_new.saw_too_new.set(true);
+7919:                 }
+7920:                 return Ok((hash, after.map(observed)));
+7921:             };
+7922:             self.note_too_new(&before.fingerprint);
+7923:             let hash = read_file_hash(path)?;
+7924:             let (observed, _) = self.restat_after_read(path, before, true);
+7925:             return Ok((hash, Some(observed)));
+7926:         };
+7927: 
+7928:         let observed = match ObservedFingerprint::from_path(path) {
+7929:             Ok(observed) => observed,
+7930:             Err(e) => {
+7931:                 tracing::debug!(
+7932:                     "file hash cache metadata lookup failed for {}: {e}",
+7933:                     path.display()
+7934:                 );
+7935:                 return hash_file(path).map(|hash| (hash, None));
+7936:             }
+7937:         };
+7938:         let fingerprint = &observed.fingerprint;
+7939: 
+7940:         if keyed {
+7941:             self.note_too_new(fingerprint);
+7942:         }
+7943: 
+7944:         if fingerprint.size < MIN_PERSISTED_HASH_BYTES {
+7945:             let hash = read_file_hash(path)?;
+7946:             self.record_miss(fingerprint.size);
+7947:             let (observed, _) = self.restat_after_read(path, observed, keyed);
+7948:             return Ok((hash, Some(observed)));
+7949:         }
+7950: 
+7951:         // A hash from the daemon or the memo belongs to this stamp; no read
+7952:         // here can fall between the stat and the bytes.
+7953:         if let Some(prefetched) = self.prefetched.borrow().get(fingerprint) {
+7954:             if prefetched.cache_hit {
+7955:                 self.record_hit();
+7956:             } else {
+7957:                 self.record_miss_count();
+7958:                 self.record_miss_bytes(prefetched.bytes_hashed);
+7959:             }
+7960:             return Ok((prefetched.hash.clone(), Some(observed)));
+7961:         }
+7962: 
+7963:         match cache.get(fingerprint) {
+7964:             Ok(Some(hash)) => {
+7965:                 self.record_hit();
+7966:                 return Ok((hash, Some(observed)));
+7967:             }
+7968:             Ok(None) => {}
+7969:             Err(e) => {
+7970:                 tracing::debug!("file hash cache lookup failed for {}: {e}", path.display());
+7971:             }
+7972:         }
+7973: 
+7974:         let hash = read_file_hash(path)?;
+7975:         self.record_miss(fingerprint.size);
+7976:         let (observed, unchanged) = self.restat_after_read(path, observed, keyed);
+7977:         if unchanged {
+7978:             self.pending_memo
+7979:                 .borrow_mut()
+7980:                 .push((observed.clone(), hash.clone()));
+7981:         }
+7982:         Ok((hash, Some(observed)))
+7983:     }
+7984: 
+7985:     /// Stat `path` again after reading the bytes `before` was taken for, when
+7986:     /// the guard is armed. A write between the two stats means the bytes may
+7987:     /// belong to neither stamp. A key input (`keyed`) then counts as too new,
+7988:     /// and `before`, which no longer matches the file, stays among the
+7989:     /// guarded inputs so that no later check can excuse it; any other file
+7990:     /// only loses its memo row. Returns the fingerprint to report for the
+7991:     /// read, the later one when they differ (still observed when `before`
+7992:     /// was), and whether they agreed.
+7993:     fn restat_after_read(
+7994:         &self,
+7995:         path: &Path,
+7996:         before: ObservedFingerprint,
+7997:         keyed: bool,
+7998:     ) -> (ObservedFingerprint, bool) {
+7999:         if self.too_new.invocation_start_ns == 0 {
+8000:             return (before, true);
+8001:         }
+
+4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9:src/cache_key.rs:8216-8299
+8216:     fn memoised_hashes<'a>(
+8217:         &self,
+8218:         stamps: impl Iterator<Item = &'a FileFingerprint>,
+8219:     ) -> HashMap<String, String> {
+8220:         let Some(cache) = &self.cache else {
+8221:             return HashMap::new();
+8222:         };
+8223:         let stamps: Vec<&FileFingerprint> = stamps.collect();
+8224:         cache.get_many(&stamps).unwrap_or_else(|error| {
+8225:             tracing::debug!("file hash memo batch lookup failed: {error}");
+8226:             HashMap::new()
+8227:         })
+8228:     }
+8229: 
+8230:     /// A header's content hash, from the daemon's prefetch or the memo when
+8231:     /// either has this exact stamp, else read and queued for the memo.
+8232:     ///
+8233:     /// Unlike [`hash`](Self::hash), small files are memoised too: a header
+8234:     /// is read by every unit that includes it, so the lookup is paid back
+8235:     /// many times. [`flush_memo`](Self::flush_memo) still holds back any file
+8236:     /// changed too recently, when `observed`, to trust its stamp. The
+8237:     /// bookkeeping matches `hash`, so the too-new guard and later
+8238:     /// revalidation see these files.
+8239:     fn header_hash(
+8240:         &self,
+8241:         path: &Path,
+8242:         observed: &ObservedFingerprint,
+8243:         memoised: &HashMap<String, String>,
+8244:     ) -> Result<String> {
+8245:         if self.cache.is_none() {
+8246:             return self.hash(path);
+8247:         }
+8248:         let fingerprint = &observed.fingerprint;
+8249:         let prefetched = self.prefetched.borrow().get(fingerprint).map(|prefetched| {
+8250:             (
+8251:                 prefetched.hash.clone(),
+8252:                 prefetched.cache_hit,
+8253:                 prefetched.bytes_hashed,
+8254:             )
+8255:         });
+8256:         let (hash, reported) = if let Some((hash, cache_hit, bytes_hashed)) = prefetched {
+8257:             if cache_hit {
+8258:                 self.record_hit();
+8259:             } else {
+8260:                 self.record_miss_count();
+8261:                 self.record_miss_bytes(bytes_hashed);
+8262:             }
+8263:             (hash, observed.clone())
+8264:         } else if let Some(hash) = memoised.get(&fingerprint.path) {
+8265:             self.record_hit();
+8266:             (hash.clone(), observed.clone())
+8267:         } else {
+8268:             let hash = read_file_hash(path)?;
+8269:             self.record_miss(fingerprint.size);
+8270:             let (reported, unchanged) = self.restat_after_read(path, observed.clone(), true);
+8271:             if unchanged {
+8272:                 self.pending_memo
+8273:                     .borrow_mut()
+8274:                     .push((observed.clone(), hash.clone()));
+8275:             }
+8276:             (hash, reported)
+8277:         };
+8278:         self.guard_input(&reported);
+8279:         self.recent_hashes.borrow_mut().insert(
+8280:             absolute_path(path),
+8281:             RecentHash {
+8282:                 hash: hash.clone(),
+8283:                 fingerprint: Some(reported.fingerprint),
+8284:             },
+8285:         );
+8286:         Ok(hash)
+8287:     }
+8288: 
+8289:     fn record_hit(&self) {
+8290:         self.stats.cache_hits.set(self.stats.cache_hits.get() + 1);
+8291:     }
+8292: 
+8293:     fn record_miss(&self, size: i64) {
+8294:         self.record_miss_count();
+8295:         if let Ok(size) = u64::try_from(size) {
+8296:             self.record_miss_bytes(size);
+8297:         }
+8298:     }
+8299: 
+
+4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9:src/wrapper.rs:6250-6328
+6250:     );
+6251:     let compile_start = std::time::Instant::now();
+6252:     // An entry could exist: key from the dep-info rustc writes right
+6253:     // after expansion, and stop the compile if that key is stored. This
+6254:     // is the closure the pre-pass would have found, at the same point
+6255:     // in time, without a second rustc.
+6256:     let mut hit_closure = None;
+6257:     let executed = if stop_on_hit {
+6258:         let tree = tree_guard.clone();
+6259:         let mut on_dep_info = || {
+6260:             let Some(dep_info) = emitted_dep_info(args) else {
+6261:                 return true;
+6262:             };
+6263:             let keyed = stop_on_hit_key(ctx, dep_info.clone(), tree.clone());
+6264:             let stored = keyed
+6265:                 .ok()
+6266:                 .is_some_and(|keyed| ctx.store.get(&keyed.cache_key).ok().flatten().is_some());
+6267:             if stored {
+6268:                 hit_closure = Some((dep_info, tree.clone()));
+6269:             }
+6270:             !stored
+6271:         };
+6272:         compiler.execute_streaming_until_dep_info(args, &mut on_dep_info)
+6273:     } else {
+6274:         compiler.execute_streaming(args)
+6275:     };
+6276:     if hit_closure.is_none() {
+6277:         miss_guard.record_compile_rss(crate_name);
+6278:     }
+6279:     drop(miss_guard);
+6280:     if let Some((dep_info, tree)) = hit_closure {
+6281:         // Stopped before anything reached Cargo. Key again from the
+6282:         // closure the compile wrote, and restore like any hit.
+6283:         tracing::debug!("{crate_name}: stored entry found while compiling; restoring it");
+6284:         crate::cache_key::provide_dep_info(dep_info, tree);
+6285:         return run_parsed_rustc(
+6286:             config,
+6287:             compiler,
+6288:             args,
+6289:             start,
+6290:             invocation_start_ns,
+6291:             extra_inputs,
+6292:             extra_inputs_hash_stats,
+6293:             extra_inputs_too_new,
+6294:             extra_inputs_key_ms,
+6295:             guard_inputs,
+6296:             Some(ctx.build_script_inputs),
+6297:             None,
+6298:         );
+6299:     }
+6300:     let result = match executed {
+6301:         Ok(result) => result,
+6302:         Err(e) => {
+6303:             return passthrough_with_event(
+6304:                 config,
+6305:                 args,
+6306:                 crate_name,
+6307:                 ctx.event_root,
+6308:                 start,
+6309:                 format!("compiler spawn failed: {e}"),
+6310:                 key_record,
+6311:             );
+6312:         }
+6313:     };
+6314:     let compile_time_ms = compile_start.elapsed().as_millis() as u64;
+6315:     replay_diagnostics(
+6316:         &result.stdout,
+6317:         result.pending_stderr(),
+6318:         std::io::stdout(),
+6319:         std::io::stderr(),
+6320:     );
+6321:     after_rustc_exit(result.exit_code, &result.stderr, &args.externs);
+6322:     if result.exit_code != 0 {
+6323:         let elapsed = start.elapsed().as_millis() as u64;
+6324:         log_event(
+6325:             config,
+6326:             EventInputs::new(ctx.event_root, crate_name, EventResult::Error, elapsed)
+6327:                 .compile_time_ms(compile_time_ms)
+6328:                 .keyed("", key_ms, key_hash_stats)
+
+4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9:src/wrapper.rs:6460-6505
+6460:     args: &RustcArgs,
+6461:     wanted: bool,
+6462:     key: &crate::cache_key::KeyOutputs,
+6463: ) {
+6464:     let _trace = crate::phase_trace::phase("prediction_record");
+6465:     if !config.input_predictions || !wanted {
+6466:         return;
+6467:     }
+6468:     let Some(dep_info) = &key.dep_info else {
+6469:         return;
+6470:     };
+6471:     let Some(store) = store else {
+6472:         return;
+6473:     };
+6474:     let file_hasher = store.file_hasher();
+6475:     if !file_hasher.supports_input_predictions() {
+6476:         return;
+6477:     }
+6478:     let Some(identity) = crate::cache_key::rustc_prediction_identity(args) else {
+6479:         return;
+6480:     };
+6481:     // Present exactly when the key was computed under the tree guard; the
+6482:     // record must carry it or the guard will never accept the record. Only
+6483:     // while the trees it read have not moved since: rustc reported what it
+6484:     // saw after the digest was taken, and a listed file removed meanwhile
+6485:     // and put back since would leave a closure without it under a digest
+6486:     // that matches again. Without the guard, a guarded unit's rows are not
+6487:     // used, and its rows for other checkouts are not written.
+6488:     let tree = key
+6489:         .tree_guard
+6490:         .as_ref()
+6491:         .filter(|guard| guard.held())
+6492:         .map(|guard| guard.digest.clone());
+6493:     let registry = crate::cache_key::registry_src_of(&std::env::vars_os().collect::<Vec<_>>());
+6494:     // A workspace or path unit gets a row another checkout of the workspace
+6495:     // can use, when the guard was taken before rustc ran (kunobi-ninja/kache#1005).
+6496:     let workspace = crate::cache_key::workspace_record(args, dep_info, tree.as_deref());
+6497:     // This checkout's rows, local and shared, carry the same guard.
+6498:     let guard = crate::cache_key::same_checkout_guard(args, dep_info, tree.clone());
+6499:     file_hasher.record_input_prediction(
+6500:         &identity,
+6501:         args.crate_name.as_deref(),
+6502:         dep_info,
+6503:         guard.clone(),
+6504:     );
+6505:     if let Some((identity, record)) = workspace {
+
+4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9:src/wrapper.rs:6658-6730
+6658:     key_ms: u64,
+6659:     extra_inputs_key_ms: u64,
+6660:     key_hash_stats: FileHashStats,
+6661:     extra_inputs_hash_stats: FileHashStats,
+6662:     key_too_new: bool,
+6663:     extra_inputs_too_new: bool,
+6664: ) -> (u64, FileHashStats, bool) {
+6665:     (
+6666:         key_ms + extra_inputs_key_ms,
+6667:         FileHashStats {
+6668:             cache_hits: key_hash_stats.cache_hits + extra_inputs_hash_stats.cache_hits,
+6669:             cache_misses: key_hash_stats.cache_misses + extra_inputs_hash_stats.cache_misses,
+6670:             bytes_hashed: key_hash_stats.bytes_hashed + extra_inputs_hash_stats.bytes_hashed,
+6671:         },
+6672:         key_too_new || extra_inputs_too_new,
+6673:     )
+6674: }
+6675: 
+6676: /// How the key may learn a closure it has no record of.
+6677: enum KeyDiscovery {
+6678:     /// Run the dep-info pre-pass, as always.
+6679:     Immediate,
+6680:     /// Stop and let the wrapper compile first (local store only). With
+6681:     /// `stop_on_hit`, also when an entry could exist: rustc reports its
+6682:     /// dep-info as a JSON artifact, so the wrapper can key from it and stop
+6683:     /// the compile on a hit.
+6684:     Deferrable { stop_on_hit: bool },
+6685:     /// The compile already ran; this is its emitted closure. A source written
+6686:     /// since the invocation began refuses the store regardless of
+6687:     /// configuration: it must not be keyed as if the compiler had read it.
+6688:     /// The tree guard is the one the deferred computation took before the
+6689:     /// compile.
+6690:     Emitted(
+6691:         crate::cache_key::DepInfo,
+6692:         Option<crate::cache_key::TreeGuard>,
+6693:     ),
+6694:     /// Run the pre-pass again for a predicted key that missed. The caller
+6695:     /// may hold this unit's discovery flight, and that lock is not
+6696:     /// re-entrant, so this computation joins no flight.
+6697:     Rederived,
+6698: }
+6699: 
+6700: /// Where this key computation may wait for a peer discovering the same
+6701: /// unit: nowhere without the scheduler, and nowhere for a re-derivation,
+6702: /// which would otherwise wait on the flight its own caller holds.
+6703: fn discovery_flight_dir(config: &Config, discovery: &KeyDiscovery) -> Option<PathBuf> {
+6704:     (config.scheduler && !matches!(discovery, KeyDiscovery::Rederived))
+6705:         .then(|| config.cache_dir.clone())
+6706: }
+6707: 
+6708: /// What Kache and Cargo write as a project builds, which the tree guard and
+6709: /// the walks of declared build-script inputs leave out wherever it lies
+6710: /// inside a tree, each as spelled and as resolved: Kache's cache, runtime and
+6711: /// probe directories, the store the unit's outputs route to, and what Cargo
+6712: /// itself writes in its home ([`crate::build_script_inputs::cargo_home_writes`]).
+6713: /// GitLab CI caches only paths inside the project, so a job keeps Kache's
+6714: /// cache and Cargo's home there, and Cargo records in its home when builds
+6715: /// use downloaded crates. The rest of Cargo's home still counts: with the
+6716: /// home in the project's `.cargo`, its `config.toml` is the project's. Under
+6717: /// a trust domain the probe directory, which holds the tree memos, stays in
+6718: /// the base cache directory, outside the domain's own cache.
+6719: fn written_while_building(config: &Config, store: Option<&Store>) -> Vec<PathBuf> {
+6720:     let probe_dir = crate::config::probe_memo_dir();
+6721:     let mut written = crate::build_script_inputs::excluded_roots(
+6722:         None,
+6723:         [
+6724:             config.cache_dir.as_path(),
+6725:             config.runtime_dir.as_path(),
+6726:             probe_dir.as_path(),
+6727:         ]
+6728:         .into_iter()
+6729:         .chain(store.map(Store::cache_dir)),
+6730:     );
+
+4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9:crates/kache-store/src/file_hash.rs:1-32
+1: //! Persistent file fingerprints and opaque compiler memo records.
+2: 
+3: pub use crate::cc_memo::{CcPreprocessMemo, CcPreprocessMemoInput};
+4: pub use crate::index_compaction::{IndexCompaction, IndexPageStats, index_page_stats};
+5: use anyhow::{Context, Result};
+6: use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
+7: use std::path::{Path, PathBuf};
+8: 
+9: pub const MIN_PERSISTED_HASH_BYTES: i64 = 64 * 1024;
+10: 
+11: /// How long a file must have been left alone, when it was read, before its
+12: /// hash may be memoised.
+13: ///
+14: /// A memo row is trusted whenever the stamp matches. A file written, hashed and
+15: /// then written again inside one timestamp tick keeps the same stamp with
+16: /// different bytes, and a row recorded between the two writes would hand the
+17: /// old hash to every later lookup. Filesystems tick coarsely: HFS+ in whole
+18: /// seconds, FAT in two, ext4 at the kernel's coarse clock. Two seconds after
+19: /// the last change, a further write lands on a later tick and changes the
+20: /// stamp, so bytes read after a stat taken then belong to that stamp.
+21: pub const HASH_SETTLE_NS: i64 = 2_000_000_000;
+22: 
+23: /// Whether `fingerprint`'s file last changed at least [`HASH_SETTLE_NS`]
+24: /// before `observed_ns`, the wall clock read before the stat that produced
+25: /// it. A later time, such as when a row is written, says nothing about the
+26: /// bytes already read. The ctime counts as well as the mtime: tools that
+27: /// restore an old mtime after writing cannot hold the ctime back.
+28: pub fn stamp_is_settled(fingerprint: &FileFingerprint, observed_ns: i64) -> bool {
+29:     let changed = fingerprint.mtime_ns.max(fingerprint.ctime_ns);
+30:     observed_ns.saturating_sub(changed) >= HASH_SETTLE_NS
+31: }
+32: 

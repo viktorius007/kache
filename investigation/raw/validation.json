@@ -1,0 +1,14 @@
+{
+  "untouched_main": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "comparison_tag": "36d50814a9379392d5ee637290015193d7f206ce",
+  "format": "passed",
+  "feature_enabled_release_build": "passed",
+  "post_instrumentation_feature_disabled_release_build": "passed",
+  "dependency_gating": "passed",
+  "unprofiled_warm_samples": 48,
+  "local_hits_per_sample": 24,
+  "misses_per_sample": 0,
+  "probe_passthroughs_per_sample": 5,
+  "admitted_correctness_defects": 0,
+  "remaining_release_gate": "exact final-head Biome/Kobe workload provenance and paired rerun"
+}

@@ -1,0 +1,3 @@
+82159d6b0a393b06c948d07221d17a8a00cd574c77630c90a90e26f5bd28a0b8  investigation/bin/main-disabled
+8b5350abdfda37ee47c9fd6cd83afccc4311e9930160d39abffa4b695d714a69  investigation/bin/main-enabled
+6c94c9056c3a88ea2c603a06072eb902b15b436592f0cacdd12b3bcca1608d96  investigation/bin/v1

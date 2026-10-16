@@ -1,0 +1,15 @@
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded hotpath v0.28.6
+hotpath
+One profiler for CPU, time, memory, SQL, and async code - quickly find and debug performance bottlenecks.
+version: 0.28.6
+license: MIT
+rust-version: unknown
+documentation: https://docs.rs/hotpath/0.28.6
+repository: https://github.com/pawurb/hotpath-rs
+crates.io: https://crates.io/crates/hotpath/0.28.6
+features:
+ +default                 = [threads]
+  threads                 = []
+  31 deactivated features

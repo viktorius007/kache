@@ -1,0 +1,404 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index c898e05..ecf5bc4 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -126,6 +126,15 @@ dependencies = [
+  "num-traits",
+ ]
+ 
++[[package]]
++name = "arc-swap"
++version = "1.9.2"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "c049c0be4daef0b145cb3555416b3b8ef5b7888a38aea1a3a155801fe7b0810b"
++dependencies = [
++ "rustversion",
++]
++
+ [[package]]
+ name = "arraydeque"
+ version = "0.5.1"
+@@ -138,6 +147,12 @@ version = "0.7.8"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "d3fb67a6e08acf24fdeccbac2cb6ac4305825bd1f117462e0e6f2f193345ad56"
+ 
++[[package]]
++name = "ascii"
++version = "1.1.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "d92bec98840b8f03a5ff5413de5293bfcd8bf96467cf5452609f939ec6f5de16"
++
+ [[package]]
+ name = "assert_cmd"
+ version = "2.2.2"
+@@ -429,6 +444,12 @@ version = "1.25.2"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "95832e849adfb21180ccb6826a99da14e5d266ae5c2e668e1602cf234f153797"
+ 
++[[package]]
++name = "byteorder"
++version = "1.5.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
++
+ [[package]]
+ name = "bytes"
+ version = "1.12.1"
+@@ -508,6 +529,12 @@ dependencies = [
+  "windows-link",
+ ]
+ 
++[[package]]
++name = "chunked_transfer"
++version = "1.5.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "6e4de3bc4ea267985becf712dc6d9eed8b04c953b3fcfb339ebc87acd9804901"
++
+ [[package]]
+ name = "cipher"
+ version = "0.4.4"
+@@ -736,6 +763,21 @@ version = "1.2.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "790eea4361631c5e7d22598ecd5723ff611904e3344ce8720784c93e3d83d40b"
+ 
++[[package]]
++name = "crossbeam-channel"
++version = "0.5.17"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "98b0cc327b5bc766e7fda9c9260cc0fa81b43a8e240440422dff70788e3f9ef1"
++dependencies = [
++ "crossbeam-utils",
++]
++
++[[package]]
++name = "crossbeam-utils"
++version = "0.8.23"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "a31eee39dddec8330830986fcd7625edb5a24ec90ea038215273bbc3adb08ac6"
++
+ [[package]]
+ name = "crossterm"
+ version = "0.29.0"
+@@ -1630,6 +1672,16 @@ dependencies = [
+  "hashbrown 0.17.1",
+ ]
+ 
++[[package]]
++name = "hdrhistogram"
++version = "7.6.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "f49d1053f4708f0af3cf9fc5bffc7e68a914a3c45becb231c80068c9c3f78bea"
++dependencies = [
++ "byteorder",
++ "num-traits",
++]
++
+ [[package]]
+ name = "heck"
+ version = "0.5.0"
+@@ -1678,6 +1730,46 @@ dependencies = [
+  "windows-sys 0.61.2",
+ ]
+ 
++[[package]]
++name = "hotpath"
++version = "0.28.6"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "e2ee4f8d17ebe2400fa845f079acf9ede235be6472512876779af45f7890f934"
++dependencies = [
++ "arc-swap",
++ "cfg-if",
++ "crossbeam-channel",
++ "futures-core",
++ "hdrhistogram",
++ "hotpath-drain",
++ "hotpath-macros",
++ "libc",
++ "pin-project-lite",
++ "quanta",
++ "regex-lite",
++ "serde",
++ "serde_json",
++ "time",
++ "tiny_http",
++]
++
++[[package]]
++name = "hotpath-drain"
++version = "0.28.6"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "fd9e65572a429f44a48c360559a3f59028579b53e1df07c5f31dc147d2b94a50"
++
++[[package]]
++name = "hotpath-macros"
++version = "0.28.6"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "2b90aafbaf5f6af01ee9db2888644b15995f5306e5c280aec8261feb3e5e214a"
++dependencies = [
++ "proc-macro2",
++ "quote",
++ "syn 2.0.119",
++]
++
+ [[package]]
+ name = "http"
+ version = "1.5.0"
+@@ -2274,6 +2366,7 @@ dependencies = [
+  "glob",
+  "hex",
+  "home",
++ "hotpath",
+  "interprocess",
+  "kache-core",
+  "kache-format",
+@@ -3645,6 +3738,21 @@ dependencies = [
+  "thiserror 1.0.69",
+ ]
+ 
++[[package]]
++name = "quanta"
++version = "0.12.6"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "f3ab5a9d756f0d97bdc89019bd2e4ea098cf9cde50ee7564dde6b81ccc8f06c7"
++dependencies = [
++ "crossbeam-utils",
++ "libc",
++ "once_cell",
++ "raw-cpuid",
++ "wasi",
++ "web-sys",
++ "winapi",
++]
++
+ [[package]]
+ name = "quick-xml"
+ version = "0.41.0"
+@@ -3938,6 +4046,15 @@ dependencies = [
+  "unicode-width",
+ ]
+ 
++[[package]]
++name = "raw-cpuid"
++version = "11.6.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "498cd0dc59d73224351ee52a95fee0f1a617a2eae0e7d9d720cc622c73a54186"
++dependencies = [
++ "bitflags 2.13.1",
++]
++
+ [[package]]
+ name = "recvmsg"
+ version = "1.0.0"
+@@ -4007,6 +4124,12 @@ dependencies = [
+  "regex-syntax",
+ ]
+ 
++[[package]]
++name = "regex-lite"
++version = "0.1.9"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "cab834c73d247e67f4fae452806d17d3c7501756d98c8808d7c9c7aa7d18f973"
++
+ [[package]]
+ name = "regex-syntax"
+ version = "0.8.11"
+@@ -5228,6 +5351,18 @@ dependencies = [
+  "crunchy",
+ ]
+ 
++[[package]]
++name = "tiny_http"
++version = "0.12.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "389915df6413a2e74fb181895f933386023c71110878cd0825588928e64cdc82"
++dependencies = [
++ "ascii",
++ "chunked_transfer",
++ "httpdate",
++ "log",
++]
++
+ [[package]]
+ name = "tinystr"
+ version = "0.8.4"
+diff --git a/Cargo.toml b/Cargo.toml
+index d5f33db..6bbe30a 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -35,7 +35,11 @@ members = [
+ exclude = ["tmp"]
+ resolver = "3"
+ 
++[features]
++profile-hotpath = ["dep:hotpath", "hotpath/hotpath"]
++
+ [dependencies]
++hotpath = { version = "=0.28.6", optional = true, default-features = false }
+ foldhash = "0.2"
+ kunobi-daemon = { version = "0.9.0", features = ["wire-async", "local-async", "launch"] }
+ kache-format = { version = "1.0.0", path = "crates/kache-format" }
+diff --git a/src/cache_key.rs b/src/cache_key.rs
+index c1462f6..11e316c 100644
+--- a/src/cache_key.rs
++++ b/src/cache_key.rs
+@@ -886,6 +886,7 @@ enum StampRefusal {
+ 
+ /// One stat walk per root, each of them and all of them together within
+ /// `max_entries`: the stamp of each, with the entries it holds.
++#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
+ fn stamp_roots(
+     roots: &[WalkedRoot],
+     max_entries: usize,
+@@ -1206,6 +1207,7 @@ const TREE_ROOTS_VERSION: &[u8] = b"kache-crate-tree-roots-v1\n";
+ /// once the root has settled ([`crate::tree_stamp::TreeStamp::settled_at`]).
+ /// Several roots' digests fold into one. The walks go to `file_hasher` for
+ /// the guard ([`tree_guard_of`]).
++#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
+ fn tree_digest_memoised(
+     mut roots: Vec<TreeRoot<'_>>,
+     file_hasher: &FileHasher<'_>,
+@@ -1284,6 +1286,7 @@ fn tree_digest_memoised(
+ /// The digest of `root`, which `walk` stamped as `stamp`: the memoised one
+ /// while the root has the stamp it was recorded under, otherwise a read of
+ /// every file in it within `budget` entries.
++#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
+ fn root_digest(
+     root: &TreeRoot<'_>,
+     walk: &GuardWalk,
+@@ -1333,6 +1336,7 @@ fn root_digest(
+ /// On Unix a lookup needs only the same entries. The root's own times also
+ /// move when a name it leaves out, such as the target directory, is created
+ /// or removed, and every entry the digest read stays as it was.
++#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
+ fn memoise_tree_digest(
+     memo: &Path,
+     walk: &GuardWalk,
+@@ -1421,6 +1425,7 @@ fn registry_src_root(manifest_dir: &Path) -> Option<&Path> {
+ /// proc macro this process starts cannot read it either. `Some(false)` when
+ /// that includes a file: where there is no change time, a file that becomes
+ /// readable keeps its stamp.
++#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
+ fn crate_tree_fold(
+     root: &Path,
+     directory: &Path,
+@@ -2062,6 +2067,7 @@ fn closures_agree(predicted: &DepInfo, discovered: &DepInfo) -> bool {
+ /// and env values, and each one is re-checked. Any doubt is a `Rejection`,
+ /// and every `Rejection` means the same thing to the caller — spawn the
+ /// pre-pass and discover the closure for real.
++#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
+ fn predicted_key_inputs(
+     args: &RustcArgs,
+     file_hasher: &FileHasher<'_>,
+@@ -2780,6 +2786,7 @@ fn discovery_flight_identity(args: &RustcArgs, file_hasher: &FileHasher<'_>) ->
+ ///
+ /// `None` when the invocation names no source file: there is no closure to
+ /// discover, and the key simply folds no source or env-dep group.
++#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
+ fn resolve_key_inputs(
+     args: &RustcArgs,
+     file_hasher: &FileHasher<'_>,
+@@ -2951,6 +2958,8 @@ pub(crate) fn compute_cache_key(
+     compute_cache_key_with_outputs(args, file_hasher, path_normalizer, env).0
+ }
+ 
++#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
++
+ fn compute_key_into(
+     args: &RustcArgs,
+     file_hasher: &FileHasher<'_>,
+diff --git a/src/tree_stamp.rs b/src/tree_stamp.rs
+index 6048e8e..01c693c 100644
+--- a/src/tree_stamp.rs
++++ b/src/tree_stamp.rs
+@@ -128,6 +128,7 @@ impl Stamper {
+ 
+     /// [`Self::walk`], leaving out every entry `skips` names by its path and
+     /// its listing entry, wherever it appears below `root`.
++    #[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
+     pub(crate) fn walk_skipping(
+         &mut self,
+         root: &Path,
+diff --git a/src/wrapper.rs b/src/wrapper.rs
+index d4b67bc..f765153 100644
+--- a/src/wrapper.rs
++++ b/src/wrapper.rs
+@@ -778,6 +778,7 @@ fn spawn_auto_gc_worker(config: &Config) {
+ /// entry is flushed here and now. That costs what an inline fsync always
+ /// cost, and it keeps a store that never sees a daemon from accumulating
+ /// entries whose every hit re-reads them to verify.
++#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
+ fn flush_or_hand_off_durability(config: &Config, store: &Store, cache_key: &str) {
+     let _trace = crate::phase_trace::phase("durability_flush");
+     if !config.deferred_durability {
+@@ -996,6 +997,7 @@ fn volume_cache_dirs_match(routed: &Path, main: &Path) -> bool {
+ 
+ /// Open the volume shard (or main store) plus the stores read after it: the
+ /// main store when the route maps to a shard, then [`Config::readonly_store`].
++#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
+ fn open_primary_and_fallback(config: &Config, route: &Path) -> Result<(Store, Vec<Store>)> {
+     crate::link::set_mapped_target(config.volume_store_for(route).is_some());
+     let routed = config.routed_for_path(route);
+@@ -3305,6 +3307,15 @@ fn cc_try_remote_hit(
+ /// This is the hot path — called once per crate by cargo.
+ /// Flow: parse args → compute cache key → check store → link on hit → compile on miss → store → link
+ pub fn run(config: &Config, wrapper_args: &[String]) -> Result<i32> {
++    // This scope returns before main exits the process, so the profiler can drain.
++    #[cfg(feature = "profile-hotpath")]
++    let _hotpath = std::env::var_os("KACHE_HOTPATH_DIR").map(|directory| {
++        hotpath::HotpathGuardBuilder::new("rustc-wrapper")
++            .output_path(
++                PathBuf::from(directory).join(format!("wrapper-{}.json", std::process::id())),
++            )
++            .build()
++    });
+     let _trace = crate::phase_trace::start("rustc", wrapper_args);
+     let start = wrapper_entry();
+     crate::link::set_windows_hardlink_restore(config.windows_hardlink);
+@@ -6454,6 +6465,7 @@ fn fetches_remote_predictions(config: &Config) -> bool {
+ /// Silent and best-effort throughout. Every reason to give up (feature off, no
+ /// store, no closure to record, no identity) costs a future pre-pass and
+ /// nothing else, so none of them is worth a warning on a successful build.
++#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
+ fn record_input_prediction(
+     config: &Config,
+     store: Option<&Store>,
+@@ -6753,6 +6765,7 @@ struct ExtraInputsKey<'a> {
+ /// the cache only changes how it's computed. What the event log records of
+ /// the computation goes into `key_record`, whether or not a key comes back.
+ #[allow(clippy::too_many_arguments)]
++#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
+ fn compute_rustc_cache_key(
+     config: &Config,
+     compiler: &RustcCompiler,
+@@ -7044,6 +7057,7 @@ fn try_rustc_remote_hit(
+ ///
+ /// Best-effort by construction — `record_verified_file_hash` drops files
+ /// below the memo's size floor, which the hasher would not consult anyway.
++#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
+ fn record_known_file_hashes(store: &Store, restored: &[(crate::cache_key::FileFingerprint, &str)]) {
+     let _trace = crate::phase_trace::phase("memo_restored");
+     let restored: Vec<_> = restored
+@@ -7279,6 +7293,7 @@ fn restore_from_cache(
+ }
+ 
+ #[allow(clippy::too_many_arguments)]
++#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
+ fn restore_from_cache_with_memo_store(
+     config: &Config,
+     compiler: &RustcCompiler,
+@@ -7736,6 +7751,7 @@ fn passthrough_args(
+ /// A hit restored a unit's outputs without its incremental state. Count it as
+ /// the unit's first build, so the next edit seeds state instead of first
+ /// compiling once more without it.
++#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
+ fn observe_adaptive_hit(
+     unit: Option<&AdaptiveUnit>,
+     fields: Option<&std::collections::BTreeMap<String, String>>,
+@@ -8563,6 +8579,7 @@ impl KeyEventRecord {
+ /// The event for one invocation, built from its measurements and this
+ /// process's counters. Written by [`write_event`], here or, for a compile
+ /// handed to the daemon, there.
++#[cfg_attr(feature = "profile-hotpath", hotpath::measure)]
+ pub(crate) fn build_event_details(config: &Config, inputs: EventInputs<'_>) -> BuildEvent {
+     let EventInputs {
+         root,

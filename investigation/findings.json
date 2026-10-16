@@ -1,0 +1,107 @@
+[
+  {
+    "id": "release-perf-001",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:56:20Z",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex team agent",
+      "mode": "performance-investigation",
+      "slice": "warm Rust predictions/tree guard and restore"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Zero cache misses do not imply that a documentation edit avoids starting rustc.",
+    "checked": "All twelve current-main documentation-edit samples across 0/4000 extra files restored 24 units with zero misses. Each nevertheless records dep_info_runs=24 and compiler_runs=0.",
+    "evidence": [
+      {
+        "path": "investigation/raw/paired-4000.json",
+        "point": "Each documentation-edit main-disabled sample has 24 local_hit events and summed dep_info_runs=24."
+      },
+      {
+        "path": "src/wrapper.rs",
+        "lines": "6263-6319",
+        "point": "compile_before_key starts rustc until emitted dep-info, stops on a stored key, then re-enters the restore path."
+      }
+    ],
+    "closed_by": "Tier 1 paired build telemetry and diagnostic traces; tier 2 production compile_before_key wiring. compiler_runs counts full compilation here, not dep-info discovery.",
+    "reopens_if": "A sampled build has no dep-info run or takes a different discovery path.",
+    "status": "no-action"
+  },
+  {
+    "id": "release-perf-002",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:56:20Z",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex team agent",
+      "mode": "performance-investigation",
+      "slice": "warm Rust predictions/tree guard and restore"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Failure of the workspace digest memo is not the dominant unchanged-build cost in this fixture.",
+    "checked": "The 4000-file unchanged trace has 24 tree_memo=hit decisions and 24 validated predictions; hotpath root_digest is about 1.47 ms summed while stamp_roots is about 550.84 ms.",
+    "evidence": [
+      {
+        "path": "investigation/phase-summary.json",
+        "point": "4000-trace-only-main-disabled-traces has tree_memo=hit:24 and prediction=validated:24."
+      },
+      {
+        "path": "investigation/summary.json",
+        "point": "4000-overhead-0-main-enabled-hotpath reports stamp_roots and root_digest cumulative durations."
+      }
+    ],
+    "closed_by": "Tier 1 phase decisions and function timing. The required full entry stamp walk dominates the instrumented key path despite root memo hits.",
+    "reopens_if": "Another workload, build-script OUT_DIR pattern or filesystem gives repeated root memo misses on unchanged builds.",
+    "status": "no-action"
+  },
+  {
+    "id": "release-perf-003",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:56:20Z",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex team agent",
+      "mode": "performance-investigation",
+      "slice": "warm Rust predictions/tree guard and restore"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Artifact copying and restored-file hash seeding are not the dominant measured warm-path cost in this fixture.",
+    "checked": "The unchanged 4000-file hotpath control sums compute_rustc_cache_key=628.71 ms, restore=36.41 ms and record_known_file_hashes=0.179 ms.",
+    "evidence": [
+      {
+        "path": "investigation/summary.json",
+        "point": "4000-overhead-0-main-enabled-hotpath aggregates selected function calls across 29 wrapper reports."
+      }
+    ],
+    "closed_by": "Tier 1 profiler attribution corroborated by the separate phase-only build. These are nested/parallel cumulative durations, not wall-clock savings.",
+    "reopens_if": "A fixture has large artifacts, a copying filesystem, different restore modes or substantially different output cardinality.",
+    "status": "no-action"
+  },
+  {
+    "id": "release-perf-004",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:56:20Z",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex team agent",
+      "mode": "performance-investigation",
+      "slice": "warm Rust predictions/tree guard and restore"
+    },
+    "category": "defect",
+    "domain": "test",
+    "summary": "Profiler-enabled elapsed time is not a valid uncorrected main-versus-v1 regression estimate.",
+    "checked": "Three same-seed enabled/disabled controls show median paired hotpath overhead +23.50% with zero extra docs and +12.19% with 4000 docs.",
+    "evidence": [
+      {
+        "path": "investigation/summary.json",
+        "point": "Both overhead comparisons contain three explicit main-enabled/main-disabled pairs and no phase tracing."
+      }
+    ],
+    "closed_by": "Tier 1 executed control. Only uninstrumented binaries decide the main/v1 paired performance result.",
+    "reopens_if": "A different profiler configuration has its overhead separately measured or a larger control establishes a tighter estimate.",
+    "status": "no-action"
+  }
+]

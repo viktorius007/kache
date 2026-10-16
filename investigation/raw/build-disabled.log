@@ -1,0 +1,7 @@
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-investigations/release-performance/crates/kache-fs)
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-investigations/release-performance/crates/kache-format)
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-investigations/release-performance)
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-investigations/release-performance/crates/kache-core)
+   Compiling kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-investigations/release-performance/crates/kache-shims)
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-investigations/release-performance/crates/kache-store)
+    Finished `release` profile [optimized] target(s) in 4m 08s

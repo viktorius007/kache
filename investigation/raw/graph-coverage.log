@@ -1,0 +1,37 @@
+project: Users-viktor-Developer-github-kache-investigations-coordinator
+signal: best_effort
+indexed_at: 2026-10-11T05:36:35Z
+metadata:
+  generation: 2026-10-11T05:36:35Z
+  index_mode: full
+  recorded_at: 2026-10-11T05:36:36Z
+  recording_status: complete
+  ignored_files_stored: 17
+  ignored_files_total: 17
+  hash_records_complete: true
+  coverage_version: 17
+  generation_matches: true
+semantic_coverage:
+  rust:
+    status: semantic_partial
+    reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    note: "Rust CALLS, expanded calls, IMPLEMENTS, and OVERRIDE facts may be omitted according to the listed semantic gaps."
+paths: 5  (cols: requested_path path semantic_status semantic_reasons unresolved_sites status freshness recommended_action coverage)
+  src/wrapper.rs src/wrapper.rs semantic_partial "[\"binding_oracle_unavailable\",\"expanded_calls_unavailable\",\"impl_relationships_unavailable\"]" "{\"lookup\":\"complete\",\"calls\":2109,\"references\":3255,\"files\":[{\"path\":\"src/wrapper.rs\",\"kind\":\"call\",\"total\":2109},{\"path\":\"src/wrapper.rs\",\"kind\":\"member\",\"total\":341},{\"path\":\"src/wrapper.rs\",\"kind\":\"reference\",\"total\":1328},{\"path\":\"src/wrapper.rs\",\"kind\":\"type\",\"total\":1586}],\"file_kind_groups_total\":4,\"files_truncated\":false,\"scope\":\"file\",\"recording\":\"available\",\"listing_tool\":\"trace_path\",\"listing_arguments\":\"Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests.\",\"note\":\"Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences.\"}" no_recorded_issue metadata_match use_graph_with_best_effort_caveat []
+  src/cache_key.rs src/cache_key.rs semantic_partial "[\"binding_oracle_unavailable\",\"expanded_calls_unavailable\",\"impl_relationships_unavailable\"]" "{\"lookup\":\"complete\",\"calls\":2671,\"references\":2880,\"files\":[{\"path\":\"src/cache_key.rs\",\"kind\":\"call\",\"total\":2671},{\"path\":\"src/cache_key.rs\",\"kind\":\"member\",\"total\":140},{\"path\":\"src/cache_key.rs\",\"kind\":\"reference\",\"total\":1291},{\"path\":\"src/cache_key.rs\",\"kind\":\"type\",\"total\":1449}],\"file_kind_groups_total\":4,\"files_truncated\":false,\"scope\":\"file\",\"recording\":\"available\",\"listing_tool\":\"trace_path\",\"listing_arguments\":\"Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests.\",\"note\":\"Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences.\"}" no_recorded_issue metadata_match use_graph_with_best_effort_caveat []
+  src/tree_stamp.rs src/tree_stamp.rs semantic_partial "[\"binding_oracle_unavailable\",\"expanded_calls_unavailable\",\"impl_relationships_unavailable\"]" "{\"lookup\":\"complete\",\"calls\":318,\"references\":485,\"files\":[{\"path\":\"src/tree_stamp.rs\",\"kind\":\"call\",\"total\":318},{\"path\":\"src/tree_stamp.rs\",\"kind\":\"member\",\"total\":4},{\"path\":\"src/tree_stamp.rs\",\"kind\":\"reference\",\"total\":272},{\"path\":\"src/tree_stamp.rs\",\"kind\":\"type\",\"total\":209}],\"file_kind_groups_total\":4,\"files_truncated\":false,\"scope\":\"file\",\"recording\":\"available\",\"listing_tool\":\"trace_path\",\"listing_arguments\":\"Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests.\",\"note\":\"Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences.\"}" no_recorded_issue metadata_match use_graph_with_best_effort_caveat []
+  src/phase_trace.rs src/phase_trace.rs semantic_partial "[\"binding_oracle_unavailable\",\"expanded_calls_unavailable\",\"impl_relationships_unavailable\"]" "{\"lookup\":\"complete\",\"calls\":137,\"references\":145,\"files\":[{\"path\":\"src/phase_trace.rs\",\"kind\":\"call\",\"total\":137},{\"path\":\"src/phase_trace.rs\",\"kind\":\"member\",\"total\":11},{\"path\":\"src/phase_trace.rs\",\"kind\":\"reference\",\"total\":76},{\"path\":\"src/phase_trace.rs\",\"kind\":\"type\",\"total\":58}],\"file_kind_groups_total\":4,\"files_truncated\":false,\"scope\":\"file\",\"recording\":\"available\",\"listing_tool\":\"trace_path\",\"listing_arguments\":\"Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests.\",\"note\":\"Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences.\"}" no_recorded_issue metadata_match use_graph_with_best_effort_caveat []
+  src/main.rs src/main.rs semantic_partial "[\"binding_oracle_unavailable\",\"expanded_calls_unavailable\",\"impl_relationships_unavailable\"]" "{\"lookup\":\"complete\",\"calls\":602,\"references\":1761,\"files\":[{\"path\":\"src/main.rs\",\"kind\":\"call\",\"total\":602},{\"path\":\"src/main.rs\",\"kind\":\"member\",\"total\":116},{\"path\":\"src/main.rs\",\"kind\":\"reference\",\"total\":1087},{\"path\":\"src/main.rs\",\"kind\":\"type\",\"total\":558}],\"file_kind_groups_total\":4,\"files_truncated\":false,\"scope\":\"file\",\"recording\":\"available\",\"listing_tool\":\"trace_path\",\"listing_arguments\":\"Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests.\",\"note\":\"Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences.\"}" no_recorded_issue metadata_match use_graph_with_best_effort_caveat []
+path_total: 5
+path_returned: 5
+path_has_more: false
+scopes: 0
+scope_total: 0
+scope_returned: 0
+scope_truncated: false
+has_more: false
+caveat: "Best-effort signal only. No recorded issue does not prove graph or source completeness; read flagged source and qualify claims when metadata is changed or unavailable."
+

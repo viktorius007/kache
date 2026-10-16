@@ -1,0 +1,2186 @@
+{
+  "paired-0": {
+    "comparisons": {
+      "unchanged": {
+        "pairs": 6,
+        "base_median_seconds": 0.2358318119999998,
+        "head_median_seconds": 0.26288287550000033,
+        "median_paired_percent": -1.4344080378582869,
+        "bootstrap_95_percent": [
+          -12.924465731804984,
+          13.352108971776989
+        ],
+        "repo_gate": "inconclusive",
+        "paired_percent": [
+          -11.570743024017737,
+          -14.278188439592231,
+          0.32239438237795515,
+          2.3233352817151554,
+          24.38088266183882,
+          -3.191210458094529
+        ]
+      },
+      "documentation-edit": {
+        "pairs": 6,
+        "base_median_seconds": 0.23800183300000022,
+        "head_median_seconds": 0.4525752084999999,
+        "median_paired_percent": 90.42246623692199,
+        "bootstrap_95_percent": [
+          87.15202275465315,
+          92.55734310379819
+        ],
+        "repo_gate": "inconclusive",
+        "paired_percent": [
+          90.97728358760587,
+          91.22878795705122,
+          88.20467303470396,
+          89.8676488862381,
+          93.88589825054517,
+          86.09937247460229
+        ]
+      },
+      "overhead": {
+        "pairs": 3,
+        "base_median_seconds": 0.23457333300000016,
+        "head_median_seconds": 0.2877708329999997,
+        "median_paired_percent": 23.503040362499682,
+        "bootstrap_95_percent": null,
+        "repo_gate": "inconclusive",
+        "paired_percent": [
+          39.58502898532388,
+          23.503040362499682,
+          21.156479453698097
+        ]
+      }
+    },
+    "samples": [
+      {
+        "label": "0-v1-seed0",
+        "arm": "v1",
+        "seconds": 1.4273986660000002,
+        "sample": null,
+        "workload": null,
+        "loadavg": [
+          6.86279296875,
+          10.091796875,
+          12.27099609375
+        ],
+        "results": {
+          "passthrough": 5,
+          "miss": 24
+        },
+        "key_ms": 24,
+        "startup_ms": 40,
+        "restore_ms": 0
+      },
+      {
+        "label": "0-v1-seed1",
+        "arm": "v1",
+        "seconds": 0.2877025000000004,
+        "sample": null,
+        "workload": null,
+        "loadavg": [
+          6.86279296875,
+          10.091796875,
+          12.27099609375
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 41,
+        "startup_ms": 25,
+        "restore_ms": 35
+      },
+      {
+        "label": "0-main-disabled-seed0",
+        "arm": "main-disabled",
+        "seconds": 1.1009479999999998,
+        "sample": null,
+        "workload": null,
+        "loadavg": [
+          6.86279296875,
+          10.091796875,
+          12.27099609375
+        ],
+        "results": {
+          "passthrough": 5,
+          "miss": 24
+        },
+        "key_ms": 27,
+        "startup_ms": 62,
+        "restore_ms": 0
+      },
+      {
+        "label": "0-main-disabled-seed1",
+        "arm": "main-disabled",
+        "seconds": 0.23729187500000037,
+        "sample": null,
+        "workload": null,
+        "loadavg": [
+          6.86279296875,
+          10.091796875,
+          12.27099609375
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 98,
+        "startup_ms": 16,
+        "restore_ms": 23
+      },
+      {
+        "label": "0-unchanged-0-v1",
+        "arm": "v1",
+        "seconds": 0.3508201669999993,
+        "sample": 0,
+        "workload": "unchanged",
+        "loadavg": [
+          8.87548828125,
+          10.455078125,
+          12.38623046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 25,
+        "startup_ms": 23,
+        "restore_ms": 31
+      },
+      {
+        "label": "0-unchanged-0-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.3102276669999995,
+        "sample": 0,
+        "workload": "unchanged",
+        "loadavg": [
+          8.87548828125,
+          10.455078125,
+          12.38623046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 93,
+        "startup_ms": 21,
+        "restore_ms": 20
+      },
+      {
+        "label": "0-unchanged-1-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.2954665829999996,
+        "sample": 1,
+        "workload": "unchanged",
+        "loadavg": [
+          8.87548828125,
+          10.455078125,
+          12.38623046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 88,
+        "startup_ms": 16,
+        "restore_ms": 20
+      },
+      {
+        "label": "0-unchanged-1-v1",
+        "arm": "v1",
+        "seconds": 0.3446807499999993,
+        "sample": 1,
+        "workload": "unchanged",
+        "loadavg": [
+          8.87548828125,
+          10.455078125,
+          12.38623046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 55,
+        "startup_ms": 24,
+        "restore_ms": 46
+      },
+      {
+        "label": "0-unchanged-2-v1",
+        "arm": "v1",
+        "seconds": 0.2363310409999997,
+        "sample": 2,
+        "workload": "unchanged",
+        "loadavg": [
+          8.87548828125,
+          10.455078125,
+          12.38623046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 49,
+        "startup_ms": 17,
+        "restore_ms": 37
+      },
+      {
+        "label": "0-unchanged-2-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.23709295899999905,
+        "sample": 2,
+        "workload": "unchanged",
+        "loadavg": [
+          8.87548828125,
+          10.455078125,
+          12.38623046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 78,
+        "startup_ms": 15,
+        "restore_ms": 24
+      },
+      {
+        "label": "0-unchanged-3-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.23628483299999914,
+        "sample": 3,
+        "workload": "unchanged",
+        "loadavg": [
+          8.87548828125,
+          10.455078125,
+          12.38623046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 77,
+        "startup_ms": 12,
+        "restore_ms": 20
+      },
+      {
+        "label": "0-unchanged-3-v1",
+        "arm": "v1",
+        "seconds": 0.2309197919999999,
+        "sample": 3,
+        "workload": "unchanged",
+        "loadavg": [
+          8.87548828125,
+          10.455078125,
+          12.38623046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 43,
+        "startup_ms": 14,
+        "restore_ms": 20
+      },
+      {
+        "label": "0-unchanged-4-v1",
+        "arm": "v1",
+        "seconds": 0.23208774999999982,
+        "sample": 4,
+        "workload": "unchanged",
+        "loadavg": [
+          8.87548828125,
+          10.455078125,
+          12.38623046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 45,
+        "startup_ms": 18,
+        "restore_ms": 20
+      },
+      {
+        "label": "0-unchanged-4-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.2886727920000016,
+        "sample": 4,
+        "workload": "unchanged",
+        "loadavg": [
+          8.87548828125,
+          10.455078125,
+          12.38623046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 86,
+        "startup_ms": 17,
+        "restore_ms": 21
+      },
+      {
+        "label": "0-unchanged-5-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.22782262499999995,
+        "sample": 5,
+        "workload": "unchanged",
+        "loadavg": [
+          8.87548828125,
+          10.455078125,
+          12.38623046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 77,
+        "startup_ms": 15,
+        "restore_ms": 20
+      },
+      {
+        "label": "0-unchanged-5-v1",
+        "arm": "v1",
+        "seconds": 0.23533258299999993,
+        "sample": 5,
+        "workload": "unchanged",
+        "loadavg": [
+          8.87548828125,
+          10.455078125,
+          12.38623046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 49,
+        "startup_ms": 18,
+        "restore_ms": 22
+      },
+      {
+        "label": "0-documentation-edit-0-v1",
+        "arm": "v1",
+        "seconds": 0.2392442920000004,
+        "sample": 0,
+        "workload": "documentation-edit",
+        "loadavg": [
+          8.87548828125,
+          10.455078125,
+          12.38623046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 46,
+        "startup_ms": 22,
+        "restore_ms": 26
+      },
+      {
+        "label": "0-documentation-edit-0-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.4569022500000006,
+        "sample": 0,
+        "workload": "documentation-edit",
+        "loadavg": [
+          9.44580078125,
+          10.546875,
+          12.4072265625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 23,
+        "startup_ms": 17,
+        "restore_ms": 22
+      },
+      {
+        "label": "0-documentation-edit-1-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.45813804199999986,
+        "sample": 1,
+        "workload": "documentation-edit",
+        "loadavg": [
+          9.44580078125,
+          10.546875,
+          12.4072265625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 27,
+        "startup_ms": 18,
+        "restore_ms": 22
+      },
+      {
+        "label": "0-documentation-edit-1-v1",
+        "arm": "v1",
+        "seconds": 0.23957587499999988,
+        "sample": 1,
+        "workload": "documentation-edit",
+        "loadavg": [
+          9.44580078125,
+          10.546875,
+          12.4072265625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 47,
+        "startup_ms": 19,
+        "restore_ms": 30
+      },
+      {
+        "label": "0-documentation-edit-2-v1",
+        "arm": "v1",
+        "seconds": 0.2381705830000005,
+        "sample": 2,
+        "workload": "documentation-edit",
+        "loadavg": [
+          9.44580078125,
+          10.546875,
+          12.4072265625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 40,
+        "startup_ms": 20,
+        "restore_ms": 22
+      },
+      {
+        "label": "0-documentation-edit-2-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.44824816699999914,
+        "sample": 2,
+        "workload": "documentation-edit",
+        "loadavg": [
+          9.44580078125,
+          10.546875,
+          12.4072265625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 27,
+        "startup_ms": 20,
+        "restore_ms": 24
+      },
+      {
+        "label": "0-documentation-edit-3-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.4454085410000008,
+        "sample": 3,
+        "workload": "documentation-edit",
+        "loadavg": [
+          9.44580078125,
+          10.546875,
+          12.4072265625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 27,
+        "startup_ms": 14,
+        "restore_ms": 24
+      },
+      {
+        "label": "0-documentation-edit-3-v1",
+        "arm": "v1",
+        "seconds": 0.23458895899999987,
+        "sample": 3,
+        "workload": "documentation-edit",
+        "loadavg": [
+          9.44580078125,
+          10.546875,
+          12.4072265625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 34,
+        "startup_ms": 18,
+        "restore_ms": 13
+      },
+      {
+        "label": "0-documentation-edit-4-v1",
+        "arm": "v1",
+        "seconds": 0.23665237500000025,
+        "sample": 4,
+        "workload": "documentation-edit",
+        "loadavg": [
+          9.44580078125,
+          10.546875,
+          12.4072265625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 46,
+        "startup_ms": 19,
+        "restore_ms": 23
+      },
+      {
+        "label": "0-documentation-edit-4-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.45883558299999905,
+        "sample": 4,
+        "workload": "documentation-edit",
+        "loadavg": [
+          9.44580078125,
+          10.546875,
+          12.4072265625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 23,
+        "startup_ms": 18,
+        "restore_ms": 26
+      },
+      {
+        "label": "0-documentation-edit-5-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.4426058749999999,
+        "sample": 5,
+        "workload": "documentation-edit",
+        "loadavg": [
+          9.44580078125,
+          10.546875,
+          12.4072265625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 23,
+        "startup_ms": 16,
+        "restore_ms": 23
+      },
+      {
+        "label": "0-documentation-edit-5-v1",
+        "arm": "v1",
+        "seconds": 0.23783308299999995,
+        "sample": 5,
+        "workload": "documentation-edit",
+        "loadavg": [
+          9.44580078125,
+          10.546875,
+          12.4072265625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 45,
+        "startup_ms": 17,
+        "restore_ms": 21
+      },
+      {
+        "label": "0-control-prime",
+        "arm": "main-disabled",
+        "seconds": 0.23075333400000275,
+        "sample": null,
+        "workload": null,
+        "loadavg": [
+          9.16943359375,
+          10.47119140625,
+          12.36962890625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 101,
+        "startup_ms": 17,
+        "restore_ms": 24
+      },
+      {
+        "label": "0-overhead-0-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.24222983399999976,
+        "sample": 0,
+        "workload": "overhead",
+        "loadavg": [
+          9.16943359375,
+          10.47119140625,
+          12.36962890625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 85,
+        "startup_ms": 17,
+        "restore_ms": 17
+      },
+      {
+        "label": "0-overhead-0-main-enabled",
+        "arm": "main-enabled",
+        "seconds": 0.33811658400000155,
+        "sample": 0,
+        "workload": "overhead",
+        "loadavg": [
+          9.16943359375,
+          10.47119140625,
+          12.36962890625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 220,
+        "startup_ms": 40,
+        "restore_ms": 22
+      },
+      {
+        "label": "0-overhead-1-main-enabled",
+        "arm": "main-enabled",
+        "seconds": 0.2877708329999997,
+        "sample": 1,
+        "workload": "overhead",
+        "loadavg": [
+          9.16943359375,
+          10.47119140625,
+          12.36962890625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 86,
+        "startup_ms": 27,
+        "restore_ms": 22
+      },
+      {
+        "label": "0-overhead-1-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.23300708399999692,
+        "sample": 1,
+        "workload": "overhead",
+        "loadavg": [
+          9.16943359375,
+          10.47119140625,
+          12.36962890625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 75,
+        "startup_ms": 18,
+        "restore_ms": 21
+      },
+      {
+        "label": "0-overhead-2-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.23457333300000016,
+        "sample": 2,
+        "workload": "overhead",
+        "loadavg": [
+          9.16943359375,
+          10.47119140625,
+          12.36962890625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 75,
+        "startup_ms": 22,
+        "restore_ms": 20
+      },
+      {
+        "label": "0-overhead-2-main-enabled",
+        "arm": "main-enabled",
+        "seconds": 0.28420079200000004,
+        "sample": 2,
+        "workload": "overhead",
+        "loadavg": [
+          9.16943359375,
+          10.47119140625,
+          12.36962890625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 92,
+        "startup_ms": 24,
+        "restore_ms": 23
+      },
+      {
+        "label": "0-trace-only-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.34569733400000047,
+        "sample": null,
+        "workload": "phase-trace",
+        "loadavg": [
+          9.55615234375,
+          10.529296875,
+          12.37890625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 78,
+        "startup_ms": 19,
+        "restore_ms": 14
+      },
+      {
+        "label": "0-documentation-profile-main-enabled",
+        "arm": "main-enabled",
+        "seconds": 0.8579439999999998,
+        "sample": null,
+        "workload": "documentation-profile",
+        "loadavg": [
+          9.55615234375,
+          10.529296875,
+          12.37890625
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 19,
+        "startup_ms": 22,
+        "restore_ms": 20
+      }
+    ],
+    "hotpath": {
+      "0-documentation-profile-main-enabled-hotpath": {
+        "report_files": 29,
+        "functions": {
+          "rustc-wrapper": {
+            "calls": 29,
+            "seconds": 0.98984,
+            "reports": 29
+          },
+          "kache::wrapper::compute_rustc_cache_key": {
+            "calls": 72,
+            "seconds": 0.22979999999999998,
+            "reports": 24
+          },
+          "kache::wrapper::record_input_prediction": {
+            "calls": 24,
+            "seconds": 0.09094,
+            "reports": 24
+          },
+          "kache::cache_key::compute_key_into": {
+            "calls": 72,
+            "seconds": 0.15050000000000002,
+            "reports": 24
+          },
+          "kache::cache_key::crate_tree_fold": {
+            "calls": 1200,
+            "seconds": 0.13306,
+            "reports": 24
+          },
+          "kache::cache_key::resolve_key_inputs": {
+            "calls": 72,
+            "seconds": 0.13097999999999999,
+            "reports": 24
+          },
+          "kache::cache_key::predicted_key_inputs": {
+            "calls": 24,
+            "seconds": 0.11414,
+            "reports": 24
+          },
+          "kache::cache_key::tree_digest_memoised": {
+            "calls": 24,
+            "seconds": 0.09539999999999998,
+            "reports": 24
+          },
+          "kache::cache_key::stamp_roots": {
+            "calls": 48,
+            "seconds": 0.06496,
+            "reports": 24
+          },
+          "kache::tree_stamp::walk_skipping": {
+            "calls": 48,
+            "seconds": 0.06488000000000001,
+            "reports": 24
+          },
+          "kache::cache_key::root_digest": {
+            "calls": 24,
+            "seconds": 0.05974000000000001,
+            "reports": 24
+          },
+          "kache::wrapper::restore_from_cache_with_memo_store": {
+            "calls": 24,
+            "seconds": 0.031159169999999993,
+            "reports": 24
+          },
+          "kache::wrapper::open_primary_and_fallback": {
+            "calls": 48,
+            "seconds": 0.02679627,
+            "reports": 24
+          },
+          "kache::wrapper::build_event_details": {
+            "calls": 29,
+            "seconds": 0.009594649999999998,
+            "reports": 29
+          },
+          "kache::wrapper::record_known_file_hashes": {
+            "calls": 24,
+            "seconds": 0.00017713,
+            "reports": 24
+          },
+          "kache::cache_key::memoise_tree_digest": {
+            "calls": 24,
+            "seconds": 1.64e-07,
+            "reports": 24
+          },
+          "kache::wrapper::observe_adaptive_hit": {
+            "calls": 24,
+            "seconds": 1.64e-07,
+            "reports": 24
+          }
+        }
+      },
+      "0-overhead-0-main-enabled-hotpath": {
+        "report_files": 29,
+        "functions": {
+          "rustc-wrapper": {
+            "calls": 29,
+            "seconds": 0.4162100000000001,
+            "reports": 29
+          },
+          "kache::wrapper::compute_rustc_cache_key": {
+            "calls": 24,
+            "seconds": 0.23224,
+            "reports": 24
+          },
+          "kache::cache_key::compute_key_into": {
+            "calls": 24,
+            "seconds": 0.07733999999999998,
+            "reports": 24
+          },
+          "kache::cache_key::resolve_key_inputs": {
+            "calls": 24,
+            "seconds": 0.06568999999999998,
+            "reports": 24
+          },
+          "kache::cache_key::predicted_key_inputs": {
+            "calls": 24,
+            "seconds": 0.06566999999999998,
+            "reports": 24
+          },
+          "kache::wrapper::open_primary_and_fallback": {
+            "calls": 24,
+            "seconds": 0.03725321,
+            "reports": 24
+          },
+          "kache::cache_key::tree_digest_memoised": {
+            "calls": 24,
+            "seconds": 0.03660108000000001,
+            "reports": 24
+          },
+          "kache::cache_key::stamp_roots": {
+            "calls": 24,
+            "seconds": 0.03451891000000001,
+            "reports": 24
+          },
+          "kache::tree_stamp::walk_skipping": {
+            "calls": 24,
+            "seconds": 0.034454290000000005,
+            "reports": 24
+          },
+          "kache::wrapper::restore_from_cache_with_memo_store": {
+            "calls": 24,
+            "seconds": 0.0305748,
+            "reports": 24
+          },
+          "kache::wrapper::build_event_details": {
+            "calls": 29,
+            "seconds": 0.010157679999999999,
+            "reports": 29
+          },
+          "kache::cache_key::root_digest": {
+            "calls": 24,
+            "seconds": 0.0005077999999999999,
+            "reports": 24
+          },
+          "kache::wrapper::record_known_file_hashes": {
+            "calls": 24,
+            "seconds": 0.0014107900000000003,
+            "reports": 24
+          },
+          "kache::wrapper::record_input_prediction": {
+            "calls": 24,
+            "seconds": 9.9e-07,
+            "reports": 24
+          },
+          "kache::wrapper::observe_adaptive_hit": {
+            "calls": 24,
+            "seconds": 1.64e-07,
+            "reports": 24
+          }
+        }
+      },
+      "0-overhead-1-main-enabled-hotpath": {
+        "report_files": 29,
+        "functions": {
+          "rustc-wrapper": {
+            "calls": 29,
+            "seconds": 0.2484,
+            "reports": 29
+          },
+          "kache::wrapper::compute_rustc_cache_key": {
+            "calls": 24,
+            "seconds": 0.09863999999999999,
+            "reports": 24
+          },
+          "kache::cache_key::compute_key_into": {
+            "calls": 24,
+            "seconds": 0.06749000000000001,
+            "reports": 24
+          },
+          "kache::cache_key::resolve_key_inputs": {
+            "calls": 24,
+            "seconds": 0.05945,
+            "reports": 24
+          },
+          "kache::cache_key::predicted_key_inputs": {
+            "calls": 24,
+            "seconds": 0.059410000000000004,
+            "reports": 24
+          },
+          "kache::cache_key::tree_digest_memoised": {
+            "calls": 24,
+            "seconds": 0.03667,
+            "reports": 24
+          },
+          "kache::cache_key::stamp_roots": {
+            "calls": 24,
+            "seconds": 0.034170000000000006,
+            "reports": 24
+          },
+          "kache::tree_stamp::walk_skipping": {
+            "calls": 24,
+            "seconds": 0.03409,
+            "reports": 24
+          },
+          "kache::wrapper::restore_from_cache_with_memo_store": {
+            "calls": 24,
+            "seconds": 0.031222550000000005,
+            "reports": 24
+          },
+          "kache::wrapper::open_primary_and_fallback": {
+            "calls": 24,
+            "seconds": 0.016823919999999996,
+            "reports": 24
+          },
+          "kache::wrapper::build_event_details": {
+            "calls": 29,
+            "seconds": 0.01004566,
+            "reports": 29
+          },
+          "kache::cache_key::root_digest": {
+            "calls": 24,
+            "seconds": 0.0006762900000000002,
+            "reports": 24
+          },
+          "kache::wrapper::record_known_file_hashes": {
+            "calls": 24,
+            "seconds": 0.0014283399999999995,
+            "reports": 24
+          },
+          "kache::wrapper::observe_adaptive_hit": {
+            "calls": 24,
+            "seconds": 1.64e-07,
+            "reports": 24
+          },
+          "kache::wrapper::record_input_prediction": {
+            "calls": 24,
+            "seconds": 1.074e-06,
+            "reports": 24
+          }
+        }
+      },
+      "0-overhead-2-main-enabled-hotpath": {
+        "report_files": 29,
+        "functions": {
+          "rustc-wrapper": {
+            "calls": 29,
+            "seconds": 0.24896000000000001,
+            "reports": 29
+          },
+          "kache::wrapper::compute_rustc_cache_key": {
+            "calls": 24,
+            "seconds": 0.10059999999999998,
+            "reports": 24
+          },
+          "kache::cache_key::compute_key_into": {
+            "calls": 24,
+            "seconds": 0.06673,
+            "reports": 24
+          },
+          "kache::cache_key::resolve_key_inputs": {
+            "calls": 24,
+            "seconds": 0.057850000000000006,
+            "reports": 24
+          },
+          "kache::cache_key::predicted_key_inputs": {
+            "calls": 24,
+            "seconds": 0.057800000000000004,
+            "reports": 24
+          },
+          "kache::cache_key::tree_digest_memoised": {
+            "calls": 24,
+            "seconds": 0.034769999999999995,
+            "reports": 24
+          },
+          "kache::cache_key::stamp_roots": {
+            "calls": 24,
+            "seconds": 0.032370460000000004,
+            "reports": 24
+          },
+          "kache::tree_stamp::walk_skipping": {
+            "calls": 24,
+            "seconds": 0.03232879,
+            "reports": 24
+          },
+          "kache::wrapper::restore_from_cache_with_memo_store": {
+            "calls": 24,
+            "seconds": 0.03176788,
+            "reports": 24
+          },
+          "kache::wrapper::open_primary_and_fallback": {
+            "calls": 24,
+            "seconds": 0.01719848,
+            "reports": 24
+          },
+          "kache::wrapper::build_event_details": {
+            "calls": 29,
+            "seconds": 0.008866409999999998,
+            "reports": 29
+          },
+          "kache::cache_key::root_digest": {
+            "calls": 24,
+            "seconds": 0.00058447,
+            "reports": 24
+          },
+          "kache::wrapper::record_known_file_hashes": {
+            "calls": 24,
+            "seconds": 0.00016762,
+            "reports": 24
+          },
+          "kache::wrapper::record_input_prediction": {
+            "calls": 24,
+            "seconds": 1.2799999999999998e-06,
+            "reports": 24
+          },
+          "kache::wrapper::observe_adaptive_hit": {
+            "calls": 24,
+            "seconds": 3.29e-07,
+            "reports": 24
+          }
+        }
+      }
+    }
+  },
+  "paired-4000": {
+    "comparisons": {
+      "unchanged": {
+        "pairs": 6,
+        "base_median_seconds": 0.23655579150000072,
+        "head_median_seconds": 0.34690993750000043,
+        "median_paired_percent": 45.21902661194899,
+        "bootstrap_95_percent": [
+          43.55259616306711,
+          49.66404903629591
+        ],
+        "repo_gate": "inconclusive",
+        "paired_percent": [
+          42.028694883463366,
+          45.35285000019129,
+          51.649819945077,
+          47.67827812751484,
+          45.076497442670856,
+          45.085203223706685
+        ]
+      },
+      "documentation-edit": {
+        "pairs": 6,
+        "base_median_seconds": 0.23894554150000058,
+        "head_median_seconds": 1.7540578334999992,
+        "median_paired_percent": 550.098723599549,
+        "bootstrap_95_percent": [
+          522.9205285672053,
+          644.2135218147323
+        ],
+        "repo_gate": "regression",
+        "paired_percent": [
+          520.2658485729231,
+          598.9222222799577,
+          573.5574681915571,
+          526.6399790075409,
+          525.5752085614878,
+          689.5048213495068
+        ]
+      },
+      "overhead": {
+        "pairs": 3,
+        "base_median_seconds": 0.39508849999999995,
+        "head_median_seconds": 0.44852808299999936,
+        "median_paired_percent": 12.193493247852372,
+        "bootstrap_95_percent": null,
+        "repo_gate": "inconclusive",
+        "paired_percent": [
+          9.857017208498497,
+          13.785930240945987,
+          12.193493247852372
+        ]
+      }
+    },
+    "samples": [
+      {
+        "label": "4000-v1-seed0",
+        "arm": "v1",
+        "seconds": 2.03344275,
+        "sample": null,
+        "workload": null,
+        "loadavg": [
+          11.59326171875,
+          10.935546875,
+          12.51123046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "miss": 24
+        },
+        "key_ms": 24,
+        "startup_ms": 22,
+        "restore_ms": 0
+      },
+      {
+        "label": "4000-v1-seed1",
+        "arm": "v1",
+        "seconds": 0.23623741700000078,
+        "sample": null,
+        "workload": null,
+        "loadavg": [
+          11.59326171875,
+          10.935546875,
+          12.51123046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 40,
+        "startup_ms": 18,
+        "restore_ms": 19
+      },
+      {
+        "label": "4000-main-disabled-seed0",
+        "arm": "main-disabled",
+        "seconds": 1.3629247920000003,
+        "sample": null,
+        "workload": null,
+        "loadavg": [
+          11.59326171875,
+          10.935546875,
+          12.51123046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "miss": 24
+        },
+        "key_ms": 11,
+        "startup_ms": 32,
+        "restore_ms": 0
+      },
+      {
+        "label": "4000-main-disabled-seed1",
+        "arm": "main-disabled",
+        "seconds": 0.34655616600000005,
+        "sample": null,
+        "workload": null,
+        "loadavg": [
+          11.59326171875,
+          10.935546875,
+          12.51123046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 533,
+        "startup_ms": 14,
+        "restore_ms": 26
+      },
+      {
+        "label": "4000-unchanged-0-v1",
+        "arm": "v1",
+        "seconds": 0.23698650000000043,
+        "sample": 0,
+        "workload": "unchanged",
+        "loadavg": [
+          11.59326171875,
+          10.935546875,
+          12.51123046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 39,
+        "startup_ms": 23,
+        "restore_ms": 21
+      },
+      {
+        "label": "4000-unchanged-0-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.33658883299999953,
+        "sample": 0,
+        "workload": "unchanged",
+        "loadavg": [
+          11.59326171875,
+          10.935546875,
+          12.51123046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 504,
+        "startup_ms": 18,
+        "restore_ms": 20
+      },
+      {
+        "label": "4000-unchanged-1-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.3485296670000002,
+        "sample": 1,
+        "workload": "unchanged",
+        "loadavg": [
+          11.59326171875,
+          10.935546875,
+          12.51123046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 424,
+        "startup_ms": 15,
+        "restore_ms": 15
+      },
+      {
+        "label": "4000-unchanged-1-v1",
+        "arm": "v1",
+        "seconds": 0.23978179099999863,
+        "sample": 1,
+        "workload": "unchanged",
+        "loadavg": [
+          11.59326171875,
+          10.935546875,
+          12.51123046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 43,
+        "startup_ms": 13,
+        "restore_ms": 20
+      },
+      {
+        "label": "4000-unchanged-2-v1",
+        "arm": "v1",
+        "seconds": 0.2315959999999997,
+        "sample": 2,
+        "workload": "unchanged",
+        "loadavg": [
+          11.59326171875,
+          10.935546875,
+          12.51123046875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 39,
+        "startup_ms": 15,
+        "restore_ms": 18
+      },
+      {
+        "label": "4000-unchanged-2-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.35121491700000007,
+        "sample": 2,
+        "workload": "unchanged",
+        "loadavg": [
+          12.98681640625,
+          11.2353515625,
+          12.607421875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 507,
+        "startup_ms": 22,
+        "restore_ms": 19
+      },
+      {
+        "label": "4000-unchanged-3-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.3483304159999996,
+        "sample": 3,
+        "workload": "unchanged",
+        "loadavg": [
+          12.98681640625,
+          11.2353515625,
+          12.607421875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 506,
+        "startup_ms": 21,
+        "restore_ms": 22
+      },
+      {
+        "label": "4000-unchanged-3-v1",
+        "arm": "v1",
+        "seconds": 0.23587112500000096,
+        "sample": 3,
+        "workload": "unchanged",
+        "loadavg": [
+          12.98681640625,
+          11.2353515625,
+          12.607421875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 38,
+        "startup_ms": 15,
+        "restore_ms": 19
+      },
+      {
+        "label": "4000-unchanged-4-v1",
+        "arm": "v1",
+        "seconds": 0.236125083000001,
+        "sample": 4,
+        "workload": "unchanged",
+        "loadavg": [
+          12.98681640625,
+          11.2353515625,
+          12.607421875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 39,
+        "startup_ms": 18,
+        "restore_ms": 18
+      },
+      {
+        "label": "4000-unchanged-4-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.3425620000000009,
+        "sample": 4,
+        "workload": "unchanged",
+        "loadavg": [
+          12.98681640625,
+          11.2353515625,
+          12.607421875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 545,
+        "startup_ms": 20,
+        "restore_ms": 21
+      },
+      {
+        "label": "4000-unchanged-5-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.3454894590000013,
+        "sample": 5,
+        "workload": "unchanged",
+        "loadavg": [
+          12.98681640625,
+          11.2353515625,
+          12.607421875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 532,
+        "startup_ms": 17,
+        "restore_ms": 21
+      },
+      {
+        "label": "4000-unchanged-5-v1",
+        "arm": "v1",
+        "seconds": 0.2381286659999997,
+        "sample": 5,
+        "workload": "unchanged",
+        "loadavg": [
+          12.98681640625,
+          11.2353515625,
+          12.607421875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 43,
+        "startup_ms": 17,
+        "restore_ms": 21
+      },
+      {
+        "label": "4000-documentation-edit-0-v1",
+        "arm": "v1",
+        "seconds": 0.23619949999999967,
+        "sample": 0,
+        "workload": "documentation-edit",
+        "loadavg": [
+          12.98681640625,
+          11.2353515625,
+          12.607421875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 42,
+        "startup_ms": 20,
+        "restore_ms": 21
+      },
+      {
+        "label": "4000-documentation-edit-0-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 1.4650648329999996,
+        "sample": 0,
+        "workload": "documentation-edit",
+        "loadavg": [
+          12.98681640625,
+          11.2353515625,
+          12.607421875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 22,
+        "startup_ms": 18,
+        "restore_ms": 24
+      },
+      {
+        "label": "4000-documentation-edit-1-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 1.6811962499999993,
+        "sample": 1,
+        "workload": "documentation-edit",
+        "loadavg": [
+          13.46826171875,
+          11.36376953125,
+          12.64453125
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 24,
+        "startup_ms": 22,
+        "restore_ms": 28
+      },
+      {
+        "label": "4000-documentation-edit-1-v1",
+        "arm": "v1",
+        "seconds": 0.24054125000000148,
+        "sample": 1,
+        "workload": "documentation-edit",
+        "loadavg": [
+          13.46826171875,
+          11.36376953125,
+          12.64453125
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 49,
+        "startup_ms": 23,
+        "restore_ms": 26
+      },
+      {
+        "label": "4000-documentation-edit-2-v1",
+        "arm": "v1",
+        "seconds": 0.23626787500000113,
+        "sample": 2,
+        "workload": "documentation-edit",
+        "loadavg": [
+          13.46826171875,
+          11.36376953125,
+          12.64453125
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 49,
+        "startup_ms": 22,
+        "restore_ms": 25
+      },
+      {
+        "label": "4000-documentation-edit-2-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 1.5913999170000004,
+        "sample": 2,
+        "workload": "documentation-edit",
+        "loadavg": [
+          13.46826171875,
+          11.36376953125,
+          12.64453125
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 31,
+        "startup_ms": 20,
+        "restore_ms": 31
+      },
+      {
+        "label": "4000-documentation-edit-3-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 1.8328342089999978,
+        "sample": 3,
+        "workload": "documentation-edit",
+        "loadavg": [
+          14.9521484375,
+          11.7060546875,
+          12.7578125
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 23,
+        "startup_ms": 23,
+        "restore_ms": 28
+      },
+      {
+        "label": "4000-documentation-edit-3-v1",
+        "arm": "v1",
+        "seconds": 0.29248600000000025,
+        "sample": 3,
+        "workload": "documentation-edit",
+        "loadavg": [
+          14.9521484375,
+          11.7060546875,
+          12.7578125
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 60,
+        "startup_ms": 26,
+        "restore_ms": 48
+      },
+      {
+        "label": "4000-documentation-edit-4-v1",
+        "arm": "v1",
+        "seconds": 0.2920383340000008,
+        "sample": 4,
+        "workload": "documentation-edit",
+        "loadavg": [
+          14.9521484375,
+          11.7060546875,
+          12.7578125
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 50,
+        "startup_ms": 22,
+        "restore_ms": 28
+      },
+      {
+        "label": "4000-documentation-edit-4-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 1.8269194169999992,
+        "sample": 4,
+        "workload": "documentation-edit",
+        "loadavg": [
+          14.9521484375,
+          11.7060546875,
+          12.7578125
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 35,
+        "startup_ms": 20,
+        "restore_ms": 66
+      },
+      {
+        "label": "4000-documentation-edit-5-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 1.873888375,
+        "sample": 5,
+        "workload": "documentation-edit",
+        "loadavg": [
+          14.87548828125,
+          11.74365234375,
+          12.7646484375
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 36,
+        "startup_ms": 13,
+        "restore_ms": 69
+      },
+      {
+        "label": "4000-documentation-edit-5-v1",
+        "arm": "v1",
+        "seconds": 0.23734983299999968,
+        "sample": 5,
+        "workload": "documentation-edit",
+        "loadavg": [
+          14.87548828125,
+          11.74365234375,
+          12.7646484375
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 48,
+        "startup_ms": 19,
+        "restore_ms": 21
+      },
+      {
+        "label": "4000-control-prime",
+        "arm": "main-disabled",
+        "seconds": 0.6643906669999993,
+        "sample": null,
+        "workload": null,
+        "loadavg": [
+          14.87548828125,
+          11.74365234375,
+          12.7646484375
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 1516,
+        "startup_ms": 27,
+        "restore_ms": 100
+      },
+      {
+        "label": "4000-overhead-0-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.39398412499999935,
+        "sample": 0,
+        "workload": "overhead",
+        "loadavg": [
+          14.87548828125,
+          11.74365234375,
+          12.7646484375
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 620,
+        "startup_ms": 17,
+        "restore_ms": 24
+      },
+      {
+        "label": "4000-overhead-0-main-enabled",
+        "arm": "main-enabled",
+        "seconds": 0.4328192080000015,
+        "sample": 0,
+        "workload": "overhead",
+        "loadavg": [
+          14.40478515625,
+          11.69775390625,
+          12.7421875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 619,
+        "startup_ms": 33,
+        "restore_ms": 25
+      },
+      {
+        "label": "4000-overhead-1-main-enabled",
+        "arm": "main-enabled",
+        "seconds": 0.44955512499999983,
+        "sample": 1,
+        "workload": "overhead",
+        "loadavg": [
+          14.40478515625,
+          11.69775390625,
+          12.7421875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 641,
+        "startup_ms": 26,
+        "restore_ms": 187
+      },
+      {
+        "label": "4000-overhead-1-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.39508849999999995,
+        "sample": 1,
+        "workload": "overhead",
+        "loadavg": [
+          14.40478515625,
+          11.69775390625,
+          12.7421875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 601,
+        "startup_ms": 20,
+        "restore_ms": 22
+      },
+      {
+        "label": "4000-overhead-2-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.3997808340000013,
+        "sample": 2,
+        "workload": "overhead",
+        "loadavg": [
+          14.40478515625,
+          11.69775390625,
+          12.7421875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 550,
+        "startup_ms": 21,
+        "restore_ms": 22
+      },
+      {
+        "label": "4000-overhead-2-main-enabled",
+        "arm": "main-enabled",
+        "seconds": 0.44852808299999936,
+        "sample": 2,
+        "workload": "overhead",
+        "loadavg": [
+          14.40478515625,
+          11.69775390625,
+          12.7421875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 573,
+        "startup_ms": 29,
+        "restore_ms": 150
+      },
+      {
+        "label": "4000-trace-only-main-disabled",
+        "arm": "main-disabled",
+        "seconds": 0.5015083749999967,
+        "sample": null,
+        "workload": "phase-trace",
+        "loadavg": [
+          14.40478515625,
+          11.69775390625,
+          12.7421875
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 458,
+        "startup_ms": 16,
+        "restore_ms": 14
+      },
+      {
+        "label": "4000-documentation-profile-main-enabled",
+        "arm": "main-enabled",
+        "seconds": 7.8714230420000035,
+        "sample": null,
+        "workload": "documentation-profile",
+        "loadavg": [
+          14.3486328125,
+          11.7734375,
+          12.7568359375
+        ],
+        "results": {
+          "passthrough": 5,
+          "local_hit": 24
+        },
+        "key_ms": 24,
+        "startup_ms": 20,
+        "restore_ms": 24
+      }
+    ],
+    "hotpath": {
+      "4000-documentation-profile-main-enabled-hotpath": {
+        "report_files": 29,
+        "functions": {
+          "rustc-wrapper": {
+            "calls": 29,
+            "seconds": 3.9520699999999995,
+            "reports": 29
+          },
+          "kache::cache_key::stamp_roots": {
+            "calls": 52,
+            "seconds": 1.04988,
+            "reports": 24
+          },
+          "kache::tree_stamp::walk_skipping": {
+            "calls": 52,
+            "seconds": 1.0497199999999998,
+            "reports": 24
+          },
+          "kache::wrapper::record_input_prediction": {
+            "calls": 24,
+            "seconds": 0.5836600000000001,
+            "reports": 24
+          },
+          "kache::wrapper::compute_rustc_cache_key": {
+            "calls": 72,
+            "seconds": 2.6089599999999997,
+            "reports": 24
+          },
+          "kache::cache_key::compute_key_into": {
+            "calls": 72,
+            "seconds": 2.5128500000000003,
+            "reports": 24
+          },
+          "kache::cache_key::resolve_key_inputs": {
+            "calls": 72,
+            "seconds": 2.4876400000000003,
+            "reports": 24
+          },
+          "kache::cache_key::predicted_key_inputs": {
+            "calls": 24,
+            "seconds": 2.47641,
+            "reports": 24
+          },
+          "kache::cache_key::tree_digest_memoised": {
+            "calls": 24,
+            "seconds": 2.44919,
+            "reports": 24
+          },
+          "kache::wrapper::restore_from_cache_with_memo_store": {
+            "calls": 24,
+            "seconds": 0.0376985,
+            "reports": 24
+          },
+          "kache::wrapper::open_primary_and_fallback": {
+            "calls": 48,
+            "seconds": 0.02337666,
+            "reports": 24
+          },
+          "kache::wrapper::build_event_details": {
+            "calls": 29,
+            "seconds": 0.027136580000000004,
+            "reports": 29
+          },
+          "kache::cache_key::root_digest": {
+            "calls": 24,
+            "seconds": 2.00539653,
+            "reports": 24
+          },
+          "kache::wrapper::record_known_file_hashes": {
+            "calls": 24,
+            "seconds": 0.00017338,
+            "reports": 24
+          },
+          "kache::wrapper::observe_adaptive_hit": {
+            "calls": 24,
+            "seconds": 2.0500000000000002e-07,
+            "reports": 24
+          },
+          "kache::cache_key::crate_tree_fold": {
+            "calls": 400,
+            "seconds": 3.83699,
+            "reports": 8
+          },
+          "kache::cache_key::memoise_tree_digest": {
+            "calls": 8,
+            "seconds": 0.09339,
+            "reports": 8
+          }
+        }
+      },
+      "4000-overhead-0-main-enabled-hotpath": {
+        "report_files": 29,
+        "functions": {
+          "rustc-wrapper": {
+            "calls": 29,
+            "seconds": 0.7890300000000001,
+            "reports": 29
+          },
+          "kache::wrapper::compute_rustc_cache_key": {
+            "calls": 24,
+            "seconds": 0.6287099999999999,
+            "reports": 24
+          },
+          "kache::cache_key::compute_key_into": {
+            "calls": 24,
+            "seconds": 0.5933200000000001,
+            "reports": 24
+          },
+          "kache::cache_key::resolve_key_inputs": {
+            "calls": 24,
+            "seconds": 0.5834500000000001,
+            "reports": 24
+          },
+          "kache::cache_key::predicted_key_inputs": {
+            "calls": 24,
+            "seconds": 0.58342,
+            "reports": 24
+          },
+          "kache::cache_key::tree_digest_memoised": {
+            "calls": 24,
+            "seconds": 0.5542699999999999,
+            "reports": 24
+          },
+          "kache::cache_key::stamp_roots": {
+            "calls": 24,
+            "seconds": 0.55084,
+            "reports": 24
+          },
+          "kache::tree_stamp::walk_skipping": {
+            "calls": 24,
+            "seconds": 0.5507400000000001,
+            "reports": 24
+          },
+          "kache::wrapper::restore_from_cache_with_memo_store": {
+            "calls": 24,
+            "seconds": 0.03640812,
+            "reports": 24
+          },
+          "kache::wrapper::build_event_details": {
+            "calls": 29,
+            "seconds": 0.011373089999999997,
+            "reports": 29
+          },
+          "kache::wrapper::open_primary_and_fallback": {
+            "calls": 24,
+            "seconds": 0.019059069999999997,
+            "reports": 24
+          },
+          "kache::cache_key::root_digest": {
+            "calls": 24,
+            "seconds": 0.00147284,
+            "reports": 24
+          },
+          "kache::wrapper::record_known_file_hashes": {
+            "calls": 24,
+            "seconds": 0.00017905999999999998,
+            "reports": 24
+          },
+          "kache::wrapper::record_input_prediction": {
+            "calls": 24,
+            "seconds": 1.0730000000000001e-06,
+            "reports": 24
+          },
+          "kache::wrapper::observe_adaptive_hit": {
+            "calls": 24,
+            "seconds": 2.0500000000000002e-07,
+            "reports": 24
+          }
+        }
+      },
+      "4000-overhead-1-main-enabled-hotpath": {
+        "report_files": 29,
+        "functions": {
+          "rustc-wrapper": {
+            "calls": 29,
+            "seconds": 0.9848300000000002,
+            "reports": 29
+          },
+          "kache::wrapper::restore_from_cache_with_memo_store": {
+            "calls": 24,
+            "seconds": 0.19896,
+            "reports": 24
+          },
+          "kache::wrapper::compute_rustc_cache_key": {
+            "calls": 24,
+            "seconds": 0.6525200000000001,
+            "reports": 24
+          },
+          "kache::cache_key::compute_key_into": {
+            "calls": 24,
+            "seconds": 0.6134899999999999,
+            "reports": 24
+          },
+          "kache::cache_key::resolve_key_inputs": {
+            "calls": 24,
+            "seconds": 0.6035,
+            "reports": 24
+          },
+          "kache::cache_key::predicted_key_inputs": {
+            "calls": 24,
+            "seconds": 0.60346,
+            "reports": 24
+          },
+          "kache::cache_key::tree_digest_memoised": {
+            "calls": 24,
+            "seconds": 0.5736100000000001,
+            "reports": 24
+          },
+          "kache::cache_key::stamp_roots": {
+            "calls": 24,
+            "seconds": 0.57007,
+            "reports": 24
+          },
+          "kache::tree_stamp::walk_skipping": {
+            "calls": 24,
+            "seconds": 0.56996,
+            "reports": 24
+          },
+          "kache::wrapper::build_event_details": {
+            "calls": 29,
+            "seconds": 0.015690709999999997,
+            "reports": 29
+          },
+          "kache::wrapper::open_primary_and_fallback": {
+            "calls": 24,
+            "seconds": 0.02128757,
+            "reports": 24
+          },
+          "kache::cache_key::root_digest": {
+            "calls": 24,
+            "seconds": 0.0014216200000000002,
+            "reports": 24
+          },
+          "kache::wrapper::record_known_file_hashes": {
+            "calls": 24,
+            "seconds": 0.0020063299999999997,
+            "reports": 24
+          },
+          "kache::wrapper::record_input_prediction": {
+            "calls": 24,
+            "seconds": 1.1139999999999996e-06,
+            "reports": 24
+          },
+          "kache::wrapper::observe_adaptive_hit": {
+            "calls": 24,
+            "seconds": 4.1e-08,
+            "reports": 24
+          }
+        }
+      },
+      "4000-overhead-2-main-enabled-hotpath": {
+        "report_files": 29,
+        "functions": {
+          "rustc-wrapper": {
+            "calls": 29,
+            "seconds": 0.9346099999999999,
+            "reports": 29
+          },
+          "kache::wrapper::build_event_details": {
+            "calls": 29,
+            "seconds": 0.04593758,
+            "reports": 29
+          },
+          "kache::wrapper::compute_rustc_cache_key": {
+            "calls": 24,
+            "seconds": 0.5857600000000001,
+            "reports": 24
+          },
+          "kache::cache_key::compute_key_into": {
+            "calls": 24,
+            "seconds": 0.5505699999999999,
+            "reports": 24
+          },
+          "kache::cache_key::resolve_key_inputs": {
+            "calls": 24,
+            "seconds": 0.54132,
+            "reports": 24
+          },
+          "kache::cache_key::predicted_key_inputs": {
+            "calls": 24,
+            "seconds": 0.54124,
+            "reports": 24
+          },
+          "kache::cache_key::tree_digest_memoised": {
+            "calls": 24,
+            "seconds": 0.5117900000000001,
+            "reports": 24
+          },
+          "kache::cache_key::stamp_roots": {
+            "calls": 24,
+            "seconds": 0.50879,
+            "reports": 24
+          },
+          "kache::tree_stamp::walk_skipping": {
+            "calls": 24,
+            "seconds": 0.50877,
+            "reports": 24
+          },
+          "kache::wrapper::restore_from_cache_with_memo_store": {
+            "calls": 24,
+            "seconds": 0.16045329000000003,
+            "reports": 24
+          },
+          "kache::wrapper::open_primary_and_fallback": {
+            "calls": 24,
+            "seconds": 0.029459689999999997,
+            "reports": 24
+          },
+          "kache::cache_key::root_digest": {
+            "calls": 24,
+            "seconds": 0.00129367,
+            "reports": 24
+          },
+          "kache::wrapper::record_known_file_hashes": {
+            "calls": 24,
+            "seconds": 0.00020279999999999997,
+            "reports": 24
+          },
+          "kache::wrapper::record_input_prediction": {
+            "calls": 24,
+            "seconds": 1.115e-06,
+            "reports": 24
+          },
+          "kache::wrapper::observe_adaptive_hit": {
+            "calls": 24,
+            "seconds": 4.1e-08,
+            "reports": 24
+          }
+        }
+      }
+    }
+  }
+}
