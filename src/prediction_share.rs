@@ -53,7 +53,7 @@ pub(crate) enum SharedPrediction {
 pub(crate) struct PlainRow {
     pub(crate) schema: u32,
     pub(crate) sources: Vec<Portable>,
-    pub(crate) env_deps: Vec<(String, Portable)>,
+    pub(crate) env_deps: Vec<(String, Option<Portable>)>,
     pub(crate) tree: Option<String>,
 }
 
@@ -91,7 +91,13 @@ pub(crate) fn for_remote_portable(
         env_deps: row
             .env_deps
             .iter()
-            .map(|(name, value)| Some((name.clone(), for_remote_entry(value, registry)?)))
+            .map(|(name, value)| {
+                let value = match value {
+                    Some(value) => Some(for_remote_entry(value, registry)?),
+                    None => None,
+                };
+                Some((name.clone(), value))
+            })
             .collect::<Option<_>>()?,
         tree: row.tree.clone(),
     }))
@@ -109,7 +115,13 @@ pub(crate) fn for_remote_plain(row: &InputPrediction, registry: &Path) -> Option
         env_deps: row
             .env_deps
             .iter()
-            .map(|(name, value)| Some((name.clone(), for_remote_value(value, Some(registry))?)))
+            .map(|(name, value)| {
+                let value = match value {
+                    Some(value) => Some(for_remote_value(value, Some(registry))?),
+                    None => None,
+                };
+                Some((name.clone(), value))
+            })
             .collect::<Option<_>>()?,
         tree: row.tree.clone(),
     }))
@@ -135,7 +147,13 @@ pub(crate) fn plain_from_remote(row: &PlainRow, registry: &Path) -> Option<Input
         env_deps: row
             .env_deps
             .iter()
-            .map(|(name, value)| Some((name.clone(), place(value)?)))
+            .map(|(name, value)| {
+                let value = match value {
+                    Some(value) => Some(place(value)?),
+                    None => None,
+                };
+                Some((name.clone(), value))
+            })
             .collect::<Option<_>>()?,
         tree: row.tree.clone(),
     })
@@ -230,6 +248,39 @@ mod tests {
     }
 
     #[test]
+    fn shared_plain_rows_preserve_absent_and_empty_env_values() {
+        let registry = Path::new("/home/me/.cargo/registry/src");
+        let mut local = InputPrediction {
+            schema: PREDICTION_SCHEMA,
+            sources: vec![registry.join("i/kt-1.0.0/src/lib.rs")],
+            env_deps: vec![],
+            tree: None,
+        };
+        let dir = tempfile::tempdir().unwrap();
+        let dep_info = dir.path().join("deps.d");
+        std::fs::write(
+            &dep_info,
+            "target: lib.rs\n# env-dep:ABSENT\n# env-dep:EMPTY=\n# env-dep:VALUE=hello\n",
+        )
+        .unwrap();
+        local.env_deps = crate::cache_key::dep_info_from_emitted(&dep_info, Path::new("lib.rs"))
+            .unwrap()
+            .env_deps;
+        let shared = for_remote_plain(&local, registry).unwrap();
+        let identity = "shared-target-v2:presence";
+        let bytes = encode(identity, &shared).unwrap();
+        let SharedPrediction::Plain(decoded) = decode(&bytes, identity).unwrap() else {
+            panic!("expected plain prediction");
+        };
+        let resolved = plain_from_remote(&decoded, Path::new("/ci/.cargo/registry/src")).unwrap();
+        assert_ne!(
+            resolved.env_deps[0].1, resolved.env_deps[1].1,
+            "a shared row keeps ABSENT apart from EMPTY"
+        );
+        assert_eq!(resolved.env_deps, local.env_deps);
+    }
+
+    #[test]
     fn a_published_row_carries_no_local_path() {
         let registry = Path::new("/home/me/.cargo/registry/src");
         let local = InputPrediction {
@@ -237,7 +288,7 @@ mod tests {
             sources: vec!["/home/me/.cargo/registry/src/i/kt-1.0.0/src/lib.rs".into()],
             env_deps: vec![(
                 "CARGO_MANIFEST_DIR".into(),
-                "/home/me/.cargo/registry/src/i/kt-1.0.0".into(),
+                Some("/home/me/.cargo/registry/src/i/kt-1.0.0".into()),
             )],
             tree: Some("t".into()),
         };
@@ -259,8 +310,8 @@ mod tests {
             )]
         );
         assert_eq!(
-            elsewhere.env_deps[0].1,
-            "/ci/.cargo/registry/src/i/kt-1.0.0"
+            elsewhere.env_deps[0].1.as_deref(),
+            Some("/ci/.cargo/registry/src/i/kt-1.0.0")
         );
         assert_eq!(elsewhere.tree.as_deref(), Some("t"));
     }
@@ -271,11 +322,11 @@ mod tests {
         let mut local = InputPrediction {
             schema: PREDICTION_SCHEMA,
             sources: vec!["/home/me/.cargo/registry/src/i/kt-1.0.0/src/lib.rs".into()],
-            env_deps: vec![("HOME".into(), "/home/me".into())],
+            env_deps: vec![("HOME".into(), Some("/home/me".into()))],
             tree: None,
         };
         assert_eq!(for_remote_plain(&local, registry), None, "an env value");
-        local.env_deps = vec![("PROFILE".into(), "debug".into())];
+        local.env_deps = vec![("PROFILE".into(), Some("debug".into()))];
         local.sources.push("/etc/hosts".into());
         assert_eq!(for_remote_plain(&local, registry), None, "a source");
         local.sources.pop();
@@ -294,7 +345,7 @@ mod tests {
                 Portable::Literal("kt/src/lib.rs".into()),
                 Portable::Workspace("/assets/a".into()),
             ],
-            env_deps: vec![("OUT".into(), Portable::Literal("/home/me/out".into()))],
+            env_deps: vec![("OUT".into(), Some(Portable::Literal("/home/me/out".into())))],
             tree: "t".into(),
         };
         assert_eq!(for_remote_portable(&workspace, None), None);
