@@ -1,0 +1,7 @@
+ID=B02-build-sol-phase2 START=2026-10-14T03:19:29Z LOAD={ 54.94 49.25 47.88 }
+CMD=./scripts/with-test-resources.sh cargo test -p kache --bin kache --no-run
+    Blocking waiting for file lock on package cache
+   Compiling kache v1.1.1 (/Users/viktor/Developer/github/kache-investigations/flaky-assess-opus)
+    Finished `test` profile [unoptimized] target(s) in 47.24s
+  Executable unittests src/main.rs (/private/tmp/kache-flaky/opus/target/debug/deps/kache-881bf021f508393b)
+END=2026-10-14T03:20:17Z RC=0 LOAD_END={ 33.66 44.43 46.17 }

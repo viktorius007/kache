@@ -1,0 +1,119 @@
+diff --git a/src/cli/tests.rs b/src/cli/tests.rs
+index f59b11a..d5f789b 100644
+--- a/src/cli/tests.rs
++++ b/src/cli/tests.rs
+@@ -2821,6 +2821,11 @@ fn test_parse_cargo_lock_crate_names_from_valid_missing_and_bad_files() {
+ 
+ #[test]
+ fn test_is_macos_protected() {
++    if cfg!(target_os = "macos") && std::env::var_os("KACHE_FLAKY_HOME").is_some() {
++        let home = tempfile::tempdir().unwrap();
++        let _env = crate::config::tests::set_env_for_test("HOME", Some(home.path().as_os_str()));
++        assert!(is_macos_protected(&home.path().join("Desktop")));
++    }
+     // On non-macOS the stub always returns false — verify that invariant
+     // and skip the positive-match assertions.
+     if !cfg!(target_os = "macos") {
+diff --git a/src/compiler/cc/tests.rs b/src/compiler/cc/tests.rs
+index 69eb031..e732c29 100644
+--- a/src/compiler/cc/tests.rs
++++ b/src/compiler/cc/tests.rs
+@@ -283,6 +283,21 @@ fn terminal_formatting_shares_cc_keys_with_cold_and_warm_probes() {
+     };
+     let warm = dir.path().join("warm");
+     let baseline = key(&[], &warm);
++    let _probe_env = match std::env::var("KACHE_FLAKY_PROBE").ok().as_deref() {
++        Some("SDKROOT") => {
++            eprintln!("FLAKY_PROBE removing SDKROOT={:?}", std::env::var_os("SDKROOT"));
++            Some(crate::config::tests::set_env_for_test("SDKROOT", None))
++        }
++        Some("OUT_DIR") => {
++            let out = dir.path().join("target/debug/build/probe-1/out");
++            fs::create_dir_all(&out).unwrap();
++            Some(crate::config::tests::set_env_for_test("OUT_DIR", Some(out.as_os_str())))
++        }
++        Some("NORMALIZE") => Some(crate::config::tests::set_env_for_test(
++            "KACHE_CC_PATH_NORMALIZE", Some(std::ffi::OsStr::new("0")),
++        )),
++        _ => None,
++    };
+     for (index, flag) in [
+         "-fcolor-diagnostics",
+         "-fno-color-diagnostics",
+diff --git a/src/daemon/tests.rs b/src/daemon/tests.rs
+index 61e2e50..7813594 100644
+--- a/src/daemon/tests.rs
++++ b/src/daemon/tests.rs
+@@ -10552,6 +10552,9 @@ async fn test_wait_for_warming_blocks_then_signals() {
+         d.signal_warming_complete();
+     });
+ 
++    if std::env::var_os("KACHE_FLAKY_WARMING").is_some() {
++        tokio::time::sleep(Duration::from_millis(100)).await;
++    }
+     let start = std::time::Instant::now();
+     assert!(daemon.wait_for_warming(Duration::from_secs(5)).await);
+     let elapsed = start.elapsed();
+diff --git a/src/scheduler.rs b/src/scheduler.rs
+index 651d231..f206e31 100644
+--- a/src/scheduler.rs
++++ b/src/scheduler.rs
+@@ -2308,12 +2308,20 @@ mod tests {
+         let identity = FlightIdentity::rustc("shared", &["lib".into()], true);
+         let cache = dir.path().to_path_buf();
+         let flight_wait_before = crate::opcounts::flight_wait_ms();
+-        let waiter =
+-            std::thread::spawn(move || begin_miss(&cache, true, &identity, "shared", false, None));
++        let (probe_tx, probe_rx) = std::sync::mpsc::channel();
++        let force = std::env::var("KACHE_FLAKY_SCHEDULER").ok().as_deref() == Some("flight");
++        let waiter = std::thread::spawn(move || {
++            if force { probe_rx.recv().unwrap(); }
++            begin_miss(&cache, true, &identity, "shared", false, None)
++        });
+         // The child holds the flight until `go` exists. Give the waiter time
+         // to block on that lock so it cannot become the owner by racing.
+         std::thread::sleep(Duration::from_millis(200));
+         fs::write(dir.path().join("go"), b"go").unwrap();
++        if force {
++            child.wait().unwrap();
++            probe_tx.send(()).unwrap();
++        }
+         match waiter.join().unwrap() {
+             BeginMiss::Recheck => {}
+             BeginMiss::Compile(_) => panic!("second process must wait for the in-flight owner"),
+@@ -2337,6 +2345,9 @@ mod tests {
+         let mut child = spawn_fixture(dir.path(), "scheduler::tests::permit_owner_child_fixture");
+         wait_ready(dir.path(), &mut child);
+ 
++        if std::env::var("KACHE_FLAKY_SCHEDULER").ok().as_deref() == Some("permit") {
++            child.wait().unwrap();
++        }
+         let scheduler = test_scheduler(dir.path(), 1);
+         let started = std::time::Instant::now();
+         let permit_wait_before = crate::opcounts::permit_wait_ms();
+diff --git a/src/wrapper/tests.rs b/src/wrapper/tests.rs
+index 429276d..f61c480 100644
+--- a/src/wrapper/tests.rs
++++ b/src/wrapper/tests.rs
+@@ -10611,7 +10611,10 @@ fn admit_scheduler_miss_recheck_returns_accepted_meta() {
+     wait_flight_ready(dir.path(), &mut child);
+ 
+     let cache = dir.path().to_path_buf();
++    let (probe_tx, probe_rx) = std::sync::mpsc::channel();
++    let force = std::env::var_os("KACHE_FLAKY_WRAPPER").is_some();
+     let waiter = std::thread::spawn(move || {
++        if force { probe_rx.recv().unwrap(); }
+         let config = test_config(cache);
+         let store = Store::open(&config).unwrap();
+         admit_scheduler_miss(
+@@ -10626,6 +10629,10 @@ fn admit_scheduler_miss_recheck_returns_accepted_meta() {
+     });
+     std::thread::sleep(std::time::Duration::from_millis(200));
+     std::fs::write(dir.path().join("go"), b"go").unwrap();
++    if force {
++        child.wait().unwrap();
++        probe_tx.send(()).unwrap();
++    }
+     let (guard, hit) = waiter.join().unwrap();
+     assert!(
+         guard.is_empty(),

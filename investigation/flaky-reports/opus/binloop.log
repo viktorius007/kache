@@ -1,0 +1,103 @@
+run 1 load={ 109.23 64.35 54.30 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 45.06s
+run 2 load={ 114.49 73.10 58.13 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 34.22s
+run 3 load={ 85.03 70.71 57.88 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 30.17s
+run 4 load={ 81.54 70.88 58.37 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 54.20s
+run 5 load={ 88.06 73.95 60.26 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 48.97s
+run 6 load={ 92.10 77.34 62.30 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 38.21s
+run 7 load={ 112.49 84.45 65.60 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 37.02s
+run 8 load={ 93.04 82.81 65.77 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 50.77s
+run 9 load={ 86.37 82.98 66.82 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 43.22s
+run 10 load={ 64.17 77.67 65.70 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 35.29s
+run 11 load={ 69.37 77.68 66.20 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 42.56s
+run 12 load={ 52.35 72.64 64.98 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 33.20s
+run 13 load={ 39.35 67.21 63.31 } test result: FAILED. 4448 passed; 1 failed; 14 ignored; 0 measured; 0 filtered out; finished in 36.95s
+cli::tests::test_is_macos_protected --- FAILED
+......................................{
+  "schema_version": 1,
+  "command": "clean",
+--
+thread 'cli::tests::test_is_macos_protected' (149397471) panicked at src/cli/tests.rs:2848:9:
+assertion failed: is_macos_protected(&home.join("Desktop"))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+--
+test result: FAILED. 4448 passed; 1 failed; 14 ignored; 0 measured; 0 filtered out; finished in 36.95s
+
+error: test failed, to rerun pass `--bin kache`
+run 14 load={ 27.50 61.23 61.29 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 32.73s
+run 15 load={ 20.69 55.80 59.31 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 27.94s
+run 16 load={ 29.77 54.37 58.65 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 34.28s
+run 17 load={ 33.86 53.07 58.03 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 29.66s
+run 18 load={ 26.86 49.55 56.58 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 29.38s
+run 19 load={ 21.60 46.12 55.09 } test result: FAILED. 4448 passed; 1 failed; 14 ignored; 0 measured; 0 filtered out; finished in 28.83s
+compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes --- FAILED
+................................/no/such/file: No such file or directory
+/no/such/file: No such file or directory
+....................................................... 1571/4463
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (149662640) panicked at src/compiler/cc/tests.rs:303:9:
+assertion `left == right` failed
+  left: "23e919aa7155dad7a7b79703519169ed490aa54279f22954815978b0045d592e"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 4448 passed; 1 failed; 14 ignored; 0 measured; 0 filtered out; finished in 28.83s
+
+error: test failed, to rerun pass `--bin kache`
+run 20 load={ 29.64 45.38 54.49 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 31.08s
+run 21 load={ 42.87 47.44 54.94 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 27.83s
+run 22 load={ 34.89 45.12 53.84 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 27.57s
+run 23 load={ 36.02 44.55 53.38 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 27.67s
+run 24 load={ 31.56 42.80 52.45 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 28.83s
+run 25 load={ 25.34 40.22 51.18 } test result: FAILED. 4447 passed; 2 failed; 14 ignored; 0 measured; 0 filtered out; finished in 42.66s
+cli::tests::test_is_macos_protected --- FAILED
+.........................................{
+  "schema_version": 1,
+  "command": "clean",
+--
+compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes --- FAILED
+....................................................{
+  "schema_version": 1,
+  "command": "clean",
+--
+thread 'cli::tests::test_is_macos_protected' (149840310) panicked at src/cli/tests.rs:2848:9:
+assertion failed: is_macos_protected(&home.join("Desktop"))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (149841803) panicked at src/compiler/cc/tests.rs:303:9:
+assertion `left == right` failed
+  left: "6a5dd9ebc2a33d878f7a0ea2cb8942db35b71cc3b4bbf8aca8d1ea4a8d5ae4d7"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 4447 passed; 2 failed; 14 ignored; 0 measured; 0 filtered out; finished in 42.66s
+
+error: test failed, to rerun pass `--bin kache`
+run 26 load={ 22.43 37.65 49.74 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 31.80s
+run 27 load={ 20.12 35.38 48.42 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 41.06s
+run 28 load={ 22.77 34.08 47.34 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 29.22s
+run 29 load={ 18.41 31.95 46.11 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 30.76s
+run 30 load={ 22.03 31.31 45.30 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 44.37s
+run 31 load={ 76.47 44.19 49.31 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 44.78s
+run 32 load={ 122.95 61.17 55.31 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 31.09s
+run 33 load={ 88.76 59.17 54.81 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 30.32s
+run 34 load={ 63.49 55.82 53.74 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 30.77s
+run 35 load={ 42.50 51.43 52.22 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 31.93s
+run 36 load={ 35.82 48.81 51.24 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 46.28s
+run 37 load={ 39.51 47.96 50.80 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 46.89s
+run 38 load={ 34.63 45.18 49.58 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 40.17s
+run 39 load={ 30.98 42.60 48.39 } test result: FAILED. 4448 passed; 1 failed; 14 ignored; 0 measured; 0 filtered out; finished in 31.09s
+compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes --- FAILED
+.........................../no/such/file: No such file or directory
+/no/such/file: No such file or directory
+............................................................ 1576/4463
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (150625403) panicked at src/compiler/cc/tests.rs:303:9:
+assertion `left == right` failed
+  left: "6a5dd9ebc2a33d878f7a0ea2cb8942db35b71cc3b4bbf8aca8d1ea4a8d5ae4d7"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 4448 passed; 1 failed; 14 ignored; 0 measured; 0 filtered out; finished in 31.09s
+
+error: test failed, to rerun pass `--bin kache`
+run 40 load={ 25.81 40.22 47.33 } test result: ok. 4449 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 33.23s
+end

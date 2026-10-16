@@ -1,0 +1,9 @@
+{"id": "R13", "command": ["./scripts/with-test-resources.sh", "cargo", "test", "-p", "kache", "--bin", "kache", "terminal_formatting_shares_cc_keys_with_cold_and_warm_probes", "--", "--test-threads=1", "--nocapture"], "load": "{ 43.84 66.49 50.05 }", "start": "2026-10-14T01:45:01Z", "threads": "1"}
+    Finished `test` profile [unoptimized] target(s) in 0.18s
+     Running unittests src/main.rs (/private/tmp/kache-flaky/sol/target/debug/deps/kache-881bf021f508393b)
+
+running 1 test
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4459 filtered out; finished in 0.07s
+

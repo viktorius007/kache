@@ -1,0 +1,27 @@
+ID=F06 START=2026-10-14T03:20:49Z LOAD={ 24.44 40.83 44.79 }
+CMD=python3 -I /private/tmp/kache-flaky/sol/suspend.py
+INNER COMMAND: env KACHE_FLAKY_SUSPEND=1 ./scripts/with-test-resources.sh cargo test -p kache --bin kache test_wait_for_warming_blocks_then_signals -- --test-threads=1 --nocapture
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Finished `test` profile [unoptimized] target(s) in 0.37s
+     Running unittests src/main.rs (/private/tmp/kache-flaky/opus/target/debug/deps/kache-881bf021f508393b)
+
+running 1 test
+test daemon::tests::test_wait_for_warming_blocks_then_signals ... FLAKY_SUSPEND_PID=46413
+CONTROLLER stopping owned test PID 46413
+CONTROLLER resumed owned test PID after 1.2 seconds
+
+thread 'daemon::tests::test_wait_for_warming_blocks_then_signals' (154186871) panicked at src/daemon/tests.rs:10563:5:
+assertion failed: elapsed < Duration::from_secs(1)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    daemon::tests::test_wait_for_warming_blocks_then_signals
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4459 filtered out; finished in 1.27s
+
+error: test failed, to rerun pass `-p kache --bin kache`
+END=2026-10-14T03:20:51Z RC=101 LOAD_END={ 24.44 40.83 44.79 }

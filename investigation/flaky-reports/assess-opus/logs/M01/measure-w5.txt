@@ -1,0 +1,44 @@
+MEASURE warming elapsed_ms=51.412
+MEASURE flight margin_ms=208.962 recheck=true
+MEASURE wrapper margin_ms=212.098 setup_ms=0.880 empty_guard=true
+MEASURE warming elapsed_ms=53.123
+MEASURE flight margin_ms=212.575 recheck=true
+MEASURE permit elapsed_ms=317.762
+MEASURE wrapper margin_ms=208.872 setup_ms=0.725 empty_guard=true
+MEASURE warming elapsed_ms=53.355
+MEASURE flight margin_ms=210.484 recheck=true
+MEASURE permit elapsed_ms=312.064
+MEASURE wrapper margin_ms=198.951 setup_ms=2.923 empty_guard=true
+MEASURE warming elapsed_ms=66.220
+MEASURE flight margin_ms=208.883 recheck=true
+MEASURE permit elapsed_ms=317.323
+MEASURE wrapper margin_ms=214.368 setup_ms=3.943 empty_guard=true
+MEASURE warming elapsed_ms=53.228
+MEASURE flight margin_ms=208.345 recheck=true
+MEASURE wrapper margin_ms=206.004 setup_ms=2.473 empty_guard=true
+MEASURE permit elapsed_ms=313.888
+MEASURE warming elapsed_ms=53.198
+MEASURE flight margin_ms=202.171 recheck=true
+MEASURE wrapper margin_ms=203.855 setup_ms=5.798 empty_guard=true
+MEASURE permit elapsed_ms=313.373
+MEASURE warming elapsed_ms=53.247
+MEASURE flight margin_ms=208.393 recheck=true
+MEASURE wrapper margin_ms=200.014 setup_ms=3.257 empty_guard=true
+MEASURE permit elapsed_ms=311.156
+MEASURE warming elapsed_ms=51.604
+MEASURE flight margin_ms=216.174 recheck=true
+MEASURE permit elapsed_ms=315.850
+MEASURE warming elapsed_ms=53.922
+MEASURE flight margin_ms=202.231 recheck=true
+MEASURE wrapper margin_ms=195.829 setup_ms=18.195 empty_guard=true
+MEASURE warming elapsed_ms=54.051
+MEASURE flight margin_ms=204.598 recheck=true
+MEASURE wrapper margin_ms=209.982 setup_ms=0.992 empty_guard=true
+MEASURE warming elapsed_ms=51.713
+MEASURE flight margin_ms=205.108 recheck=true
+MEASURE permit elapsed_ms=test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4459 filtered out; finished in 0.32s
+MEASURE wrapper margin_ms=211.865 setup_ms=2.065 empty_guard=true
+MEASURE warming elapsed_ms=51.714
+MEASURE flight margin_ms=test scheduler::tests::flight_compile_then_release_fixture ... ok206.603 recheck=true
+MEASURE wrapper margin_ms=212.861 setup_ms=4.436 empty_guard=true
+MEASURE permit elapsed_ms=301.399

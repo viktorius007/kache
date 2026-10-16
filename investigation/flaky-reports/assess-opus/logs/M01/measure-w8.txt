@@ -1,0 +1,46 @@
+MEASURE warming elapsed_ms=53.252
+MEASURE flight margin_ms=206.790 recheck=true
+MEASURE permit elapsed_ms=312.995
+MEASURE wrapper margin_ms=211.325 setup_ms=1.692 empty_guard=true
+MEASURE warming elapsed_ms=53.276
+MEASURE flight margin_ms=213.787 recheck=true
+MEASURE permit elapsed_ms=320.785
+MEASURE wrapper margin_ms=206.582 setup_ms=0.673 empty_guard=true
+MEASURE warming elapsed_ms=53.365
+MEASURE flight margin_ms=210.374 recheck=true
+MEASURE wrapper margin_ms=206.739 setup_ms=2.531 empty_guard=true
+MEASURE permit elapsed_ms=313.394
+MEASURE warming elapsed_ms=61.645
+MEASURE flight margin_ms=212.644 recheck=true
+MEASURE permit elapsed_ms=312.759
+MEASURE wrapper margin_ms=210.680 setup_ms=2.955 empty_guard=true
+MEASURE warming elapsed_ms=53.360
+MEASURE flight margin_ms=207.412 recheck=true
+MEASURE wrapper margin_ms=203.859 setup_ms=2.063 empty_guard=true
+MEASURE permit elapsed_ms=296.141
+MEASURE warming elapsed_ms=51.315
+MEASURE flight margin_ms=206.795 recheck=true
+MEASURE wrapper margin_ms=209.193 setup_ms=2.487 empty_guard=true
+MEASURE permit elapsed_ms=315.344
+MEASURE warming elapsed_ms=52.548
+MEASURE flight margin_ms=207.105 recheck=true
+MEASURE wrapper margin_ms=203.401 setup_ms=0.775 empty_guard=true
+MEASURE permit elapsed_ms=309.542
+MEASURE warming elapsed_ms=58.239
+MEASURE permit elapsed_ms=315.109
+MEASURE wrapper margin_ms=221.235 setup_ms=1.618 empty_guard=true
+MEASURE warming elapsed_ms=53.630
+MEASURE flight margin_ms=214.965 recheck=true
+MEASURE permit elapsed_ms=test scheduler::tests::permit_owner_child_fixture ... ok
+MEASURE wrapper margin_ms=209.997 setup_ms=1.994 empty_guard=true
+MEASURE warming elapsed_ms=60.492
+MEASURE flight margin_ms=211.556 recheck=true
+MEASURE wrapper margin_ms=163.676 setup_ms=test scheduler::tests::permit_owner_child_fixture ... 55.257ok
+MEASURE permit elapsed_ms=315.861
+MEASURE warming elapsed_ms=55.194
+MEASURE wrapper margin_ms=202.559 setup_ms=1.062 empty_guard=true
+MEASURE permit elapsed_ms=313.176
+MEASURE warming elapsed_ms=55.335
+MEASURE flight margin_ms=209.376 recheck=true
+MEASURE permit elapsed_ms=312.426
+MEASURE wrapper margin_ms=206.287 setup_ms=5.070 empty_guard=true

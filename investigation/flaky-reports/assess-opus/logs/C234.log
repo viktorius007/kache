@@ -1,0 +1,31 @@
+ID=C234 START=2026-10-14T03:20:26Z LOAD={ 29.41 43.16 45.70 }
+CMD=./scripts/with-test-resources.sh cargo test -p kache --bin kache -- --exact scheduler::tests::permit_pool_blocks_until_a_slot_is_free scheduler::tests::waiter_rechecks_after_owner_completes wrapper::tests::admit_scheduler_miss_recheck_returns_accepted_meta --test-threads=1
+    Finished `test` profile [unoptimized] target(s) in 0.20s
+     Running unittests src/main.rs (/private/tmp/kache-flaky/opus/target/debug/deps/kache-881bf021f508393b)
+
+running 3 tests
+test scheduler::tests::permit_pool_blocks_until_a_slot_is_free ... 
+running 1 test
+test scheduler::tests::permit_owner_child_fixture ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4459 filtered out; finished in 0.31s
+
+ok
+test scheduler::tests::waiter_rechecks_after_owner_completes ... 
+running 1 test
+test scheduler::tests::flight_compile_then_release_fixture ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4459 filtered out; finished in 0.24s
+
+ok
+test wrapper::tests::admit_scheduler_miss_recheck_returns_accepted_meta ... 
+running 1 test
+test wrapper::tests::hold_scheduler_flight_fixture ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4459 filtered out; finished in 0.22s
+
+ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 4457 filtered out; finished in 0.86s
+
+END=2026-10-14T03:20:27Z RC=0 LOAD_END={ 27.78 42.59 45.49 }

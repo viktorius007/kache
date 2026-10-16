@@ -1,0 +1,80 @@
+diff --git a/src/daemon/tests.rs b/src/daemon/tests.rs
+index 61e2e50..1d28cf4 100644
+--- a/src/daemon/tests.rs
++++ b/src/daemon/tests.rs
+@@ -10555,6 +10555,7 @@ async fn test_wait_for_warming_blocks_then_signals() {
+     let start = std::time::Instant::now();
+     assert!(daemon.wait_for_warming(Duration::from_secs(5)).await);
+     let elapsed = start.elapsed();
++    eprintln!("MEASURE warming elapsed_ms={:.3}", elapsed.as_secs_f64() * 1000.0);
+     // Should have waited ~50ms, not the full 5s timeout
+     assert!(elapsed >= Duration::from_millis(30));
+     assert!(elapsed < Duration::from_secs(1));
+diff --git a/src/scheduler.rs b/src/scheduler.rs
+index 651d231..3d1439a 100644
+--- a/src/scheduler.rs
++++ b/src/scheduler.rs
+@@ -2308,13 +2308,18 @@ mod tests {
+         let identity = FlightIdentity::rustc("shared", &["lib".into()], true);
+         let cache = dir.path().to_path_buf();
+         let flight_wait_before = crate::opcounts::flight_wait_ms();
+-        let waiter =
+-            std::thread::spawn(move || begin_miss(&cache, true, &identity, "shared", false, None));
++        let waiter = std::thread::spawn(move || {
++            let pre = std::time::Instant::now();
++            (pre, begin_miss(&cache, true, &identity, "shared", false, None))
++        });
+         // The child holds the flight until `go` exists. Give the waiter time
+         // to block on that lock so it cannot become the owner by racing.
+         std::thread::sleep(Duration::from_millis(200));
+         fs::write(dir.path().join("go"), b"go").unwrap();
+-        match waiter.join().unwrap() {
++        let go_at = std::time::Instant::now();
++        let (pre, outcome) = waiter.join().unwrap();
++        eprintln!("MEASURE flight margin_ms={:.3} recheck={}", go_at.saturating_duration_since(pre).as_secs_f64() * 1000.0 - pre.saturating_duration_since(go_at).as_secs_f64() * 1000.0, matches!(outcome, BeginMiss::Recheck));
++        match outcome {
+             BeginMiss::Recheck => {}
+             BeginMiss::Compile(_) => panic!("second process must wait for the in-flight owner"),
+         }
+@@ -2341,6 +2346,7 @@ mod tests {
+         let started = std::time::Instant::now();
+         let permit_wait_before = crate::opcounts::permit_wait_ms();
+         let permit = scheduler.acquire_permit(1);
++        eprintln!("MEASURE permit elapsed_ms={:.3}", started.elapsed().as_secs_f64() * 1000.0);
+         assert!(
+             permit.is_some(),
+             "parent must acquire the slot after the child exits"
+diff --git a/src/wrapper/tests.rs b/src/wrapper/tests.rs
+index 429276d..56c7031 100644
+--- a/src/wrapper/tests.rs
++++ b/src/wrapper/tests.rs
+@@ -10611,10 +10611,12 @@ fn admit_scheduler_miss_recheck_returns_accepted_meta() {
+     wait_flight_ready(dir.path(), &mut child);
+ 
+     let cache = dir.path().to_path_buf();
++    let spawned = std::time::Instant::now();
+     let waiter = std::thread::spawn(move || {
+         let config = test_config(cache);
+         let store = Store::open(&config).unwrap();
+-        admit_scheduler_miss(
++        let pre = std::time::Instant::now();
++        (pre, admit_scheduler_miss(
+             &config,
+             &store,
+             key,
+@@ -10622,11 +10624,13 @@ fn admit_scheduler_miss_recheck_returns_accepted_meta() {
+             crate_name,
+             false,
+             |_| true,
+-        )
++        ))
+     });
+     std::thread::sleep(std::time::Duration::from_millis(200));
+     std::fs::write(dir.path().join("go"), b"go").unwrap();
+-    let (guard, hit) = waiter.join().unwrap();
++    let go_at = std::time::Instant::now();
++    let (pre, (guard, hit)) = waiter.join().unwrap();
++    eprintln!("MEASURE wrapper margin_ms={:.3} setup_ms={:.3} empty_guard={}", go_at.saturating_duration_since(pre).as_secs_f64() * 1000.0 - pre.saturating_duration_since(go_at).as_secs_f64() * 1000.0, pre.duration_since(spawned).as_secs_f64() * 1000.0, guard.is_empty());
+     assert!(
+         guard.is_empty(),
+         "a Recheck hit must not keep the flight or permit"

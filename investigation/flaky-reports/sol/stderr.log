@@ -1,0 +1,19 @@
+Reading additional input from stdin...
+     4128.66 real      1369.96 user       871.46 sys
+          4312727552  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+           136192301  page reclaims
+             1029730  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+               31445  messages sent
+               53173  messages received
+               14240  signals received
+             1589085  voluntary context switches
+            18665143  involuntary context switches
+        325735443090  instructions retired
+        118690447974  cycles elapsed
+           211949504  peak memory footprint

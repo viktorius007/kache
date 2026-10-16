@@ -1,0 +1,12 @@
+MEASURE warming elapsed_ms=57.480
+MEASURE flight margin_ms=test scheduler::tests::flight_compile_then_release_fixture ... ok
+MEASURE wrapper margin_ms=209.394 setup_ms=2.359 empty_guard=true
+MEASURE permit elapsed_ms=317.473
+MEASURE warming elapsed_ms=53.117
+MEASURE flight margin_ms=208.099 recheck=true
+MEASURE permit elapsed_ms=313.471
+MEASURE wrapper margin_ms=212.041 setup_ms=1.894 empty_guard=true
+MEASURE warming elapsed_ms=52.234
+MEASURE flight margin_ms=212.874 recheck=true
+MEASURE wrapper margin_ms=207.062 setup_ms=3.230 empty_guard=true
+MEASURE permit elapsed_ms=305.856

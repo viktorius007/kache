@@ -1,0 +1,5 @@
+thread 'path_normalizer::tests::from_env_construction_is_deterministic' (152083272) panicked at src/path_normalizer.rs:2811:9:
+assertion `left == right` failed
+  left: [("/Users/viktor/Developer/github/kache-investigations/flaky-opus", "<WORKSPACE>"), ("/private/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpavLoyh", "<WORKSPACE>"), ("/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpavLoyh", "<WORKSPACE>"), ("/Users/viktor/.cargo", "<CARGO_HOME>"), ("/Users/viktor/.rustup", "<RUSTUP_HOME>"), ("/Users/viktor", "<HOME>"), ("/private/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T", "<TMPDIR>")]
+ right: [("/private/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpbJH4id", "<WORKSPACE>"), ("/private/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpavLoyh", "<WORKSPACE>"), ("/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpavLoyh", "<WORKSPACE>"), ("/Users/viktor/.cargo", "<CARGO_HOME>"), ("/Users/viktor/.rustup", "<RUSTUP_HOME>"), ("/Users/viktor", "<HOME>"), ("/private/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T", "<TMPDIR>")]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

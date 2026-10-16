@@ -1,0 +1,12 @@
+{"id": "R15", "command": ["./scripts/with-test-resources.sh", "cargo", "test", "-p", "kache", "--bin", "kache", "test_wait_for_warming", "--", "--test-threads=1", "--nocapture"], "load": "{ 40.89 65.50 49.79 }", "start": "2026-10-14T01:45:03Z", "threads": "1"}
+    Finished `test` profile [unoptimized] target(s) in 0.19s
+     Running unittests src/main.rs (/private/tmp/kache-flaky/sol/target/debug/deps/kache-881bf021f508393b)
+
+running 4 tests
+test daemon::tests::test_wait_for_warming_already_signaled ... ok
+test daemon::tests::test_wait_for_warming_blocks_then_signals ... ok
+test daemon::tests::test_wait_for_warming_multiple_waiters ... ok
+test daemon::tests::test_wait_for_warming_timeout ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 4456 filtered out; finished in 0.21s
+

@@ -1,0 +1,24 @@
+diff --git a/src/fallback/macos.rs b/src/fallback/macos.rs
+index a5dbee0..1d45196 100644
+--- a/src/fallback/macos.rs
++++ b/src/fallback/macos.rs
+@@ -54,12 +54,19 @@ fn server_pid(port: u16) -> Option<i32> {
+         .stderr(Stdio::null())
+         .spawn()
+         .ok()?;
++    if std::env::var_os("KACHE_FLAKY_LSOF").is_some() {
++        let stopped = unsafe { libc::kill(child.id() as i32, libc::SIGSTOP) };
++        eprintln!("FLAKY_LSOF paused owned child {}: {stopped}", child.id());
++    }
+     let deadline = Instant::now() + Duration::from_millis(200);
+     let success = loop {
+         match child.try_wait() {
+             Ok(Some(status)) => break status.success(),
+             Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(5)),
+             _ => {
++                if std::env::var_os("KACHE_FLAKY_LSOF").is_some() {
++                    eprintln!("FLAKY_LSOF 200ms deadline expired with owned child unfinished");
++                }
+                 let _ = child.kill();
+                 let _ = child.wait();
+                 return None;

@@ -1,0 +1,17 @@
+--- a/src/compiler/cc/tests.rs
++++ b/src/compiler/cc/tests.rs
+@@ -283,6 +283,14 @@
+     };
+     let warm = dir.path().join("warm");
+     let baseline = key(&[], &warm);
++    let _probe_env = if std::env::var_os("KACHE_FLAKY_PROBE").is_some() {
++        let sdk = dir.path().join("forced-sdk");
++        fs::create_dir(&sdk).unwrap();
++        eprintln!("FLAKY_PROBE baseline SDKROOT={:?}", std::env::var_os("SDKROOT"));
++        Some(crate::config::tests::set_env_for_test("SDKROOT", Some(sdk.as_os_str())))
++    } else {
++        None
++    };
+     for (index, flag) in [
+         "-fcolor-diagnostics",
+         "-fno-color-diagnostics",

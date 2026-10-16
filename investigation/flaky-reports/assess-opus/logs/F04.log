@@ -1,0 +1,29 @@
+ID=F04 START=2026-10-14T03:20:26Z LOAD={ 29.41 43.16 45.70 }
+CMD=env KACHE_FLAKY_WRAPPER=1 ./scripts/with-test-resources.sh cargo test -p kache --bin kache admit_scheduler_miss_recheck_returns_accepted_meta -- --test-threads=1 --nocapture
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Finished `test` profile [unoptimized] target(s) in 0.23s
+     Running unittests src/main.rs (/private/tmp/kache-flaky/opus/target/debug/deps/kache-881bf021f508393b)
+
+running 1 test
+test wrapper::tests::admit_scheduler_miss_recheck_returns_accepted_meta ... 
+running 1 test
+test wrapper::tests::hold_scheduler_flight_fixture ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4459 filtered out; finished in 0.23s
+
+
+thread 'wrapper::tests::admit_scheduler_miss_recheck_returns_accepted_meta' (154171121) panicked at src/wrapper/tests.rs:10637:5:
+a Recheck hit must not keep the flight or permit
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    wrapper::tests::admit_scheduler_miss_recheck_returns_accepted_meta
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4459 filtered out; finished in 0.27s
+
+error: test failed, to rerun pass `-p kache --bin kache`
+END=2026-10-14T03:20:26Z RC=101 LOAD_END={ 29.41 43.16 45.70 }

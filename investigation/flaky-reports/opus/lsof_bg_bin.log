@@ -1,0 +1,945 @@
+
+running 4466 tests
+....................................................................................... 87/4466
+....................................................................................... 174/4466
+.cargo:rerun-if-changed=build.rs
+cargo:rustc-link-search=native=/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmp7emhS3/b/target/debug/deps
+cargo:rerun-if-changed=build.rs
+cargo:rustc-link-search=/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmp7emhS3/stderr/b/target/debug/gn_out/obj
+.............cargo:rerun-if-changed=build.rs
+cargo:rustc-link-search=native=/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpjoZS3O/b/target/debug/gn_out/obj
+cargo:rustc-link-search=native=/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpjoZS3O/b/target/debug/deps
+cargo:rustc-link-search=/usr/lib
+.....cargo:rerun-if-changed=build.rs
+..cargo:rerun-if-changed=build.rs
+...............................cargo:rustc-cfg=x
+..cargo:rerun-if-changed=build.rs
+cargo:rustc-link-search=/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmp8mm9tI/b/target/debug/gn_out/obj
+................................. 261/4466
+....................................................................................... 348/4466
+....................................................................................... 435/4466
+....................................................................................... 522/4466
+....................................................................................... 609/4466
+.......i..i............................................................................ 696/4466
+....................................................................................... 783/4466
+...........................................................................{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "preview": true,
+  "targets": []
+}{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "preview": false,
+  "targets": []
+}............ 870/4466
+....................................................................................... 957/4466
+............................{
+  "schema_version": 1,
+  "command": "stats",
+  "success": true,
+  "report": {
+    "eviction_evidence": {
+      "horizon_secs": 604800,
+      "as_of_unix_secs": 1791946758,
+      "limitations": [
+        "All-store observations tagged with value-density shadow decisions, independent of the build-event window and root filter.",
+        "Latest live eviction and first shadow-only sweep per key; repeated evictions overwrite history and cohorts can overlap.",
+        "Immature and invalid observations are excluded from demand and cost totals. Retained rows are not a complete sweep history.",
+        "Live demand counts first recorded post-eviction requests. Read-only clients and overwritten records can hide demand; absence of a stamp does not prove obsolescence.",
+        "Shadow demand bounds allow unrecorded requests because hit stamps are throttled, overwritten and reset on reinsertion.",
+        "Costs are gross measured compile time, excluding unknown costs and cache-serving cost. Logical bytes include shared blobs and do not estimate physically reclaimed bytes.",
+        "These observations do not select a policy winner or change live eviction."
+      ],
+      "stores": [
+        {
+          "store_index": 0,
+          "evidence": {
+            "as_of_unix_secs": 1791946758,
+            "horizon_secs": 604800,
+            "live_shadow_agreed": {
+              "observations": 0,
+              "immature": 0,
+              "invalid": 0,
+              "mature": 0,
+              "unknown_compile_cost": 0,
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "known_cost_logical_bytes": 0,
+              "gross_compile_cost_ms": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0
+            },
+            "live_shadow_kept": {
+              "observations": 0,
+              "immature": 0,
+              "invalid": 0,
+              "mature": 0,
+              "unknown_compile_cost": 0,
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "known_cost_logical_bytes": 0,
+              "gross_compile_cost_ms": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0
+            },
+            "shadow_only": {
+              "observations": 0,
+              "immature": 0,
+              "invalid": 0,
+              "mature": 0,
+              "unknown_compile_cost": 0,
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "known_cost_logical_bytes": 0,
+              "gross_compile_cost_ms": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0
+            }
+          },
+          "error": null
+        }
+      ]
+    },
+    "schema_version": 1,
+    "meta": {
+      "kache_version": "1.1.1",
+      "generated_at": "2026-10-14T02:59:18.134114+00:00",
+      "since_hours": 0,
+      "since_secs": 0,
+      "since": "0s",
+      "root_filter": "/repo",
+      "session": {
+        "root": "/repo",
+        "session_id": "build",
+        "inferred": false,
+        "inactivity_secs": 300
+      }
+    },
+    "summary": {
+      "hit_rate_pct": 100.0,
+      "weighted_hit_rate_pct": 100.0,
+      "time_saved_ms": 4,
+      "total_crates": 1,
+      "local_hits": 1,
+      "prefetch_hits": 0,
+      "remote_hits": 0,
+      "dups": 0,
+      "misses": 0,
+      "errors": 0,
+      "passthroughs": 0,
+      "probes": 0,
+      "skipped": 0,
+      "store_failures": 0,
+      "fallbacks": 0,
+      "total_duration_ms": 5,
+      "cache_efficiency_pct": 100.0
+    },
+    "timeline": {
+      "start_time": "2026-10-14T02:59:18.041247+00:00",
+      "end_time": "2026-10-14T02:59:18.046247+00:00",
+      "start_unix_ms": 1791946758041,
+      "end_unix_ms": 1791946758046,
+      "duration_ms": 5,
+      "event_count": 1,
+      "cacheable_count": 1,
+      "hit_count": 1,
+      "compiled_count": 0,
+      "passthrough_count": 0,
+      "probe_count": 0,
+      "skipped_count": 0,
+      "error_count": 0
+    },
+    "timing": {
+      "hit_time_ms": 5,
+      "miss_time_ms": 0,
+      "avg_hit_ms": 5.0,
+      "avg_miss_ms": 0.0,
+      "avg_hit_overhead_ms": 5.0,
+      "miss_compile_time_ms": 0,
+      "avg_key_ms": 0.0,
+      "avg_lookup_ms": 0.0,
+      "avg_restore_ms": 0.0,
+      "avg_store_ms": 0.0,
+      "total_key_ms": 0,
+      "total_lookup_ms": 0,
+      "total_restore_ms": 0,
+      "total_store_ms": 0,
+      "total_startup_ms": 0,
+      "avg_startup_ms": 0.0,
+      "total_dep_info_ms": 0,
+      "dep_info_runs": 0,
+      "avg_dep_info_ms": 0.0,
+      "prediction_mismatches": 0,
+      "total_wait_ms": 0,
+      "total_flight_wait_ms": 0,
+      "total_permit_wait_ms": 0,
+      "avg_wait_ms": 0.0,
+      "total_unattributed_ms": 5,
+      "avg_unattributed_ms": 5.0
+    },
+    "storage": {
+      "store_entries": 0,
+      "stores": [
+        {{
+          "path": "/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpfSRpnD",
+          "
+  "schema_version": 1,
+  "command": "gc",
+  "success": true,
+  "skipped": false,
+  "disk": {
+    "store_bytes": 0,
+    "store_limit_bytes": 1048576,
+    "disk_private_bytes": 0,
+    "cloned_into_targets_bytes": 0,
+    "snapshot_retained_bytes": 0,
+    "cloned_coverage": "full"
+  },
+  "entries": 0,
+  "entries_dropped": 0,
+  "store_bytes_removed": 0,
+  "disk_bytes_reclaimed": 0,
+  "entries_pinned": 0,
+  "entries_unreclaimable": 0,
+  "entries_failed": 0
+}bytes": 0,
+          "max_size": 1048576,
+          "entries": 0,
+          "blob_stats": {
+            "total_blobs": 0,
+            "total_blob_size": 0,
+            "total_logical_size": 0,
+            "savings": 0
+          },
+          "error": null
+        }
+      ],
+      "reflinked_bytes": 0,
+      "hardlinked_bytes": 0,
+      "copied_bytes": 0,
+      "restored_bytes": 0,
+      "zero_copy_pct": 0.0,
+      "store_reflinked_bytes": 0,
+      "store_hardlinked_bytes": 0,
+      "store_copied_bytes": 0,
+      "store_copy_cross_device_bytes": 0,
+      "store_copy_permission_bytes": 0,
+      "store_copy_ineligible_bytes": 0,
+      "store_copy_other_bytes": 0,
+      "restore_copy_cross_device_bytes": 0,
+      "restore_copy_permission_bytes": 0,
+      "restore_copy_exclusive_bytes": 0,
+      "restore_copy_other_bytes": 0,
+      "store_blobs": 0,
+      "logical_bytes": 0,
+      "blob_bytes": 0,
+      "dedup_saved_bytes": 0,
+      "accounting_consistent": true
+    },
+    "network": null,
+    "prefetch": {
+      "prefetch_hits": 0,
+      "total_hits": 1,
+      "contribution_pct": 0.0
+    },
+    "top_misses": [],
+    "top_hits": [
+      {
+        "crate_name": "demo",
+        "root": "/repo",
+        "result": "local_hit",
+        "start_time": "2026-10-14T02:59:18.041247+00:00",
+        "end_time": "2026-10-14T02:59:18.046247+00:00",
+        "start_unix_ms": 1791946758041,
+        "end_unix_ms": 1791946758046,
+        "elapsed_ms": 5,
+        "compile_time_ms": 4,
+        "overhead_ms": 5,
+        "size": 64,
+        "cache_key": "key",
+        "store_output_blobs": 0,
+        "store_duplicate_blobs": 0,
+        "store_new_blobs": 0,
+        "compiler_runs": 0,
+        "preprocessor_runs": 0,
+        "probe_runs": 0,
+        "dep_info_runs": 0,
+        "prediction_mismatches": 0,
+        "store_handed_off": false,
+        "daemon_store_ms": 0
+      }
+    ],
+    "all_events": [
+      {
+        "crate_name": "demo",
+        "root": "/repo",
+        "result": "local_hit",
+        "start_time": "2026-10-14T02:59:18.041247+00:00",
+        "end_time": "2026-10-14T02:59:18.046247+00:00",
+        "start_unix_ms": 1791946758041,
+        "end_unix_ms": 1791946758046,
+        "elapsed_ms": 5,
+        "compile_time_ms": 4,
+        "overhead_ms": 5,
+        "size": 64,
+        "cache_key": "key",
+        "store_output_blobs": 0,
+        "store_duplicate_blobs": 0,
+        "store_new_blobs": 0,
+        "compiler_runs": 0,
+        "preprocessor_runs": 0,
+        "probe_runs": 0,
+        "dep_info_runs": 0,
+        "prediction_mismatches": 0,
+        "store_handed_off": false,
+        "daemon_store_ms": 0
+      }
+    ],
+    "traceEvents": [
+      {
+        "name": "hit: demo",
+        "cat": "kache",
+        "ph": "X",
+        "ts": 1791946758041247,
+        "dur": 5000,
+        "pid": 1,
+        "tid": 0,
+        "cname": "good",
+        "args": {
+          "crate_name": "demo",
+          "root": "/repo",
+          "result": "local_hit",
+          "route": "n/a",
+          "reason": "unknown",
+          "cache_key": "key",
+          "elapsed_ms": 5,
+          "compile_time_ms": 4,
+          "overhead_ms": 5,
+          "size": 64,
+          "compiler_runs": 0,
+          "preprocessor_runs": 0,
+          "probe_runs": 0,
+          "store_output_blobs": 0,
+          "store_duplicate_blobs": 0,
+          "store_new_blobs": 0,
+          "startup_ms": 0,
+          "key_ms": 0,
+          "dep_info_ms": 0,
+          "dep_info_runs": 0,
+          "lookup_ms": 0,
+          "wait_ms": 0,
+          "flight_wait_ms": 0,
+          "permit_wait_ms": 0,
+          "restore_ms": 0,
+          "store_ms": 0,
+          "unattributed_ms": 5,
+          "exit_code": null
+        }
+      }
+    ],
+    "displayTimeUnit": "ms",
+    "bypass": {
+      "passthroughs": 0,
+      "probes": 0,
+      "skipped": 0,
+      "fallbacks": 0,
+      "direct_passthroughs": 0,
+      "reasons": [],
+      "slowest": []
+    },
+    "errors_detail": [],
+    "suggestions": [
+      "Remote transfer data omitted because transfer events are not root-scoped yet"
+    ]
+  }
+}............{
+  "schema_version": 1,
+  "command": "stats",
+  "success": true,
+  "report": {
+    "eviction_evidence": {
+      "horizon_secs": 604800,
+      "as_of_unix_secs": 1791946758,
+      "limitations": [
+        "All-store observations tagged with value-density shadow decisions, independent of the build-event window and root filter.",
+        "Latest live eviction and first shadow-only sweep per key; repeated evictions overwrite history and cohorts can overlap.",
+        "Immature and invalid observations are excluded from demand and cost totals. Retained rows are not a complete sweep history.",
+        "Live demand counts first recorded post-eviction requests. Read-only clients and overwritten records can hide demand; absence of a stamp does not prove obsolescence.",
+        "Shadow demand bounds allow unrecorded requests because hit stamps are throttled, overwritten and reset on reinsertion.",
+        "Costs are gross measured compile time, excluding unknown costs and cache-serving cost. Logical bytes include shared blobs and do not estimate physically reclaimed bytes.",
+        "These observations do not select a policy winner or change live eviction."
+      ],
+      "stores": [
+        {
+          "store_index": 0,
+          "evidence": {
+            "as_of_unix_secs": 1791946758,
+            "horizon_secs": 604800,
+            "live_shadow_agreed": {
+              "observations": 0,
+              "immature": 0,
+              "invalid": 0,
+              "mature": 0,
+              "unknown_compile_cost": 0,
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "known_cost_logical_bytes": 0,
+              "gross_compile_cost_ms": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0
+            },
+            "live_shadow_kept": {
+              "observations": 0,
+              "immature": 0,
+              "invalid": 0,
+              "mature": 0,
+              "unknown_compile_cost": 0,
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "known_cost_logical_bytes": 0,
+              "gross_compile_cost_ms": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0
+            },
+            "shadow_only": {
+              "observations": 0,
+              "immature": 0,
+              "invalid": 0,
+              "mature": 0,
+              "unknown_compile_cost": 0,
+              "demand_within_horizon_lower": 0,
+              "demand_within_horizon_upper": 0,
+              "known_cost_logical_bytes": 0,
+              "gross_compile_cost_ms": 0,
+              "demanded_gross_compile_cost_ms_lower": 0,
+              "demanded_gross_compile_cost_ms_upper": 0
+            }
+          },
+          "error": null
+        }
+      ]
+    },
+    "schema_version": 1,
+    "meta": {
+      "kache_version": "1.1.1",
+      "generated_at": "2026-10-14T02:59:18.343975+00:00",
+      "since_hours": 0,
+      "since_secs": 0,
+      "since": "0s",
+      "root_filter": "/repo",
+      "session": {
+        "root": "/repo",
+        "session_id": "build",
+        "inferred": false,
+        "inactivity_secs": 300
+      }
+    },
+    "summary": {
+      "hit_rate_pct": 100.0,
+      "weighted_hit_rate_pct": 100.0,
+      "time_saved_ms": 4,
+      "total_crates": 1,
+      "local_hits": 1,
+      "prefetch_hits": 0,
+      "remote_hits": 0,
+      "dups": 0,
+      "misses": 0,
+      "errors": 0,
+      "passthroughs": 0,
+      "probes": 0,
+      "skipped": 0,
+      "store_failures": 0,
+      "fallbacks": 0,
+      "total_duration_ms": 5,
+      "cache_efficiency_pct": 100.0
+    },
+    "timeline": {
+      "start_time": "2026-10-14T02:59:18.149482+00:00",
+      "end_time": "2026-10-14T02:59:18.154482+00:00",
+      "start_unix_ms": 1791946758149,
+      "end_unix_ms": 1791946758154,
+      "duration_ms": 5,
+      "event_count": 1,
+      "cacheable_count": 1,
+      "hit_count": 1,
+      "compiled_count": 0,
+      "passthrough_count": 0,
+      "probe_count": 0,
+      "skipped_count": 0,
+      "error_count": 0
+    },
+    "timing": {
+      "hit_time_ms": 5,
+      "miss_time_ms": 0,
+      "avg_hit_ms": 5.0,
+      "avg_miss_ms": 0.0,
+      "avg_hit_overhead_ms": 5.0,
+      "miss_compile_time_ms": 0,
+      "avg_key_ms": 0.0,
+      "avg_lookup_ms": 0.0,
+      "avg_restore_ms": 0.0,
+      "avg_store_ms": 0.0,
+      "total_key_ms": 0,
+      "total_lookup_ms": 0,
+      "total_restore_ms": 0,
+      "total_store_ms": 0,
+      "total_startup_ms": 0,
+      "avg_startup_ms": 0.0,
+      "total_dep_info_ms": 0,
+      "dep_info_runs": 0,
+      "avg_dep_info_ms": 0.0,
+      "prediction_mismatches": 0,
+      "total_wait_ms": 0,
+      "total_flight_wait_ms": 0,
+      "total_permit_wait_ms": 0,
+      "avg_wait_ms": 0.0,
+      "total_unattributed_ms": 5,
+      "avg_unattributed_ms": 5.0
+    },
+    "storage": {
+      "store_entries": 0,
+      "stores": [
+        {
+          "path": "/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpmxYOVQ",
+          "bytes": 0,
+          "max_size": 1048576,
+          "entries": 0,
+          "blob_stats": {
+            "total_blobs": 0,
+            "total_blob_size": 0,
+            "total_logical_size": 0,
+            "savings": 0
+          },
+          "error": null
+        }
+      ],
+      "reflinked_bytes": 0,
+      "hardlinked_bytes": 0,
+      "copied_bytes": 0,
+      "restored_bytes": 0,
+      "zero_copy_pct": 0.0,
+      "store_reflinked_bytes": 0,
+      "store_hardlinked_bytes": 0,
+      "store_copied_bytes": 0,
+      "store_copy_cross_device_bytes": 0,
+      "store_copy_permission_bytes": 0,
+      "store_copy_ineligible_bytes": 0,
+      "store_copy_other_bytes": 0,
+      "restore_copy_cross_device_bytes": 0,
+      "restore_copy_permission_bytes": 0,
+      "restore_copy_exclusive_bytes": 0,
+      "restore_copy_other_bytes": 0,
+      "store_blobs": 0,
+      "logical_bytes": 0,
+      "blob_bytes": 0,
+      "dedup_saved_bytes": 0,
+      "accounting_consistent": true
+    },
+    "network": null,
+    "prefetch": {
+      "prefetch_hits": 0,
+      "total_hits": 1,
+      "contribution_pct": 0.0
+    },
+    "top_misses": [],
+    "top_hits": [
+      {
+        "crate_name": "demo",
+        "root": "/repo",
+        "result": "local_hit",
+        "start_time": "2026-10-14T02:59:18.149482+00:00",
+        "end_time": "2026-10-14T02:59:18.154482+00:00",
+        "start_unix_ms": 1791946758149,
+        "end_unix_ms": 1791946758154,
+        "elapsed_ms": 5,
+        "compile_time_ms": 4,
+        "overhead_ms": 5,
+        "size": 64,
+        "cache_key": "key",
+        "store_output_blobs": 0,
+        "store_duplicate_blobs": 0,
+        "store_new_blobs": 0,
+        "compiler_runs": 0,
+        "preprocessor_runs": 0,
+        "probe_runs": 0,
+        "dep_info_runs": 0,
+        "prediction_mismatches": 0,
+        "store_handed_off": false,
+        "daemon_store_ms": 0
+      }
+    ],
+    "all_events": [
+      {
+        "crate_name": "demo",
+        "root": "/repo",
+        "result": "local_hit",
+        "start_time": "2026-10-14T02:59:18.149482+00:00",
+        "end_time": "2026-10-14T02:59:18.154482+00:00",
+        "start_unix_ms": 1791946758149,
+        "end_unix_ms": 1791946758154,
+        "elapsed_ms": 5,
+        "compile_time_ms": 4,
+        "overhead_ms": 5,
+        "size": 64,
+        "cache_key": "key",
+        "store_output_blobs": 0,
+        "store_duplicate_blobs": 0,
+        "store_new_blobs": 0,
+        "compiler_runs": 0,
+        "preprocessor_runs": 0,
+        "probe_runs": 0,
+        "dep_info_runs": 0,
+        "prediction_mismatches": 0,
+        "store_handed_off": false,
+        "daemon_store_ms": 0
+      }
+    ],
+    "traceEvents": [
+      {
+        "name": "hit: demo",
+        "cat": "kache",
+        "ph": "X",
+        "ts": 1791946758149482,
+        "dur": 5000,
+        "pid": 1,
+        "tid": 0,
+        "cname": "good",
+        "args": {
+          "crate_name": "demo",
+          "root": "/repo",
+          "result": "local_hit",
+          "route": "n/a",
+          "reason": "unknown",
+          "cache_key": "key",
+          "elapsed_ms": 5,
+          "compile_time_ms": 4,
+          "overhead_ms": 5,
+          "size": 64,
+          "compiler_runs": 0,
+          "preprocessor_runs": 0,
+          "probe_runs": 0,
+          "store_output_blobs": 0,
+          "store_duplicate_blobs": 0,
+          "store_new_blobs": 0,
+          "startup_ms": 0,
+          "key_ms": 0,
+          "dep_info_ms": 0,
+          "dep_info_runs": 0,
+          "lookup_ms": 0,
+          "wait_ms": 0,
+          "flight_wait_ms": 0,
+          "permit_wait_ms": 0,
+          "restore_ms": 0,
+          "store_ms": 0,
+          "unattributed_ms": 5,
+          "exit_code": null
+        }
+      }
+    ],
+    "displayTimeUnit": "ms",
+    "bypass": {
+      "passthroughs": 0,
+      "probes": 0,
+      "skipped": 0,
+      "fallbacks": 0,
+      "direct_passthroughs": 0,
+      "reasons": [],
+      "slowest": []
+    },
+    "errors_detail": [],
+    "suggestions": [
+      "Remote transfer data omitted because transfer events are not root-scoped yet"
+    ]
+  }
+}............................................... 1044/4466
+....................................{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "targets": [],
+  "kept": [],
+  "skipped": [
+    {
+      "path": "/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpbKFUFM/targets/feature",
+      "reason": "path no longer exists; registry entry would be removed",
+      "missing": true
+    }
+  ],
+  "removed_paths": [],
+  "changed": false,
+  "estimated_reclaimed_bytes": 0,
+  "next": [
+    {
+      "argv": [
+        "kache",
+        "clean",
+        "--stale",
+        "7d",
+        "--dry-run"
+      ],
+      "why": "also selects targets no build used for 7 days"
+    }
+  ]
+}.{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "preview": true,
+  "targets": []
+}{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "preview": true,
+  "targets": []
+}......{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "preview": false,
+  "targets": []
+}......................{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "targets": [],
+  "kept": [],
+  "skipped": [
+    {
+      "path": "/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpgXZgdX/targets/feature",
+      "reason": "path no longer exists; registry entry would be removed",
+      "missing": true
+    }
+  ],
+  "removed_paths": [],
+  "changed": false,
+  "estimated_reclaimed_bytes": 0,
+  "next": [
+    {
+      "argv": [
+        "kache",
+        "clean",
+        "--stale",
+        "7d",
+        "--dry-run"
+      ],
+      "why": "also selects targets no build used for 7 days"
+    }
+  ]
+}...................... 1131/4466
+....................................................................................... 1218/4466
+.........................................................................{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "targets": [],
+  "kept": [],
+  "skipped": [
+    {
+      "path": "/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmprVOgMk/targets/feature",
+      "reason": "path no longer exists; registry entry removed",
+      "missing": true
+    }
+  ],
+  "removed_paths": [],
+  "changed": false,
+  "estimated_reclaimed_bytes": 0,
+  "next": [
+    {
+      "argv": [
+        "kache",
+        "clean",
+        "--stale",
+        "7d",
+        "--dry-run"
+      ],
+      "why": "also selects targets no build used for 7 days"
+    }
+  ]
+}.............. 1305/4466
+.............................................................{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "targets": [],
+  "kept": [],
+  "skipped": [
+    {
+      "path": "/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpmQ6yiF/targets/feature",
+      "reason": "path no longer exists; registry entry would be removed",
+      "missing": true
+    }
+  ],
+  "removed_paths": [],
+  "changed": false,
+  "estimated_reclaimed_bytes": 0
+}..........{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "targets": [],
+  "kept": [],
+  "skipped": [
+    {
+      "path": "/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpEYuNu9/targets/feature",
+      "reason": "path no longer exists; registry entry would be removed",
+      "missing": true
+    }
+  ],
+  "removed_paths": [],
+  "changed": false,
+  "estimated_reclaimed_bytes": 0
+}...{
+  "schema_version": 1,
+  "command": "clean",
+  "success": true,
+  "targets": [],
+  "kept": [],
+  "skipped": [
+    {
+      "path": "/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpUElx7J/targets/feature",
+      "reason": "path no longer exists; registry entry removed",
+      "missing": true
+    }
+  ],
+  "removed_paths": [],
+  "changed": false,
+  "estimated_reclaimed_bytes": 0
+}............. 1392/4466
+....................................................................................... 1479/4466
+......................................../no/such/file: No such file or directory
+/no/such/file: No such file or directory
+............................................... 1566/4466
+...............fail-stdout
+fail-stderr
+.........doc-stdout
+doc-stderr
+.....................idoc-stdout
+doc-stderr
+.doc-stdout
+doc-stderr
+.i...........................doc-stdout
+doc-stderr
+........... 1653/4466
+.......................doc-stdout
+doc-stderr
+......version
+.......................................................... 1740/4466
+....................................................................................... 1827/4466
+....................................................................................... 1914/4466
+................................................................i
+running 1 test
+...................... 2001/4466
+....................................................................................... 2088/4466
+....................................................................................... 2175/4466
+....................................................................................... 2262/4466
+....................................................................................... 2349/4466
+....................................................................................... 2436/4466
+....................................................................................... 2523/4466
+.........................i............................................................. 2610/4466
+....................................................................................... 2697/4466
+...................................i................................................... 2784/4466
+....................................................................................... 2871/4466
+....................................................................................... 2958/4466
+..............................................i........................................ 3045/4466
+....................................................................................... 3132/4466
+....................................................................................... 3219/4466
+....................................................................................... 3306/4466
+....................................................................................... 3393/4466
+....................................................................................... 3480/4466
+....................................i.i.........
+running 1 test
+...........i.......
+running 1 test
+.................... 3567/4466
+.......................
+running 1 test
+..................................................test scheduler::tests::permit_owner_child_fixture ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4465 filtered out; finished in 0.34s
+
+..test scheduler::tests::flight_compile_then_release_fixture ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4465 filtered out; finished in 0.27s
+
+............ 3654/4466
+....................................................................................... 3741/4466
+....................................................................................... 3828/4466
+....................................................................................... 3915/4466
+....................................................................................... 4002/4466
+...........................[?1006l[?1015l[?1003l[?1002l[?1000l....[?1006l[?1015l[?1003l[?1002l[?1000l[?1049l......[?1049l.................................................. 4089/4466
+....................................................................................... 4176/4466
+................error[E0308]: mismatched types
+.warning: hard linking files in the incremental compilation cache failed
+error[E0308]: mismatched types
+
+running 1 test
+.
+running 1 test
+.......error: incremental compilation: could not create session directory lock file
+..test wrapper::tests::hold_scheduler_flight_fixture ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4465 filtered out; finished in 0.25s
+
+test wrapper::tests::hold_scheduler_flight_fixture ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4465 filtered out; finished in 0.25s
+
+..................error[E0308]: mismatched types
+......./var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpZiZuOB/linked: code object is not signed at all
+................................... 4263/4466
+.............i/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmptfa3Ai/broken.c:1:1: error: unknown type name 'this'
+    1 | this is invalid C source @
+      | ^
+/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmptfa3Ai/broken.c:1:8: error: expected ';' after top level declarator
+    1 | this is invalid C source @
+      |        ^
+      |        ;
+2 errors generated.
+.i....................................................................... 4350/4466
+.........../var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpmV15xT/build-script: code object is not signed at all
+/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpmV15xT/shared-build-script: code object is not signed at all
+.........................../var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpWosn9z/out.exe: code object is not signed at all
+.../var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpWosn9z/libfoo.so: code object is not signed at all
+...................i.......................... 4437/4466
+...................HIT-STDOUT
+HIT-STDERR
+HIT-STDOUT
+HIT-STDERR
+.HIT-STDOUT
+HIT-STDERR
+.HIT-STDOUT
+HIT-STDERR
+HIT-STDOUT
+HIT-STDERR
+HIT-STDOUT
+HIT-STDERR
+HIT-STDOUT
+HIT-STDERR
+HIT-STDOUT
+HIT-STDERR
+.......test daemon::tests::detached_daemon_survives_sigint_to_the_callers_group has been running for over 60 seconds
+test daemon::tests::detached_daemon_caller_fixture has been running for over 60 seconds
+test daemon::tests::detached_daemon_caller_fixture ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4465 filtered out; finished in 60.03s
+
+ 4465/4466
+daemon::tests::detached_daemon_survives_sigint_to_the_callers_group --- FAILED
+
+failures:
+
+---- daemon::tests::detached_daemon_survives_sigint_to_the_callers_group stdout ----
+
+thread 'daemon::tests::detached_daemon_survives_sigint_to_the_callers_group' (153083714) panicked at src/daemon/tests.rs:208:5:
+SIGINT never reached the caller's group
+
+
+failures:
+    daemon::tests::detached_daemon_survives_sigint_to_the_callers_group
+
+test result: FAILED. 4451 passed; 1 failed; 14 ignored; 0 measured; 0 filtered out; finished in 73.94s
+

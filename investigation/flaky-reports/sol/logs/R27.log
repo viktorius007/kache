@@ -1,0 +1,29 @@
+{"id": "R27", "command": ["env", "KACHE_FLAKY_LSOF=1", "./scripts/with-test-resources.sh", "cargo", "test", "-p", "kache", "--test", "fallback_recovery_test", "sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server", "--", "--test-threads=1", "--nocapture"], "load": "{ 19.34 54.36 58.75 }", "start": "2026-10-14T02:10:17Z", "threads": "1"}
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling kache v1.1.1 (/Users/viktor/Developer/github/kache-investigations/flaky-sol)
+    Finished `test` profile [unoptimized] target(s) in 36.95s
+     Running tests/fallback_recovery_test.rs (/private/tmp/kache-flaky/sol/target/debug/deps/fallback_recovery_test-242273e6bf82243c)
+
+running 1 test
+test sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server ... 
+thread 'sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server' (149523426) panicked at tests/fallback_recovery_test.rs:320:5:
+assertion `left == right` failed: FLAKY_LSOF paused owned child 5634: 0
+FLAKY_LSOF 200ms deadline expired with owned child unfinished
+fallback compiler error
+kache: warning: fallback `/tmp/kache-flaky/sol/t/.tmpuagyvW/sccache`: exit status: 42; compiling directly without fallback
+
+  left: "fallback\ndirect\n"
+ right: "direct\n"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 1.23s
+
+error: test failed, to rerun pass `-p kache --test fallback_recovery_test`

@@ -1,0 +1,4 @@
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (147872174) panicked at src/compiler/cc/tests.rs:303:9:
+assertion `left == right` failed
+  left: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+ right: "6a5dd9ebc2a33d878f7a0ea2cb8942db35b71cc3b4bbf8aca8d1ea4a8d5ae4d7"

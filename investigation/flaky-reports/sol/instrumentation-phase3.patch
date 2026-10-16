@@ -1,0 +1,14 @@
+diff --git a/src/daemon/tests.rs b/src/daemon/tests.rs
+index 61e2e50..5ca2e3a 100644
+--- a/src/daemon/tests.rs
++++ b/src/daemon/tests.rs
+@@ -10553,6 +10553,9 @@ async fn test_wait_for_warming_blocks_then_signals() {
+     });
+ 
+     let start = std::time::Instant::now();
++    if std::env::var_os("KACHE_FLAKY_SUSPEND").is_some() {
++        eprintln!("FLAKY_SUSPEND_PID={}", std::process::id());
++    }
+     assert!(daemon.wait_for_warming(Duration::from_secs(5)).await);
+     let elapsed = start.elapsed();
+     // Should have waited ~50ms, not the full 5s timeout

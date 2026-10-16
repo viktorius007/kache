@@ -1,0 +1,25 @@
+{"id": "R28", "command": ["./scripts/with-test-resources.sh", "cargo", "test", "-p", "kache", "--test", "fallback_recovery_test", "sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server", "--", "--test-threads=1", "--nocapture"], "load": "{ 23.00 47.22 55.58 }", "start": "2026-10-14T02:12:01Z", "threads": "1"}
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Finished `test` profile [unoptimized] target(s) in 1.73s
+     Running tests/fallback_recovery_test.rs (/private/tmp/kache-flaky/sol/target/debug/deps/fallback_recovery_test-242273e6bf82243c)
+
+running 1 test
+test sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server ... 
+thread 'sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server' (149625386) panicked at tests/fallback_recovery_test.rs:320:5:
+assertion `left == right` failed: fallback compiler error
+kache: warning: fallback `/tmp/kache-flaky/sol/t/.tmp4XeBDZ/sccache`: exit status: 42; compiling directly without fallback
+
+  left: "fallback\ndirect\n"
+ right: "direct\n"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.92s
+
+error: test failed, to rerun pass `-p kache --test fallback_recovery_test`

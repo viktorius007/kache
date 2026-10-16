@@ -1,0 +1,120 @@
+== run 18
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+
+failures:
+
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148364904) panicked at src/compiler/cc/tests.rs:303:9:
+assertion `left == right` failed
+  left: "23e919aa7155dad7a7b79703519169ed490aa54279f22954815978b0045d592e"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 299 passed; 1 failed; 0 ignored; 0 measured; 4163 filtered out; finished in 1.96s
+== run 29
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+
+failures:
+
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148381590) panicked at src/compiler/cc/tests.rs:299:9:
+assertion `left == right` failed
+  left: "5503f18095a5d48bccf41729425344bbf7895bccec8dbee9fa0f76c66495c1fe"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 299 passed; 1 failed; 0 ignored; 0 measured; 4163 filtered out; finished in 1.74s
+== run 43
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+
+failures:
+
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148408227) panicked at src/compiler/cc/tests.rs:299:9:
+assertion `left == right` failed
+  left: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+ right: "6a5dd9ebc2a33d878f7a0ea2cb8942db35b71cc3b4bbf8aca8d1ea4a8d5ae4d7"
+--
+test result: FAILED. 299 passed; 1 failed; 0 ignored; 0 measured; 4163 filtered out; finished in 2.33s
+== run 49
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+
+failures:
+
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148417816) panicked at src/compiler/cc/tests.rs:303:9:
+assertion `left == right` failed
+  left: "23e919aa7155dad7a7b79703519169ed490aa54279f22954815978b0045d592e"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 299 passed; 1 failed; 0 ignored; 0 measured; 4163 filtered out; finished in 2.34s
+== run 51
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+
+failures:
+
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148421625) panicked at src/compiler/cc/tests.rs:299:9:
+assertion `left == right` failed
+  left: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+ right: "6a5dd9ebc2a33d878f7a0ea2cb8942db35b71cc3b4bbf8aca8d1ea4a8d5ae4d7"
+--
+test result: FAILED. 299 passed; 1 failed; 0 ignored; 0 measured; 4163 filtered out; finished in 2.07s
+== run 54
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+
+failures:
+
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148427119) panicked at src/compiler/cc/tests.rs:303:9:
+assertion `left == right` failed
+  left: "23e919aa7155dad7a7b79703519169ed490aa54279f22954815978b0045d592e"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 299 passed; 1 failed; 0 ignored; 0 measured; 4163 filtered out; finished in 1.96s
+== run 60
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+
+failures:
+
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148435658) panicked at src/compiler/cc/tests.rs:303:9:
+assertion `left == right` failed
+  left: "23e919aa7155dad7a7b79703519169ed490aa54279f22954815978b0045d592e"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 299 passed; 1 failed; 0 ignored; 0 measured; 4163 filtered out; finished in 1.47s
+== run 62
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+
+failures:
+
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148437543) panicked at src/compiler/cc/tests.rs:303:9:
+assertion `left == right` failed
+  left: "3109f57be78fb3139c0b4c2ddd9dbcb96723027c5477101e8a7e76bfbf5ea0d4"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 299 passed; 1 failed; 0 ignored; 0 measured; 4163 filtered out; finished in 1.64s
+== run 76
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+
+failures:
+
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148455002) panicked at src/compiler/cc/tests.rs:299:9:
+assertion `left == right` failed
+  left: "6a5dd9ebc2a33d878f7a0ea2cb8942db35b71cc3b4bbf8aca8d1ea4a8d5ae4d7"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 299 passed; 1 failed; 0 ignored; 0 measured; 4163 filtered out; finished in 2.12s
+== run 77
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+
+failures:
+
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148456596) panicked at src/compiler/cc/tests.rs:303:9:
+assertion `left == right` failed
+  left: "23e919aa7155dad7a7b79703519169ed490aa54279f22954815978b0045d592e"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 299 passed; 1 failed; 0 ignored; 0 measured; 4163 filtered out; finished in 1.73s

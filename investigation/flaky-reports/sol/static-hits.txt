@@ -1,0 +1,1565 @@
+tests/build_script_inputs_test.rs:56:    std::thread::sleep(std::time::Duration::from_millis(50));
+src/cargo_proxy.rs:350:            exited_at = Some(Instant::now());
+src/cargo_proxy.rs:352:        match messages.recv_timeout(Duration::from_millis(25)) {
+src/cargo_proxy.rs:379:        if cargo_drain_expired(exited_at, Instant::now()) {
+src/cargo_proxy.rs:1096:        let at = Instant::now();
+crates/kache-store/src/store/tests.rs:2166:        unsafe { std::env::set_var(key, value) };
+crates/kache-store/src/store/tests.rs:2172:        unsafe { std::env::remove_var(key) };
+crates/kache-store/src/store/tests.rs:2180:            Some(value) => unsafe { std::env::set_var(self.key, value) },
+crates/kache-store/src/store/tests.rs:2181:            None => unsafe { std::env::remove_var(self.key) },
+crates/kache-store/src/store/tests.rs:3475:    store.db.busy_timeout(Duration::from_millis(50)).unwrap();
+crates/kache-store/src/store/tests.rs:3497:    static REMOVAL_WAITED: std::sync::atomic::AtomicBool =
+crates/kache-store/src/store/tests.rs:3504:        std::thread::sleep(Duration::from_millis(1));
+crates/kache-store/src/store/tests.rs:3522:        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+crates/kache-store/src/store/tests.rs:3523:        while !REMOVAL_WAITED.load(Ordering::SeqCst) && std::time::Instant::now() < deadline {
+crates/kache-store/src/store/tests.rs:3524:            std::thread::sleep(Duration::from_millis(1));
+crates/kache-store/src/store/tests.rs:5231:    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+crates/kache-store/src/store/tests.rs:5232:    while !ready.exists() && std::time::Instant::now() < deadline {
+crates/kache-store/src/store/tests.rs:5237:        std::thread::sleep(Duration::from_millis(10));
+crates/kache-store/src/store/tests.rs:5265:    std::thread::sleep(Duration::from_secs(30));
+crates/kache-store/src/store/tests.rs:6665:            .recv_timeout(std::time::Duration::from_secs(5))
+crates/kache-store/src/store/tests.rs:6671:        .recv_timeout(std::time::Duration::from_secs(5))
+crates/kache-store/src/store/tests.rs:6720:                    .recv_timeout(Duration::from_secs(5))
+crates/kache-store/src/store/tests.rs:6727:        .recv_timeout(Duration::from_secs(5))
+crates/kache-store/src/store/tests.rs:6729:    contender_store.db.busy_timeout(Duration::ZERO).unwrap();
+crates/kache-store/src/store/tests.rs:7449:    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+crates/kache-store/src/store/tests.rs:7456:            None if std::time::Instant::now() >= deadline => {
+crates/kache-store/src/store/tests.rs:7461:            None => std::thread::sleep(Duration::from_millis(10)),
+crates/kache-store/src/store/tests.rs:7512:            .wait_for_committed_with_timeout(cache_key, Duration::from_secs(5))
+crates/kache-store/src/store/tests.rs:7516:    std::thread::sleep(Duration::from_millis(50));
+crates/kache-store/src/store/tests.rs:7555:            .wait_for_committed_with_timeout("slow-peer", Duration::from_millis(10))
+crates/kache-store/src/store/tests.rs:7962:            store.db.busy_timeout(Duration::from_secs(30)).unwrap();
+crates/kache-store/src/store/tests.rs:8064:            store.db.busy_timeout(Duration::from_secs(60)).unwrap();
+crates/kache-store/src/store/tests.rs:8358:        let deadline = std::time::Instant::now() + cap;
+crates/kache-store/src/store/tests.rs:8360:            && std::time::Instant::now() < deadline
+crates/kache-store/src/store/tests.rs:8362:            std::thread::sleep(Duration::from_millis(5));
+crates/kache-store/src/store/tests.rs:8373:            store.db.busy_timeout(Duration::from_secs(30)).unwrap();
+crates/kache-store/src/store/tests.rs:8379:            let deadline = std::time::Instant::now() + Duration::from_secs(10);
+crates/kache-store/src/store/tests.rs:8381:                && std::time::Instant::now() < deadline
+crates/kache-store/src/store/tests.rs:8383:                std::thread::sleep(Duration::from_millis(5));
+crates/kache-store/src/store/tests.rs:9673:    file.set_modified(std::time::SystemTime::now() - age)
+crates/kache-store/src/store/tests.rs:9985:    let later = std::time::SystemTime::now() + TWO_HOURS;
+crates/kache-store/src/store/tests.rs:10111:    let now = std::time::SystemTime::now();
+crates/kache-store/src/store/tests.rs:10134:    let now = std::time::SystemTime::now();
+crates/kache-store/src/store/tests.rs:10148:    let now = std::time::SystemTime::now() + TWO_HOURS + TWO_HOURS;
+crates/kache-store/src/store/tests.rs:10288:        std::time::SystemTime::now() - std::time::Duration::from_secs(2 * 3600),
+crates/kache-store/src/store/tests.rs:12145:    gc.db.busy_timeout(Duration::from_millis(50)).unwrap();
+crates/kache-store/src/store/tests.rs:12146:    let started = std::time::Instant::now();
+crates/kache-store/src/store/tests.rs:12148:    let elapsed = started.elapsed();
+crates/kache-store/src/store/tests.rs:12180:    let started = std::time::Instant::now();
+crates/kache-store/src/store/tests.rs:12182:    let elapsed = started.elapsed();
+crates/kache-store/src/store/tests.rs:12228:    let started = std::time::Instant::now();
+crates/kache-store/src/store/tests.rs:12230:    let elapsed = started.elapsed();
+tests/cached_units_regression_test.rs:715:            r#"std::fs::write(package.join("stamp"), format!("{:?}", std::time::SystemTime::now())).unwrap();"#,
+tests/build_script_declared_inputs_test.rs:248:        std::time::SystemTime::now() + std::time::Duration::from_secs(2),
+tests/test_runner_test.rs:148:    let deadline = Instant::now() + timeout;
+tests/test_runner_test.rs:153:        if Instant::now() >= deadline {
+tests/test_runner_test.rs:162:        std::thread::sleep(Duration::from_millis(20));
+tests/test_runner_test.rs:199:    let deadline = Instant::now() + Duration::from_secs(30);
+tests/test_runner_test.rs:206:        if Instant::now() >= deadline {
+tests/test_runner_test.rs:210:        std::thread::sleep(Duration::from_millis(10));
+tests/test_runner_test.rs:223:        let deadline = Instant::now() + Duration::from_secs(30);
+tests/test_runner_test.rs:245:            if Instant::now() >= deadline {
+tests/test_runner_test.rs:249:            std::thread::sleep(Duration::from_millis(10));
+tests/test_runner_test.rs:255:        std::thread::sleep(Duration::from_millis(500));
+tests/test_runner_test.rs:353:            std::thread::sleep(Duration::from_millis(500));
+tests/test_runner_test.rs:355:            let deadline = Instant::now() + Duration::from_secs(30);
+tests/test_runner_test.rs:361:                assert!(Instant::now() < deadline, "the runner never said it waits");
+tests/test_runner_test.rs:362:                std::thread::sleep(Duration::from_millis(10));
+tests/test_runner_test.rs:529:        scheduled.status.signal(),
+tests/test_runner_test.rs:537:    assert_eq!(plain.status.signal(), Some(libc::SIGABRT), "{plain:?}");
+tests/test_runner_test.rs:624:    std::thread::sleep(Duration::from_millis(200));
+tests/test_runner_test.rs:666:    std::thread::sleep(Duration::from_millis(500));
+tests/worktree_depinfo_test.rs:180:    std::thread::sleep(Duration::from_millis(1100));
+tests/s3_remote_test.rs:302:        let deadline = Instant::now() + Duration::from_secs(90);
+tests/s3_remote_test.rs:307:            if Instant::now() >= deadline {
+tests/s3_remote_test.rs:316:            std::thread::sleep(Duration::from_millis(25));
+tests/adaptive_incremental_test.rs:54:    SystemTime::now()
+tests/adaptive_incremental_test.rs:64:    SystemTime::now()
+tests/adaptive_incremental_test.rs:313:fn wait_with_timeout(mut child: Child, timeout: Duration) -> Result<Output, String> {
+tests/adaptive_incremental_test.rs:314:    let deadline = Instant::now() + timeout;
+tests/adaptive_incremental_test.rs:318:            Ok(None) if Instant::now() < deadline => thread::sleep(Duration::from_millis(20)),
+tests/adaptive_incremental_test.rs:1000:    let ready_deadline = Instant::now() + Duration::from_secs(30);
+tests/adaptive_incremental_test.rs:1010:        if Instant::now() >= ready_deadline {
+tests/adaptive_incremental_test.rs:1020:        thread::sleep(Duration::from_millis(20));
+tests/adaptive_incremental_test.rs:1027:    let second_output = match wait_with_timeout(second, Duration::from_secs(20)) {
+tests/adaptive_incremental_test.rs:1037:    let first_output = wait_with_timeout(first, Duration::from_secs(10)).unwrap();
+tests/macos_adaptive_debug_info_test.rs:70:            first_mtime: SystemTime::now()
+crates/kache-store/examples/bench-cc-memos.rs:26:    start.elapsed().as_secs_f64() * 1000.0
+crates/kache-store/examples/bench-cc-memos.rs:50:    let start = Instant::now();
+crates/kache-store/examples/bench-cc-memos.rs:68:    let start = Instant::now();
+crates/kache-store/examples/bench-cc-memos.rs:84:            let start = Instant::now();
+tests/fallback_recovery_test.rs:276:    let deadline = Instant::now() + Duration::from_secs(30);
+tests/fallback_recovery_test.rs:281:        if Instant::now() >= deadline {
+tests/fallback_recovery_test.rs:284:        std::thread::sleep(Duration::from_millis(10));
+crates/kache-store/src/test_support.rs:6:static PROCESS_STATE_TEST_LOCK: Mutex<()> = Mutex::new(());
+crates/kache-store/src/test_support.rs:30:            let _ = std::env::set_current_dir(dir);
+crates/kache-store/src/test_support.rs:65:            std::env::set_current_dir(scratch.path()).unwrap();
+src/build_intent.rs:54:        Instant::now() + METADATA_BUDGET,
+src/build_intent.rs:311:        let remaining = deadline.saturating_duration_since(Instant::now());
+src/build_intent.rs:312:        match rx.recv_timeout(remaining) {
+src/build_intent.rs:590:            Instant::now() + Duration::from_secs(60),
+src/build_intent.rs:673:                    std::thread::sleep(Duration::from_millis(10));
+src/build_intent.rs:683:        Instant::now() + Duration::from_millis(millis)
+src/build_intent.rs:696:        let started = Instant::now();
+src/build_intent.rs:702:            started.elapsed() < Duration::from_secs(6),
+src/build_intent.rs:704:            started.elapsed()
+src/build_intent.rs:717:                std::thread::sleep(Duration::from_millis(100));
+src/build_intent.rs:852:            Instant::now() + Duration::from_secs(10),
+tests/integration_test.rs:3313:    let start = std::time::Instant::now();
+tests/integration_test.rs:3314:    while start.elapsed() < std::time::Duration::from_secs(10) {
+tests/integration_test.rs:3319:        std::thread::sleep(std::time::Duration::from_millis(100));
+tests/adaptive_incremental_workspace_test.rs:231:    let future = SystemTime::now()
+tests/adaptive_incremental_workspace_test.rs:640:    let future = SystemTime::now()
+crates/kache-store/src/markers.rs:227:    let now = std::time::SystemTime::now()
+crates/kache-store/src/markers.rs:252:    std::time::SystemTime::now()
+crates/kache-store/src/markers.rs:424:        let now = std::time::SystemTime::now()
+crates/kache-store/src/markers.rs:451:        let now = std::time::SystemTime::now()
+tests/common/mod.rs:257:        std::thread::sleep(Duration::from_millis(1));
+tests/common/mod.rs:293:    let deadline = Instant::now() + timeout;
+tests/common/mod.rs:295:        if Instant::now() >= deadline {
+tests/common/mod.rs:301:        std::thread::sleep(Duration::from_millis(100));
+tests/common/mod.rs:333:        let deadline = Instant::now() + Duration::from_secs(45);
+tests/common/mod.rs:336:                Ok(None) if Instant::now() < deadline => {
+tests/common/mod.rs:337:                    std::thread::sleep(Duration::from_millis(50));
+tests/nvcc_cuda_toolchain_test.rs:210:    std::thread::sleep(std::time::Duration::from_millis(1100));
+tests/nvcc_cuda_toolchain_test.rs:409:    std::thread::sleep(std::time::Duration::from_millis(1100));
+tests/unknown_compiler_probe_test.rs:21:    let start = Instant::now();
+tests/unknown_compiler_probe_test.rs:31:        start.elapsed().as_secs() < 10,
+tests/unknown_compiler_probe_test.rs:48:    let start = Instant::now();
+tests/unknown_compiler_probe_test.rs:58:        start.elapsed().as_secs() < 15,
+tests/unknown_compiler_probe_test.rs:80:    let start = Instant::now();
+tests/unknown_compiler_probe_test.rs:90:        start.elapsed().as_secs() < 15,
+tests/unknown_compiler_probe_test.rs:101:        let deadline = Instant::now() + Duration::from_secs(2);
+tests/unknown_compiler_probe_test.rs:102:        while unsafe { libc::kill(pid, 0) == 0 } && Instant::now() < deadline {
+tests/unknown_compiler_probe_test.rs:103:            std::thread::sleep(Duration::from_millis(10));
+tests/host_config_test.rs:18:static ENV_LOCK: Mutex<()> = Mutex::new(());
+tests/host_config_test.rs:39:        unsafe { std::env::set_var("KACHE_HOST_CONFIG", value) };
+tests/host_config_test.rs:48:                Some(value) => std::env::set_var("KACHE_HOST_CONFIG", value),
+tests/host_config_test.rs:49:                None => std::env::remove_var("KACHE_HOST_CONFIG"),
+crates/kache-store/src/file_hash.rs:106:/// The system time NTFS stamps files with. `SystemTime::now` reads the
+crates/kache-store/src/file_hash.rs:135:    std::time::SystemTime::now()
+crates/kache-store/src/file_hash.rs:510:    std::time::SystemTime::now()
+crates/kache-store/src/file_hash.rs:1113:        let give_up = std::time::Instant::now() + std::time::Duration::from_secs(10);
+crates/kache-store/src/file_hash.rs:1116:                std::time::Instant::now() < give_up,
+crates/kache-store/src/file_hash.rs:1120:            std::thread::sleep(std::time::Duration::from_millis(1));
+crates/kache-store/src/file_hash.rs:1139:            let elapsed = std::time::SystemTime::now()
+tests/input_prediction_test.rs:509:    stamp(SystemTime::now() + hour);
+tests/input_prediction_test.rs:522:    stamp(SystemTime::now() - hour);
+tests/input_prediction_test.rs:530:    stamp(SystemTime::now() + hour);
+crates/kache-store/src/link.rs:10:static WINDOWS_HARDLINK_RESTORE: AtomicBool = AtomicBool::new(false);
+crates/kache-store/src/link.rs:12:static SHARED_HARDLINK_RESTORES: AtomicBool = AtomicBool::new(false);
+crates/kache-store/src/link.rs:58:static STORAGE_LAYOUT_ADVICE: AtomicBool = AtomicBool::new(true);
+crates/kache-store/src/link.rs:68:static MAPPED_TARGET: AtomicBool = AtomicBool::new(false);
+crates/kache-store/src/link.rs:85:static LAYOUT_ADVICE_TO_LOG: AtomicBool = AtomicBool::new(false);
+crates/kache-store/src/link.rs:1313:    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+crates/kache-store/src/link.rs:1589:    static COUNTER: AtomicU64 = AtomicU64::new(0);
+crates/kache-store/src/link.rs:4683:    static SHARED_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+crates/kache-fs/src/lib.rs:529:    static SEQ: AtomicU32 = AtomicU32::new(0);
+crates/kache-store/src/store.rs:514:static STAGE_NONCE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+crates/kache-store/src/store.rs:865:    let started = std::time::Instant::now();
+crates/kache-store/src/store.rs:869:            Ok(None) if started.elapsed() >= TMUTIL_TIMEOUT => {
+crates/kache-store/src/store.rs:879:            Ok(None) => std::thread::sleep(Duration::from_millis(250)),
+crates/kache-store/src/store.rs:1413:        let start = std::time::Instant::now();
+crates/kache-store/src/store.rs:1420:            if start.elapsed() >= timeout {
+crates/kache-store/src/store.rs:1423:            std::thread::sleep(
+crates/kache-store/src/store.rs:1424:                lock_poll_interval(attempt).min(timeout.saturating_sub(start.elapsed())),
+crates/kache-store/src/store.rs:1469:static VERIFY_SAMPLE_COUNTER: AtomicU64 = AtomicU64::new(0);
+crates/kache-store/src/store.rs:2008:                std::thread::sleep(delay);
+crates/kache-store/src/store.rs:2036:    let millis = std::time::SystemTime::now()
+crates/kache-store/src/store.rs:2275:        db.busy_timeout(Duration::from_secs(2))?;
+crates/kache-store/src/store.rs:2382:        let _ = self.db.busy_timeout(std::time::Duration::from_millis(100));
+crates/kache-store/src/store.rs:2390:        let _ = self.db.busy_timeout(std::time::Duration::from_millis(5000));
+crates/kache-store/src/store.rs:2613:        self.wait_for_committed_with_timeout(cache_key, BUILD_LOCK_TIMEOUT)
+crates/kache-store/src/store.rs:2618:    pub fn wait_for_committed_with_timeout(
+crates/kache-store/src/store.rs:4130:        let now = std::time::SystemTime::now();
+crates/kache-store/src/store.rs:4179:        self.sweep_stale_key_locks_at(min_age, cap, std::time::SystemTime::now())
+crates/kache-store/src/store.rs:4959:            let write_started = std::time::Instant::now();
+crates/kache-store/src/store.rs:4961:            let took = write_started.elapsed();
+crates/kache-store/src/store.rs:4969:                std::thread::sleep(pause);
+crates/kache-store/src/store.rs:5014:                        std::thread::sleep(pacer.after_contention());
+crates/kache-store/src/store.rs:5333:        let now = std::time::SystemTime::now();
+crates/kache-store/src/store.rs:6229:                std::thread::sleep(Duration::from_millis(10));
+crates/kache-store/src/store.rs:6307:            std::thread::sleep(Duration::from_millis(5));
+tests/cli_commands_test.rs:1766:            .set_read_timeout(Some(std::time::Duration::from_secs(10)))
+tests/cli_commands_test.rs:1787:        .timeout(std::time::Duration::from_secs(60))
+tests/cli_commands_test.rs:1816:            .set_read_timeout(Some(std::time::Duration::from_secs(10)))
+tests/cli_commands_test.rs:1871:        .timeout(std::time::Duration::from_secs(30))
+tests/cli_commands_test.rs:2504:    let deadline = Instant::now() + timeout;
+tests/cli_commands_test.rs:2509:        if Instant::now() >= deadline {
+tests/cli_commands_test.rs:2518:        std::thread::sleep(Duration::from_millis(20));
+tests/cli_commands_test.rs:2630:        .timeout(std::time::Duration::from_secs(60))
+tests/cli_commands_test.rs:2640:        .timeout(std::time::Duration::from_secs(60))
+tests/cli_commands_test.rs:4069:            .wait_until(Instant::now() + Duration::from_secs(5))
+crates/kache-store/src/opcounts.rs:6:static REFLINKED_BYTES: AtomicU64 = AtomicU64::new(0);
+crates/kache-store/src/opcounts.rs:7:static HARDLINKED_BYTES: AtomicU64 = AtomicU64::new(0);
+crates/kache-store/src/opcounts.rs:8:static COPIED_BYTES: AtomicU64 = AtomicU64::new(0);
+crates/kache-store/src/opcounts.rs:96:static STORE_REFLINKED_BYTES: AtomicU64 = AtomicU64::new(0);
+crates/kache-store/src/opcounts.rs:97:static STORE_HARDLINKED_BYTES: AtomicU64 = AtomicU64::new(0);
+crates/kache-store/src/opcounts.rs:98:static STORE_COPIED_BYTES: AtomicU64 = AtomicU64::new(0);
+crates/kache-store/src/opcounts.rs:162:static STORE_COPY_CROSS_DEVICE_BYTES: AtomicU64 = AtomicU64::new(0);
+crates/kache-store/src/opcounts.rs:163:static STORE_COPY_PERMISSION_BYTES: AtomicU64 = AtomicU64::new(0);
+crates/kache-store/src/opcounts.rs:164:static STORE_COPY_INELIGIBLE_BYTES: AtomicU64 = AtomicU64::new(0);
+crates/kache-store/src/opcounts.rs:165:static STORE_COPY_OTHER_BYTES: AtomicU64 = AtomicU64::new(0);
+crates/kache-store/src/opcounts.rs:166:static RESTORE_COPY_CROSS_DEVICE_BYTES: AtomicU64 = AtomicU64::new(0);
+crates/kache-store/src/opcounts.rs:167:static RESTORE_COPY_PERMISSION_BYTES: AtomicU64 = AtomicU64::new(0);
+crates/kache-store/src/opcounts.rs:168:static RESTORE_COPY_EXCLUSIVE_BYTES: AtomicU64 = AtomicU64::new(0);
+crates/kache-store/src/opcounts.rs:169:static RESTORE_COPY_OTHER_BYTES: AtomicU64 = AtomicU64::new(0);
+src/daemon_lifecycle.rs:19:    let deadline = Instant::now() + DAEMON_START_TIMEOUT;
+src/daemon_lifecycle.rs:104:        .saturating_duration_since(Instant::now())
+src/daemon_lifecycle.rs:110:        match lifecycle_control::legacy_request(socket, &Request::Health, Instant::now() + timeout)
+src/daemon_lifecycle.rs:254:                            commit: deadline.saturating_duration_since(Instant::now()),
+src/daemon_lifecycle.rs:525:            kunobi_daemon::readiness::wait_until(Instant::now() + Duration::from_secs(3), |_| {
+src/daemon_lifecycle.rs:560:            observe(&config, Instant::now() + Duration::from_secs(1)).unwrap(),
+src/daemon_lifecycle.rs:572:        let deadline = Some(Instant::now() + Duration::from_secs(1));
+src/daemon_lifecycle.rs:604:                .perform(Step::Drain, Some(Instant::now() + Duration::from_secs(1)))
+src/daemon_lifecycle.rs:621:            .perform(Step::Drain, Some(Instant::now() + Duration::from_secs(1)))
+src/daemon_lifecycle.rs:656:            driver.perform(Step::Drain, Some(Instant::now() + Duration::from_secs(2)))
+src/daemon_lifecycle.rs:694:        let deadline = Instant::now() + Duration::from_secs(5);
+src/daemon_lifecycle.rs:695:        while !Path::new(&release).exists() && Instant::now() < deadline {
+src/daemon_lifecycle.rs:696:            std::thread::sleep(Duration::from_millis(10));
+src/daemon_lifecycle.rs:718:            replacement.perform(Step::Verify, Some(Instant::now() + Duration::from_secs(3)));
+src/daemon_lifecycle.rs:723:                    .wait_until(Instant::now() + Duration::from_secs(3))
+src/worktree_discovery.rs:39:static LAST_RUN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+src/worktree_discovery.rs:146:    let timeout = timeout.min(deadline.checked_duration_since(Instant::now())?);
+src/worktree_discovery.rs:175:    let deadline = Instant::now() + timeout;
+src/worktree_discovery.rs:180:                if deadline.checked_duration_since(Instant::now()).is_none() {
+src/worktree_discovery.rs:183:                std::thread::sleep(Duration::from_millis(10));
+src/worktree_discovery.rs:340:        .take_while(move |_| deadline.checked_duration_since(Instant::now()).is_some())
+src/worktree_discovery.rs:505:        if Instant::now() >= deadline {
+src/worktree_discovery.rs:548:    discover_within(store, Instant::now() + time, &homes, turn_at(now))
+src/worktree_discovery.rs:883:        let later = Instant::now() + GIT_TIMEOUT;
+src/worktree_discovery.rs:901:                Instant::now(),
+src/worktree_discovery.rs:956:            Instant::now() + LISTING_TIMEOUT,
+src/worktree_discovery.rs:991:        assert_eq!(pass(Instant::now() + DISCOVERY_TIME), 0);
+src/worktree_discovery.rs:1007:                Instant::now() + LISTING_TIMEOUT,
+src/worktree_discovery.rs:1012:        assert!(by_repository(starts(), &mut seen, 5, Instant::now(), &[]).is_empty());
+src/worktree_discovery.rs:1019:                Instant::now() + LISTING_TIMEOUT,
+src/worktree_discovery.rs:1065:        let pass = || discover_within(&store, Instant::now() + DISCOVERY_TIME, &[], 0);
+crates/kache-store/src/atomic.rs:6:static ATOMIC_TMP_NONCE: AtomicU64 = AtomicU64::new(0);
+crates/kache-store/src/atomic.rs:88:                std::thread::sleep(std::time::Duration::from_millis(rename_backoff_ms(attempt)));
+crates/kache-store/src/atomic.rs:304:                std::thread::sleep(std::time::Duration::from_millis(rename_backoff_ms(attempt)));
+crates/kache-store/src/atomic.rs:330:        let now = std::time::SystemTime::now();
+crates/kache-store/src/atomic.rs:605:        let stale_time = std::time::SystemTime::now() - std::time::Duration::from_secs(400);
+src/daemon_publish.rs:326:    let mut last_change = tokio::time::Instant::now();
+src/daemon_publish.rs:332:            last_change.elapsed() < stall * 10 + tick,
+src/daemon_publish.rs:335:        match tokio::time::timeout(tick, &mut done).await {
+src/daemon_publish.rs:344:                    last_change = tokio::time::Instant::now();
+src/daemon_publish.rs:345:                } else if last_change.elapsed() >= stall {
+src/daemon_publish.rs:405:    let store_started = std::time::Instant::now();
+src/daemon_publish.rs:463:    event.daemon_store_ms = store_started.elapsed().as_millis() as u64;
+src/daemon_publish.rs:673:    let deadline = std::time::Instant::now() + budget;
+src/daemon_publish.rs:676:            .checked_duration_since(std::time::Instant::now())
+src/daemon_publish.rs:690:        peer_may_have_closed(stream.set_send_timeout(Some(remaining()?)))?;
+src/daemon_publish.rs:697:        peer_may_have_closed(stream.set_recv_timeout(Some(remaining()?)))?;
+src/daemon_publish.rs:731:    crate::daemon::send_request_with_timeout(
+src/daemon_publish.rs:831:    let now = std::time::SystemTime::now();
+src/daemon_publish.rs:899:            std::time::SystemTime::now() - Duration::from_secs(2 * 3600),
+src/daemon_publish.rs:1126:        tokio::time::timeout(Duration::from_secs(10), worker)
+src/daemon_publish.rs:1216:            let deadline = std::time::Instant::now() + Duration::from_secs(30);
+src/daemon_publish.rs:1234:                    Ok(None) if std::time::Instant::now() < deadline => {
+src/daemon_publish.rs:1235:                        std::thread::sleep(Duration::from_millis(10));
+src/daemon_publish.rs:1324:        let job = tokio::time::timeout(Duration::from_secs(10), rx.recv())
+src/daemon_publish.rs:1330:        tokio::time::timeout(Duration::from_secs(10), server)
+src/daemon_publish.rs:1440:                tokio::time::sleep(Duration::from_millis(60)).await;
+src/daemon_publish.rs:1460:        let started = std::time::Instant::now();
+src/daemon_publish.rs:1463:        assert!(started.elapsed() < Duration::from_secs(5));
+src/daemon_publish.rs:1718:            done_rx.recv_timeout(Duration::from_secs(3)).unwrap();
+src/daemon_publish.rs:1722:        let start = std::time::Instant::now();
+src/daemon_publish.rs:1724:        let elapsed = start.elapsed();
+src/daemon_publish.rs:1801:        let started = std::time::Instant::now();
+src/daemon_publish.rs:1804:        assert!(started.elapsed() < Duration::from_millis(100));
+src/cli.rs:3818:    let started = std::time::Instant::now();
+src/cli.rs:3827:        std::time::SystemTime::now(),
+src/cli.rs:3941:    combined.duration_ms = started.elapsed().as_millis() as u64;
+src/cli.rs:4040:            std::thread::sleep(retry_delay);
+src/cli.rs:4207:    let started = std::time::Instant::now();
+src/cli.rs:4209:    stats.duration_ms = started.elapsed().as_millis() as u64;
+src/cli.rs:4233:        let started = std::time::Instant::now();
+src/cli.rs:4235:        stats.duration_ms = started.elapsed().as_millis() as u64;
+src/cli.rs:5032:                    std::time::SystemTime::now(),
+src/cli.rs:7525:    tokio::time::timeout(timeout, backend.get(key, Some(1024)))
+src/cli.rs:9248:static PROMPT_HAD_NO_INPUT: std::sync::atomic::AtomicBool =
+src/cli.rs:9982:        std::thread::sleep(std::time::Duration::from_millis(500));
+src/remote_resilience.rs:93:        Self::from_secs_at(Instant::now(), seconds)
+src/remote_resilience.rs:104:        Self::from_millis_at(Instant::now(), milliseconds)
+src/remote_resilience.rs:133:        if self.at.is_some_and(|deadline| Instant::now() >= deadline) {
+src/remote_resilience.rs:230:            if reqwest_error.is_timeout() {
+src/remote_resilience.rs:324:    std::collections::hash_map::RandomState::new().hash_one(Instant::now())
+src/remote_resilience.rs:352:                tokio::time::sleep(jittered(policy.backoff_delay(attempts - 1))).await;
+src/remote_resilience.rs:494:        let now = Instant::now();
+src/remote_resilience.rs:632:                until: cooldown_deadline(Instant::now(), self.breaker.cooldown),
+src/remote_resilience.rs:674:                until: cooldown_deadline(Instant::now(), self.breaker.cooldown),
+src/remote_resilience.rs:934:            Some(entry) if entry.missed_at.elapsed() <= self.ttl => {
+src/remote_resilience.rs:1003:                missed_at: Instant::now(),
+src/remote_resilience.rs:1101:                touched_at: Instant::now(),
+src/remote_resilience.rs:1107:        entries.retain(|_, entry| entry.missed_at.elapsed() <= ttl);
+src/remote_resilience.rs:1121:        let started_at = Instant::now();
+src/remote_resilience.rs:1309:    async fn classify_elapsed_deadline_as_timeout() {
+src/remote_resilience.rs:1311:        let elapsed = tokio::time::timeout(Duration::from_millis(1), std::future::pending::<()>())
+src/remote_resilience.rs:1319:    fn classify_io_timed_out_as_timeout() {
+src/remote_resilience.rs:1329:    fn classify_timeout_message_without_typed_cause_as_timeout() {
+src/remote_resilience.rs:1479:        let started_at = Instant::now();
+src/remote_resilience.rs:1555:                until: Instant::now(),
+src/remote_resilience.rs:1581:            BreakerMode::Open { until } => assert!(until > Instant::now()),
+src/remote_resilience.rs:1600:                until: Instant::now(),
+src/remote_resilience.rs:1819:        let started_at = Instant::now();
+src/remote_resilience.rs:1852:            .missed_at = Instant::now() - Duration::from_secs(2);
+src/remote_resilience.rs:1927:            .missed_at = Instant::now() - Duration::from_secs(10);
+src/remote_resilience.rs:1975:        let now = Instant::now();
+tests/cargo_proxy_test.rs:81:    let deadline = Instant::now() + Duration::from_secs(20);
+tests/cargo_proxy_test.rs:87:        assert!(Instant::now() < deadline, "Cargo did not start the test");
+tests/cargo_proxy_test.rs:88:        std::thread::sleep(Duration::from_millis(10));
+tests/cargo_proxy_test.rs:162:            std::thread::sleep(Duration::from_millis(500));
+tests/cargo_proxy_test.rs:164:            let deadline = Instant::now() + Duration::from_secs(20);
+tests/cargo_proxy_test.rs:170:                assert!(Instant::now() < deadline, "the shim never said it waits");
+tests/cargo_proxy_test.rs:171:                std::thread::sleep(Duration::from_millis(10));
+tests/cc_passthrough_args_test.rs:490:    let ahead = std::time::SystemTime::now() + std::time::Duration::from_secs(3600);
+crates/kache-service/src/state.rs:665:    SystemTime::now()
+crates/kache-service/src/state.rs:676:    let millis = SystemTime::now()
+crates/kache-service/src/auth.rs:234:        SystemTime::now()
+src/incremental_policy.rs:1028:    SystemTime::now()
+src/incremental_policy.rs:2496:        let before = SystemTime::now()
+src/incremental_policy.rs:2501:        let after = SystemTime::now()
+src/extra_inputs.rs:2722:                    Some(previous) => std::env::set_var(self.name, previous),
+src/extra_inputs.rs:2723:                    None => std::env::remove_var(self.name),
+src/extra_inputs.rs:2732:        unsafe { std::env::set_var(name, path) };
+crates/kache-e2e/src/bench_otlp.rs:142:        let d = SystemTime::now()
+src/blob_heal.rs:230:    let started = Instant::now();
+src/blob_heal.rs:288:        elapsed: started.elapsed(),
+src/blob_heal.rs:595:        file.set_modified(std::time::SystemTime::now() - age)
+src/blob_heal.rs:828:        let started = Instant::now();
+src/blob_heal.rs:834:            started.elapsed() < Duration::from_secs(4),
+crates/kache-service/src/lib.rs:225:        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+crates/kache-service/src/lib.rs:235:        .with_graceful_shutdown(shutdown_signal(ctrl_c, terminate, ha_done_rx))
+crates/kache-service/src/lib.rs:408:    let started = std::time::Instant::now();
+crates/kache-service/src/lib.rs:413:        metrics::metrics().record_request(outcome, started.elapsed().as_secs_f64());
+crates/kache-service/src/lib.rs:500:async fn shutdown_signal(
+crates/kache-service/src/lib.rs:623:        let error = tokio::time::timeout(std::time::Duration::from_secs(5), serve(config))
+crates/kache-service/src/lib.rs:673:        tokio::time::timeout(std::time::Duration::from_secs(5), done_rx.changed())
+crates/kache-service/src/lib.rs:718:        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+crates/kache-service/src/lib.rs:731:        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+crates/kache-service/src/lib.rs:743:        tokio::time::timeout(std::time::Duration::from_secs(5), leader)
+crates/kache-service/src/lib.rs:755:        let mut shutdown = tokio::spawn(shutdown_signal(
+crates/kache-service/src/lib.rs:762:            tokio::time::timeout(std::time::Duration::from_millis(20), &mut shutdown)
+crates/kache-service/src/lib.rs:769:        tokio::time::timeout(std::time::Duration::from_secs(5), shutdown)
+crates/kache-service/src/lib.rs:778:        tokio::time::timeout(
+crates/kache-service/src/lib.rs:780:            shutdown_signal(std::future::ready(()), std::future::pending(), done_rx),
+crates/kache-service/src/lib.rs:786:        tokio::time::timeout(
+crates/kache-service/src/lib.rs:788:            shutdown_signal(std::future::pending(), std::future::ready(()), done_rx),
+crates/kache-service/src/lib.rs:799:        tokio::time::timeout(
+crates/kache-service/src/lib.rs:801:            shutdown_signal(std::future::pending(), std::future::pending(), done_rx),
+src/probe/mod.rs:530:    let start = Instant::now();
+src/probe/mod.rs:537:        if start.elapsed() >= timeout {
+src/probe/mod.rs:540:        let remaining = timeout.saturating_sub(start.elapsed());
+src/probe/mod.rs:541:        match rx.recv_timeout(remaining) {
+src/probe/mod.rs:1191:        unsafe { std::env::set_var("KACHE_CACHE_DIR", "~") };
+src/probe/mod.rs:1193:        unsafe { std::env::set_var("KACHE_CACHE_DIR", "~/kache-cache") };
+src/probe/mod.rs:1195:        unsafe { std::env::set_var("KACHE_CACHE_DIR", "/abs/kache-cache") };
+src/probe/mod.rs:1200:                Some(prev) => std::env::set_var("KACHE_CACHE_DIR", prev),
+src/probe/mod.rs:1201:                None => std::env::remove_var("KACHE_CACHE_DIR"),
+src/probe/mod.rs:1220:                    Some(prev) => std::env::set_var("KACHE_CACHE_DIR", prev),
+src/probe/mod.rs:1221:                    None => std::env::remove_var("KACHE_CACHE_DIR"),
+src/probe/mod.rs:1231:            std::env::set_var("KACHE_CACHE_DIR", path);
+src/probe/mod.rs:1384:            std::thread::sleep(std::time::Duration::from_millis(10));
+src/probe/mod.rs:1455:            std::thread::sleep(std::time::Duration::from_millis(10));
+src/probe/mod.rs:1586:                    std::thread::sleep(std::time::Duration::from_millis(10));
+tests/filesystem_remote_test.rs:191:        let start = Instant::now();
+tests/filesystem_remote_test.rs:195:                None if start.elapsed() >= deadline => {
+tests/filesystem_remote_test.rs:206:                None => std::thread::sleep(Duration::from_millis(50)),
+tests/filesystem_remote_test.rs:409:        let deadline = Instant::now() + Duration::from_secs(30);
+tests/filesystem_remote_test.rs:415:            if logged || Instant::now() >= deadline {
+tests/filesystem_remote_test.rs:418:            std::thread::sleep(Duration::from_millis(100));
+tests/filesystem_remote_test.rs:457:    let deadline = Instant::now() + Duration::from_secs(45);
+tests/filesystem_remote_test.rs:463:        if Instant::now() >= deadline {
+tests/filesystem_remote_test.rs:473:        std::thread::sleep(Duration::from_millis(50));
+tests/filesystem_remote_test.rs:1053:    match rx.recv_timeout(Duration::from_secs(120)) {
+tests/filesystem_remote_test.rs:1197:    let deadline = Instant::now() + Duration::from_secs(45);
+tests/filesystem_remote_test.rs:1200:            Instant::now() < deadline,
+tests/filesystem_remote_test.rs:1203:        std::thread::sleep(Duration::from_millis(100));
+crates/kache-service/src/timelines.rs:316:    std::time::SystemTime::now()
+src/build_script.rs:429:    let start = std::time::Instant::now();
+src/build_script.rs:456:        let key_start = std::time::Instant::now();
+src/build_script.rs:458:        let key_ms = key_start.elapsed().as_millis() as u64;
+src/build_script.rs:459:        let lookup_start = std::time::Instant::now();
+src/build_script.rs:461:        let lookup_ms = lookup_start.elapsed().as_millis() as u64;
+src/build_script.rs:463:            let restore_start = std::time::Instant::now();
+src/build_script.rs:466:                    let restore_ms = restore_start.elapsed().as_millis() as u64;
+src/build_script.rs:516:    std::thread::sleep(FS_CLOCK_TICK * 2);
+src/build_script.rs:543:        let started = write_floor(std::time::SystemTime::now());
+src/build_script.rs:544:        let compile_start = std::time::Instant::now();
+src/build_script.rs:550:            compile_ms: compile_start.elapsed().as_millis() as u64,
+src/build_script.rs:1588:        let key_start = std::time::Instant::now();
+src/build_script.rs:1596:        let key_ms = key_start.elapsed().as_millis() as u64;
+src/build_script.rs:1625:        let store_start = std::time::Instant::now();
+src/build_script.rs:1638:        let store_ms = store_start.elapsed().as_millis() as u64;
+src/build_script.rs:1671:        let elapsed_ms = self.start.elapsed().as_millis() as u64;
+src/build_script.rs:1694:        let elapsed_ms = self.start.elapsed().as_millis() as u64;
+src/build_script.rs:1924:    hermetic::sweep(cache_dir, std::time::SystemTime::now(), keep_unlinked)
+src/build_script.rs:2102:        unsafe { std::env::remove_var("TARGET") };
+src/build_script.rs:2114:        unsafe { std::env::set_var("TARGET", "x86_64-unknown-linux-gnu") };
+src/build_script.rs:2126:        unsafe { std::env::remove_var("TARGET") };
+src/build_script.rs:2160:            std::env::set_var("CARGO_PKG_NAME", "kt");
+src/build_script.rs:2161:            std::env::set_var("DEP_Z_INCLUDE", "/t/debug/build/z-1/out/include");
+src/build_script.rs:2162:            std::env::set_var("CARGO_CFG_UNIX", "");
+src/build_script.rs:2163:            std::env::set_var("KACHE_TEST_UNRELATED_VAR", "no");
+src/build_script.rs:2164:            std::env::remove_var("PKG_CONFIG_PATH");
+src/build_script.rs:2168:            std::env::remove_var("DEP_Z_INCLUDE");
+src/build_script.rs:2169:            std::env::remove_var("CARGO_CFG_UNIX");
+src/build_script.rs:2170:            std::env::remove_var("KACHE_TEST_UNRELATED_VAR");
+src/build_script.rs:2173:                    Some(value) => std::env::set_var(name, value),
+src/build_script.rs:2174:                    None => std::env::remove_var(name),
+src/build_script.rs:2314:                start: std::time::Instant::now(),
+src/build_script.rs:2318:                std::env::set_var("RUSTC_LINKER", root.join("build/linker"));
+src/build_script.rs:2329:                Some(value) => std::env::set_var("RUSTC_LINKER", value),
+src/build_script.rs:2330:                None => std::env::remove_var("RUSTC_LINKER"),
+src/build_script.rs:2350:            start: std::time::Instant::now(),
+src/build_script.rs:2366:        unsafe { std::env::set_var("RUSTC_LINKER", &tool) };
+src/build_script.rs:2385:        let settled = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
+src/build_script.rs:2405:                Some(value) => std::env::set_var("RUSTC_LINKER", value),
+src/build_script.rs:2406:                None => std::env::remove_var("RUSTC_LINKER"),
+src/build_script.rs:2440:            unsafe { std::env::set_var("RUSTC_LINKER", &tool) };
+src/build_script.rs:2452:            let settled = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
+src/build_script.rs:2464:                Some(value) => std::env::set_var("RUSTC_LINKER", value),
+src/build_script.rs:2465:                None => std::env::remove_var("RUSTC_LINKER"),
+src/build_script.rs:2481:        unsafe { std::env::set_var("RUSTC_LINKER", &tool) };
+src/build_script.rs:2493:                Some(value) => std::env::set_var("RUSTC_LINKER", value),
+src/build_script.rs:2494:                None => std::env::remove_var("RUSTC_LINKER"),
+src/build_script.rs:2503:        unsafe { std::env::remove_var(ENABLE_ENV) };
+src/build_script.rs:2512:            unsafe { std::env::set_var(ENABLE_ENV, value) };
+src/build_script.rs:2515:        unsafe { std::env::remove_var(ENABLE_ENV) };
+src/build_script.rs:2694:            std::env::set_var("OUT_DIR", link.join("out"));
+src/build_script.rs:2695:            std::env::set_var("CARGO_MANIFEST_DIR", &real);
+src/build_script.rs:2696:            std::env::remove_var("CARGO_TARGET_DIR");
+src/build_script.rs:2697:            std::env::remove_var("CARGO_HOME");
+src/build_script.rs:2701:            std::env::remove_var("OUT_DIR");
+src/build_script.rs:2702:            std::env::remove_var("CARGO_MANIFEST_DIR");
+src/build_script.rs:2803:                std::env::set_var("OUT_DIR", &out);
+src/build_script.rs:2804:                std::env::set_var("CARGO_MANIFEST_DIR", &manifest);
+src/build_script.rs:2805:                std::env::set_var("KACHE_BASE_DIR", &checkout);
+src/build_script.rs:2806:                std::env::remove_var("CARGO_HOME");
+src/build_script.rs:2810:                std::env::remove_var("OUT_DIR");
+src/build_script.rs:2811:                std::env::remove_var("CARGO_MANIFEST_DIR");
+src/build_script.rs:2812:                std::env::remove_var("KACHE_BASE_DIR");
+src/build_script.rs:3033:        let now = std::time::SystemTime::now();
+src/build_script.rs:3059:        let later = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
+src/build_script.rs:3131:        unsafe { std::env::remove_var("OUT_DIR") };
+src/build_script.rs:3150:            unsafe { std::env::set_var("OUT_DIR", value) };
+src/build_script.rs:3267:        unsafe { std::env::set_var(ENABLE_ENV, "0") };
+src/build_script.rs:3269:        unsafe { std::env::remove_var(ENABLE_ENV) };
+src/build_script.rs:3294:            start: std::time::Instant::now(),
+src/build_script.rs:3330:            start: std::time::Instant::now(),
+src/build_script.rs:3345:        unsafe { std::env::set_var("DEP_KT_INCLUDE", &absolute) };
+src/build_script.rs:3354:        unsafe { std::env::set_var("DEP_KT_INCLUDE", "relative.h") };
+src/build_script.rs:3359:        unsafe { std::env::remove_var("DEP_KT_INCLUDE") };
+src/build_script.rs:3410:                start: std::time::Instant::now(),
+src/build_script.rs:3455:            start: std::time::Instant::now(),
+src/build_script.rs:3505:            start: std::time::Instant::now(),
+src/build_script.rs:3512:            unsafe { std::env::set_var("CARGO_MANIFEST_DIR", &run.environment.manifest_dir) };
+src/build_script.rs:3531:            unsafe { std::env::set_var("DEP_Y_ROOT", &value) };
+src/build_script.rs:3533:            unsafe { std::env::remove_var("DEP_Y_ROOT") };
+src/build_script.rs:3547:            unsafe { std::env::set_var("CARGO_MANIFEST_DIR", &a.environment.manifest_dir) };
+src/build_script.rs:3550:        unsafe { std::env::set_var("KACHE_TEST_HERMETIC_VAR", "x") };
+src/build_script.rs:3552:        unsafe { std::env::set_var("KACHE_TEST_HERMETIC_VAR", "y") };
+src/build_script.rs:3554:        unsafe { std::env::set_var("KACHE_TEST_HERMETIC_VAR", "x") };
+src/build_script.rs:3562:        unsafe { std::env::set_var("DEP_Y_ROOT", &dep) };
+src/build_script.rs:3567:            std::env::remove_var("DEP_Y_ROOT");
+src/build_script.rs:3568:            std::env::remove_var("KACHE_TEST_HERMETIC_VAR");
+src/build_script.rs:3572:            Some(value) => unsafe { std::env::set_var("CARGO_MANIFEST_DIR", value) },
+src/build_script.rs:3573:            None => unsafe { std::env::remove_var("CARGO_MANIFEST_DIR") },
+src/build_script.rs:3600:                start: std::time::Instant::now(),
+src/build_script.rs:3603:            unsafe { std::env::set_var("DEP_KT_ROOT", &root) };
+src/build_script.rs:3605:            unsafe { std::env::remove_var("DEP_KT_ROOT") };
+src/build_script.rs:3633:                start: std::time::Instant::now(),
+src/build_script.rs:3647:        a.start = std::time::Instant::now() - std::time::Duration::from_secs(2);
+src/build_script.rs:3652:        let after_the_run = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
+src/build_script.rs:3727:                start: std::time::Instant::now(),
+src/build_script.rs:3735:        let after_the_run = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
+src/build_script.rs:3777:                start: std::time::Instant::now(),
+src/build_script.rs:3817:        let after = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
+src/build_script.rs:3895:        let after = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
+src/build_script.rs:4015:            start: std::time::Instant::now(),
+src/build_script.rs:4039:            start: std::time::Instant::now(),
+src/build_script.rs:4066:        let after = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
+src/build_script.rs:4102:            start: std::time::Instant::now(),
+src/build_script.rs:4134:        let after = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
+src/build_script.rs:4157:        let after = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
+src/build_script.rs:4194:            start: std::time::Instant::now(),
+src/build_script.rs:4319:                start: std::time::Instant::now(),
+src/build_script.rs:4327:            unsafe { std::env::set_var("DEP_KT_INCLUDE", &system) };
+src/build_script.rs:4329:            unsafe { std::env::remove_var("DEP_KT_INCLUDE") };
+src/build_script.rs:4353:            start: std::time::Instant::now(),
+src/build_script.rs:4366:        unsafe { std::env::remove_var(NAME) };
+src/build_script.rs:4370:        unsafe { std::env::set_var(NAME, &files) };
+src/build_script.rs:4372:        unsafe { std::env::remove_var(NAME) };
+src/build_script.rs:4391:            start: std::time::Instant::now(),
+src/build_script.rs:4584:        unsafe { std::env::set_var("KACHE_CACHE_DIR", &cache) };
+src/build_script.rs:4595:        assert!(!stamp.settled_at(std::time::SystemTime::now()));
+src/build_script.rs:4596:        assert!(stamp.settled_at(std::time::SystemTime::now() + TreeStamp::SETTLE));
+src/build_script.rs:4604:        assert!(settled.settled_at(std::time::SystemTime::now()));
+src/build_script.rs:4633:        unsafe { std::env::remove_var("KACHE_CACHE_DIR") };
+src/build_script.rs:4644:        unsafe { std::env::set_var("KACHE_CACHE_DIR", dir.path().join("cache")) };
+src/build_script.rs:4676:        unsafe { std::env::remove_var("KACHE_CACHE_DIR") };
+src/build_script.rs:4688:            std::env::set_var("KACHE_CACHE_DIR", dir.path().join("cache"));
+src/build_script.rs:4689:            std::env::set_var("KACHE_RUNTIME_DIR", dir.path().join("run"));
+src/build_script.rs:4699:            std::env::remove_var("KACHE_CACHE_DIR");
+src/build_script.rs:4700:            std::env::remove_var("KACHE_RUNTIME_DIR");
+src/build_script.rs:4726:        let later = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
+src/build_script.rs:4728:        let earlier = std::time::SystemTime::now() - std::time::Duration::from_secs(60);
+src/build_script.rs:4786:        unsafe { std::env::set_var("OUT_DIR", &out_dir) };
+src/build_script.rs:4789:            Some(value) => unsafe { std::env::set_var("OUT_DIR", value) },
+src/build_script.rs:4790:            None => unsafe { std::env::remove_var("OUT_DIR") },
+src/events.rs:2679:        let started = std::time::Instant::now();
+src/events.rs:2682:            started.elapsed() < std::time::Duration::from_secs(2),
+src/events.rs:2684:            started.elapsed()
+src/events.rs:3017:                std::thread::sleep(std::time::Duration::from_millis(20));
+src/events.rs:3028:                std::thread::sleep(std::time::Duration::from_millis(3));
+src/events.rs:3051:                std::thread::sleep(std::time::Duration::from_millis(2));
+src/prestage.rs:321:    if hint_due(&config.cache_dir, target_dir, SystemTime::now()) {
+src/prestage.rs:404:    sweep_stale(directory, SystemTime::now());
+src/prestage.rs:656:        std::thread::sleep(Duration::from_millis(20));
+src/prestage.rs:752:        let now = SystemTime::now();
+src/prestage.rs:784:        assert!(hint_due(&cache, &target, SystemTime::now()));
+src/prestage.rs:831:        let now = SystemTime::now();
+src/prestage.rs:871:        sweep_stale(dir.path(), SystemTime::now());
+src/prestage.rs:875:            SystemTime::now() + STALE_AFTER + Duration::from_secs(1),
+src/prestage.rs:896:        let now = SystemTime::now();
+crates/kache-e2e/src/fixture.rs:282:fn default_verify_timeout() -> u64 {
+crates/kache-service/tests/cli.rs:15:    let deadline = Instant::now() + Duration::from_secs(30);
+crates/kache-service/tests/cli.rs:21:        if Instant::now() >= deadline {
+crates/kache-service/tests/cli.rs:26:        thread::sleep(Duration::from_millis(10));
+src/maintenance.rs:38:            origin: Instant::now(),
+src/maintenance.rs:47:            origin: Instant::now() - 2 * QUIET_AFTER,
+src/maintenance.rs:66:        self.idle_at(Instant::now())
+src/maintenance.rs:96:    std::time::SystemTime::now()
+src/maintenance.rs:155:        tokio::time::sleep(FIRST_CHECK_AFTER).await;
+src/disk_recovery.rs:21:static UNRECORDED: Mutex<BTreeMap<PathBuf, u64>> = Mutex::new(BTreeMap::new());
+src/disk_recovery.rs:105:    let started = Instant::now();
+src/disk_recovery.rs:109:            started.elapsed(),
+src/disk_recovery.rs:113:    stats.duration_ms = started.elapsed().as_millis() as u64;
+src/remote.rs:363:                tokio::time::sleep(conflict_backoff(attempt, jitter)).await;
+crates/kache-e2e/src/bench_runner/tests.rs:227:        std::thread::sleep(std::time::Duration::from_millis(10));
+crates/kache-e2e/src/bench_runner/tests.rs:3151:        std::thread::sleep(Duration::from_millis(10));
+src/tui/tests.rs:194:        last_stats_fetch: Instant::now(),
+src/tui/tests.rs:196:        last_project_refresh: Instant::now(),
+src/tui/tests.rs:359:    let fresh = Instant::now();
+src/tui/tests.rs:365:        s.last_project_refresh.elapsed() >= PROJECT_REFRESH_INTERVAL,
+src/tui/tests.rs:371:        s.last_stats_fetch.elapsed() >= SNAPSHOT_REFRESH_INTERVAL,
+src/tui/tests.rs:1779:    s.last_stats_fetch = Instant::now() - SNAPSHOT_REFRESH_INTERVAL;
+src/tui/tests.rs:1780:    s.last_project_refresh = Instant::now() - PROJECT_REFRESH_INTERVAL;
+src/tui/tests.rs:1794:    s.last_stats_fetch = Instant::now();
+src/tui/tests.rs:1803:    s.last_project_refresh = Instant::now();
+src/tui/tests.rs:2360:    s.live_heartbeats.insert(7, (Instant::now(), beat));
+src/index_compact.rs:275:    let started = Instant::now();
+src/index_compact.rs:318:        elapsed: started.elapsed(),
+src/index_compact.rs:826:        let started = Instant::now();
+src/index_compact.rs:840:            started.elapsed() < Duration::from_secs(4),
+src/target_dedup.rs:468:        started: Instant::now(),
+src/target_dedup.rs:501:            if counters.started.elapsed() >= limits.budget {
+src/target_dedup.rs:1132:    SystemTime::now()
+src/wrapper/tests.rs:22:            std::env::set_var(key, value);
+src/wrapper/tests.rs:30:            std::env::remove_var(key);
+src/wrapper/tests.rs:40:                Some(value) => std::env::set_var(self.key, value),
+src/wrapper/tests.rs:41:                None => std::env::remove_var(self.key),
+src/wrapper/tests.rs:296:    std::env::set_current_dir(&root).unwrap();
+src/wrapper/tests.rs:366:    std::env::set_current_dir(&root).unwrap();
+src/wrapper/tests.rs:916:    let old = std::time::SystemTime::now() - (AUTO_GC_CHECK_INTERVAL * 2);
+src/wrapper/tests.rs:1005:        .set_modified(std::time::SystemTime::now() - AUTO_GC_CHECK_INTERVAL * 2)
+src/wrapper/tests.rs:1440:    let expired = std::time::SystemTime::now() - AUTO_GC_CHECK_INTERVAL * 2;
+src/wrapper/tests.rs:1650:        std::time::SystemTime::now()
+src/wrapper/tests.rs:1864:        std::time::Instant::now(),
+src/wrapper/tests.rs:1885:            std::time::Instant::now(),
+src/wrapper/tests.rs:2698:    unsafe { std::env::set_var(ENV_KEY, "value-b") };
+src/wrapper/tests.rs:5316:        std::time::Instant::now(),
+src/wrapper/tests.rs:5426:            std::time::Instant::now(),
+src/wrapper/tests.rs:5568:            std::time::Instant::now(),
+src/wrapper/tests.rs:5699:        std::env::set_var("KACHE_PROGRESS", "1");
+src/wrapper/tests.rs:5703:        std::env::set_var("KACHE_PROGRESS", "hits");
+src/wrapper/tests.rs:5707:        std::env::set_var("KACHE_PROGRESS", "verbose");
+src/wrapper/tests.rs:5711:        std::env::set_var("KACHE_PROGRESS", "all");
+src/wrapper/tests.rs:5715:        std::env::set_var("KACHE_PROGRESS", "nope");
+src/wrapper/tests.rs:6015:                std::thread::sleep(delay);
+src/wrapper/tests.rs:6045:    let start = std::time::Instant::now();
+src/wrapper/tests.rs:6048:            start.elapsed() < std::time::Duration::from_secs(2),
+src/wrapper/tests.rs:6052:        std::thread::sleep(std::time::Duration::from_millis(5));
+src/wrapper/tests.rs:6071:        std::time::Instant::now(),
+src/wrapper/tests.rs:6395:        std::thread::sleep(hold);
+src/wrapper/tests.rs:6425:    let mut handoff = cc_handoff(&key, &files, std::time::Instant::now());
+src/wrapper/tests.rs:6481:        cc_handoff(&key, &files, std::time::Instant::now()),
+src/wrapper/tests.rs:6517:        cc_handoff(&key, &files, std::time::Instant::now()),
+src/wrapper/tests.rs:7069:    let ahead = std::time::SystemTime::now() + std::time::Duration::from_secs(3600);
+src/wrapper/tests.rs:7246:    let start = std::time::Instant::now();
+src/wrapper/tests.rs:7313:    let start = std::time::Instant::now();
+src/wrapper/tests.rs:7379:    let start = std::time::Instant::now();
+src/wrapper/tests.rs:8188:    std::thread::sleep(std::time::Duration::from_millis(5));
+src/wrapper/tests.rs:9758:    unsafe { std::env::set_var("CARGO_CRATE_NAME", "demo") };
+src/wrapper/tests.rs:9776:        Some(value) => unsafe { std::env::set_var("CARGO_CRATE_NAME", value) },
+src/wrapper/tests.rs:9777:        None => unsafe { std::env::remove_var("CARGO_CRATE_NAME") },
+src/wrapper/tests.rs:9865:    let now = std::time::SystemTime::now();
+src/wrapper/tests.rs:10016:            std::thread::sleep(std::time::Duration::from_millis(10));
+src/wrapper/tests.rs:10057:        std::thread::sleep(std::time::Duration::from_millis(10));
+src/wrapper/tests.rs:10320:        std::env::set_var("KACHE_EVENT_ROOT", "");
+src/wrapper/tests.rs:10591:    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+src/wrapper/tests.rs:10592:    while !ready.exists() && std::time::Instant::now() < deadline {
+src/wrapper/tests.rs:10597:        std::thread::sleep(std::time::Duration::from_millis(10));
+src/wrapper/tests.rs:10627:    std::thread::sleep(std::time::Duration::from_millis(200));
+src/wrapper/tests.rs:10663:    std::thread::sleep(std::time::Duration::from_millis(200));
+src/wrapper/tests.rs:10690:    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+src/wrapper/tests.rs:10691:    while !go.exists() && std::time::Instant::now() < deadline {
+src/wrapper/tests.rs:10692:        std::thread::sleep(std::time::Duration::from_millis(10));
+src/wrapper/tests.rs:10733:        std::time::SystemTime::now()
+src/wrapper/tests.rs:10739:    std::thread::sleep(std::time::Duration::from_millis(20));
+src/wrapper/tests.rs:10967:            start: std::time::Instant::now(),
+src/wrapper/hit.rs:28:        let elapsed = self.start.elapsed().as_millis() as u64;
+src/target_cleanup.rs:67:static UNRECORDED: Mutex<BTreeMap<PathBuf, u64>> = Mutex::new(BTreeMap::new());
+src/target_cleanup.rs:1702:            std::thread::sleep(Duration::from_millis(10));
+src/target_cleanup.rs:1723:            std::thread::sleep(Duration::from_millis(10));
+src/target_cleanup.rs:2065:            std::thread::sleep(std::time::Duration::from_millis(10));
+src/target_use.rs:155:            .recv_timeout(Duration::from_secs(10))
+src/target_use.rs:158:        std::thread::sleep(Duration::from_millis(100));
+src/tree_stamp.rs:538:            !fresh.settled_at(SystemTime::now()),
+src/tree_stamp.rs:654:        let now = SystemTime::now();
+src/wrapper/rustc_hit.rs:39:        let restore_start = Instant::now();
+src/wrapper/rustc_hit.rs:49:        let restore_ms = restore_start.elapsed().as_millis() as u64;
+src/test_runner.rs:353:    static CHILD: AtomicI32 = AtomicI32::new(0);
+src/test_runner.rs:387:        status.signal()
+src/test_runner.rs:398:            libc::setrlimit(libc::RLIMIT_CORE, &no_core);
+src/test_runner.rs:399:            libc::signal(signal, libc::SIG_DFL);
+src/config/tests.rs:107:                Some(value) => std::env::set_var(self.key, value),
+src/config/tests.rs:108:                None => std::env::remove_var(self.key),
+src/config/tests.rs:118:            Some(value) => std::env::set_var(key, value),
+src/config/tests.rs:119:            None => std::env::remove_var(key),
+src/config/tests.rs:225:        unsafe { std::env::set_var(name, value) };
+src/config/tests.rs:231:        unsafe { std::env::remove_var(name) };
+src/config/tests.rs:240:                Some(value) => std::env::set_var(self.name, value),
+src/config/tests.rs:241:                None => std::env::remove_var(self.name),
+src/config/tests.rs:1097:                    Some(v) => std::env::set_var("KACHE_KEY_SALT", v),
+src/config/tests.rs:1098:                    None => std::env::remove_var("KACHE_KEY_SALT"),
+src/config/tests.rs:1104:    unsafe { std::env::set_var("KACHE_KEY_SALT", "from-env") };
+src/config/tests.rs:2240:    unsafe { std::env::remove_var("KACHE_DEFERRED_DURABILITY") };
+src/config/tests.rs:2253:        unsafe { std::env::set_var("KACHE_DEFERRED_DURABILITY", value) };
+src/config/tests.rs:2265:    unsafe { std::env::remove_var("KACHE_DEFERRED_DURABILITY") };
+src/config/tests.rs:2312:    unsafe { std::env::remove_var("KACHE_DEFERRED_DISCOVERY") };
+src/config/tests.rs:2325:        unsafe { std::env::set_var("KACHE_DEFERRED_DISCOVERY", value) };
+src/config/tests.rs:2337:    unsafe { std::env::remove_var("KACHE_DEFERRED_DISCOVERY") };
+src/config/tests.rs:2347:    unsafe { std::env::remove_var("KACHE_DAEMON_PUBLISH") };
+src/config/tests.rs:2360:        unsafe { std::env::set_var("KACHE_DAEMON_PUBLISH", value) };
+src/config/tests.rs:2368:    unsafe { std::env::remove_var("KACHE_DAEMON_PUBLISH") };
+src/config/tests.rs:2380:    unsafe { std::env::remove_var("KACHE_SHARED_HARDLINK_RESTORES") };
+src/config/tests.rs:2393:        unsafe { std::env::set_var("KACHE_SHARED_HARDLINK_RESTORES", value) };
+src/config/tests.rs:2405:    unsafe { std::env::remove_var("KACHE_SHARED_HARDLINK_RESTORES") };
+src/config/tests.rs:2413:    unsafe { std::env::set_var("KACHE_CACHE_DIR", dir.path()) };
+src/config/tests.rs:2415:    unsafe { std::env::remove_var("KACHE_CACHE_DIR") };
+src/config/tests.rs:2579:            Some(val) => std::env::set_var("KACHE_KEY_SALT", val),
+src/config/tests.rs:2580:            None => std::env::remove_var("KACHE_KEY_SALT"),
+src/config/tests.rs:2597:    unsafe { std::env::set_var("KACHE_KEY_SALT", "from-env") };
+src/config/tests.rs:2605:    unsafe { std::env::set_var("KACHE_KEY_SALT", "   ") };
+src/config/tests.rs:2618:            Some(value) => std::env::set_var("KACHE_PRESERVE_INCREMENTAL", value),
+src/config/tests.rs:2619:            None => std::env::remove_var("KACHE_PRESERVE_INCREMENTAL"),
+src/config/tests.rs:2633:    unsafe { std::env::set_var("KACHE_PRESERVE_INCREMENTAL", "TRUE") };
+src/config/tests.rs:2636:    unsafe { std::env::set_var("KACHE_PRESERVE_INCREMENTAL", "false") };
+src/config/tests.rs:2808:            Some(val) => std::env::set_var("KACHE_CC_EXTRA_ALLOWLIST_FLAGS", val),
+src/config/tests.rs:2809:            None => std::env::remove_var("KACHE_CC_EXTRA_ALLOWLIST_FLAGS"),
+src/config/tests.rs:2835:        std::env::set_var(
+src/config/tests.rs:2846:    unsafe { std::env::set_var("KACHE_CC_EXTRA_ALLOWLIST_FLAGS", "   ") };
+src/config/tests.rs:2859:            Some(val) => std::env::set_var("KACHE_KEY_ENV_VARS", val),
+src/config/tests.rs:2860:            None => std::env::remove_var("KACHE_KEY_ENV_VARS"),
+src/config/tests.rs:2883:    unsafe { std::env::set_var("KACHE_KEY_ENV_VARS", " ZULU, ALPHA ,ALPHA,, BRAVO ") };
+src/config/tests.rs:2890:    unsafe { std::env::set_var("KACHE_KEY_ENV_VARS", "   ") };
+src/config/tests.rs:2903:            Some(val) => std::env::set_var("KACHE_KEY_ENV_VARS", val),
+src/config/tests.rs:2904:            None => std::env::remove_var("KACHE_KEY_ENV_VARS"),
+src/config/tests.rs:2918:    unsafe { std::env::set_var("KACHE_KEY_ENV_VARS", "SOMETHING_ELSE") };
+src/config/tests.rs:3358:    unsafe { std::env::set_var("KACHE_READONLY_STORE", &env_store) };
+src/config/tests.rs:3360:    unsafe { std::env::set_var("KACHE_READONLY_STORE", "") };
+src/config/tests.rs:3377:    unsafe { std::env::remove_var("KACHE_READONLY_STORE") };
+src/config/tests.rs:3406:    unsafe { std::env::set_var("KACHE_RUNTIME_DIR", &env_runtime) };
+src/config/tests.rs:3420:    unsafe { std::env::remove_var("KACHE_RUNTIME_DIR") };
+src/config/tests.rs:3498:    unsafe { std::env::set_var("KACHE_SOCKET_PATH", &second) };
+src/config/tests.rs:3872:        std::env::remove_var(key);
+src/config/tests.rs:3903:                Some(value) => std::env::set_var(self.key, value),
+src/config/tests.rs:3904:                None => std::env::remove_var(self.key),
+src/config/tests.rs:3913:        std::env::set_var(key, value);
+src/config/tests.rs:4213:    unsafe { std::env::set_var("KACHE_LOCAL_ONLY", "0") };
+src/config/tests.rs:4215:    unsafe { std::env::set_var("KACHE_LOCAL_ONLY", "1") };
+src/config/tests.rs:4219:            Some(v) => std::env::set_var("KACHE_LOCAL_ONLY", v),
+src/config/tests.rs:4220:            None => std::env::remove_var("KACHE_LOCAL_ONLY"),
+src/config/tests.rs:4288:    unsafe { std::env::set_var("KACHE_STORAGE_LAYOUT_ADVICE", "1") };
+src/config/tests.rs:4290:    unsafe { std::env::set_var("KACHE_STORAGE_LAYOUT_ADVICE", "0") };
+src/config/tests.rs:4294:            Some(v) => std::env::set_var("KACHE_STORAGE_LAYOUT_ADVICE", v),
+src/config/tests.rs:4295:            None => std::env::remove_var("KACHE_STORAGE_LAYOUT_ADVICE"),
+src/config/tests.rs:4466:        unsafe { std::env::remove_var(v) };
+src/config/tests.rs:4879:                std::env::set_var(key, value);
+src/config/tests.rs:4889:                    std::env::set_var(self.key, value);
+src/config/tests.rs:4892:                    std::env::remove_var(self.key);
+src/config/tests.rs:5001:    unsafe { std::env::set_var("KACHE_S3_USER_AGENT", "env-agent/3.0") };
+src/config/tests.rs:5043:    unsafe { std::env::remove_var("KACHE_S3_USER_AGENT") };
+crates/kache-e2e/src/bench_runner.rs:1419:    let started = Instant::now();
+crates/kache-e2e/src/bench_runner.rs:1439:    let wall_ms = elapsed_ms(started.elapsed());
+crates/kache-e2e/src/bench_runner.rs:1502:    let started = Instant::now();
+crates/kache-e2e/src/bench_runner.rs:1604:    let wall_ms = elapsed_ms(started.elapsed());
+src/wrapper.rs:559:        let now_str = std::time::SystemTime::now()
+src/wrapper.rs:584:        match meta.modified().ok().and_then(|m| m.elapsed().ok()) {
+src/wrapper.rs:603:    let now_str = std::time::SystemTime::now()
+src/wrapper.rs:1053:    let start = std::time::Instant::now();
+src/wrapper.rs:1054:    lookup_or_miss_with_clock(crate_name, budget, || start.elapsed(), pause, lookup)
+src/wrapper.rs:1164:            crate::opcounts::record_startup(start.elapsed());
+src/wrapper.rs:1167:        None => std::time::Instant::now(),
+src/wrapper.rs:1297:    let key_start = std::time::Instant::now();
+src/wrapper.rs:1326:    let key_ms = key_start.elapsed().as_millis() as u64;
+src/wrapper.rs:1330:    let lookup_start = std::time::Instant::now();
+src/wrapper.rs:1334:    let lookup_ms = lookup_start.elapsed().as_millis() as u64;
+src/wrapper.rs:1349:            let restore_start = std::time::Instant::now();
+src/wrapper.rs:1363:            let restore_ms = restore_start.elapsed().as_millis() as u64;
+src/wrapper.rs:1428:        let restore_start = std::time::Instant::now();
+src/wrapper.rs:1442:        let restore_ms = restore_start.elapsed().as_millis() as u64;
+src/wrapper.rs:1460:    let compile_start = std::time::Instant::now();
+src/wrapper.rs:1477:    let compile_time_ms = compile_start.elapsed().as_millis() as u64;
+src/wrapper.rs:1497:    let store_start = std::time::Instant::now();
+src/wrapper.rs:1562:    let store_ms = store_start.elapsed().as_millis() as u64;
+src/wrapper.rs:1564:    let elapsed = start.elapsed().as_millis() as u64;
+src/wrapper.rs:1623:            start.elapsed().as_millis() as u64,
+src/wrapper.rs:1816:    let restore_start = std::time::Instant::now();
+src/wrapper.rs:1830:    let restore_ms = restore_start.elapsed().as_millis() as u64;
+src/wrapper.rs:2054:    let key_start = std::time::Instant::now();
+src/wrapper.rs:2143:    let key_ms = key_start.elapsed().as_millis() as u64;
+src/wrapper.rs:2147:    let lookup_start = std::time::Instant::now();
+src/wrapper.rs:2160:    let lookup_ms = lookup_start.elapsed().as_millis() as u64;
+src/wrapper.rs:2176:            let restore_start = std::time::Instant::now();
+src/wrapper.rs:2202:                let restore_ms = restore_start.elapsed().as_millis() as u64;
+src/wrapper.rs:2311:        let restore_start = std::time::Instant::now();
+src/wrapper.rs:2332:        let restore_ms = restore_start.elapsed().as_millis() as u64;
+src/wrapper.rs:2363:            let compile_start = std::time::Instant::now();
+src/wrapper.rs:2383:            let compile_time_ms = compile_start.elapsed().as_millis() as u64;
+src/wrapper.rs:2407:    let store_start = std::time::Instant::now();
+src/wrapper.rs:2570:    let store_ms = store_start.elapsed().as_millis() as u64;
+src/wrapper.rs:2572:    let elapsed = start.elapsed().as_millis() as u64;
+src/wrapper.rs:3291:    let restore_start = std::time::Instant::now();
+src/wrapper.rs:3312:    let restore_ms = restore_start.elapsed().as_millis() as u64;
+src/wrapper.rs:3359:    let extra_inputs_key_start = std::time::Instant::now();
+src/wrapper.rs:3377:    let extra_inputs_key_ms = extra_inputs_key_start.elapsed().as_millis() as u64;
+src/wrapper.rs:3552:    let start = std::time::Instant::now();
+src/wrapper.rs:3593:        key_ms: start.elapsed().as_millis() as u64,
+src/wrapper.rs:4258:        let lookup_start = std::time::Instant::now();
+src/wrapper.rs:4263:        lookup_ms = lookup_ms.saturating_add(lookup_start.elapsed().as_millis() as u64);
+src/wrapper.rs:4549:    let compile_start = std::time::Instant::now();
+src/wrapper.rs:4576:        precompiled_time.unwrap_or_else(|| compile_start.elapsed().as_millis() as u64);
+src/wrapper.rs:4591:        let elapsed = start.elapsed().as_millis() as u64;
+src/wrapper.rs:4634:        let elapsed = start.elapsed().as_millis() as u64;
+src/wrapper.rs:4658:        let elapsed = start.elapsed().as_millis() as u64;
+src/wrapper.rs:4677:        let elapsed = start.elapsed().as_millis() as u64;
+src/wrapper.rs:4715:        let elapsed = start.elapsed().as_millis() as u64;
+src/wrapper.rs:4749:        let elapsed = start.elapsed().as_millis() as u64;
+src/wrapper.rs:4775:        let elapsed = start.elapsed().as_millis() as u64;
+src/wrapper.rs:4882:            let elapsed = start.elapsed().as_millis() as u64;
+src/wrapper.rs:4911:        let elapsed = start.elapsed().as_millis() as u64;
+src/wrapper.rs:4927:    let store_start = std::time::Instant::now();
+src/wrapper.rs:4981:    let store_ms = store_start.elapsed().as_millis() as u64;
+src/wrapper.rs:4991:    let elapsed = start.elapsed().as_millis() as u64;
+src/wrapper.rs:5083:    let elapsed = handoff.start.elapsed().as_millis() as u64;
+src/wrapper.rs:5098:        .store_ms(handoff.store_start.elapsed().as_millis() as u64)
+src/wrapper.rs:5135:                    event.elapsed_ms = handoff.start.elapsed().as_millis() as u64;
+src/wrapper.rs:5181:            store.wait_for_committed_with_timeout(cache_key, wait)?;
+src/wrapper.rs:6144:    let compile_start = std::time::Instant::now();
+src/wrapper.rs:6154:        let lookup_start = std::time::Instant::now();
+src/wrapper.rs:6156:        lookup_ms = lookup_ms.saturating_add(lookup_start.elapsed().as_millis() as u64);
+src/wrapper.rs:6222:    let compile_time_ms = compile_start.elapsed().as_millis() as u64;
+src/wrapper.rs:6239:            ctx.start.elapsed().as_millis() as u64,
+src/wrapper.rs:6294:    let compile_start = std::time::Instant::now();
+src/wrapper.rs:6357:    let compile_time_ms = compile_start.elapsed().as_millis() as u64;
+src/wrapper.rs:6366:        let elapsed = start.elapsed().as_millis() as u64;
+src/wrapper.rs:6388:            let elapsed = start.elapsed().as_millis() as u64;
+src/wrapper.rs:6819:    let key_start = std::time::Instant::now();
+src/wrapper.rs:6889:                key_ms: key_start.elapsed().as_millis() as u64,
+src/wrapper.rs:6917:        key_start.elapsed().as_millis() as u64,
+src/wrapper.rs:7863:    let compile_start = std::time::Instant::now();
+src/wrapper.rs:7892:    let compile_time_ms = compile_start.elapsed().as_millis() as u64;
+src/wrapper.rs:7917:            start.elapsed().as_millis() as u64,
+src/wrapper.rs:7991:        let elapsed = start.elapsed().as_millis() as u64;
+src/wrapper.rs:8008:    let elapsed = start.elapsed().as_millis() as u64;
+src/wrapper.rs:8047:            start.elapsed().as_millis() as u64,
+src/wrapper.rs:8073:            start.elapsed().as_millis() as u64,
+src/wrapper.rs:8111:    let compile_start = std::time::Instant::now();
+src/wrapper.rs:8128:    let compile_time_ms = compile_start.elapsed().as_millis() as u64;
+src/wrapper.rs:8136:        let elapsed = start.elapsed().as_millis() as u64;
+src/wrapper.rs:8187:    let elapsed = start.elapsed().as_millis() as u64;
+src/wrapper.rs:8223:            start.elapsed().as_millis() as u64,
+src/wrapper.rs:8257:            start.elapsed().as_millis() as u64,
+src/wrapper.rs:9221:/// back-to-back calls, so `SystemTime::now()` returns the same value twice and
+src/wrapper.rs:9226:    static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+src/wrapper.rs:9228:    let nanos = std::time::SystemTime::now()
+src/fallback_planner.rs:479:                    Some(value) => std::env::set_var(self.key, value),
+src/fallback_planner.rs:480:                    None => std::env::remove_var(self.key),
+src/fallback_planner.rs:490:                Some(value) => std::env::set_var(key, value),
+src/fallback_planner.rs:491:                None => std::env::remove_var(key),
+src/daemon_control.rs:113:                        let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
+src/daemon_control.rs:178:    let remaining = deadline.saturating_duration_since(Instant::now());
+src/daemon_control.rs:206:    anyhow::ensure!(Instant::now() < deadline, "late legacy lifecycle response");
+src/daemon_control.rs:256:            request(&config, operation, Instant::now() + Duration::from_secs(2))
+src/daemon_control.rs:278:        tokio::time::sleep(Duration::from_millis(100)).await;
+src/daemon_control.rs:328:        tokio::time::timeout(Duration::from_secs(2), async {
+src/daemon_control.rs:353:        tokio::time::timeout(Duration::from_secs(3), lifecycle.draining())
+src/daemon_control.rs:380:            lifecycle_client::current(&probe_config, Instant::now() + Duration::from_secs(2))
+src/daemon_control.rs:414:                        Instant::now() + Duration::from_secs(5),
+src/daemon_control.rs:428:                        .set_read_timeout(Some(Duration::from_secs(5)))
+src/daemon_control.rs:431:                        .set_write_timeout(Some(Duration::from_secs(5)))
+src/daemon_control.rs:444:                Instant::now() + Duration::from_secs(2),
+src/daemon_control.rs:452:                lifecycle_client::current_socket(&socket, Instant::now() + Duration::from_secs(2));
+src/daemon_control.rs:477:            lifecycle_client::current(&config, Instant::now() + Duration::from_millis(200))
+src/scheduler/pressure.rs:33:static ENABLED: AtomicBool = AtomicBool::new(true);
+src/scheduler/pressure.rs:60:    sampled(Instant::now(), under_pressure)
+src/scheduler/pressure.rs:252:        let start = Instant::now() + Duration::from_secs(3600);
+src/service.rs:817:        std::time::Instant::now() < deadline,
+src/service.rs:1490:            Instant::now() + Duration::from_millis(100),
+src/service.rs:1496:            Instant::now() + Duration::from_secs(5),
+src/service.rs:1503:            command_output_until(Command::new("sh").arg("-c"), Instant::now())
+src/remote_backend/oci/tests.rs:667:            request.timeout().copied(),
+src/remote_backend/oci/tests.rs:1475:    let started = Instant::now();
+src/remote_backend/oci/tests.rs:1490:        started.elapsed().as_millis()
+src/platform.rs:8://! On Unix these all map to libc primitives (kill(2), signal(2)).
+src/platform.rs:181:    if unsafe { libc::setrlimit(libc::RLIMIT_NOFILE, &limit) } != 0 {
+src/platform.rs:228:        let mut sigterm = signal(SignalKind::terminate()).expect("SIGTERM handler");
+src/platform.rs:229:        let mut sigint = signal(SignalKind::interrupt()).expect("SIGINT handler");
+src/platform.rs:388:        assert_eq!(unsafe { libc::setrlimit(libc::RLIMIT_NOFILE, &limit) }, 0);
+src/planner_auth.rs:41:static DISCOVERY: Mutex<Option<HashMap<String, Discovered>>> = Mutex::new(None);
+src/planner_auth.rs:45:static REFRESH: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+src/planner_auth.rs:146:    tokio::time::timeout(
+src/planner_auth.rs:256:        (at.elapsed() < ttl).then(|| service.clone())
+src/planner_auth.rs:271:            .insert(base.to_string(), (Instant::now(), service.clone()));
+src/planner_auth.rs:315:        let started = Instant::now();
+src/planner_auth.rs:319:                Err(std::fs::TryLockError::WouldBlock) if started.elapsed() < wait => {
+src/planner_auth.rs:321:                    std::thread::sleep(Duration::from_millis(50));
+src/planner_auth.rs:403:        SystemTime::now()
+src/planner_auth.rs:411:        tokio::time::Instant::now() + Duration::from_millis(500)
+src/planner_auth.rs:560:        runtime.shutdown_timeout(Duration::from_millis(100));
+src/planner_auth.rs:571:            let second = tokio::time::timeout(
+src/planner_auth.rs:675:    static SESSION_TESTS: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+src/planner_auth.rs:689:        let now = SystemTime::now()
+src/planner_auth.rs:811:        tokio::task::spawn_blocking(move || seen.recv_timeout(Duration::from_secs(3)))
+src/planner_auth.rs:816:        let waited = tokio::time::timeout(Duration::from_secs(5), waiter)
+src/planner_auth.rs:830:            tokio::time::timeout(
+src/planner_auth.rs:884:        let now = SystemTime::now()
+src/planner_auth.rs:913:                    unsafe { std::env::set_var(key, value) };
+src/planner_auth.rs:927:                        Some(value) => std::env::set_var(key, value),
+src/planner_auth.rs:928:                        None => std::env::remove_var(key),
+src/wrapper/remote.rs:52:    let waiting = std::time::Instant::now();
+src/wrapper/remote.rs:60:    crate::demand::remote_wait(cache_key, waiting.elapsed());
+src/native_link_key.rs:526:    fn set_var(&mut self, name: impl Into<String>, value: impl Into<String>) {
+src/native_link_key.rs:556:            self.set_var(name, value);
+src/native_link_key.rs:588:                self.set_var(name, value);
+src/native_link_key.rs:1926:        environment.set_var("LIB", "second");
+src/native_link_key.rs:1943:        environment.set_var("pAtH", joined.to_string_lossy());
+src/native_link_key.rs:2163:            unsafe { std::env::remove_var(name) };
+src/native_link_key.rs:2194:        unsafe { std::env::set_var("LIBRARY_PATH", "/opt/other") };
+src/native_link_key.rs:2196:        unsafe { std::env::remove_var("LIBRARY_PATH") };
+crates/kache-e2e/src/daemon.rs:37:    let deadline = std::time::Instant::now() + timeout;
+crates/kache-e2e/src/daemon.rs:44:        if std::time::Instant::now() >= deadline {
+crates/kache-e2e/src/daemon.rs:47:        std::thread::sleep(std::time::Duration::from_millis(20));
+crates/kache-e2e/src/daemon.rs:141:        let deadline = Instant::now() + Duration::from_secs(10);
+crates/kache-e2e/src/daemon.rs:142:        while !dir.join("release").exists() && Instant::now() < deadline {
+crates/kache-e2e/src/daemon.rs:143:            std::thread::sleep(Duration::from_millis(10));
+crates/kache-e2e/src/daemon.rs:158:        let deadline = Instant::now() + Duration::from_secs(5);
+crates/kache-e2e/src/daemon.rs:159:        while !dir.path().join("ready").exists() && Instant::now() < deadline {
+crates/kache-e2e/src/daemon.rs:160:            std::thread::sleep(Duration::from_millis(10));
+crates/kache-e2e/src/daemon.rs:190:        let deadline = Instant::now() + Duration::from_secs(5);
+crates/kache-e2e/src/daemon.rs:191:        while !dir.path().join("ready").exists() && Instant::now() < deadline {
+crates/kache-e2e/src/daemon.rs:192:            std::thread::sleep(Duration::from_millis(10));
+crates/kache-e2e/src/daemon.rs:197:            std::thread::sleep(Duration::from_millis(100));
+src/remote_backend/oci/transport.rs:32:            .connect_timeout(super::super::CONNECT_TIMEOUT)
+src/remote_backend/oci/transport.rs:33:            .read_timeout(super::super::READ_INACTIVITY_TIMEOUT)
+src/remote_backend/oci/transport.rs:156:            request.timeout(super::super::LIST_PROGRESS_TIMEOUT)
+src/timeline_client.rs:41:pub(crate) fn push_timeout(config: &PlannerConfig) -> Duration {
+src/timeline_client.rs:57:        .timeout(push_timeout(config))
+src/timeline_client.rs:151:        assert_eq!(push_timeout(&planner_config("x", 750)), MIN_PUSH_TIMEOUT);
+src/timeline_client.rs:153:            push_timeout(&planner_config("x", 90_000)),
+src/fallback/macos.rs:57:    let deadline = Instant::now() + Duration::from_millis(200);
+src/fallback/macos.rs:61:            Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(5)),
+src/fallback/macos.rs:174:        let deadline = Instant::now() + Duration::from_secs(60);
+src/fallback/macos.rs:185:            if Instant::now() >= deadline {
+src/fallback/macos.rs:192:            std::thread::sleep(Duration::from_millis(5));
+src/cache_key.rs:1186:        std::time::SystemTime::now(),
+src/cache_key.rs:7169:        let _ = db.busy_timeout(std::time::Duration::from_millis(100));
+src/cache_key.rs:7180:        let _ = db.busy_timeout(std::time::Duration::from_millis(5000));
+src/cache_key.rs:8642:    let spawned = std::time::Instant::now();
+src/cache_key.rs:8651:    crate::opcounts::record_dep_info_run(spawned.elapsed());
+src/fallback.rs:121:            .unwrap_or_else(|| 128 + status.signal().unwrap_or(0))
+src/remote_backend/oci.rs:437:        let started = Instant::now();
+src/remote_backend/oci.rs:457:            let request_ms = started.elapsed().as_millis() as u64;
+src/remote_backend/oci.rs:458:            let started = Instant::now();
+src/remote_backend/oci.rs:470:                body_ms: started.elapsed().as_millis() as u64,
+src/remote_backend/oci.rs:497:        let request_ms = started.elapsed().as_millis() as u64;
+src/remote_backend/oci.rs:498:        let started = Instant::now();
+src/remote_backend/oci.rs:523:            body_ms: started.elapsed().as_millis() as u64,
+src/remote_backend/oci.rs:588:        let started = Instant::now();
+src/remote_backend/oci.rs:591:                .checked_sub(started.elapsed())
+src/remote_backend/oci.rs:599:            let Some((body, _)) = tokio::time::timeout(remaining, self.metadata_get(url.as_str()))
+src/remote_backend/oci.rs:632:                    .checked_sub(started.elapsed())
+src/remote_backend/oci.rs:634:                let Some((manifest, _)) = tokio::time::timeout(remaining, self.manifest(tag))
+src/test_support.rs:6:static PROCESS_STATE_TEST_LOCK: Mutex<()> = Mutex::new(());
+src/test_support.rs:28:        std::env::set_current_dir(&path).unwrap();
+src/test_support.rs:39:            let _ = std::env::set_current_dir(dir);
+src/test_support.rs:52:static CWD_DIRS: Mutex<Vec<tempfile::TempDir>> = Mutex::new(Vec::new());
+src/test_support.rs:115:                unsafe { std::env::set_var(key, dir.path()) };
+src/test_support.rs:137:                    Some(value) => std::env::set_var(key, value),
+src/test_support.rs:138:                    None => std::env::remove_var(key),
+src/test_support.rs:254:                std::thread::sleep(std::time::Duration::from_millis(10));
+src/test_support.rs:298:        std::thread::sleep(std::time::Duration::from_millis(1));
+src/test_support.rs:320:            std::env::set_current_dir(&scratch).unwrap();
+src/test_support.rs:380:            std::thread::sleep(std::time::Duration::from_millis(50));
+src/test_support.rs:402:        let started = std::time::Instant::now();
+src/test_support.rs:409:        assert!(started.elapsed() < std::time::Duration::from_millis(250));
+src/otel.rs:366:    SystemTime::now()
+src/remote_backend.rs:413:        let request_start = Instant::now();
+src/remote_backend.rs:445:        let request_ms = request_start.elapsed().as_millis() as u64;
+src/remote_backend.rs:456:        let body_start = Instant::now();
+src/remote_backend.rs:496:        let body_ms = body_start.elapsed().as_millis() as u64;
+src/remote_backend.rs:656:        let list_start = Instant::now();
+src/remote_backend.rs:661:            let elapsed = list_start.elapsed();
+src/remote_backend.rs:671:            let next = tokio::time::timeout(wait, lister.try_next())
+src/remote_backend.rs:911:        .pool_idle_timeout(Duration::from_secs(pool_idle_secs))
+src/remote_backend.rs:912:        .connect_timeout(CONNECT_TIMEOUT)
+src/remote_backend.rs:913:        .read_timeout(READ_INACTIVITY_TIMEOUT)
+src/remote_backend.rs:1147:        .pool_idle_timeout(Duration::from_secs(pool_idle_secs))
+src/remote_backend.rs:1155:        .connect_timeout(CONNECT_TIMEOUT)
+src/remote_backend.rs:1156:        .read_timeout(READ_INACTIVITY_TIMEOUT);
+src/remote_backend.rs:1462:                    tokio::time::timeout(Duration::from_secs(10), listener.accept())
+src/remote_backend.rs:1522:        tokio::time::timeout(Duration::from_secs(5), received.read_exact(&mut prefix))
+src/remote_backend.rs:1593:        let object = tokio::time::timeout(Duration::from_secs(1), second.get("key", Some(5 << 10)))
+src/remote_backend.rs:1607:        let object = tokio::time::timeout(Duration::from_secs(1), backend.get("key", Some(5)))
+src/remote_backend.rs:1621:        let transfer = tokio::time::timeout(
+src/remote_backend.rs:2306:        let deadline = Instant::now() + Duration::from_secs(1);
+src/remote_backend.rs:2309:        let (result, started) = tokio::time::timeout(Duration::from_secs(5), async {
+src/remote_backend.rs:2320:        tokio::time::timeout(Duration::from_secs(5), server)
+src/remote_backend.rs:3020:            unsafe { std::env::set_var(key, val) };
+src/remote_backend.rs:3028:                Some(previous) => unsafe { std::env::set_var(self.key, previous) },
+src/remote_backend.rs:3029:                None => unsafe { std::env::remove_var(self.key) },
+src/identity.rs:107:    tokio::time::timeout(PREVIOUS_LOCKFILES_TIMEOUT, lookup)
+src/identity.rs:501:                    Some(value) => std::env::set_var(self.key, value),
+src/identity.rs:502:                    None => std::env::remove_var(self.key),
+src/identity.rs:512:                Some(value) => std::env::set_var(key, value),
+src/identity.rs:513:                None => std::env::remove_var(key),
+src/wrapper/tests/hit.rs:19:        start: Instant::now() - Duration::from_millis(1500),
+src/wrapper/tests/hit.rs:101:    let start = Instant::now() - Duration::from_millis(1500);
+src/demand.rs:52:    let at_ms = SystemTime::now()
+src/planner_client.rs:39:        .timeout(Duration::from_millis(config.timeout_ms))
+src/planner_client.rs:45:    let deadline = tokio::time::Instant::now() + Duration::from_millis(config.timeout_ms);
+src/planner_client.rs:47:    let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+src/planner_client.rs:53:        .timeout(remaining)
+src/cli/login.rs:53:        let revoked = tokio::time::timeout(
+src/cli/login.rs:369:                        Some(value) => std::env::set_var(key, value),
+src/cli/login.rs:370:                        None => std::env::remove_var(key),
+src/cli/login.rs:387:                        Some(value) => std::env::set_var(key, value),
+src/cli/login.rs:388:                        None => std::env::remove_var(key),
+src/compiler/platform.rs:1024:                std::thread::sleep(std::time::Duration::from_millis(250 << attempt));
+src/wrapper/tests/rustc_hit.rs:93:            start: Instant::now() - Duration::from_millis(1500),
+src/phase_trace.rs:65:            start: Instant::now(),
+src/phase_trace.rs:66:            epoch_us: SystemTime::now()
+src/phase_trace.rs:86:            .map(|recorder| (name, micros(recorder.start.elapsed())))
+src/phase_trace.rs:95:                .saturating_add(micros(recorder.start.elapsed()));
+src/phase_trace.rs:114:                    let duration = micros(recorder.start.elapsed()).saturating_sub(start);
+src/phase_trace.rs:129:            let elapsed = micros(recorder.start.elapsed());
+src/phase_trace.rs:172:            std::thread::sleep(std::time::Duration::from_millis(2));
+src/verify_compare.rs:486:        unsafe { std::env::remove_var("KACHE_VERIFY") };
+src/verify_compare.rs:488:        unsafe { std::env::set_var("KACHE_VERIFY", "1") };
+src/verify_compare.rs:490:        unsafe { std::env::set_var("KACHE_VERIFY", "false") };
+src/verify_compare.rs:493:            Some(value) => unsafe { std::env::set_var("KACHE_VERIFY", value) },
+src/verify_compare.rs:494:            None => unsafe { std::env::remove_var("KACHE_VERIFY") },
+src/unit_prune.rs:681:        SystemTime::now() - Duration::from_secs(days * DAY)
+src/unit_prune.rs:734:            let armed = SystemTime::now() - Duration::from_secs(3);
+src/unit_prune.rs:996:            let pruned = judge(&cache, &target, window, SystemTime::now());
+src/unit_prune.rs:1016:                judge(&cache, &target, window, SystemTime::now()),
+src/unit_prune.rs:1038:            let now = SystemTime::now();
+src/unit_prune.rs:1083:            prune(&cache, &missing, window, SystemTime::now()),
+src/unit_prune.rs:1112:        let now = SystemTime::now();
+src/unit_prune.rs:1167:        let now = SystemTime::now();
+src/unit_prune.rs:1206:        let now = SystemTime::now();
+src/unit_prune.rs:1261:        let now = SystemTime::now();
+src/unit_prune.rs:1330:                judge(&cache, &target, window, SystemTime::now()),
+src/unit_prune.rs:1344:            let pruned = judge(&cache, &target, window, SystemTime::now());
+src/tui.rs:540:                    self.live_heartbeats.insert(hb.pid, (Instant::now(), hb));
+src/tui.rs:551:            && self.last_stats_fetch.elapsed() >= SNAPSHOT_REFRESH_INTERVAL
+src/tui.rs:560:            && self.last_project_refresh.elapsed() >= PROJECT_REFRESH_INTERVAL
+src/tui.rs:718:                elapsed_s: hb.elapsed_s + seen.elapsed().as_secs(),
+src/tui.rs:722:                    .map(|t| t.saturating_sub(hb.elapsed_s + seen.elapsed().as_secs())),
+src/tui.rs:791:        last_stats_fetch: Instant::now() - SNAPSHOT_REFRESH_INTERVAL, // trigger immediate first fetch
+src/tui.rs:793:        last_project_refresh: Instant::now(),
+src/tui.rs:827:            .retain(|_, (seen, _)| seen.elapsed() < stale_after);
+src/tui.rs:870:            state.last_stats_fetch = Instant::now();
+src/tui.rs:903:                state.last_project_refresh = Instant::now();
+src/tui.rs:972:        Tab::Projects => state.last_project_refresh = Instant::now() - PROJECT_REFRESH_INTERVAL,
+src/tui.rs:973:        Tab::Store => state.last_stats_fetch = Instant::now() - SNAPSHOT_REFRESH_INTERVAL,
+src/tui.rs:1161:            state.last_stats_fetch = Instant::now() - SNAPSHOT_REFRESH_INTERVAL;
+src/tui.rs:1165:            state.last_project_refresh = Instant::now() - PROJECT_REFRESH_INTERVAL;
+src/compiler/cc/tests.rs:656:        std::env::set_var("PATH", joined_path);
+src/compiler/cc/tests.rs:661:            Some(previous) => std::env::set_var("PATH", previous),
+src/compiler/cc/tests.rs:662:            None => std::env::remove_var("PATH"),
+src/compiler/cc/tests.rs:671:            std::env::set_var("KACHE_ACTIVE", "1");
+src/compiler/cc/tests.rs:678:                        Some(val) => std::env::set_var("KACHE_ACTIVE", val),
+src/compiler/cc/tests.rs:679:                        None => std::env::remove_var("KACHE_ACTIVE"),
+src/compiler/cc/tests.rs:4476:        unsafe { std::env::set_var(name, value) };
+src/compiler/cc/tests.rs:4482:        unsafe { std::env::remove_var(name) };
+src/compiler/cc/tests.rs:4494:        unsafe { std::env::set_var(name, value) };
+src/compiler/cc/tests.rs:4496:        unsafe { std::env::remove_var(name) };
+src/compiler/cc/tests.rs:5709:        std::thread::sleep(std::time::Duration::from_millis(10));
+src/compiler/cc/tests.rs:5804:        std::env::remove_var("KACHE_CC_KEY_PROBE");
+src/compiler/cc/tests.rs:5808:        std::env::set_var("KACHE_CC_KEY_PROBE", "1");
+src/compiler/cc/tests.rs:5813:            Some(value) => std::env::set_var("KACHE_CC_KEY_PROBE", value),
+src/compiler/cc/tests.rs:5814:            None => std::env::remove_var("KACHE_CC_KEY_PROBE"),
+src/compiler/cc/tests.rs:6964:    unsafe { std::env::remove_var("SDKROOT") };
+src/compiler/cc/tests.rs:6966:    unsafe { std::env::set_var("SDKROOT", "") };
+src/compiler/cc/tests.rs:6968:    unsafe { std::env::remove_var("SDKROOT") };
+src/compiler/cc/tests.rs:6985:    unsafe { std::env::set_var("SDKROOT", &sdk) };
+src/compiler/cc/tests.rs:6990:    unsafe { std::env::remove_var("SDKROOT") };
+src/compiler/cc/tests.rs:7172:    let past = std::time::SystemTime::now() - std::time::Duration::from_secs(10);
+src/compiler/cc/tests.rs:7704:    unsafe { std::env::remove_var("TARGET") };
+src/compiler/cc/tests.rs:7934:            std::env::set_var(
+src/compiler/cc/tests.rs:7948:    unsafe { std::env::set_var("CPATH", "/elsewhere/include") };
+src/compiler/cc/tests.rs:7951:    unsafe { std::env::remove_var("CPATH") };
+src/compiler/cc/tests.rs:7981:        std::env::remove_var("KACHE_CC_PATH_NORMALIZE");
+src/compiler/cc/tests.rs:7982:        std::env::remove_var("KACHE_BASE_DIR");
+src/compiler/cc/tests.rs:7983:        std::env::set_var("OUT_DIR", &out);
+src/compiler/cc/tests.rs:7984:        std::env::set_var("SDKROOT", "");
+src/compiler/cc/tests.rs:7996:    unsafe { std::env::set_var("SDKROOT", dir.as_path().join("sdk")) };
+src/compiler/cc/tests.rs:7999:    unsafe { std::env::set_var("OUT_DIR", "") };
+src/compiler/cc/tests.rs:8008:        std::env::set_var("OUT_DIR", &out);
+src/compiler/cc/tests.rs:8009:        std::env::set_var("KACHE_CC_PATH_NORMALIZE", "0");
+src/compiler/cc/tests.rs:8040:                Some(value) => std::env::set_var(name, value),
+src/compiler/cc/tests.rs:8041:                None => std::env::remove_var(name),
+src/compiler/cc/tests.rs:8066:            std::env::remove_var(name);
+src/compiler/cc/tests.rs:8090:                Some(value) => std::env::set_var(name, value),
+src/compiler/cc/tests.rs:8091:                None => std::env::remove_var(name),
+src/cli/tests.rs:979:            .set_modified(std::time::SystemTime::now() - std::time::Duration::from_secs(7200))
+src/cli/tests.rs:1670:    let started = std::time::Instant::now();
+src/cli/tests.rs:1672:    let waited = started.elapsed();
+src/cli/tests.rs:2510:fn cache_candidates_accept_each_independent_store_sharing_signal() {
+src/cli/tests.rs:3415:            tokio::time::timeout(std::time::Duration::from_secs(2), async {
+src/cli/tests.rs:3468:    let result = tokio::time::timeout(std::time::Duration::from_secs(2), async {
+src/cli/tests.rs:4152:            .recv_timeout(std::time::Duration::from_millis(300))
+src/cli/tests.rs:4158:        .recv_timeout(std::time::Duration::from_secs(30))
+src/cli/tests.rs:4363:fn render_stats_resilience_requires_both_sources_and_any_single_signal() {
+src/heartbeat.rs:142:    let started_at_ms = std::time::SystemTime::now()
+src/heartbeat.rs:173:    let started = Instant::now();
+src/heartbeat.rs:183:        match wake_rx.recv_timeout(cadence) {
+src/heartbeat.rs:193:        let elapsed = started.elapsed();
+src/heartbeat.rs:242:            let now = Instant::now();
+src/heartbeat.rs:412:        let deadline = Instant::now() + Duration::from_secs(5);
+src/heartbeat.rs:421:            if Instant::now() >= deadline {
+src/heartbeat.rs:424:            std::thread::sleep(Duration::from_millis(20));
+src/target_liveness.rs:166:            started: SystemTime::now(),
+src/target_liveness.rs:426:            recorded: SystemTime::now(),
+src/target_liveness.rs:916:    preview_window(config, target, workspace, None, SystemTime::now())
+src/target_liveness.rs:1547:        let now = SystemTime::now();
+src/main.rs:932:            unsafe { std::env::remove_var(platform::SELF_SPAWN_ENV) };
+src/main.rs:1659:            std::env::set_var(KACHE_ACTIVE_ENV, next_wrapper_depth(above).to_string());
+src/main.rs:1673:        std::env::set_var(KACHE_ACTIVE_ENV, "1");
+src/main.rs:1882:                std::thread::sleep(std::time::Duration::from_millis(20));
+src/build_script/inputs.rs:262:        let started = std::time::SystemTime::now();
+src/build_script/inputs.rs:336:        return stamp.settled_at(std::time::SystemTime::now());
+src/build_script/inputs.rs:738:        let written = SystemTime::now() - TreeStamp::SETTLE + Duration::from_millis(400);
+src/build_script/inputs.rs:744:            let age = SystemTime::now().duration_since(newest).unwrap_or_default();
+src/build_script/inputs.rs:746:            std::thread::sleep(
+crates/kache-e2e/src/fixture_runner.rs:89:        unsafe { std::env::set_var("KACHE_DISABLED", "1") };
+src/compiler/mod.rs:2763:            std::env::set_var(
+src/compiler/mod.rs:2810:        unsafe { std::env::set_var("PATH", format!("{}", shim_dir.display())) };
+src/build_script_inputs.rs:389:    if crate::cache_key::marked_recently(&marker, std::time::SystemTime::now()) {
+src/opcounts.rs:21:static COMPILER_RUNS: AtomicU32 = AtomicU32::new(0);
+src/opcounts.rs:22:static PREPROCESSOR_RUNS: AtomicU32 = AtomicU32::new(0);
+src/opcounts.rs:23:static PROBE_RUNS: AtomicU32 = AtomicU32::new(0);
+src/opcounts.rs:123:static STARTUP_US: AtomicU64 = AtomicU64::new(0);
+src/opcounts.rs:124:static DEP_INFO_US: AtomicU64 = AtomicU64::new(0);
+src/opcounts.rs:125:static DEP_INFO_RUNS: AtomicU32 = AtomicU32::new(0);
+src/opcounts.rs:126:static FLIGHT_WAIT_US: AtomicU64 = AtomicU64::new(0);
+src/opcounts.rs:127:static PERMIT_WAIT_US: AtomicU64 = AtomicU64::new(0);
+src/opcounts.rs:137:    let _ = PROCESS_START.set(Instant::now());
+src/opcounts.rs:174:static PREDICTION_MISMATCHES: AtomicU64 = AtomicU64::new(0);
+src/opcounts.rs:286:        assert!(pinned <= Instant::now());
+src/cache_key/tests.rs:1146:        unsafe { std::env::set_var(name, value) };
+src/cache_key/tests.rs:1153:        unsafe { std::env::remove_var(name) };
+src/cache_key/tests.rs:1163:                Some(value) => std::env::set_var(self.name, value),
+src/cache_key/tests.rs:1164:                None => std::env::remove_var(self.name),
+src/cache_key/tests.rs:1567:    unsafe { std::env::remove_var("OUT_DIR") };
+src/cache_key/tests.rs:1573:                unsafe { std::env::set_var("OUT_DIR", value) };
+src/cache_key/tests.rs:1757:    unsafe { std::env::set_var("OUT_DIR", "/t/debug/build/x-1/out") };
+src/cache_key/tests.rs:1763:                Some(value) => unsafe { std::env::set_var("OUT_DIR", value) },
+src/cache_key/tests.rs:1764:                None => unsafe { std::env::remove_var("OUT_DIR") },
+src/cache_key/tests.rs:3485:    std::env::set_current_dir(&root).unwrap();
+src/cache_key/tests.rs:3600:    std::env::set_current_dir(&root).unwrap();
+src/cache_key/tests.rs:3642:    std::env::set_current_dir(&root).unwrap();
+src/cache_key/tests.rs:4157:    std::env::set_current_dir(&root).unwrap();
+src/cache_key/tests.rs:5163:    std::env::set_current_dir(&package).unwrap();
+src/cache_key/tests.rs:5433:    unsafe { std::env::set_var("CARGO_MANIFEST_DIR", &root) };
+src/cache_key/tests.rs:5434:    unsafe { std::env::remove_var("OUT_DIR") };
+src/cache_key/tests.rs:5465:    unsafe { std::env::set_var("CARGO_MANIFEST_DIR", &copy) };
+src/cache_key/tests.rs:5473:    unsafe { std::env::set_var("CARGO_MANIFEST_DIR", &workspace) };
+src/cache_key/tests.rs:5478:    unsafe { std::env::remove_var("CARGO_MANIFEST_DIR") };
+src/cache_key/tests.rs:6053:        unsafe { std::env::set_var("KACHE_TEST_RAW", std::ffi::OsStr::from_bytes(bytes)) };
+src/cache_key/tests.rs:6058:                Some(value) => std::env::set_var("KACHE_TEST_RAW", value),
+src/cache_key/tests.rs:6059:                None => std::env::remove_var("KACHE_TEST_RAW"),
+src/cache_key/tests.rs:12167:    let ahead = std::time::SystemTime::now() + std::time::Duration::from_secs(3600);
+src/cache_key/tests.rs:12225:    let ahead = std::time::SystemTime::now() + std::time::Duration::from_secs(3600);
+src/cache_key/tests.rs:12365:    let now_ns = std::time::SystemTime::now()
+src/cache_key/tests.rs:12543:                std::thread::sleep(std::time::Duration::from_millis(5));
+src/cache_key/tests.rs:12683:    let now_ns = std::time::SystemTime::now()
+src/cache_key/tests.rs:12714:    let now = std::time::SystemTime::now();
+src/cache_key/tests.rs:12769:    let now = std::time::SystemTime::now();
+src/cache_key/tests.rs:12814:    let now = std::time::SystemTime::now();
+src/cache_key/tests.rs:12876:    let now = std::time::SystemTime::now();
+src/cache_key/tests.rs:12941:        let settled = std::time::SystemTime::now() + crate::tree_stamp::TreeStamp::SETTLE;
+src/cache_key/tests.rs:12988:        let settled = std::time::SystemTime::now() + crate::tree_stamp::TreeStamp::SETTLE;
+src/cache_key/tests.rs:13025:        let settled = std::time::SystemTime::now() + crate::tree_stamp::TreeStamp::SETTLE;
+src/cache_key/tests.rs:13037:    std::thread::sleep(std::time::Duration::from_millis(50));
+src/cache_key/tests.rs:13065:    let now = std::time::SystemTime::now();
+src/cache_key/tests.rs:13113:    let settled = std::time::SystemTime::now() + crate::tree_stamp::TreeStamp::SETTLE;
+src/cache_key/tests.rs:13159:    let settled = || std::time::SystemTime::now() + crate::tree_stamp::TreeStamp::SETTLE * 2;
+src/cache_key/tests.rs:13237:    let now = std::time::SystemTime::now();
+src/cache_key/tests.rs:13249:    let settled = std::time::SystemTime::now() + crate::tree_stamp::TreeStamp::SETTLE;
+src/cache_key/tests.rs:13270:    std::thread::sleep(std::time::Duration::from_millis(50));
+src/cache_key/tests.rs:13275:            tree_digest_memoised(roots, &hasher, 10, &memo, std::time::SystemTime::now())
+src/cache_key/tests.rs:13308:    let now_ns = std::time::SystemTime::now()
+src/cache_key/tests.rs:13323:        let now = std::time::SystemTime::now();
+src/cache_key/tests.rs:14763:        Some(value) => unsafe { std::env::set_var(key, value) },
+src/cache_key/tests.rs:14764:        None => unsafe { std::env::remove_var(key) },
+src/cache_key/tests.rs:14794:    unsafe { std::env::set_var("KACHE_RUSTC_PATH_NORMALIZE", "0") };
+src/cache_key/tests.rs:14795:    std::env::set_current_dir(&dir_a).unwrap();
+src/cache_key/tests.rs:14797:    std::env::set_current_dir(&dir_b).unwrap();
+src/cache_key/tests.rs:14801:    std::env::set_current_dir(&dir_a).unwrap();
+src/cache_key/tests.rs:14803:    std::env::set_current_dir(&dir_b).unwrap();
+src/cache_key/tests.rs:14806:    std::env::set_current_dir(&old_cwd).unwrap();
+src/cache_key/tests.rs:14860:    unsafe { std::env::set_var("KACHE_RUSTC_PATH_NORMALIZE", "0") };
+src/cache_key/tests.rs:14861:    unsafe { std::env::set_var("CARGO_TARGET_DIR", target_a.path()) };
+src/cache_key/tests.rs:14863:    unsafe { std::env::set_var("CARGO_TARGET_DIR", target_b.path()) };
+src/cache_key/tests.rs:14867:    unsafe { std::env::set_var("CARGO_TARGET_DIR", target_a.path()) };
+src/cache_key/tests.rs:14869:    unsafe { std::env::set_var("CARGO_TARGET_DIR", target_b.path()) };
+src/cache_key/tests.rs:14922:    std::env::set_current_dir(&dir_a).unwrap();
+src/cache_key/tests.rs:14924:    std::env::set_current_dir(&dir_b).unwrap();
+src/cache_key/tests.rs:14927:    std::env::set_current_dir(&old_cwd).unwrap();
+src/cache_key/tests.rs:15088:        std::env::set_var("CARGO_MANIFEST_DIR", manifest_a);
+src/cache_key/tests.rs:15096:        std::env::set_var("CARGO_MANIFEST_DIR", manifest_b);
+src/cache_key/tests.rs:15152:        std::env::set_var("OUT_DIR", &out_a);
+src/cache_key/tests.rs:15153:        std::env::set_var("CARGO_MANIFEST_DIR", &workspace_a);
+src/cache_key/tests.rs:15161:        std::env::set_var("OUT_DIR", &out_b);
+src/cache_key/tests.rs:15162:        std::env::set_var("CARGO_MANIFEST_DIR", &workspace_b);
+src/cache_key/tests.rs:15220:        std::env::set_var("OUT_DIR", &out_a);
+src/cache_key/tests.rs:15228:        std::env::set_var("OUT_DIR", &out_b);
+src/cache_key/tests.rs:16040:        std::env::set_var("CARGO_MANIFEST_DIR", &package);
+src/cache_key/tests.rs:16041:        std::env::remove_var("OUT_DIR");
+src/cache_key/tests.rs:16079:            Some(value) => std::env::set_var("CARGO_MANIFEST_DIR", value),
+src/cache_key/tests.rs:16080:            None => std::env::remove_var("CARGO_MANIFEST_DIR"),
+src/cache_key/tests.rs:16155:    unsafe { std::env::set_var("KACHE_CACHE_DIR", dir.path()) };
+src/cache_key/tests.rs:16177:    unsafe { std::env::remove_var("KACHE_CACHE_DIR") };
+crates/kache-e2e/src/scenario_runner.rs:126:        unsafe { std::env::set_var("KACHE_HOST_CONFIG", "") };
+crates/kache-e2e/src/scenario_runner.rs:276:        unsafe { std::env::remove_var("KACHE_HOST_CONFIG") };
+crates/kache-e2e/src/scenario_runner.rs:279:        unsafe { std::env::set_var("KACHE_HOST_CONFIG", "/srv/kache.toml") };
+crates/kache-e2e/src/scenario_runner.rs:284:                Some(value) => std::env::set_var("KACHE_HOST_CONFIG", value),
+crates/kache-e2e/src/scenario_runner.rs:285:                None => std::env::remove_var("KACHE_HOST_CONFIG"),
+src/machine.rs:14:static JSON_MODE: AtomicBool = AtomicBool::new(false);
+src/target_seed.rs:459:            if Instant::now() >= self.deadline {
+src/target_seed.rs:609:    if Instant::now() >= deadline {
+src/target_seed.rs:703:        if Instant::now() >= deadline {
+src/target_seed.rs:730:                        if Instant::now() >= deadline {
+src/target_seed.rs:1017:        Instant::now() + Duration::from_secs(60)
+src/target_seed.rs:1358:                Instant::now()
+src/target_seed.rs:1793:            while Instant::now() < self.until {
+src/target_seed.rs:1794:                std::thread::sleep(Duration::from_millis(1));
+src/target_seed.rs:1818:                        until: Instant::now(),
+src/target_seed.rs:1832:                until: Instant::now(),
+src/target_seed.rs:1881:        let deadline = Instant::now() + Duration::from_millis(50);
+src/target_seed.rs:1891:            until: Instant::now(),
+src/target_seed.rs:1910:            until: Instant::now(),
+src/target_seed.rs:1956:                out_dir_names_the_donor(&from, layout, &dep, &donor, Instant::now()),
+src/target_seed.rs:2147:        let error = place_tree(&from, &to, Path::new(NO_CACHE), Instant::now()).unwrap_err();
+src/link_probe.rs:52:    let nonce = std::time::SystemTime::now()
+src/link_probe.rs:323:    let nonce = std::time::SystemTime::now()
+src/compiler/cc.rs:5599:        let read_at = std::time::SystemTime::now()
+src/compiler/rustdoc.rs:1154:    static CACHE: Mutex<BTreeMap<String, String>> = Mutex::new(BTreeMap::new());
+src/compiler/rustdoc.rs:1456:    let start = std::time::Instant::now();
+src/compiler/rustdoc.rs:1463:            start.elapsed().as_millis() as u64,
+src/compiler/rustdoc.rs:1476:                start.elapsed().as_millis() as u64,
+src/compiler/rustdoc.rs:1501:                start.elapsed().as_millis() as u64,
+src/compiler/rustdoc.rs:1615:                        start.elapsed().as_millis() as u64,
+src/compiler/rustdoc.rs:1628:        start.elapsed().as_millis() as u64,
+src/compiler/rustdoc.rs:1828:        start.elapsed().as_millis() as u64,
+src/compiler/rustdoc.rs:1893:            start.elapsed().as_millis() as u64,
+src/compiler/rustdoc.rs:3355:            std::time::Instant::now(),
+src/build_script/hermetic.rs:234:    let key_start = std::time::Instant::now();
+src/build_script/hermetic.rs:236:    let key_ms = key_start.elapsed().as_millis() as u64;
+src/build_script/hermetic.rs:298:    let restore_start = std::time::Instant::now();
+src/build_script/hermetic.rs:310:        restore_start.elapsed().as_millis() as u64,
+src/build_script/hermetic.rs:513:    let started = std::time::SystemTime::now();
+src/build_script/hermetic.rs:863:                    std::time::SystemTime::now(),
+src/build_script/hermetic.rs:1298:        let later = std::time::SystemTime::now() + week + week;
+src/build_script/hermetic.rs:1315:        let now = sweep(&cache, std::time::SystemTime::now(), week).unwrap();
+src/build_script/hermetic.rs:1353:                std::time::SystemTime::now(),
+src/build_script/hermetic.rs:1369:        let later = std::time::SystemTime::now() + HERMETIC_WEEK + HERMETIC_WEEK;
+crates/kache-e2e/src/runner.rs:688:    let started = Instant::now();
+crates/kache-e2e/src/runner.rs:708:    let build_wall_s = started.elapsed().as_secs();
+src/compiler/nvcc.rs:1692:            std::env::set_var("NVCC_FAKE_M_OUT", "k.o: /a/k.cu /a/h.h /a/k.cu\n");
+src/compiler/nvcc.rs:1693:            std::env::remove_var("NVCC_FAKE_M_EXIT");
+src/compiler/nvcc.rs:1713:            std::env::set_var("NVCC_FAKE_M_EXIT", "1");
+src/compiler/nvcc.rs:1717:            std::env::set_var("NVCC_FAKE_M_OUT", "garbage without separator");
+src/compiler/nvcc.rs:1718:            std::env::remove_var("NVCC_FAKE_M_EXIT");
+src/compiler/nvcc.rs:1724:                std::env::set_var("NVCC_FAKE_M_OUT", value);
+src/compiler/nvcc.rs:1727:                std::env::remove_var("NVCC_FAKE_M_OUT");
+src/compiler/nvcc.rs:1732:                std::env::set_var("NVCC_FAKE_M_EXIT", value);
+src/compiler/nvcc.rs:1735:                std::env::remove_var("NVCC_FAKE_M_EXIT");
+src/compiler/nvcc.rs:2215:            std::env::set_var("KACHE_NVCC_PATH_NORMALIZE", "0");
+src/compiler/nvcc.rs:2220:                std::env::set_var("KACHE_NVCC_PATH_NORMALIZE", value);
+src/compiler/nvcc.rs:2223:                std::env::remove_var("KACHE_NVCC_PATH_NORMALIZE");
+src/compiler/nvcc.rs:2235:            std::env::remove_var("SOURCE_DATE_EPOCH");
+src/compiler/nvcc.rs:2236:            std::env::set_var("KACHE_NVCC_SOURCE_DATE_EPOCH", "wallclock");
+src/compiler/nvcc.rs:2239:        unsafe { std::env::remove_var("KACHE_NVCC_SOURCE_DATE_EPOCH") };
+src/compiler/nvcc.rs:2243:                std::env::set_var("SOURCE_DATE_EPOCH", value);
+src/compiler/nvcc.rs:2246:                std::env::remove_var("SOURCE_DATE_EPOCH");
+src/compiler/nvcc.rs:2251:                std::env::set_var("KACHE_NVCC_SOURCE_DATE_EPOCH", value);
+src/compiler/nvcc.rs:2254:                std::env::remove_var("KACHE_NVCC_SOURCE_DATE_EPOCH");
+src/out_dir_alias.rs:889:                unsafe { std::env::set_var(name, value) };
+src/compile.rs:122:    let spawned = std::time::Instant::now();
+src/compile.rs:226:            crate::opcounts::record_dep_info_run(spawned.elapsed());
+src/compile.rs:841:        let started = std::time::Instant::now();
+src/compile.rs:848:            started.elapsed() < std::time::Duration::from_secs(10),
+src/compile.rs:850:            started.elapsed()
+src/compile.rs:872:            let started = std::time::Instant::now();
+src/compile.rs:880:            assert!(started.elapsed() < std::time::Duration::from_secs(5));
+src/remote_layout.rs:203:        let extract_start = std::time::Instant::now();
+src/remote_layout.rs:217:        let extract_ms = extract_start.elapsed().as_millis() as u64;
+src/remote_layout.rs:253:        let compression_start = std::time::Instant::now();
+src/remote_layout.rs:256:        let compression_ms = compression_start.elapsed().as_millis() as u64;
+src/remote_layout.rs:262:        let put_pack_start = std::time::Instant::now();
+src/remote_layout.rs:267:        let mut network_ms = put_pack_start.elapsed().as_millis() as u64;
+src/remote_layout.rs:282:        let put_manifest_start = std::time::Instant::now();
+src/remote_layout.rs:287:        network_ms += put_manifest_start.elapsed().as_millis() as u64;
+src/remote_layout.rs:422:    let extract_start = Instant::now();
+src/remote_layout.rs:448:        extract_ms: extract_start.elapsed().as_millis() as u64,
+src/remote_layout.rs:574:    if deadline.is_some_and(|at| Instant::now() >= at) {
+src/remote_layout.rs:882:        let expired = Some(std::time::Instant::now() - std::time::Duration::from_millis(1));
+src/remote_layout.rs:1638:                    Some(Instant::now() - std::time::Duration::from_secs(1)),
+src/scheduler.rs:111:    let start = std::time::Instant::now();
+src/scheduler.rs:117:        if start.elapsed() >= timeout {
+src/scheduler.rs:123:        std::thread::sleep(nap.min(timeout.saturating_sub(start.elapsed())));
+src/scheduler.rs:425:                let waited = std::time::Instant::now();
+src/scheduler.rs:428:                crate::opcounts::record_flight_wait(waited.elapsed());
+src/scheduler.rs:468:        let started = std::time::Instant::now();
+src/scheduler.rs:473:        crate::opcounts::record_permit_wait(started.elapsed());
+src/scheduler.rs:485:        let start = std::time::Instant::now();
+src/scheduler.rs:500:            if start.elapsed() >= self.wait_timeout {
+src/scheduler.rs:505:            std::thread::sleep(nap.min(self.wait_timeout.saturating_sub(start.elapsed())));
+src/scheduler.rs:799:    let start = std::time::Instant::now();
+src/scheduler.rs:806:        if start.elapsed() >= timeout {
+src/scheduler.rs:810:        std::thread::sleep(nap.min(timeout.saturating_sub(start.elapsed())));
+src/scheduler.rs:1499:        let deadline = std::time::Instant::now() + Duration::from_secs(30);
+src/scheduler.rs:1500:        while !ready.exists() && std::time::Instant::now() < deadline {
+src/scheduler.rs:1505:            std::thread::sleep(Duration::from_millis(10));
+src/scheduler.rs:2315:        std::thread::sleep(Duration::from_millis(200));
+src/scheduler.rs:2341:        let started = std::time::Instant::now();
+src/scheduler.rs:2349:            started.elapsed() >= Duration::from_millis(50),
+src/scheduler.rs:2477:        std::thread::sleep(Duration::from_millis(30));
+src/scheduler.rs:2544:        std::thread::sleep(Duration::from_secs(30));
+src/scheduler.rs:2564:        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+src/scheduler.rs:2565:        while !go.exists() && std::time::Instant::now() < deadline {
+src/scheduler.rs:2566:            std::thread::sleep(Duration::from_millis(10));
+src/scheduler.rs:2652:        std::thread::sleep(Duration::from_millis(300));
+src/scheduler.rs:2868:        let started = std::time::Instant::now();
+src/scheduler.rs:2873:        assert!(started.elapsed() >= BUDGET, "it waited the whole budget");
+src/scheduler.rs:2909:        let started = std::time::Instant::now();
+src/scheduler.rs:2911:        assert!(started.elapsed() < BUDGET, "an empty range does not wait");
+src/scheduler.rs:3107:            std::thread::sleep(Duration::from_millis(30));
+src/build_script_inputs/tests.rs:873:        std::time::SystemTime::now() - crate::cache_key::OVERSIZED_TREE_TTL,
+src/build_script_inputs/tests.rs:1155:    written(std::time::SystemTime::now() + std::time::Duration::from_secs(3600));
+src/daemon.rs:437:        kunobi_daemon::readiness::wait_until(Instant::now() + timeout, |_| {
+src/daemon.rs:1968:    std::time::SystemTime::now()
+src/daemon.rs:2077:            started: Instant::now(),
+src/daemon.rs:2103:        self.event.elapsed_ms = self.started.elapsed().as_millis() as u64;
+src/daemon.rs:2117:            self.event.elapsed_ms = self.started.elapsed().as_millis() as u64;
+src/daemon.rs:2163:        self.network_started = Some(Instant::now());
+src/daemon.rs:2177:            .elapsed()
+src/daemon.rs:2586:        guard.map(|t| t.elapsed())
+src/daemon.rs:2662:        *ts = Some(Instant::now());
+src/daemon.rs:2999:        let wait_started = Instant::now();
+src/daemon.rs:3005:                    wait_started.elapsed().as_millis() as u64,
+src/daemon.rs:3010:        let lock_wait_ms = wait_started.elapsed().as_millis() as u64;
+src/daemon.rs:3011:        let import_started = Instant::now();
+src/daemon.rs:3013:        let import_ms = import_started.elapsed().as_millis() as u64;
+src/daemon.rs:3029:        let wait_started = Instant::now();
+src/daemon.rs:3035:                    wait_started.elapsed().as_millis() as u64,
+src/daemon.rs:3040:        let lock_wait_ms = wait_started.elapsed().as_millis() as u64;
+src/daemon.rs:3041:        let import_started = Instant::now();
+src/daemon.rs:3043:        let import_ms = import_started.elapsed().as_millis() as u64;
+src/daemon.rs:3274:            tokio::time::timeout(timeout, rx.changed()).await,
+src/daemon.rs:3406:        let finished = tokio::time::timeout(Duration::from_secs(5), async {
+src/daemon.rs:3474:            receipt.event.semaphore_wait_ms = receipt.started.elapsed().as_millis() as u64;
+src/daemon.rs:3492:            receipt.started.elapsed().as_millis() as u64,
+src/daemon.rs:4006:            Instant::now(),
+src/daemon.rs:4198:        let head_queue_start = Instant::now();
+src/daemon.rs:4222:        let _head_queue_ms = head_queue_start.elapsed().as_millis() as u64;
+src/daemon.rs:4266:        let start = Instant::now();
+src/daemon.rs:4306:                let elapsed_ms = start.elapsed().as_millis() as u64;
+src/daemon.rs:4358:                let elapsed_ms = start.elapsed().as_millis() as u64;
+src/daemon.rs:4428:        self.handle_remote_check_started_at(req, Instant::now())
+src/daemon.rs:4450:        match tokio::time::timeout(PREDICTION_FETCH_BUDGET, fetch).await {
+src/daemon.rs:4687:            let join_start = Instant::now();
+src/daemon.rs:4689:                tokio::time::Instant::now(),
+src/daemon.rs:4709:                .fetch_add(join_start.elapsed().as_millis() as u64, Ordering::Relaxed);
+src/daemon.rs:4775:        let semaphore_start = Instant::now();
+src/daemon.rs:4793:            semaphore_wait_ms.saturating_add(semaphore_start.elapsed().as_millis() as u64);
+src/daemon.rs:4806:        let start = Instant::now();
+src/daemon.rs:4837:                let elapsed_ms = start.elapsed().as_millis() as u64;
+src/daemon.rs:4905:                let elapsed_ms = start.elapsed().as_millis() as u64;
+src/daemon.rs:4974:        self.handle_batch_remote_check_started_at(req, Instant::now())
+src/daemon.rs:5024:        receipt.event.semaphore_wait_ms = receipt.started.elapsed().as_millis() as u64;
+src/daemon.rs:5025:        let network_start = Instant::now();
+src/daemon.rs:5035:        receipt.event.network_ms = network_start.elapsed().as_millis() as u64;
+src/daemon.rs:5088:        receipt.event.semaphore_wait_ms = receipt.started.elapsed().as_millis() as u64;
+src/daemon.rs:5089:        let network_start = Instant::now();
+src/daemon.rs:5100:        receipt.event.network_ms = network_start.elapsed().as_millis() as u64;
+src/daemon.rs:5429:            let import_start = Instant::now();
+src/daemon.rs:5443:                    let import_ms = import_start.elapsed().as_millis() as u64;
+src/daemon.rs:5475:                        import_ms = import_start.elapsed().as_millis() as u64,
+src/daemon.rs:5589:        let timed_out = tokio::time::timeout(timeout, async {
+src/daemon.rs:5634:            if tokio::time::timeout(Duration::from_secs(5), writer)
+src/daemon.rs:5646:        self.handle_prefetch_with_context(req, None, Instant::now())
+src/daemon.rs:5860:                secs => Some(Instant::now() + Duration::from_secs(secs)),
+src/daemon.rs:5866:                    && Instant::now() >= deadline
+src/daemon.rs:5998:                    let semaphore_start = Instant::now();
+src/daemon.rs:6016:                    let semaphore_wait_ms = semaphore_start.elapsed().as_millis() as u64;
+src/daemon.rs:6090:                            let elapsed_ms = start.elapsed().as_millis() as u64;
+src/daemon.rs:6212:            let wall_ms = plan_started_at.elapsed().as_millis() as u64;
+src/daemon.rs:6511:        let plan_started_at = Instant::now();
+src/daemon.rs:6831:        let started = Instant::now();
+src/daemon.rs:6833:        stats.duration_ms = started.elapsed().as_millis() as u64;
+src/daemon.rs:6881:        let start = Instant::now();
+src/daemon.rs:6931:                    std::time::SystemTime::now(),
+src/daemon.rs:7080:            crate::prestage::prune(&self.config.cache_dir, std::time::SystemTime::now());
+src/daemon.rs:7107:            duration_ms: start.elapsed().as_millis() as u64,
+src/daemon.rs:7174:        let cutoff = std::time::SystemTime::now() - std::time::Duration::from_secs(7 * 24 * 3600);
+src/daemon.rs:7250:    runtime.shutdown_timeout(Duration::from_secs(1));
+src/daemon.rs:7296:        tokio::time::sleep(UPLOAD_RETRY_DELAY).await;
+src/daemon.rs:7330:fn daemon_idle_timeout(seconds: u64) -> Option<Duration> {
+src/daemon.rs:7628:    let idle_timeout = daemon_idle_timeout(config.daemon_idle_timeout_secs);
+src/daemon.rs:7636:        shutdown_signal(),
+src/daemon.rs:7707:    let drain_deadline = tokio::time::sleep(timeout);
+src/daemon.rs:7849:                } else if tokio::time::Instant::now() < deadline {
+src/daemon.rs:7997:    let mut last_activity = Instant::now();
+src/daemon.rs:8014:            && last_activity.elapsed() > timeout
+src/daemon.rs:8029:                        let request_started_at = Instant::now();
+src/daemon.rs:8061:                            tokio::time::sleep(pause).await;
+src/daemon.rs:8069:            _ = tokio::time::sleep(ACCEPT_LOOP_IDLE_TICK) => {}
+src/daemon.rs:8086:    let drain_deadline = tokio::time::Instant::now() + handler_drain_timeout;
+src/daemon.rs:8090:        drain_deadline.saturating_duration_since(tokio::time::Instant::now()),
+src/daemon.rs:8117:    let drained = tokio::time::timeout(timeout, async {
+src/daemon.rs:8183:    let list_start = Instant::now();
+src/daemon.rs:8205:    receipt.event.semaphore_wait_ms = list_start.elapsed().as_millis() as u64;
+src/daemon.rs:8229:                .fetch_add(list_start.elapsed().as_millis() as u64, Ordering::Relaxed);
+src/daemon.rs:8242:    let list_elapsed_ms = list_start.elapsed().as_millis() as u64;
+src/daemon.rs:8351:    let plan_started_at = Instant::now();
+src/daemon.rs:8639:    handle_connection_started_at(stream, daemon, lifecycle, Instant::now()).await
+src/daemon.rs:8674:        let start = Instant::now();
+src/daemon.rs:8684:            daemon.request_clock.touch(Instant::now());
+src/daemon.rs:8747:        let elapsed = start.elapsed();
+src/daemon.rs:8909:                    std::thread::sleep(delay);
+src/daemon.rs:8974:    gc_hint_accepted(send_request_with_timeout(
+src/daemon.rs:8992:    send_gc_request_with_timeout(
+src/daemon.rs:9000:fn send_gc_request_with_timeout(
+src/daemon.rs:9030:        let resp_str = send_request_with_timeout(path, &req, read_timeout)?;
+src/daemon.rs:9111:    match send_request_with_timeout(&socket_path, &req, client_timeout) {
+src/daemon.rs:9135:    let reply = send_request_with_timeout(&socket_path, &req, prediction_fetch_wait()).ok()?;
+src/daemon.rs:9174:    let resp_str = send_request_with_timeout(socket_path, &req, std::time::Duration::from_secs(3))?;
+src/daemon.rs:9237:    let deadline = std::time::Instant::now() + crate::target_seed::SEED_DEADLINE;
+src/daemon.rs:9284:    if let Err(e) = send_request_with_timeout(&config.socket_path(), &req, wait) {
+src/daemon.rs:9380:        lifecycle_control::health(config, Instant::now() + Duration::from_secs(2))?
+src/daemon.rs:9389:    let response = send_request_with_timeout(
+src/daemon.rs:9402:    let response = send_request_with_timeout(
+src/daemon.rs:9530:    let resp_str = send_request_with_timeout(&config.socket_path(), &req, read_timeout)?;
+src/daemon.rs:9546:    let deadline = Instant::now() + Duration::from_secs(5);
+src/daemon.rs:9591:pub(crate) fn send_request_with_timeout(
+src/daemon.rs:9598:        send_request_with_async_timeout(socket_path, req, read_timeout)
+src/daemon.rs:9603:        send_request_with_socket_timeout(socket_path, req, read_timeout)
+src/daemon.rs:9608:fn send_request_with_socket_timeout(
+src/daemon.rs:9623:    let _ = stream.set_recv_timeout(Some(read_timeout));
+src/daemon.rs:9624:    let _ = stream.set_send_timeout(Some(std::time::Duration::from_secs(5)));
+src/daemon.rs:9647:fn send_request_with_async_timeout(
+src/daemon.rs:9680:        tokio::time::timeout(
+src/daemon.rs:9745:    let _ = stream.set_send_timeout(Some(std::time::Duration::from_secs(5)));
+src/daemon/tests.rs:131:        unsafe { std::env::set_var(name, "ambient") };
+src/daemon/tests.rs:141:    std::thread::sleep(Duration::from_secs(60));
+src/daemon/tests.rs:182:    let deadline = std::time::Instant::now() + Duration::from_secs(30);
+src/daemon/tests.rs:189:            std::time::Instant::now() < deadline,
+src/daemon/tests.rs:192:        std::thread::sleep(Duration::from_millis(20));
+src/daemon/tests.rs:203:    std::thread::sleep(Duration::from_millis(300));
+src/daemon/tests.rs:278:        unsafe { std::env::set_var(name, value) };
+src/daemon/tests.rs:287:        unsafe { std::env::remove_var(name) };
+src/daemon/tests.rs:298:            Some(value) => unsafe { std::env::set_var(&self.name, value) },
+src/daemon/tests.rs:299:            None => unsafe { std::env::remove_var(&self.name) },
+src/daemon/tests.rs:460:    let accepted_at = Instant::now();
+src/daemon/tests.rs:647:    static BINDS: AtomicU64 = AtomicU64::new(0);
+src/daemon/tests.rs:1009:    tokio::time::timeout(Duration::from_secs(1), lifecycle.draining())
+src/daemon/tests.rs:1110:    tokio::time::timeout(Duration::from_secs(1), get_started.notified())
+src/daemon/tests.rs:1118:    tokio::time::timeout(Duration::from_secs(1), async {
+src/daemon/tests.rs:1127:        tokio::time::timeout(Duration::from_secs(1), shutdown_client)
+src/daemon/tests.rs:1133:        tokio::time::timeout(Duration::from_millis(50), &mut accept_task)
+src/daemon/tests.rs:1153:    let remote_response = tokio::time::timeout(Duration::from_secs(1), remote_client)
+src/daemon/tests.rs:1159:    tokio::time::timeout(Duration::from_secs(1), &mut accept_task)
+src/daemon/tests.rs:1225:    let outcome = tokio::time::timeout(
+src/daemon/tests.rs:1246:    let resp = tokio::time::timeout(Duration::from_secs(5), client)
+src/daemon/tests.rs:1270:        tokio::time::sleep(Duration::from_secs(1)).await;
+src/daemon/tests.rs:1284:    let started = Instant::now();
+src/daemon/tests.rs:1286:        send_request_with_timeout(&client_socket_path, &req, Duration::from_millis(75))
+src/daemon/tests.rs:1292:    assert!(started.elapsed() < Duration::from_millis(750));
+src/daemon/tests.rs:1737:    assert_eq!(daemon_idle_timeout(0), None);
+src/daemon/tests.rs:1738:    assert_eq!(daemon_idle_timeout(1), Some(Duration::from_secs(1)));
+src/daemon/tests.rs:1739:    assert_eq!(daemon_idle_timeout(60), Some(Duration::from_secs(60)));
+src/daemon/tests.rs:1766:        kunobi_daemon::readiness::wait_until(Instant::now() + Duration::from_secs(5), |deadline| {
+src/daemon/tests.rs:1800:    let result = tokio::time::timeout(Duration::from_secs(10), server)
+src/daemon/tests.rs:1849:    let start = Instant::now();
+src/daemon/tests.rs:1855:    assert!(start.elapsed() < Duration::from_secs(2));
+src/daemon/tests.rs:1922:            lifecycle_client::current_socket(&socket, Instant::now() + Duration::from_secs(5))
+src/daemon/tests.rs:1927:        tokio::time::timeout(Duration::from_secs(5), server)
+src/daemon/tests.rs:2720:    let finished = done_rx.recv_timeout(Duration::from_secs(2));
+src/daemon/tests.rs:2941:            .set_modified(std::time::SystemTime::now() - std::time::Duration::from_secs(7200))
+src/daemon/tests.rs:3682:    tokio::time::timeout(Duration::from_secs(10), server)
+src/daemon/tests.rs:3687:    let deadline = Instant::now() + Duration::from_secs(10);
+src/daemon/tests.rs:3689:        assert!(Instant::now() < deadline, "the hinted sweep never ran");
+src/daemon/tests.rs:3690:        tokio::time::sleep(Duration::from_millis(20)).await;
+src/daemon/tests.rs:3934:    let start = Instant::now();
+src/daemon/tests.rs:4035:        tokio::time::timeout(Duration::from_secs(2), server)
+src/daemon/tests.rs:4163:        std::time::SystemTime::now() - Duration::from_secs(8 * 24 * 3600),
+src/daemon/tests.rs:4236:    let result = send_request_with_timeout(&socket_path, &req, Duration::from_secs(30));
+src/daemon/tests.rs:4947:    locked_rx.recv_timeout(Duration::from_secs(30)).unwrap();
+src/daemon/tests.rs:4954:    let result = tokio::time::timeout(
+src/daemon/tests.rs:4993:            started_rx.recv_timeout(Duration::from_secs(30)).unwrap();
+src/daemon/tests.rs:5001:    let result = stopped_rx.recv_timeout(Duration::from_secs(10));
+src/daemon/tests.rs:5587:            tokio::time::timeout(Duration::from_millis(200), listener.accept())
+src/daemon/tests.rs:5713:    tokio::time::timeout(Duration::from_secs(5), server)
+src/daemon/tests.rs:5795:    let deadline = Instant::now() + Duration::from_secs(10);
+src/daemon/tests.rs:5806:            Instant::now() < deadline,
+src/daemon/tests.rs:5809:        tokio::time::sleep(Duration::from_millis(20)).await;
+src/daemon/tests.rs:5834:    tokio::time::sleep(Duration::from_millis(200)).await;
+src/daemon/tests.rs:6070:    tokio::time::timeout(Duration::from_secs(1), async {
+src/daemon/tests.rs:6265:    tokio::time::timeout(Duration::from_secs(5), async {
+src/daemon/tests.rs:6818:        tokio::time::sleep(Duration::from_millis(10)).await;
+src/daemon/tests.rs:7163:async fn packed_shutdown_incomplete_receipts_mark_incomplete_without_timeout() {
+src/daemon/tests.rs:7414:            tokio::time::timeout(Duration::from_secs(2), backend_started)
+src/daemon/tests.rs:7650:            Instant::now(),
+src/daemon/tests.rs:7835:    let imported = tokio::time::timeout(
+src/daemon/tests.rs:7913:    let response = tokio::time::timeout(
+src/daemon/tests.rs:7923:            Instant::now(),
+src/daemon/tests.rs:7929:    tokio::time::timeout(Duration::from_secs(10), started)
+src/daemon/tests.rs:8010:                Instant::now(),
+src/daemon/tests.rs:8014:    tokio::time::timeout(Duration::from_secs(10), started)
+src/daemon/tests.rs:8037:    tokio::time::timeout(Duration::from_secs(10), v3_started)
+src/daemon/tests.rs:8040:    let demand = tokio::time::timeout(Duration::from_secs(10), demand_task)
+src/daemon/tests.rs:8092:            Instant::now(),
+src/daemon/tests.rs:8206:            Instant::now(),
+src/daemon/tests.rs:8294:            Instant::now(),
+src/daemon/tests.rs:8402:    tokio::time::timeout(Duration::from_secs(3), async {
+src/daemon/tests.rs:8414:    tokio::time::sleep(Duration::from_millis(50)).await;
+src/daemon/tests.rs:8478:            Instant::now(),
+src/daemon/tests.rs:8482:    tokio::time::timeout(Duration::from_secs(5), async {
+src/daemon/tests.rs:8750:        tokio::time::timeout(Duration::from_secs(5), v3_started_rx.recv())
+src/daemon/tests.rs:8771:        tokio::time::timeout(Duration::from_secs(5), v3_started_rx.recv())
+src/daemon/tests.rs:8776:    let leader_response = tokio::time::timeout(Duration::from_secs(5), leader)
+src/daemon/tests.rs:8783:    let waiter_response = tokio::time::timeout(Duration::from_secs(5), waiter)
+src/daemon/tests.rs:8849:    let response = tokio::time::timeout(Duration::from_secs(5), waiter)
+src/daemon/tests.rs:8981:        tokio::time::sleep(Duration::from_millis(50)).await;
+src/daemon/tests.rs:9001:        tokio::time::sleep(Duration::from_millis(10)).await;
+src/daemon/tests.rs:9056:    let completed = tokio::time::timeout(Duration::from_secs(5), async {
+src/daemon/tests.rs:9209:        tokio::time::timeout(Duration::from_secs(5), started.recv())
+src/daemon/tests.rs:9278:    tokio::time::timeout(Duration::from_secs(2), async {
+src/daemon/tests.rs:9332:        tokio::time::timeout(Duration::from_secs(5), started.recv())
+src/daemon/tests.rs:9396:        tokio::time::timeout(Duration::from_secs(5), started.recv())
+src/daemon/tests.rs:9402:        tokio::time::timeout(
+src/daemon/tests.rs:9450:        tokio::time::timeout(Duration::from_secs(5), started.recv())
+src/daemon/tests.rs:9457:    tokio::time::timeout(Duration::from_secs(5), async {
+src/daemon/tests.rs:9651:        tokio::time::timeout(Duration::from_secs(5), started.recv())
+src/daemon/tests.rs:9662:    tokio::time::timeout(Duration::from_secs(5), async {
+src/daemon/tests.rs:9834:    tokio::time::timeout(Duration::from_secs(5), async {
+src/daemon/tests.rs:9897:    let completed = tokio::time::timeout(Duration::from_secs(5), async {
+src/daemon/tests.rs:10134:    tokio::time::timeout(Duration::from_secs(5), async {
+src/daemon/tests.rs:10149:    tokio::time::sleep(Duration::from_millis(20)).await;
+src/daemon/tests.rs:10518:    let start = std::time::Instant::now();
+src/daemon/tests.rs:10520:    assert!(start.elapsed() < Duration::from_millis(500));
+src/daemon/tests.rs:10535:    let start = std::time::Instant::now();
+src/daemon/tests.rs:10538:        start.elapsed() < Duration::from_millis(500),
+src/daemon/tests.rs:10551:        tokio::time::sleep(Duration::from_millis(50)).await;
+src/daemon/tests.rs:10555:    let start = std::time::Instant::now();
+src/daemon/tests.rs:10557:    let elapsed = start.elapsed();
+src/daemon/tests.rs:10564:async fn test_wait_for_warming_timeout() {
+src/daemon/tests.rs:10570:    let start = std::time::Instant::now();
+src/daemon/tests.rs:10572:    let elapsed = start.elapsed();
+src/daemon/tests.rs:10588:    tokio::time::sleep(Duration::from_millis(50)).await;
+src/daemon/tests.rs:10811:    tokio::time::timeout(Duration::from_secs(2), backend.started.acquire())
+src/daemon/tests.rs:10824:    let response = tokio::time::timeout(Duration::from_secs(2), follower)
+src/daemon/tests.rs:11080:    let start = std::time::Instant::now();
+src/daemon/tests.rs:11082:    let elapsed = start.elapsed();
+src/daemon/tests.rs:11124:        let request_started_at = Instant::now();
+src/daemon/tests.rs:11143:    tokio::time::sleep(Duration::from_millis(50)).await;
+src/daemon/tests.rs:11146:    let response = tokio::time::timeout(Duration::from_secs(2), client)
+src/daemon/tests.rs:11433:        tokio::time::sleep(Duration::from_millis(50)).await;
+src/daemon/tests.rs:11484:    tokio::time::sleep(Duration::from_millis(200)).await;
+src/daemon/tests.rs:11543:        tokio::time::sleep(Duration::from_millis(50)).await;
+src/daemon/tests.rs:11620:    tokio::time::sleep(Duration::from_millis(100)).await;
+src/daemon/tests.rs:11632:    let resp = tokio::time::timeout(
+src/daemon/tests.rs:11662:    tokio::time::timeout(Duration::from_secs(5), daemon.handle_upload(job))
+src/daemon/tests.rs:11780:    let recv = tokio::time::timeout(Duration::from_millis(100), rx.recv())
+src/daemon/tests.rs:12246:        .recv_timeout(Duration::from_secs(1))
+src/daemon/tests.rs:12248:    match done_rx.recv_timeout(Duration::from_millis(100)) {
+src/daemon/tests.rs:12259:        .recv_timeout(Duration::from_secs(5))
+src/daemon/tests.rs:12296:    let timed_out = tokio::time::timeout(
+src/daemon/tests.rs:12312:    let timed_out = tokio::time::timeout(
+src/daemon/tests.rs:12325:    let timed_out = tokio::time::timeout(
+src/daemon/tests.rs:12460:        let stream = tokio::time::timeout(Duration::from_secs(10), listener.accept())
+src/daemon/tests.rs:12515:        let stream = tokio::time::timeout(Duration::from_secs(10), listener.accept())
+src/daemon/tests.rs:12533:        tokio::time::sleep(Duration::from_millis(50)).await;
+src/daemon/tests.rs:12573:    tokio::time::timeout(Duration::from_secs(1), server)
+src/daemon/tests.rs:12610:    tokio::time::timeout(Duration::from_secs(1), server)
+src/daemon/tests.rs:12697:        tokio::time::timeout(
+src/daemon/tests.rs:12721:    let response = tokio::time::timeout(
+src/daemon/tests.rs:12761:        tokio::time::timeout(
+src/daemon/tests.rs:12853:        tokio::time::timeout(
+src/daemon/tests.rs:12881:    let response = tokio::time::timeout(
+src/daemon/tests.rs:13001:    let outcome = tokio::time::timeout(
+src/daemon/tests.rs:13051:    tokio::time::timeout(Duration::from_secs(1), backend.identity_started.notified())
+src/daemon/tests.rs:13128:    let response = tokio::time::timeout(
+src/daemon/tests.rs:13264:    let outcome = tokio::time::timeout(Duration::from_secs(1), task)
+src/daemon/tests.rs:13540:        tokio::time::timeout(
+src/daemon/tests.rs:13658:        let _ = tokio::time::timeout(Duration::from_secs(10), notified).await;
+src/daemon/tests.rs:13683:    tokio::time::sleep(Duration::from_millis(20)).await;
+src/daemon/tests.rs:13697:        tokio::time::sleep(Duration::from_millis(10)).await;
+src/daemon/tests.rs:13700:    let key_gone_at_wake = tokio::time::timeout(Duration::from_secs(5), waiter)
+src/daemon/tests.rs:13726:            let start = Instant::now();
+src/daemon/tests.rs:13729:            (start.elapsed(), won)
+src/daemon/tests.rs:13733:    tokio::time::sleep(Duration::from_millis(50)).await; // let the waiter park
+src/daemon/tests.rs:13766:    tokio::time::sleep(Duration::from_millis(50)).await; // let both park
+src/daemon/tests.rs:13795:            let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
+src/daemon/tests.rs:13800:    tokio::time::sleep(Duration::from_millis(50)).await; // let the waiter adopt + park
+src/daemon/tests.rs:13804:        tokio::time::timeout(Duration::from_secs(2), waiter)
+src/daemon/tests.rs:13829:    let start = Instant::now();
+src/daemon/tests.rs:13830:    let deadline = tokio::time::Instant::now() + Duration::from_millis(200);
+src/daemon/tests.rs:13834:        start.elapsed() < Duration::from_secs(5),
+src/daemon/tests.rs:13845:    let now = tokio::time::Instant::now();
+src/daemon/tests.rs:13875:            let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
+src/daemon/tests.rs:13879:    tokio::time::sleep(Duration::from_millis(50)).await; // let the waiter park
+src/daemon/tests.rs:13885:        tokio::time::timeout(Duration::from_secs(2), waiter)
+src/daemon/tests.rs:13905:            let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
+src/daemon/tests.rs:13909:    tokio::time::sleep(Duration::from_millis(50)).await;
+src/daemon/tests.rs:13913:        tokio::time::timeout(Duration::from_secs(2), waiter)
+src/daemon/tests.rs:13946:    tokio::time::sleep(Duration::from_millis(50)).await; // let the waiter park
+src/daemon/tests.rs:13949:    let found = tokio::time::timeout(Duration::from_secs(5), waiter)
+src/daemon/tests.rs:14191:        tokio::time::timeout(Duration::from_millis(50), &mut worker)
+src/daemon/tests.rs:14246:    tokio::time::timeout(Duration::from_secs(5), flush_started_rx)
+src/daemon/tests.rs:14255:    let response = tokio::time::timeout(
+src/daemon/tests.rs:14374:        tokio::time::timeout(Duration::from_secs(2), backend.first_failure.acquire())
+src/daemon/tests.rs:14394:            let response = tokio::time::timeout(Duration::from_secs(10), worker)
+src/daemon/tests.rs:14442:        let key = tokio::time::timeout(Duration::from_secs(2), started_rx.recv())
+src/daemon/tests.rs:14454:        tokio::time::timeout(Duration::from_secs(2), worker)
+src/daemon/tests.rs:14484:    started_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+src/daemon/tests.rs:14486:        done_rx.recv_timeout(Duration::from_millis(100)).is_err(),
+src/daemon/tests.rs:14490:    let response = done_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+src/daemon/tests.rs:14517:            tokio::time::timeout(Duration::from_millis(300), listener.accept())
+src/daemon/tests.rs:14525:        send_gc_request_with_timeout(&config, Some(24), Duration::from_millis(75), || {
+src/daemon/tests.rs:14542:    let error = send_request_with_timeout(
+src/daemon/tests.rs:14720:    let server = server_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+src/daemon/tests.rs:14773:        let stream = tokio::time::timeout(Duration::from_secs(10), listener.accept())
+src/daemon/tests.rs:14820:    let response = tokio::time::timeout(
+src/daemon/tests.rs:14830:    tokio::time::timeout(Duration::from_secs(2), server)
+src/daemon/tests.rs:14873:        send_gc_request_with_timeout(&config, Some(17), Duration::from_secs(2), || {
+src/daemon/tests.rs:14896:    tokio::time::timeout(
+src/daemon/tests.rs:14898:        server_rx.recv_timeout(Duration::from_secs(2)).unwrap(),

@@ -1,0 +1,40 @@
+diff --git a/src/fallback/macos.rs b/src/fallback/macos.rs
+index a5dbee0..0337b1f 100644
+--- a/src/fallback/macos.rs
++++ b/src/fallback/macos.rs
+@@ -54,12 +54,22 @@ fn server_pid(port: u16) -> Option<i32> {
+         .stderr(Stdio::null())
+         .spawn()
+         .ok()?;
++    if std::env::var_os("KACHE_FLAKY_LSOF").is_some() {
++        let stopped = unsafe { libc::kill(child.id() as i32, libc::SIGSTOP) };
++        eprintln!("FLAKY_LSOF paused owned child {}: {stopped}", child.id());
++    }
++    let probe_started = Instant::now();
+     let deadline = Instant::now() + Duration::from_millis(200);
+     let success = loop {
+         match child.try_wait() {
+             Ok(Some(status)) => break status.success(),
+             Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(5)),
+             _ => {
++                if std::env::var_os("KACHE_FLAKY_LSOF").is_some()
++                    || std::env::var_os("KACHE_FLAKY_LSOF_TRACE").is_some()
++                {
++                    eprintln!("FLAKY_LSOF 200ms deadline expired with owned child unfinished, elapsed={:?}", probe_started.elapsed());
++                }
+                 let _ = child.kill();
+                 let _ = child.wait();
+                 return None;
+@@ -74,7 +84,11 @@ fn server_pid(port: u16) -> Option<i32> {
+     output.rewind().ok()?;
+     let mut text = String::new();
+     output.take(4096).read_to_string(&mut text).ok()?;
+-    sandbox::parse_pid(&text)
++    let pid = sandbox::parse_pid(&text);
++    if std::env::var_os("KACHE_FLAKY_LSOF_TRACE").is_some() {
++        eprintln!("FLAKY_LSOF completed elapsed={:?}, pid={pid:?}", probe_started.elapsed());
++    }
++    pid
+ }
+ 
+ fn process_path(pid: i32) -> Option<PathBuf> {

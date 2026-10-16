@@ -1,0 +1,27 @@
+{"id": "R05", "command": ["env", "KACHE_FLAKY_PROBE=SDKROOT", "./scripts/with-test-resources.sh", "cargo", "test", "-p", "kache", "--bin", "kache", "terminal_formatting_shares_cc_keys_with_cold_and_warm_probes", "--", "--test-threads=1", "--nocapture"], "load": "{ 71.50 43.72 36.12 }", "start": "2026-10-14T01:41:11Z", "threads": "1"}
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling kache v1.1.1 (/Users/viktor/Developer/github/kache-investigations/flaky-sol)
+    Finished `test` profile [unoptimized] target(s) in 2m 37s
+     Running unittests src/main.rs (/private/tmp/kache-flaky/sol/target/debug/deps/kache-881bf021f508393b)
+
+running 1 test
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FLAKY_PROBE removing SDKROOT=Some("/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk")
+
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (147823926) panicked at src/compiler/cc/tests.rs:310:9:
+assertion `left == right` failed
+  left: "e7001bca5ac575b023348b437ad4bb940ff5f1453e45a142b1acf130499f57e2"
+ right: "aef934ce006e80408cc673d337f2ce4c1770aab489a627f488375a0d68867490"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4459 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `-p kache --bin kache`

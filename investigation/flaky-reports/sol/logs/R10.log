@@ -1,0 +1,19 @@
+{"id": "R10", "command": ["env", "KACHE_FLAKY_WARMING=1", "./scripts/with-test-resources.sh", "cargo", "test", "-p", "kache", "--bin", "kache", "test_wait_for_warming_blocks_then_signals", "--", "--test-threads=1", "--nocapture"], "load": "{ 43.84 66.49 50.05 }", "start": "2026-10-14T01:44:59Z", "threads": "1"}
+    Finished `test` profile [unoptimized] target(s) in 0.19s
+     Running unittests src/main.rs (/private/tmp/kache-flaky/sol/target/debug/deps/kache-881bf021f508393b)
+
+running 1 test
+test daemon::tests::test_wait_for_warming_blocks_then_signals ... 
+thread 'daemon::tests::test_wait_for_warming_blocks_then_signals' (147863395) panicked at src/daemon/tests.rs:10562:5:
+assertion failed: elapsed >= Duration::from_millis(30)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    daemon::tests::test_wait_for_warming_blocks_then_signals
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4459 filtered out; finished in 0.11s
+
+error: test failed, to rerun pass `-p kache --bin kache`

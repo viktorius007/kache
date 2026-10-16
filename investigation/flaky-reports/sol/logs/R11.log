@@ -1,0 +1,19 @@
+{"id": "R11", "command": ["env", "KACHE_FLAKY_HOME=1", "./scripts/with-test-resources.sh", "cargo", "test", "-p", "kache", "--bin", "kache", "test_is_macos_protected", "--", "--test-threads=1", "--nocapture"], "load": "{ 43.84 66.49 50.05 }", "start": "2026-10-14T01:45:00Z", "threads": "1"}
+    Finished `test` profile [unoptimized] target(s) in 0.19s
+     Running unittests src/main.rs (/private/tmp/kache-flaky/sol/target/debug/deps/kache-881bf021f508393b)
+
+running 1 test
+test cli::tests::test_is_macos_protected ... 
+thread 'cli::tests::test_is_macos_protected' (147863622) panicked at src/cli/tests.rs:2853:9:
+assertion failed: is_macos_protected(&home.join("Desktop"))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cli::tests::test_is_macos_protected
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4459 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p kache --bin kache`

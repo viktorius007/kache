@@ -1,0 +1,5 @@
+thread 'compiler::nvcc::tests::execute_drops_artifacts_when_object_embeds_mapped_root' (152142240) panicked at src/compiler/nvcc.rs:2327:9:
+an object that embeds a mapped root must not be cached, got ["/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpCSBUzv/k.o"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+

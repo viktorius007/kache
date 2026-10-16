@@ -1,0 +1,21 @@
+{"id": "R07", "command": ["env", "KACHE_FLAKY_PROBE=NORMALIZE", "./scripts/with-test-resources.sh", "cargo", "test", "-p", "kache", "--bin", "kache", "terminal_formatting_shares_cc_keys_with_cold_and_warm_probes", "--", "--test-threads=1", "--nocapture"], "load": "{ 43.84 66.49 50.05 }", "start": "2026-10-14T01:44:58Z", "threads": "1"}
+    Finished `test` profile [unoptimized] target(s) in 0.20s
+     Running unittests src/main.rs (/private/tmp/kache-flaky/sol/target/debug/deps/kache-881bf021f508393b)
+
+running 1 test
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... 
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (147862497) panicked at src/compiler/cc/tests.rs:310:9:
+assertion `left == right` failed
+  left: "5e168a078b4edc8759c2ceb8d93c8869dbfa3209d2e3d243443a5a9078eaff10"
+ right: "051c05cae3d0db87e5af9d4906160ecc80d29b1dcac45475841171e8d1907c21"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4459 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `-p kache --bin kache`

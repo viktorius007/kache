@@ -1,0 +1,2 @@
+ID=S01 START=2026-10-14T03:13:13Z LOAD={ 16.49 27.01 44.79 } workers=8 iters=20 threads=4 tests=scheduler::tests::permit_pool_blocks_until_a_slot_is_free scheduler::tests::waiter_rechecks_after_owner_completes wrapper::tests::admit_scheduler_miss_recheck_returns_accepted_meta daemon::tests::test_wait_for_warming_blocks_then_signals
+END=2026-10-14T03:13:20Z LOAD={ 15.97 26.73 44.58 }

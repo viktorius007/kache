@@ -1,0 +1,48 @@
+MEASURE warming elapsed_ms=52.131
+MEASURE flight margin_ms=200.702 recheck=true
+MEASURE permit elapsed_ms=315.696
+MEASURE wrapper margin_ms=207.517 setup_ms=9.824 empty_guard=true
+MEASURE warming elapsed_ms=53.236
+MEASURE flight margin_ms=217.299 recheck=true
+MEASURE wrapper margin_ms=212.253 setup_ms=3.312 empty_guard=true
+MEASURE permit elapsed_ms=315.726
+MEASURE warming elapsed_ms=51.228
+MEASURE flight margin_ms=208.067 recheck=true
+MEASURE wrapper margin_ms=205.737 setup_ms=4.576 empty_guard=true
+MEASURE permit elapsed_ms=316.328
+MEASURE warming elapsed_ms=51.361
+MEASURE flight margin_ms=210.515 recheck=true
+MEASURE wrapper margin_ms=196.483 setup_ms=15.348 empty_guard=true
+MEASURE permit elapsed_ms=307.764
+MEASURE warming elapsed_ms=57.156
+MEASURE flight margin_ms=203.019 recheck=true
+MEASURE wrapper margin_ms=209.464 setup_ms=6.854 empty_guard=true
+MEASURE permit elapsed_ms=312.136
+MEASURE warming elapsed_ms=53.586
+MEASURE flight margin_ms=205.132 recheck=true
+MEASURE wrapper margin_ms=209.412 setup_ms=0.972 empty_guard=true
+MEASURE permit elapsed_ms=317.695
+MEASURE warming elapsed_ms=51.777
+MEASURE flight margin_ms=202.568 recheck=true
+MEASURE wrapper margin_ms=202.578 setup_ms=6.314 empty_guard=true
+MEASURE permit elapsed_ms=306.880
+MEASURE warming elapsed_ms=54.175
+MEASURE flight margin_ms=211.631 recheck=true
+MEASURE wrapper margin_ms=205.369 setup_ms=0.970 empty_guard=true
+MEASURE permit elapsed_ms=307.595
+MEASURE warming elapsed_ms=55.276
+MEASURE flight margin_ms=213.396 recheck=true
+MEASURE permit elapsed_ms=308.191
+MEASURE wrapper margin_ms=205.153 setup_ms=4.066 empty_guard=true
+MEASURE warming elapsed_ms=51.417
+MEASURE flight margin_ms=211.111 recheck=true
+MEASURE permit elapsed_ms=314.137
+MEASURE wrapper margin_ms=210.768 setup_ms=1.639 empty_guard=true
+MEASURE warming elapsed_ms=53.250
+MEASURE flight margin_ms=209.663 recheck=true
+MEASURE permit elapsed_ms=323.502
+MEASURE wrapper margin_ms=201.939 setup_ms=3.348 empty_guard=true
+MEASURE warming elapsed_ms=53.901
+MEASURE flight margin_ms=210.501 recheck=true
+MEASURE permit elapsed_ms=305.073
+MEASURE wrapper margin_ms=184.620 setup_ms=18.585 empty_guard=true

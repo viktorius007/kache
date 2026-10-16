@@ -1,0 +1,198 @@
+== run 1
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+test compiler::cc::tests::real_probe_refuses_a_directive_behind_a_delimited_escape ... ok
+test compiler::cc::tests::real_probe_refuses_sources_that_incbin_a_file ... ok
+test compiler::cc::tests::real_probe_separates_file_macro_from_literal_roots ... ok
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (147881384) panicked at src/compiler/cc/tests.rs:299:9:
+assertion `left == right` failed
+  left: "23e919aa7155dad7a7b79703519169ed490aa54279f22954815978b0045d592e"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 302 passed; 1 failed; 0 ignored; 0 measured; 4160 filtered out; finished in 1.60s
+== run 4
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+test compiler::cc::tests::real_probe_refuses_a_directive_behind_a_delimited_escape ... ok
+test compiler::cc::tests::real_probe_refuses_sources_that_incbin_a_file ... ok
+test compiler::cc::tests::real_probe_separates_file_macro_from_literal_roots ... ok
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (147887522) panicked at src/compiler/cc/tests.rs:303:9:
+assertion `left == right` failed
+  left: "6a5dd9ebc2a33d878f7a0ea2cb8942db35b71cc3b4bbf8aca8d1ea4a8d5ae4d7"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 302 passed; 1 failed; 0 ignored; 0 measured; 4160 filtered out; finished in 1.57s
+== run 7
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+test compiler::cc::tests::real_probe_refuses_a_directive_behind_a_delimited_escape ... ok
+test compiler::cc::tests::real_probe_refuses_sources_that_incbin_a_file ... ok
+test compiler::cc::tests::real_probe_separates_file_macro_from_literal_roots ... ok
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (147899737) panicked at src/compiler/cc/tests.rs:299:9:
+assertion `left == right` failed
+  left: "e766baab2908fdb7b7c0fa2c56b5b8bf8e5be38f94d896eb4cf7033fb64277ba"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 302 passed; 1 failed; 0 ignored; 0 measured; 4160 filtered out; finished in 1.57s
+== run 19
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+test compiler::cc::tests::wa_debug_prefix_map_changes_cache_key_issue_644 ... ok
+test compiler::cc::tests::the_direct_capture_probe_rejects_a_driver_that_writes_no_object_and_remembers ... ok
+test compiler::cc::tests::execute_opt_in_link_writes_the_output ... ok
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (147940131) panicked at src/compiler/cc/tests.rs:299:9:
+assertion `left == right` failed
+  left: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+ right: "6a5dd9ebc2a33d878f7a0ea2cb8942db35b71cc3b4bbf8aca8d1ea4a8d5ae4d7"
+--
+test result: FAILED. 302 passed; 1 failed; 0 ignored; 0 measured; 4160 filtered out; finished in 1.82s
+== run 23
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+test compiler::cc::tests::real_probe_refuses_a_directive_behind_a_delimited_escape ... ok
+test compiler::cc::tests::real_probe_refuses_sources_that_incbin_a_file ... ok
+test compiler::cc::tests::real_probe_separates_file_macro_from_literal_roots ... ok
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (147957398) panicked at src/compiler/cc/tests.rs:299:9:
+assertion `left == right` failed
+  left: "6a5dd9ebc2a33d878f7a0ea2cb8942db35b71cc3b4bbf8aca8d1ea4a8d5ae4d7"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 302 passed; 1 failed; 0 ignored; 0 measured; 4160 filtered out; finished in 1.76s
+== run 24
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+test compiler::cc::tests::wa_debug_prefix_map_changes_cache_key_issue_644 ... ok
+test compiler::cc::tests::the_direct_capture_probe_rejects_a_driver_that_writes_no_object_and_remembers ... ok
+test compiler::cc::tests::execute_opt_in_link_writes_the_output ... ok
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (147962808) panicked at src/compiler/cc/tests.rs:299:9:
+assertion `left == right` failed
+  left: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+ right: "6a5dd9ebc2a33d878f7a0ea2cb8942db35b71cc3b4bbf8aca8d1ea4a8d5ae4d7"
+--
+test result: FAILED. 302 passed; 1 failed; 0 ignored; 0 measured; 4160 filtered out; finished in 1.87s
+== run 25
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+test compiler::cc::tests::cc_prefix_maps_sentinel_set_is_location_independent_for_out_of_tree ... ok
+test compiler::cc::tests::wa_debug_prefix_map_changes_cache_key_issue_644 ... ok
+test compiler::cc::tests::the_direct_capture_probe_rejects_a_driver_that_writes_no_object_and_remembers ... ok
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (147967657) panicked at src/compiler/cc/tests.rs:299:9:
+assertion `left == right` failed
+  left: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+ right: "6a5dd9ebc2a33d878f7a0ea2cb8942db35b71cc3b4bbf8aca8d1ea4a8d5ae4d7"
+--
+test result: FAILED. 302 passed; 1 failed; 0 ignored; 0 measured; 4160 filtered out; finished in 1.80s
+== run 37
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+test compiler::cc::tests::memo_key_maps_environment_values_like_arguments ... ok
+test compiler::cc::tests::out_dir_and_sdk_maps_follow_the_environment_and_the_normalize_switch ... ok
+test compiler::cc::tests::per_unit_out_dirs_map_like_the_legacy_layout ... ok
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148041266) panicked at src/compiler/cc/tests.rs:303:9:
+assertion `left == right` failed
+  left: "23e919aa7155dad7a7b79703519169ed490aa54279f22954815978b0045d592e"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 302 passed; 1 failed; 0 ignored; 0 measured; 4160 filtered out; finished in 2.20s
+== run 39
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+test compiler::cc::tests::out_dir_and_sdk_maps_follow_the_environment_and_the_normalize_switch ... ok
+test compiler::cc::tests::per_unit_out_dirs_map_like_the_legacy_layout ... ok
+test compiler::cc::tests::zz_flaky_probe_states ... ok
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148049333) panicked at src/compiler/cc/tests.rs:299:9:
+assertion `left == right` failed
+  left: "23e919aa7155dad7a7b79703519169ed490aa54279f22954815978b0045d592e"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 302 passed; 1 failed; 0 ignored; 0 measured; 4160 filtered out; finished in 3.10s
+== run 41
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+test compiler::cc::tests::real_probe_refuses_a_directive_behind_a_delimited_escape ... ok
+test compiler::cc::tests::real_probe_refuses_sources_that_incbin_a_file ... ok
+test compiler::cc::tests::real_probe_separates_file_macro_from_literal_roots ... ok
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148058775) panicked at src/compiler/cc/tests.rs:299:9:
+assertion `left == right` failed
+  left: "8e717227f13e0ea653a63a21bef01c9fbd5a59928ed0ed82e2d34ac39b8f9cbe"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 302 passed; 1 failed; 0 ignored; 0 measured; 4160 filtered out; finished in 2.03s
+== run 44
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+test compiler::cc::tests::real_probe_refuses_a_directive_behind_a_delimited_escape ... ok
+test compiler::cc::tests::real_probe_refuses_sources_that_incbin_a_file ... ok
+test compiler::cc::tests::real_probe_separates_file_macro_from_literal_roots ... ok
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148069058) panicked at src/compiler/cc/tests.rs:303:9:
+assertion `left == right` failed
+  left: "5503f18095a5d48bccf41729425344bbf7895bccec8dbee9fa0f76c66495c1fe"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 302 passed; 1 failed; 0 ignored; 0 measured; 4160 filtered out; finished in 2.27s
+== run 73
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+test compiler::cc::tests::out_dir_and_sdk_maps_follow_the_environment_and_the_normalize_switch ... FAILED
+test compiler::cc::tests::per_unit_out_dirs_map_like_the_legacy_layout ... ok
+test compiler::cc::tests::zz_flaky_probe_states ... ok
+test compiler::cc::tests::real_probe_refuses_a_directive_behind_a_delimited_escape ... ok
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148136781) panicked at src/compiler/cc/tests.rs:299:9:
+assertion `left == right` failed
+  left: "23e919aa7155dad7a7b79703519169ed490aa54279f22954815978b0045d592e"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+thread 'compiler::cc::tests::out_dir_and_sdk_maps_follow_the_environment_and_the_normalize_switch' (148136614) panicked at src/compiler/cc/tests.rs:8015:5:
+no maps at all when normalization is off, OUT_DIR included
+
+
+--
+test result: FAILED. 301 passed; 2 failed; 0 ignored; 0 measured; 4160 filtered out; finished in 2.06s
+== run 79
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+test compiler::cc::tests::the_direct_capture_probe_rejects_a_driver_that_writes_no_object_and_remembers ... ok
+test compiler::cc::tests::real_probe_refuses_a_directive_behind_a_delimited_escape ... ok
+test compiler::cc::tests::real_probe_refuses_sources_that_incbin_a_file ... ok
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148148073) panicked at src/compiler/cc/tests.rs:299:9:
+assertion `left == right` failed
+  left: "23e919aa7155dad7a7b79703519169ed490aa54279f22954815978b0045d592e"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 302 passed; 1 failed; 0 ignored; 0 measured; 4160 filtered out; finished in 1.96s
+== run 87
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+test compiler::cc::tests::the_direct_capture_probe_rejects_a_driver_that_writes_no_object_and_remembers ... ok
+test compiler::cc::tests::zz_flaky_probe_terminal_key_perturbations ... ok
+test compiler::cc::tests::real_probe_refuses_sources_that_incbin_a_file ... ok
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148179188) panicked at src/compiler/cc/tests.rs:303:9:
+assertion `left == right` failed
+  left: "7c57399d449ddd0de3fb1ea2ab9db09f64b6c58be5a5a4c16e72c76f75ddb196"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 302 passed; 1 failed; 0 ignored; 0 measured; 4160 filtered out; finished in 2.70s
+== run 89
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+test compiler::cc::tests::real_probe_refuses_a_directive_behind_a_delimited_escape ... ok
+test compiler::cc::tests::real_probe_refuses_sources_that_incbin_a_file ... ok
+test compiler::cc::tests::real_probe_separates_file_macro_from_literal_roots ... ok
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148188302) panicked at src/compiler/cc/tests.rs:299:9:
+assertion `left == right` failed
+  left: "0be388e5645ce86037635bbf64c99798c183e65caa019d2ad7d730ef9d732c72"
+ right: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+--
+test result: FAILED. 302 passed; 1 failed; 0 ignored; 0 measured; 4160 filtered out; finished in 4.01s
+== run 96
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FAILED
+test compiler::cc::tests::wa_debug_prefix_map_changes_cache_key_issue_644 ... ok
+test compiler::cc::tests::the_direct_capture_probe_rejects_a_driver_that_writes_no_object_and_remembers ... ok
+test compiler::cc::tests::execute_opt_in_link_writes_the_output ... ok
+--
+thread 'compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes' (148224849) panicked at src/compiler/cc/tests.rs:299:9:
+assertion `left == right` failed
+  left: "ec170f0d4c633cc97b1a38b9c75e0ee2cbe2781647e22b1dca0817e436d3899a"
+ right: "6a5dd9ebc2a33d878f7a0ea2cb8942db35b71cc3b4bbf8aca8d1ea4a8d5ae4d7"
+--
+test result: FAILED. 302 passed; 1 failed; 0 ignored; 0 measured; 4160 filtered out; finished in 1.96s

@@ -1,0 +1,5 @@
+tests/fixtures/cc_release_regressions.sh:28:settle() { sleep 2.1; }
+tests/fixtures/cc_release_regressions.sh:45:  sleep 1
+tests/fixtures/cc_release_regressions.sh:49:  sleep 1
+tests/fixtures/cc_release_regressions.sh:75:  sleep 1
+tests/fixtures/cc_release_regressions.sh:85:  sleep 1

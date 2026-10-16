@@ -1,0 +1,28 @@
+ID=F02 START=2026-10-14T03:20:25Z LOAD={ 29.41 43.16 45.70 }
+CMD=env KACHE_FLAKY_SCHEDULER=permit ./scripts/with-test-resources.sh cargo test -p kache --bin kache permit_pool_blocks_until_a_slot_is_free -- --test-threads=1 --nocapture
+    Blocking waiting for file lock on package cache
+    Finished `test` profile [unoptimized] target(s) in 0.25s
+     Running unittests src/main.rs (/private/tmp/kache-flaky/opus/target/debug/deps/kache-881bf021f508393b)
+
+running 1 test
+test scheduler::tests::permit_pool_blocks_until_a_slot_is_free ... 
+running 1 test
+test scheduler::tests::permit_owner_child_fixture ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4459 filtered out; finished in 0.30s
+
+
+thread 'scheduler::tests::permit_pool_blocks_until_a_slot_is_free' (154170422) panicked at src/scheduler.rs:2359:9:
+parent must have waited for the child-held slot
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    scheduler::tests::permit_pool_blocks_until_a_slot_is_free
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4459 filtered out; finished in 0.31s
+
+error: test failed, to rerun pass `-p kache --bin kache`
+END=2026-10-14T03:20:25Z RC=101 LOAD_END={ 29.41 43.16 45.70 }

@@ -1,0 +1,6 @@
+ID=B03-build-sol-phase3 START=2026-10-14T03:20:35Z LOAD={ 26.20 42.02 45.27 }
+CMD=./scripts/with-test-resources.sh cargo test -p kache --bin kache --no-run
+   Compiling kache v1.1.1 (/Users/viktor/Developer/github/kache-investigations/flaky-assess-opus)
+    Finished `test` profile [unoptimized] target(s) in 14.59s
+  Executable unittests src/main.rs (/private/tmp/kache-flaky/opus/target/debug/deps/kache-881bf021f508393b)
+END=2026-10-14T03:20:49Z RC=0 LOAD_END={ 24.44 40.83 44.79 }

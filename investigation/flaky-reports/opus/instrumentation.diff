@@ -1,0 +1,311 @@
+diff --git a/src/build_script.rs b/src/build_script.rs
+index 6eb3c66..9015b63 100644
+--- a/src/build_script.rs
++++ b/src/build_script.rs
+@@ -5060,4 +5060,20 @@ mod tests {
+             .unwrap();
+         (fields[0].to_string(), profile.join(fields[1]))
+     }
++
++    // FLAKY-INVESTIGATION instrumentation (temporary, not for commit).
++    // Does what cli/login and planner_auth tests do (HOME override under the
++    // lock) while making the first call into cli::is_macos_protected, as the
++    // find_target_dirs tests in cli::tests do without the lock.
++    #[test]
++    fn zz_flaky_first_protected_call_under_home_override() {
++        if std::env::var_os("FLAKY_HOME_POISON").is_none() {
++            return;
++        }
++        let guard = crate::test_support::KunobiConfigGuard::new();
++        let dir = tempfile::tempdir().unwrap();
++        let mut results = Vec::new();
++        crate::cli::find_target_dirs(dir.path(), &mut results);
++        drop(guard);
++    }
+ }
+diff --git a/src/compiler/cc/tests.rs b/src/compiler/cc/tests.rs
+index 69eb031..be0946d 100644
+--- a/src/compiler/cc/tests.rs
++++ b/src/compiler/cc/tests.rs
+@@ -283,6 +283,10 @@ fn terminal_formatting_shares_cc_keys_with_cold_and_warm_probes() {
+     };
+     let warm = dir.path().join("warm");
+     let baseline = key(&[], &warm);
++    // FLAKY-INVESTIGATION: forced interleaving, off unless FLAKY_FORCE_SDKROOT is set.
++    let _forced = std::env::var_os("FLAKY_FORCE_SDKROOT").map(|sdk| {
++        crate::config::tests::set_env_for_test("SDKROOT", Some(sdk.as_os_str()))
++    });
+     for (index, flag) in [
+         "-fcolor-diagnostics",
+         "-fno-color-diagnostics",
+@@ -8598,3 +8602,252 @@ mod properties {
+         }
+     }
+ }
++
++// FLAKY-INVESTIGATION instrumentation (temporary, not for commit).
++#[cfg(unix)]
++#[test]
++fn zz_flaky_probe_terminal_key_perturbations() {
++    if std::env::var_os("FLAKY_PROBE").is_none() {
++        return;
++    }
++    let mut lock = crate::test_support::process_state_test_lock();
++    let dir = tempfile::tempdir().unwrap();
++    let source = dir.path().join("unit.c");
++    fs::write(&source, "int x;\n").unwrap();
++    let fake_cc =
++        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/mock_cc_diagnostics.sh");
++    let compiler = CcCompiler::new();
++    let file_hasher = crate::cache_key::FileHasher::new();
++    let path_normalizer = crate::path_normalizer::PathNormalizer::empty();
++    let parse = |flags: &[&str]| {
++        let mut args = vec![
++            fake_cc.to_string_lossy().into_owned(),
++            "-c".into(),
++            source.to_string_lossy().into_owned(),
++        ];
++        args.extend(flags.iter().map(|flag| flag.to_string()));
++        compiler.parse(&args).unwrap()
++    };
++    let key = |flags: &[&str], cache: &Path| {
++        compiler
++            .cache_key(
++                &parse(flags),
++                &KeyCtx {
++                    file_hasher: &file_hasher,
++                    path_normalizer: &path_normalizer,
++                    cache_dir: cache,
++                    key_salt: None,
++                    key_env_vars: &[],
++                    extra_inputs_digest: None,
++                    build_script_inputs_digest: None,
++                },
++            )
++            .unwrap()
++    };
++    let warm = dir.path().join("warm");
++    let baseline = key(&[], &warm);
++    eprintln!("PROBE cwd={:?} baseline={baseline}", std::env::current_dir().unwrap());
++    let mut n = 0;
++    let mut cold = || {
++        n += 1;
++        dir.path().join(format!("cold-x{n}"))
++    };
++    let vars: &[(&'static str, &str)] = &[
++        ("OUT_DIR", "/tmp/some-out-dir"),
++        ("SDKROOT", "/tmp"),
++        ("SOURCE_DATE_EPOCH", "123"),
++        ("KACHE_CC_SOURCE_DATE_EPOCH", "passthrough"),
++        ("KACHE_CC_PATH_NORMALIZE", "0"),
++        ("KACHE_BASE_DIR", "/tmp"),
++        ("CPATH", "/tmp"),
++        ("LIBRARY_PATH", "/tmp"),
++        ("LANG", "C"),
++        ("PATH", "/usr/bin:/bin"),
++        ("KACHE_CACHE_DIR", "/tmp/kc"),
++        ("KACHE_KEY_SALT", "salt"),
++        ("KACHE_KEY_ENV_VARS", "FOO"),
++        ("KACHE_CC_KEY_PROBE", "1"),
++        ("KACHE_CC_EXTRA_ALLOWLIST_FLAGS", "-fcolor-diagnostics"),
++        ("DEP_KT_INCLUDE", "/tmp"),
++        ("CARGO_MANIFEST_DIR", "/tmp"),
++    ];
++    for (name, value) in vars {
++        let _env = crate::config::tests::set_env_for_test(name, Some(value.as_ref()));
++        let c = key(&["-fcolor-diagnostics"], &cold());
++        let w = key(&["-fcolor-diagnostics"], &warm);
++        eprintln!(
++            "PROBE env {name}={value}: cold {} warm {}",
++            if c == baseline { "same" } else { "DIFF" },
++            if w == baseline { "same" } else { "DIFF" }
++        );
++    }
++    let entered = lock.enter();
++    let c = key(&["-fcolor-diagnostics"], &cold());
++    let w = key(&["-fcolor-diagnostics"], &warm);
++    eprintln!(
++        "PROBE cwd={entered:?}: cold {} ({c}) warm {} ({w})",
++        if c == baseline { "same" } else { "DIFF" },
++        if w == baseline { "same" } else { "DIFF" }
++    );
++    drop(lock);
++}
++
++// FLAKY-INVESTIGATION instrumentation (temporary, not for commit).
++// Computes the known test's cold key under each env state another test in
++// this binary sets, to find which state yields the observed left-hand key.
++#[cfg(unix)]
++#[test]
++fn zz_flaky_probe_states() {
++    if std::env::var_os("FLAKY_PROBE").is_none() {
++        return;
++    }
++    let mut lock = crate::test_support::process_state_test_lock();
++    let dir = tempfile::tempdir().unwrap();
++    let source = dir.path().join("unit.c");
++    fs::write(&source, "int x;\n").unwrap();
++    let fake_cc =
++        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/mock_cc_diagnostics.sh");
++    let compiler = CcCompiler::new();
++    let file_hasher = crate::cache_key::FileHasher::new();
++    let path_normalizer = crate::path_normalizer::PathNormalizer::empty();
++    let n = std::cell::Cell::new(0);
++    let key = |flags: &[&str]| {
++        let mut args = vec![
++            fake_cc.to_string_lossy().into_owned(),
++            "-c".into(),
++            source.to_string_lossy().into_owned(),
++        ];
++        args.extend(flags.iter().map(|flag| flag.to_string()));
++        n.set(n.get() + 1);
++        let cache = dir.path().join(format!("cold-s{}", n.get()));
++        compiler
++            .cache_key(
++                &compiler.parse(&args).unwrap(),
++                &KeyCtx {
++                    file_hasher: &file_hasher,
++                    path_normalizer: &path_normalizer,
++                    cache_dir: &cache,
++                    key_salt: None,
++                    key_env_vars: &[],
++                    extra_inputs_digest: None,
++                    build_script_inputs_digest: None,
++                },
++            )
++            .unwrap()
++    };
++    use crate::config::tests::set_env_for_test as set;
++    let _a = set("OUT_DIR", None);
++    let _b = set("SDKROOT", None);
++    let _c = set("KACHE_CC_PATH_NORMALIZE", None);
++    let _d = set("KACHE_BASE_DIR", None);
++    eprintln!("STATE unset: {}", key(&["-fcolor-diagnostics"]));
++    let t = tempfile::tempdir().unwrap();
++    let tp = t.path();
++    let p = |rel: &str| tp.join(rel);
++    std::fs::create_dir_all(p("target/debug/build/pkg-1/out")).unwrap();
++    std::fs::create_dir_all(p("real/out")).unwrap();
++    std::os::unix::fs::symlink(p("real"), p("link")).unwrap();
++    std::fs::create_dir_all(p("clone-a/target/release/build/libz-sys-1234/out")).unwrap();
++    std::fs::create_dir_all(p("sdk")).unwrap();
++    let states: Vec<(&str, Vec<(&'static str, Option<std::ffi::OsString>)>)> = vec![
++        ("cargo-out", vec![("OUT_DIR", Some("/Users/x/target/debug/build/kache-0123/out".into()))]),
++        ("pkg-out", vec![("OUT_DIR", Some(p("target/debug/build/pkg-1/out").into()))]),
++        ("pkg-out+sdk-missing", vec![("OUT_DIR", Some(p("target/debug/build/pkg-1/out").into())), ("SDKROOT", Some(p("nosdk").into()))]),
++        ("sdk-missing", vec![("SDKROOT", Some(p("nosdk").into()))]),
++        ("sdk-exists", vec![("SDKROOT", Some(p("sdk").into()))]),
++        ("link-out", vec![("OUT_DIR", Some(p("link/out").into()))]),
++        ("clone-a", vec![("OUT_DIR", Some(p("clone-a/target/release/build/libz-sys-1234/out").into())), ("KACHE_BASE_DIR", Some(p("clone-a").into()))]),
++        ("base-only", vec![("KACHE_BASE_DIR", Some(p("clone-a").into()))]),
++        ("t-out", vec![("OUT_DIR", Some(p("out").into()))]),
++        ("slash-t", vec![("OUT_DIR", Some("/t/debug/build/x-1/out".into()))]),
++        ("normalize-0", vec![("KACHE_CC_PATH_NORMALIZE", Some("0".into()))]),
++    ];
++    for (label, vars) in &states {
++        let guards: Vec<_> = vars.iter().map(|(k, v)| set(k, v.as_deref())).collect();
++        eprintln!("STATE {label}: {}", key(&["-fcolor-diagnostics"]));
++        drop(guards);
++    }
++    let entered = lock.enter();
++    for (label, vars) in &states {
++        let guards: Vec<_> = vars.iter().map(|(k, v)| set(k, v.as_deref())).collect();
++        eprintln!("STATE cwd-entered {label}: {}", key(&["-fcolor-diagnostics"]));
++        drop(guards);
++    }
++    // out_dir_and_sdk_maps_follow_... state 1, with its own cwd layout.
++    std::fs::create_dir_all(entered.join("target/debug/build/pkg-1/out")).unwrap();
++    {
++        let _o = set("OUT_DIR", Some(entered.join("target/debug/build/pkg-1/out").as_os_str()));
++        let _s = set("SDKROOT", Some("".as_ref()));
++        eprintln!("STATE cc7975-s1: {}", key(&["-fcolor-diagnostics"]));
++        let _s2 = set("SDKROOT", Some(entered.join("sdk").as_os_str()));
++        eprintln!("STATE cc7975-s2: {}", key(&["-fcolor-diagnostics"]));
++        let _o2 = set("OUT_DIR", Some("".as_ref()));
++        eprintln!("STATE cc7975-s3: {}", key(&["-fcolor-diagnostics"]));
++    }
++    drop((_a, _b, _c, _d));
++    drop(lock);
++}
++
++// FLAKY-INVESTIGATION instrumentation (temporary, not for commit).
++// Mimics include_dir_digest_exempts_an_existing_sdkroot_directory's env edit,
++// held under the process-state lock, toggled for FLAKY_TOGGLE_MS milliseconds.
++#[test]
++fn zz_flaky_sdkroot_toggler() {
++    let Some(ms) = std::env::var("FLAKY_TOGGLE_MS").ok().and_then(|v| v.parse::<u64>().ok()) else {
++        return;
++    };
++    let temp = tempfile::tempdir().unwrap();
++    let sdk = temp.path().join("sdk");
++    fs::create_dir(&sdk).unwrap();
++    let end = std::time::Instant::now() + std::time::Duration::from_millis(ms);
++    while std::time::Instant::now() < end {
++        let _lock = crate::test_support::process_state_test_lock();
++        unsafe { std::env::set_var("SDKROOT", &sdk) };
++        std::thread::sleep(std::time::Duration::from_millis(5));
++        unsafe { std::env::remove_var("SDKROOT") };
++        drop(_lock);
++        std::thread::sleep(std::time::Duration::from_millis(5));
++    }
++}
++
++// FLAKY-INVESTIGATION instrumentation (temporary, not for commit).
++// Holds the same HOME override KunobiConfigGuard applies in the planner_auth
++// and cli::login tests, toggled for FLAKY_HOME_TOGGLE_MS milliseconds.
++#[test]
++fn zz_flaky_home_toggler() {
++    let Some(ms) = std::env::var("FLAKY_HOME_TOGGLE_MS").ok().and_then(|v| v.parse::<u64>().ok()) else {
++        return;
++    };
++    let end = std::time::Instant::now() + std::time::Duration::from_millis(ms);
++    while std::time::Instant::now() < end {
++        let guard = crate::test_support::KunobiConfigGuard::new();
++        std::thread::sleep(std::time::Duration::from_millis(5));
++        drop(guard);
++        std::thread::sleep(std::time::Duration::from_millis(5));
++    }
++}
++
++// FLAKY-INVESTIGATION instrumentation (temporary, not for commit).
++// Toggles one env var (FLAKY_GEN_VAR=FLAKY_GEN_VAL) or, with FLAKY_GEN_CWD,
++// the current directory, under the process-state lock, for FLAKY_GEN_MS.
++#[test]
++fn zz_flaky_generic_toggler() {
++    let Some(ms) = std::env::var("FLAKY_GEN_MS").ok().and_then(|v| v.parse::<u64>().ok()) else {
++        return;
++    };
++    let var: Option<&'static str> = std::env::var("FLAKY_GEN_VAR").ok().map(|v| &*Box::leak(v.into_boxed_str()));
++    let val = std::env::var_os("FLAKY_GEN_VAL").unwrap_or_default();
++    let cwd = std::env::var_os("FLAKY_GEN_CWD").is_some();
++    let end = std::time::Instant::now() + std::time::Duration::from_millis(ms);
++    while std::time::Instant::now() < end {
++        let mut lock = crate::test_support::process_state_test_lock();
++        if cwd {
++            lock.enter();
++        }
++        let guard = var.map(|name| crate::config::tests::set_env_for_test(name, Some(val.as_os_str())));
++        std::thread::sleep(std::time::Duration::from_millis(3));
++        drop(guard);
++        drop(lock);
++        std::thread::sleep(std::time::Duration::from_millis(3));
++    }
++}
+diff --git a/src/fallback/macos.rs b/src/fallback/macos.rs
+index a5dbee0..a0ec3f6 100644
+--- a/src/fallback/macos.rs
++++ b/src/fallback/macos.rs
+@@ -54,7 +54,12 @@ fn server_pid(port: u16) -> Option<i32> {
+         .stderr(Stdio::null())
+         .spawn()
+         .ok()?;
+-    let deadline = Instant::now() + Duration::from_millis(200);
++    // FLAKY-INVESTIGATION: deadline overridable to simulate a slow lsof under load.
++    let budget_ms = std::env::var("FLAKY_LSOF_DEADLINE_MS")
++        .ok()
++        .and_then(|v| v.parse::<u64>().ok())
++        .unwrap_or(200);
++    let deadline = Instant::now() + Duration::from_millis(budget_ms);
+     let success = loop {
+         match child.try_wait() {
+             Ok(Some(status)) => break status.success(),

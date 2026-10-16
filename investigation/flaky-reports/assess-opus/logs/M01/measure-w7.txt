@@ -1,0 +1,44 @@
+MEASURE warming elapsed_ms=51.908
+MEASURE flight margin_ms=212.283 recheck=true
+MEASURE permit elapsed_ms=304.393
+MEASURE wrapper margin_ms=211.511 setup_ms=0.669 empty_guard=true
+MEASURE warming elapsed_ms=55.466
+MEASURE flight margin_ms=201.307 recheck=true
+MEASURE permit elapsed_ms=310.964
+MEASURE wrapper margin_ms=214.674 setup_ms=1.053 empty_guard=true
+MEASURE warming elapsed_ms=53.312
+MEASURE flight margin_ms=205.943 recheck=true
+MEASURE permit elapsed_ms=313.337
+MEASURE wrapper margin_ms=207.614 setup_ms=2.678 empty_guard=true
+MEASURE warming elapsed_ms=55.902
+MEASURE flight margin_ms=210.478 recheck=true
+MEASURE wrapper margin_ms=216.371 setup_ms=2.136 empty_guard=true
+MEASURE warming elapsed_ms=53.214
+MEASURE flight margin_ms=206.962 recheck=true
+MEASURE wrapper margin_ms=209.139 setup_ms=2.601 empty_guard=true
+MEASURE permit elapsed_ms=307.234
+MEASURE warming elapsed_ms=53.459
+MEASURE flight margin_ms=203.922 recheck=true
+MEASURE wrapper margin_ms=195.135 setup_ms=14.481 empty_guard=true
+MEASURE permit elapsed_ms=312.958
+MEASURE warming elapsed_ms=53.412
+MEASURE flight margin_ms=200.516 recheck=true
+MEASURE wrapper margin_ms=204.243 setup_ms=3.863 empty_guard=true
+MEASURE permit elapsed_ms=319.666
+MEASURE warming elapsed_ms=52.063
+MEASURE flight margin_ms=211.310 recheck=true
+MEASURE wrapper margin_ms=212.366 setup_ms=9.038 empty_guard=true
+MEASURE warming elapsed_ms=53.232
+MEASURE flight margin_ms=204.393 recheck=true
+MEASURE wrapper margin_ms=211.955 setup_ms=1.139 empty_guard=true
+MEASURE warming elapsed_ms=58.798
+MEASURE flight margin_ms=209.820 recheck=true
+MEASURE permit elapsed_ms=310.test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4459 filtered out; finished in 0.32s
+MEASURE wrapper margin_ms=192.691 setup_ms=14.603 empty_guard=true
+MEASURE warming elapsed_ms=51.553
+MEASURE flight margin_ms=212.318 recheck=true
+MEASURE wrapper margin_ms=207.331 setup_ms=4.519 empty_guard=true
+MEASURE warming elapsed_ms=57.969
+MEASURE flight margin_ms=210.023 recheck=true
+MEASURE wrapper margin_ms=204.127 setup_ms=7.089 empty_guard=true
+MEASURE permit elapsed_ms=309.967

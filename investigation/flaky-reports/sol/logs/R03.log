@@ -1,0 +1,75 @@
+{"id": "R03", "command": ["env", "KACHE_FLAKY_PROBE=1", "./scripts/with-test-resources.sh", "cargo", "test", "-p", "kache", "--bin", "kache", "terminal_formatting_shares_cc_keys_with_cold_and_warm_probes", "--", "--test-threads=1", "--nocapture"], "load": "{ 18.60 33.76 32.39 }", "start": "2026-10-14T01:39:41Z", "threads": "1"}
+   Compiling num-traits v0.2.19
+   Compiling serde_json v1.0.151
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling either v1.18.0
+   Compiling tower v0.5.3
+   Compiling derive_more-impl v2.1.1
+   Compiling tokio-util v0.7.19
+   Compiling clap_builder v4.6.6
+   Compiling itertools v0.14.0
+   Compiling itertools v0.10.5
+   Compiling kache-core v1.1.1 (/Users/viktor/Developer/github/kache-investigations/flaky-sol/crates/kache-core)
+   Compiling tower-http v0.6.11
+   Compiling clap v4.6.6
+   Compiling unicode-truncate v2.0.1
+   Compiling ratatui-core v0.1.2
+   Compiling derive_more v2.1.1
+   Compiling axum v0.8.9
+   Compiling olpc-cjson v0.1.4
+   Compiling oci-spec v0.10.0
+   Compiling docker_credential v1.4.0
+   Compiling kache-store v1.1.1 (/Users/viktor/Developer/github/kache-investigations/flaky-sol/crates/kache-store)
+   Compiling clap_complete v4.6.9
+   Compiling ratatui-widgets v0.3.2
+   Compiling tokio-rustls v0.26.5
+   Compiling rustls-platform-verifier v0.7.0
+   Compiling crossterm v0.29.0
+   Compiling ratatui-macros v0.7.2
+   Compiling hyper-rustls v0.27.9
+   Compiling ratatui-crossterm v0.1.2
+   Compiling reqwest v0.13.5
+   Compiling reqwest v0.12.28
+   Compiling ratatui v0.30.2
+   Compiling num-integer v0.1.47
+   Compiling chrono v0.4.45
+   Compiling ordered-float v2.10.1
+   Compiling float-cmp v0.10.0
+   Compiling proptest v1.11.0
+   Compiling num-iter v0.1.46
+   Compiling num-bigint v0.4.8
+   Compiling serde-value v0.7.0
+   Compiling predicates v3.1.4
+   Compiling oauth2 v5.0.0
+   Compiling oci-client v0.18.0
+   Compiling num-bigint-dig v0.8.6
+   Compiling simple_asn1 v0.6.4
+   Compiling assert_cmd v2.2.2
+   Compiling rsa v0.9.10
+   Compiling reqsign-core v3.3.2
+   Compiling ssh-key v0.6.7
+   Compiling openidconnect v4.0.1
+   Compiling jsonwebtoken v11.1.0
+   Compiling opendal-core v0.59.3
+   Compiling reqsign-aws-core v3.2.0
+   Compiling reqsign-file-read-tokio v3.0.7
+   Compiling ssh-agent-client-rs v1.1.3
+   Compiling kunobi-auth v1.0.0
+   Compiling reqsign-aws-v4 v3.3.1
+   Compiling opendal-http-transport-reqwest v0.59.3
+   Compiling opendal-service-fs v0.59.3
+   Compiling opendal-layer-retry v0.59.3
+   Compiling reqsign-google v3.2.0
+   Compiling opendal-service-s3 v0.59.3
+   Compiling opendal-service-gcs v0.59.3
+   Compiling kache v1.1.1 (/Users/viktor/Developer/github/kache-investigations/flaky-sol)
+    Finished `test` profile [unoptimized] target(s) in 52.42s
+     Running unittests src/main.rs (/private/tmp/kache-flaky/sol/target/debug/deps/kache-881bf021f508393b)
+
+running 1 test
+test compiler::cc::tests::terminal_formatting_shares_cc_keys_with_cold_and_warm_probes ... FLAKY_PROBE baseline SDKROOT=Some("/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk")
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4459 filtered out; finished in 0.17s
+

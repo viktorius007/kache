@@ -1,0 +1,11 @@
+MEASURE warming elapsed_ms=64.700
+MEASURE flight margin_ms=209.239 recheck=true
+MEASURE permit elapsed_ms=323.452
+MEASURE warming elapsed_ms=53.129
+MEASURE flight margin_ms=210.350 recheck=true
+MEASURE permit elapsed_ms=307.185
+MEASURE wrapper margin_ms=203.196 setup_ms=6.944 empty_guard=true
+MEASURE warming elapsed_ms=52.829
+MEASURE flight margin_ms=208.520 recheck=true
+MEASURE wrapper margin_ms=205.824 setup_ms=3.718 empty_guard=true
+MEASURE permit elapsed_ms=310.761

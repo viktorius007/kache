@@ -1,0 +1,24 @@
+{"id": "R20", "command": ["python3", "/private/tmp/kache-flaky/sol/suspend.py"], "load": "{ 26.51 43.46 46.73 }", "start": "2026-10-14T01:59:02Z", "threads": "default"}
+INNER COMMAND: env KACHE_FLAKY_SUSPEND=1 ./scripts/with-test-resources.sh cargo test -p kache --bin kache test_wait_for_warming_blocks_then_signals -- --test-threads=1 --nocapture
+   Compiling kache v1.1.1 (/Users/viktor/Developer/github/kache-investigations/flaky-sol)
+    Finished `test` profile [unoptimized] target(s) in 2m 17s
+     Running unittests src/main.rs (/private/tmp/kache-flaky/sol/target/debug/deps/kache-881bf021f508393b)
+
+running 1 test
+test daemon::tests::test_wait_for_warming_blocks_then_signals ... FLAKY_SUSPEND_PID=99531
+CONTROLLER stopping owned test PID 99531
+CONTROLLER resumed owned test PID after 1.2 seconds
+
+thread 'daemon::tests::test_wait_for_warming_blocks_then_signals' (148857835) panicked at src/daemon/tests.rs:10563:5:
+assertion failed: elapsed < Duration::from_secs(1)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    daemon::tests::test_wait_for_warming_blocks_then_signals
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4459 filtered out; finished in 1.27s
+
+error: test failed, to rerun pass `-p kache --bin kache`

@@ -1,0 +1,415 @@
+{
+  "F1": {
+    "full": [
+      {
+        "run": "R01",
+        "failed": true
+      },
+      {
+        "run": "R02",
+        "failed": false
+      },
+      {
+        "run": "R18",
+        "failed": false
+      },
+      {
+        "run": "R19",
+        "failed": false
+      },
+      {
+        "run": "R21",
+        "failed": false
+      },
+      {
+        "run": "R22",
+        "failed": false
+      },
+      {
+        "run": "R23",
+        "failed": false
+      },
+      {
+        "run": "R24",
+        "failed": false
+      },
+      {
+        "run": "R25",
+        "failed": false
+      },
+      {
+        "run": "R26",
+        "failed": false
+      }
+    ],
+    "forced": [
+      {
+        "run": "R05",
+        "failed": true
+      },
+      {
+        "run": "R07",
+        "failed": true
+      }
+    ],
+    "controls": [
+      {
+        "run": "R04",
+        "failed": false
+      },
+      {
+        "run": "R13",
+        "failed": false
+      }
+    ],
+    "special": [
+      {
+        "run": "R03",
+        "failed": false
+      },
+      {
+        "run": "R06",
+        "failed": false
+      }
+    ]
+  },
+  "F2": {
+    "full": [
+      {
+        "run": "R01",
+        "failed": false
+      },
+      {
+        "run": "R02",
+        "failed": false
+      },
+      {
+        "run": "R18",
+        "failed": false
+      },
+      {
+        "run": "R19",
+        "failed": false
+      },
+      {
+        "run": "R21",
+        "failed": false
+      },
+      {
+        "run": "R22",
+        "failed": false
+      },
+      {
+        "run": "R23",
+        "failed": false
+      },
+      {
+        "run": "R24",
+        "failed": false
+      },
+      {
+        "run": "R25",
+        "failed": false
+      },
+      {
+        "run": "R26",
+        "failed": false
+      }
+    ],
+    "forced": [
+      {
+        "run": "R08",
+        "failed": true
+      }
+    ],
+    "controls": [
+      {
+        "run": "R14",
+        "failed": false
+      }
+    ],
+    "special": []
+  },
+  "F3": {
+    "full": [
+      {
+        "run": "R01",
+        "failed": false
+      },
+      {
+        "run": "R02",
+        "failed": false
+      },
+      {
+        "run": "R18",
+        "failed": false
+      },
+      {
+        "run": "R19",
+        "failed": false
+      },
+      {
+        "run": "R21",
+        "failed": false
+      },
+      {
+        "run": "R22",
+        "failed": false
+      },
+      {
+        "run": "R23",
+        "failed": false
+      },
+      {
+        "run": "R24",
+        "failed": false
+      },
+      {
+        "run": "R25",
+        "failed": false
+      },
+      {
+        "run": "R26",
+        "failed": false
+      }
+    ],
+    "forced": [
+      {
+        "run": "R09",
+        "failed": true
+      }
+    ],
+    "controls": [
+      {
+        "run": "R14",
+        "failed": false
+      }
+    ],
+    "special": []
+  },
+  "F4": {
+    "full": [
+      {
+        "run": "R01",
+        "failed": false
+      },
+      {
+        "run": "R02",
+        "failed": false
+      },
+      {
+        "run": "R18",
+        "failed": false
+      },
+      {
+        "run": "R19",
+        "failed": false
+      },
+      {
+        "run": "R21",
+        "failed": false
+      },
+      {
+        "run": "R22",
+        "failed": false
+      },
+      {
+        "run": "R23",
+        "failed": false
+      },
+      {
+        "run": "R24",
+        "failed": false
+      },
+      {
+        "run": "R25",
+        "failed": false
+      },
+      {
+        "run": "R26",
+        "failed": false
+      }
+    ],
+    "forced": [
+      {
+        "run": "R12",
+        "failed": true
+      }
+    ],
+    "controls": [
+      {
+        "run": "R17",
+        "failed": false
+      }
+    ],
+    "special": []
+  },
+  "F5": {
+    "full": [
+      {
+        "run": "R01",
+        "failed": false
+      },
+      {
+        "run": "R02",
+        "failed": false
+      },
+      {
+        "run": "R18",
+        "failed": false
+      },
+      {
+        "run": "R19",
+        "failed": false
+      },
+      {
+        "run": "R21",
+        "failed": false
+      },
+      {
+        "run": "R22",
+        "failed": false
+      },
+      {
+        "run": "R23",
+        "failed": false
+      },
+      {
+        "run": "R24",
+        "failed": false
+      },
+      {
+        "run": "R25",
+        "failed": false
+      },
+      {
+        "run": "R26",
+        "failed": false
+      }
+    ],
+    "forced": [
+      {
+        "run": "R11",
+        "failed": true
+      }
+    ],
+    "controls": [
+      {
+        "run": "R16",
+        "failed": false
+      }
+    ],
+    "special": []
+  },
+  "F6": {
+    "full": [
+      {
+        "run": "R01",
+        "failed": false
+      },
+      {
+        "run": "R02",
+        "failed": false
+      },
+      {
+        "run": "R18",
+        "failed": false
+      },
+      {
+        "run": "R19",
+        "failed": false
+      },
+      {
+        "run": "R21",
+        "failed": false
+      },
+      {
+        "run": "R22",
+        "failed": false
+      },
+      {
+        "run": "R23",
+        "failed": false
+      },
+      {
+        "run": "R24",
+        "failed": false
+      },
+      {
+        "run": "R25",
+        "failed": false
+      },
+      {
+        "run": "R26",
+        "failed": false
+      }
+    ],
+    "forced": [
+      {
+        "run": "R20",
+        "failed": true
+      }
+    ],
+    "controls": [
+      {
+        "run": "R15",
+        "failed": false
+      }
+    ],
+    "special": [
+      {
+        "run": "R10",
+        "failed": true
+      }
+    ]
+  },
+  "F7": {
+    "full": [
+      {
+        "run": "R19",
+        "failed": false
+      },
+      {
+        "run": "R21",
+        "failed": true
+      },
+      {
+        "run": "R22",
+        "failed": false
+      },
+      {
+        "run": "R23",
+        "failed": true
+      },
+      {
+        "run": "R24",
+        "failed": true
+      },
+      {
+        "run": "R25",
+        "failed": true
+      },
+      {
+        "run": "R26",
+        "failed": true
+      }
+    ],
+    "forced": [
+      {
+        "run": "R27",
+        "failed": true
+      }
+    ],
+    "controls": [
+      {
+        "run": "R28",
+        "failed": true
+      },
+      {
+        "run": "R29",
+        "failed": true
+      }
+    ],
+    "special": []
+  }
+}

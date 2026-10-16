@@ -1,0 +1,45 @@
+MEASURE warming elapsed_ms=53.231
+MEASURE flight margin_ms=210.082 recheck=true
+MEASURE wrapper margin_ms=200.617 setup_ms=3.774 empty_guard=true
+MEASURE permit elapsed_ms=317.441
+MEASURE warming elapsed_ms=54.059
+MEASURE flight margin_ms=209.407 recheck=true
+MEASURE wrapper margin_ms=208.569 setup_ms=1.633 empty_guard=true
+MEASURE permit elapsed_ms=322.366
+MEASURE warming elapsed_ms=51.695
+MEASURE flight margin_ms=205.164 recheck=true
+MEASURE wrapper margin_ms=207.640 setup_ms=2.515 empty_guard=true
+MEASURE permit elapsed_ms=302.804
+MEASURE warming elapsed_ms=53.330
+MEASURE flight margin_ms=211.611 recheck=true
+MEASURE wrapper margin_ms=204.316 setup_ms=1.032 empty_guard=true
+MEASURE permit elapsed_ms=297.713
+MEASURE warming elapsed_ms=54.811
+MEASURE flight margin_ms=207.502 recheck=true
+MEASURE wrapper margin_ms=202.796 setup_ms=4.791 empty_guard=true
+MEASURE permit elapsed_ms=321.931
+MEASURE warming elapsed_ms=53.795
+MEASURE flight margin_ms=210.996 recheck=true
+MEASURE wrapper margin_ms=201.875 setup_ms=5.010 empty_guard=true
+MEASURE permit elapsed_ms=317.046
+MEASURE warming elapsed_ms=53.712
+MEASURE flight margin_ms=211.069 recheck=true
+MEASURE wrapper margin_ms=205.913 setup_ms=1.391 empty_guard=true
+MEASURE permit elapsed_ms=310.067
+MEASURE warming elapsed_ms=53.454
+MEASURE flight margin_ms=210.609 recheck=true
+MEASURE wrapper margin_ms=205.234 setup_ms=5.691 empty_guard=true
+MEASURE permit elapsed_ms=314.242
+MEASURE warming elapsed_ms=60.588
+MEASURE wrapper margin_ms=211.395 setup_ms=2.009 empty_guard=true
+MEASURE warming elapsed_ms=53.625
+MEASURE flight margin_ms=208.651 recheck=true
+MEASURE wrapper margin_ms=204.361 setup_ms=8.259 empty_guard=true
+MEASURE permit elapsed_ms=313.843
+MEASURE warming elapsed_ms=53.182
+MEASURE flight margin_ms=209.137 recheck=true
+MEASURE permit elapsed_ms=302.927
+MEASURE wrapper margin_ms=211.282 setup_ms=1.233 empty_guard=true
+MEASURE warming elapsed_ms=51.687
+MEASURE flight margin_ms=205.043 recheck=true
+MEASURE permit elapsed_ms=309.687

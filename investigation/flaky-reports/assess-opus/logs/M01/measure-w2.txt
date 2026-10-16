@@ -1,0 +1,46 @@
+MEASURE warming elapsed_ms=53.481
+MEASURE flight margin_ms=205.255 recheck=true
+MEASURE wrapper margin_ms=198.708 setup_ms=10.716 empty_guard=true
+MEASURE permit elapsed_ms=308.533
+MEASURE warming elapsed_ms=53.263
+MEASURE flight margin_ms=202.643 recheck=true
+MEASURE wrapper margin_ms=203.858 setup_ms=1.866 empty_guard=true
+MEASURE permit elapsed_ms=321.315
+MEASURE warming elapsed_ms=52.683
+MEASURE flight margin_ms=205.266 recheck=true
+MEASURE wrapper margin_ms=196.013 setup_ms=9.516 empty_guard=true
+MEASURE permit elapsed_ms=304.391
+MEASURE warming elapsed_ms=51.601
+MEASURE flight margin_ms=214.134 recheck=true
+MEASURE wrapper margin_ms=225.952 setup_ms=2.516 empty_guard=true
+MEASURE permit elapsed_ms=322.121
+MEASURE warming elapsed_ms=53.148
+MEASURE flight margin_ms=208.741 recheck=true
+MEASURE wrapper margin_ms=198.846 setup_ms=4.968 empty_guard=true
+MEASURE permit elapsed_ms=320.797
+MEASURE warming elapsed_ms=53.643
+MEASURE flight margin_ms=213.643 recheck=true
+MEASURE wrapper margin_ms=204.680 setup_ms=5.768 empty_guard=true
+MEASURE permit elapsed_ms=305.575
+MEASURE warming elapsed_ms=53.282
+MEASURE flight margin_ms=212.284 recheck=true
+MEASURE wrapper margin_ms=208.553 setup_ms=1.684 empty_guard=true
+MEASURE permit elapsed_ms=308.211
+MEASURE warming elapsed_ms=53.958
+MEASURE flight margin_ms=209.772 recheck=true
+MEASURE wrapper margin_ms=215.516 setup_ms=1.231 empty_guard=true
+MEASURE permit elapsed_ms=304.046
+MEASURE warming elapsed_ms=55.060
+MEASURE flight margin_ms=222.494 recheck=true
+MEASURE permit elapsed_ms=298.697
+MEASURE wrapper margin_ms=191.642 setup_ms=15.020 empty_guard=true
+MEASURE warming elapsed_ms=52.554
+MEASURE flight margin_ms=216.328 recheck=true
+MEASURE permit elapsed_ms=311.887
+MEASURE wrapper margin_ms=203.091 setup_ms=1.208 empty_guard=true
+MEASURE warming elapsed_ms=52.398
+MEASURE flight margin_ms=204.926 recheck=true
+MEASURE permit elapsed_ms=303.303
+MEASURE warming elapsed_ms=55.347
+MEASURE wrapper margin_ms=211.700 setup_ms=1.116 empty_guard=true
+MEASURE permit elapsed_ms=306.322
