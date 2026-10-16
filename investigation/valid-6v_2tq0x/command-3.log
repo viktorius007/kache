@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "command": "targets-share",
+  "success": true,
+  "targets": 1,
+  "examined": 1,
+  "remembered": 0,
+  "size_rejected": 0,
+  "ends_rejected": 0,
+  "cross_device": 0,
+  "hashed": 1,
+  "matches": 1,
+  "matched_bytes": 131072,
+  "already_shared": 0,
+  "replaced": 1,
+  "failed": 0,
+  "skipped_busy": 0,
+  "applied": true
+}
+
+STDERR
+
+EXIT 0

@@ -1,0 +1,113 @@
+{
+  "graph_project": "Users-viktor-Developer-github-kache-investigations-coordinator",
+  "indexed_root": "/Users/viktor/Developer/github/kache-investigations/coordinator",
+  "indexed_at": "2026-10-11T05:36:35Z",
+  "index_status": "ready",
+  "rust_semantic_coverage": "semantic_partial",
+  "missing_semantics": [
+    "binding_oracle_unavailable",
+    "expanded_calls_unavailable",
+    "impl_relationships_unavailable"
+  ],
+  "queries_executed": [
+    {
+      "tool": "search_graph",
+      "name_pattern": "target_in_use|try_profile_lock|replace_with|before_probe",
+      "file_pattern": "src/",
+      "limit": 12,
+      "results": 9,
+      "has_more": false
+    },
+    {
+      "tool": "trace_path",
+      "function_name": "target_seed.before_probe",
+      "direction": "inbound",
+      "depth": 1,
+      "limit": 6,
+      "result": "function not found; no call trace established"
+    }
+  ],
+  "source_reads": [
+    {
+      "path": "src/target_dedup.rs",
+      "ranges": [
+        "1-180",
+        "190-385",
+        "428-465",
+        "620-835",
+        "1090-1245"
+      ],
+      "claim": "sampled source corroboration, not whole-file audit"
+    },
+    {
+      "path": "src/cli.rs",
+      "ranges": [
+        "5100-5325",
+        "4760-4830",
+        "4850-4990",
+        "6000-6106",
+        "6760-6815",
+        "7070-7115"
+      ],
+      "claim": "sampled CLI lock and cleanup path inspection"
+    },
+    {
+      "path": "src/target_seed.rs",
+      "ranges": [
+        "1-120",
+        "670-730",
+        "870-958"
+      ],
+      "claim": "sampled lock and probe wiring inspection"
+    },
+    {
+      "path": "src/target_seed/placement.rs",
+      "ranges": [
+        "1-180"
+      ],
+      "claim": "resolved intermediate directory and config precedence inspection"
+    },
+    {
+      "path": "src/config.rs",
+      "ranges": [
+        "3010-3040",
+        "3200-3225"
+      ],
+      "claim": "store/index paths corroborated"
+    },
+    {
+      "path": "crates/kache-store/src/config.rs",
+      "ranges": [
+        "1-35"
+      ],
+      "claim": "store/index paths corroborated"
+    },
+    {
+      "path": "crates/kache-store/src/store.rs",
+      "ranges": [
+        "1650-1678"
+      ],
+      "claim": "blob schema corroborated"
+    },
+    {
+      "path": "src/compiler_store.rs",
+      "ranges": [
+        "1-60"
+      ],
+      "claim": "Store alias wiring corroborated"
+    }
+  ],
+  "runtime_cases_executed": [
+    "valid"
+  ],
+  "runtime_cases_unexecuted": [
+    "corrupt",
+    "ends",
+    "split-clean",
+    "same-clean",
+    "split-share",
+    "same-share",
+    "target-seed concurrency"
+  ],
+  "probes_allowed_after_checkpoint": false
+}

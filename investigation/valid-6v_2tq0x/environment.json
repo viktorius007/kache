@@ -1,0 +1,22 @@
+{
+  "PATH": "/Users/viktor/.local/lib/codex-local/0.160.1+local.10-c446343404e8/codex-path:/Users/viktor/.codex/tmp/arg0/codex-arg05gylUZ:/Users/viktor/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/viktor/.omlx/bin:/Users/viktor/.local/bin:/opt/homebrew/opt/rustup/bin:/Users/viktor/Library/pnpm:/Users/viktor/bin:/Applications/OrbStack.app/Contents/MacOS/xbin:/Users/viktor/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/opt/zerobrew/prefix/bin:/Users/viktor/.cargo/bin:/Users/viktor/.orbstack/bin:/Users/viktor/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources",
+  "LANG": "C.UTF-8",
+  "HOME": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/home",
+  "CARGO_HOME": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/cargo-home",
+  "RUSTUP_HOME": "/Users/viktor/.rustup",
+  "RUSTC": "/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/rustc",
+  "RUSTC_WRAPPER": "",
+  "RUSTC_WORKSPACE_WRAPPER": "",
+  "KACHE_CONFIG": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/config.toml",
+  "KACHE_HOST_CONFIG": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/absent-host.toml",
+  "KACHE_CACHE_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/cache",
+  "KACHE_RUNTIME_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/runtime",
+  "KACHE_NO_DAEMON": "1",
+  "TMPDIR": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/tmp",
+  "TMP": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/tmp",
+  "TEMP": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/tmp",
+  "HOST_CC": "clang",
+  "HOST_CXX": "clang++",
+  "CC": "clang",
+  "CXX": "clang++"
+}

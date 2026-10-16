@@ -1,0 +1,10 @@
+{
+  "baseline_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "baseline_binary": "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+  "probe_sha256": "a039d17a50d02e7cc123458123ad4e777185abf58460a1105f25947478883ee7",
+  "hash_helper_original": "/Users/viktor/Developer/github/kache-investigations/audit-filesystem-targets/investigation/probes/blake3-file",
+  "hash_helper_snapshot_sha256": "3eda9b8a73e7183a74549c0ce0a5e4b05cdf9e20cd52f8b1c5dd631487d3b27d",
+  "fixture": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x",
+  "production_source_edits": false,
+  "builds_executed": false
+}

@@ -1,0 +1,43 @@
+{
+  "executed_probe_command": {
+    "argv": [
+      "/usr/bin/python3",
+      "investigation/probes/target-probes.py",
+      "valid"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination"
+  },
+  "child_commands": [
+    {
+      "argv": [
+        "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+        "targets",
+        "share",
+        "--json",
+        "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/target"
+      ],
+      "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x",
+      "timeout_seconds": 40
+    },
+    {
+      "argv": [
+        "/Users/viktor/Developer/github/kache-investigations/audit-filesystem-targets/investigation/probes/blake3-file",
+        "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/target/debug/deps/libprobe.rlib"
+      ],
+      "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x",
+      "timeout_seconds": 40
+    },
+    {
+      "argv": [
+        "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+        "targets",
+        "share",
+        "--json",
+        "--apply",
+        "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/target"
+      ],
+      "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x",
+      "timeout_seconds": 40
+    }
+  ]
+}

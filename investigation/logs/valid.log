@@ -1,0 +1,49 @@
+FIXTURE /Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x
+ISOLATION {"HOME": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/home", "CARGO_HOME": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/cargo-home", "RUSTUP_HOME": "/Users/viktor/.rustup", "KACHE_CONFIG": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/config.toml", "KACHE_HOST_CONFIG": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/absent-host.toml", "KACHE_CACHE_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/cache", "KACHE_RUNTIME_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/runtime", "TMPDIR": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/tmp"}
+COMMAND {"argv": ["/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache", "targets", "share", "--json", "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/target"], "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x", "timeout_seconds": 40}
+{
+  "schema_version": 1,
+  "command": "targets-share",
+  "success": true,
+  "targets": 1,
+  "examined": 1,
+  "remembered": 0,
+  "size_rejected": 1,
+  "ends_rejected": 0,
+  "cross_device": 0,
+  "hashed": 0,
+  "matches": 0,
+  "matched_bytes": 0,
+  "already_shared": 0,
+  "replaced": 0,
+  "failed": 0,
+  "skipped_busy": 0,
+  "applied": false
+}
+  EXIT 0
+COMMAND {"argv": ["/Users/viktor/Developer/github/kache-investigations/audit-filesystem-targets/investigation/probes/blake3-file", "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/target/debug/deps/libprobe.rlib"], "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x", "timeout_seconds": 40}
+24e9cbe9f25292cd57991ccab25ccbfcd965456b59098d3c3f7ff68db31ab941
+  EXIT 0
+COMMAND {"argv": ["/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache", "targets", "share", "--json", "--apply", "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/target"], "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x", "timeout_seconds": 40}
+{
+  "schema_version": 1,
+  "command": "targets-share",
+  "success": true,
+  "targets": 1,
+  "examined": 1,
+  "remembered": 0,
+  "size_rejected": 0,
+  "ends_rejected": 0,
+  "cross_device": 0,
+  "hashed": 1,
+  "matches": 1,
+  "matched_bytes": 131072,
+  "already_shared": 0,
+  "replaced": 1,
+  "failed": 0,
+  "skipped_busy": 0,
+  "applied": true
+}
+  EXIT 0
+OBSERVATION {"hash": "24e9cbe9f25292cd57991ccab25ccbfcd965456b59098d3c3f7ff68db31ab941", "good_sha256": "59f410ae5e17962412e2aed4f815918f634932f2abf084f00bb638c4db017850", "observed_sha256": "59f410ae5e17962412e2aed4f815918f634932f2abf084f00bb638c4db017850", "target_is_good": true, "target_equals_blob": true, "inode_before": 1917394630, "inode_after": 1917394664, "report": {"schema_version": 1, "command": "targets-share", "success": true, "targets": 1, "examined": 1, "remembered": 0, "size_rejected": 0, "ends_rejected": 0, "cross_device": 0, "hashed": 1, "matches": 1, "matched_bytes": 131072, "already_shared": 0, "replaced": 1, "failed": 0, "skipped_busy": 0, "applied": true}}
+ASSERTION_PASS valid

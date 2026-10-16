@@ -1,0 +1,22 @@
+[
+  {
+    "id": "qa-valid-blob-clone-control",
+    "classification": "positive control only; not an admitted defect replay",
+    "argv": [
+      "/usr/bin/python3",
+      "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/probes/target-probes.py",
+      "valid"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination",
+    "timeout_seconds": 90,
+    "expected_failure_regex": null,
+    "assertion_regex": "ASSERTION_PASS valid",
+    "executed": true,
+    "output": "investigation/logs/valid.log",
+    "dependencies": [
+      "/Users/viktor/Developer/github/kache-investigations/audit-filesystem-targets/investigation/probes/blake3-file",
+      "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache"
+    ],
+    "rerun_authorized": false
+  }
+]

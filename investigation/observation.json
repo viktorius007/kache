@@ -1,0 +1,28 @@
+{
+  "hash": "24e9cbe9f25292cd57991ccab25ccbfcd965456b59098d3c3f7ff68db31ab941",
+  "good_sha256": "59f410ae5e17962412e2aed4f815918f634932f2abf084f00bb638c4db017850",
+  "observed_sha256": "59f410ae5e17962412e2aed4f815918f634932f2abf084f00bb638c4db017850",
+  "target_is_good": true,
+  "target_equals_blob": true,
+  "inode_before": 1917394630,
+  "inode_after": 1917394664,
+  "report": {
+    "schema_version": 1,
+    "command": "targets-share",
+    "success": true,
+    "targets": 1,
+    "examined": 1,
+    "remembered": 0,
+    "size_rejected": 0,
+    "ends_rejected": 0,
+    "cross_device": 0,
+    "hashed": 1,
+    "matches": 1,
+    "matched_bytes": 131072,
+    "already_shared": 0,
+    "replaced": 1,
+    "failed": 0,
+    "skipped_busy": 0,
+    "applied": true
+  }
+}

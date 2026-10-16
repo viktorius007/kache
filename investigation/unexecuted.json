@@ -1,0 +1,25 @@
+[
+  {
+    "id": "qa-corrupt-blob",
+    "status": "unexecuted; not admitted",
+    "required_evidence": "Run corrupt case against untouched baseline and ends rejection control; direct byte-equality failure, verified blob and source path isolation.",
+    "candidate_argv": [
+      "/usr/bin/python3",
+      "investigation/probes/target-probes.py",
+      "corrupt"
+    ],
+    "scope_limit": "Existing source hashes destination but replace_with validates only length and ends; valid control is not corruption proof."
+  },
+  {
+    "id": "qa-split-cargo-lock",
+    "status": "unexecuted; not admitted",
+    "required_evidence": "Real generated Cargo process blocked in its build script; inspect actual held Cargo locks; compare split-clean/split-share against same-clean/same-share controls. Inspect seed separately through actual daemon reachability.",
+    "candidate_cases": [
+      "split-clean",
+      "same-clean",
+      "split-share",
+      "same-share"
+    ],
+    "scope_limit": "No held real Cargo process or actual lock layout was tested; seed production dispatch not reproduced."
+  }
+]

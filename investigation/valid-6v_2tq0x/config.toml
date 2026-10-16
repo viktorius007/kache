@@ -1,0 +1,5 @@
+[cache]
+local_store = "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/cache"
+runtime_dir = "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/valid-6v_2tq0x/runtime"
+auto_gc = false
+auto_share_target_files = false
