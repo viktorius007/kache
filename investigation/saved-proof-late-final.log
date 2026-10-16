@@ -1,0 +1,14 @@
+=== kache fixture scenarios ===
+Binary:  /Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache
+Version: kache 1.0.0
+Fixtures: e2e-timeout
+Select:   suite:e2e
+
+--- e2e-timeout (cache: /var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpnRgfLl)
+=> e2e-timeout: fail
+
+Results written to /tmp/verify-timeout-9mnytxht/results.json
+FAIL: one or more fixtures failed
+HARNESS_EXIT=1
+ELAPSED_SECONDS=1.131
+RESULTS=[{"name": "e2e-timeout", "phases": [{"phase": "cold", "status": "fail", "verify": {"exit_code": -1, "failure_reason": "timed out after 1 seconds", "passed": false, "stdout": ""}}], "status": "fail"}]

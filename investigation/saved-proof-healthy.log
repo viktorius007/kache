@@ -1,0 +1,14 @@
+=== kache fixture scenarios ===
+Binary:  /Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache
+Version: kache 1.0.0
+Fixtures: e2e-timeout
+Select:   suite:e2e
+
+--- e2e-timeout (cache: /var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpcOfJjl)
+=> e2e-timeout: pass
+
+Results written to /tmp/verify-timeout-7lkd6pcf/results.json
+PASS: all executed fixtures green (0 skipped)
+HARNESS_EXIT=0
+ELAPSED_SECONDS=0.339
+RESULTS=[{"name": "e2e-timeout", "phases": [{"phase": "cold", "status": "pass", "verify": {"exit_code": 0, "failure_reason": null, "passed": true, "stdout": "ok"}}, {"phase": "warm", "status": "pass", "verify": {"exit_code": 0, "failure_reason": null, "passed": true, "stdout": "ok"}}, {"phase": "noop", "status": "pass", "verify": {"exit_code": 0, "failure_reason": null, "passed": true, "stdout": "ok"}}, {"phase": "relocate", "status": "pass", "verify": {"exit_code": 0, "failure_reason": null, "passed": true, "stdout": "ok"}}], "status": "pass"}]

@@ -1,0 +1,48 @@
+    Checking serde_core v1.0.229
+    Checking libc v0.2.189
+    Checking errno v0.3.14
+    Checking rustix v1.1.4
+    Checking serde_spanned v1.1.1
+    Checking toml_datetime v1.1.1+spec-1.1.0
+    Checking getrandom v0.4.3
+    Checking clap_builder v4.6.6
+    Checking num-traits v0.2.19
+    Checking once_cell v1.21.4
+    Checking memchr v2.8.3
+    Checking hashbrown v0.17.1
+    Checking tempfile v3.27.0
+    Checking clap v4.6.6
+    Checking indexmap v2.14.2
+    Checking serde_json v1.0.151
+    Checking toml v1.1.5+spec-1.1.0
+    Checking serde v1.0.229
+    Checking chrono v0.4.45
+    Checking kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/guardrails-verify-timeout-unused/crates/kache-fs)
+    Checking kache-e2e v1.0.0 (/Users/viktor/Developer/github/kache-prs/guardrails-verify-timeout-unused/crates/kache-e2e)
+error: this `if` statement can be collapsed
+  --> crates/kache-e2e/src/runner/verify_process.rs:90:9
+   |
+90 | /         if let Some(status) = process.child.try_wait()? {
+91 | |             if eof {
+92 | |                 return Ok(Output {
+93 | |                     exit_code: status.code().unwrap_or(-1),
+...  |
+98 | |         }
+   | |_________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#collapsible_if
+   = note: `-D clippy::collapsible-if` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::collapsible_if)]`
+help: collapse nested if block
+   |
+90 ~         if let Some(status) = process.child.try_wait()?
+91 ~             && eof {
+92 |                 return Ok(Output {
+...
+96 |                 });
+97 ~             }
+   |
+
+error: could not compile `kache-e2e` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `kache-e2e` (lib test) due to 1 previous error
