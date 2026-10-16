@@ -1,0 +1,9 @@
+{
+  "case": "locator",
+  "root": "/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-locator-e6s9cdls",
+  "direct_only": true,
+  "initial": "/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-locator-e6s9cdls/checkout_a/target/debug/build/pkg-deadbeef/out",
+  "cached": "/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-locator-e6s9cdls/checkout_b/target/debug/build/pkg-deadbeef/out",
+  "direct": "/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-locator-e6s9cdls/checkout_b/target/debug/build/pkg-deadbeef/out",
+  "changed_cache_hit": false
+}

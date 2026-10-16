@@ -1,0 +1,9 @@
+{
+  "case": "empty",
+  "root": "/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-empty-svqhtoyc",
+  "direct_only": false,
+  "initial": "false",
+  "cached": "false",
+  "direct": "true",
+  "changed_cache_hit": true
+}

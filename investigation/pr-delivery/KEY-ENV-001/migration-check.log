@@ -1,0 +1,18 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/key-env-001)
+error[E0277]: can't compare `(std::string::String, std::option::Option<std::string::String>)` with `(std::string::String, std::string::String)`
+    --> src/cache_key/tests.rs:6391:5
+     |
+6391 | /     assert_eq!(
+6392 | |         deps,
+6393 | |         vec![("OUT_DIR".to_string(), r"C:\proj\build\out".to_string())]
+6394 | |     );
+     | |_____^ no implementation for `(std::string::String, std::option::Option<std::string::String>) == (std::string::String, std::string::String)`
+     |
+     = help: the trait `PartialEq<(std::string::String, std::string::String)>` is not implemented for `(std::string::String, std::option::Option<std::string::String>)`
+     = help: the following other types implement trait `PartialEq<Rhs>`:
+               (T₁, T₂, …, Tₙ) up to tuples of arity 12
+             and 5 others
+     = note: required for `Vec<(std::string::String, std::option::Option<std::string::String>)>` to implement `PartialEq<Vec<(std::string::String, std::string::String)>>`
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `kache` (bin "kache" test) due to 1 previous error

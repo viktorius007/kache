@@ -1,0 +1,23 @@
+2026-10-11T06:59:27.988900Z  WARN kache::config: [cache] ignore_env = true: ignoring set env override(s) ["KACHE_CACHE_DIR", "KACHE_DEFERRED_DISCOVERY", "KACHE_SCHEDULER"] in favor of the config file
+2026-10-11T06:59:27.989787Z TRACE kache::cache_key: [key:locator] out_dir_alias: skip: not a registry package
+2026-10-11T06:59:28.033266Z TRACE kache::cache_key: [key:locator] key_version=32
+2026-10-11T06:59:28.033447Z TRACE kache::cache_key: [key:locator] rustc_version=rustc 1.99.0 (b940084d7 2026-09-28)
+2026-10-11T06:59:28.033461Z TRACE kache::cache_key: [key:locator] target=unknown
+2026-10-11T06:59:28.033477Z TRACE kache::cache_key: [key:locator] crate_name=locator
+2026-10-11T06:59:28.033484Z TRACE kache::cache_key: [key:locator] crate_type=rlib
+2026-10-11T06:59:28.033489Z TRACE kache::cache_key: [key:locator] edition=2021
+2026-10-11T06:59:28.033501Z TRACE kache::cache_key: [key:locator] emit:link
+2026-10-11T06:59:28.034967Z TRACE kache::cache_key: [key:locator] inputs=dep-info(no-record)
+2026-10-11T06:59:28.035040Z TRACE kache::cache_key: dep-info pre-pass: "/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/rustc" "lib.rs" "--crate-name" "locator" "--crate-type" "rlib" "--edition" "2021" "--emit" "dep-info" "-o" "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/envelope-audit-key-native-inputs-replay-locator/tmp/kache-depinfoJI1rNC/deps.d"
+2026-10-11T06:59:28.057747Z TRACE kache::cache_key: dep-info found 2 source files, 1 env deps for lib.rs
+2026-10-11T06:59:28.058329Z TRACE kache::cache_key: [key:locator] source:<CWD>/target/debug/build/pkg-deadbeef/out/data.txt=d9f8d298291fd354
+2026-10-11T06:59:28.058371Z TRACE kache::cache_key: [key:locator] source:<OPAQUE_PATH>/f0f9ef1f53b23b9434aa557d08c9f0825bffb2cfac8373d73852cd1c9fbef06a=1206f9f160db6109
+2026-10-11T06:59:28.059133Z TRACE kache::cache_key: [key:locator] env_dep:OUT_DIR=<OUT_DIR:pkg-deadbeef> (normalized path-only)
+2026-10-11T06:59:28.059206Z TRACE kache::cache_key: [key:locator] cargo_cfg_count=0
+2026-10-11T06:59:28.059243Z TRACE kache::cache_key: [key:locator] remap=multi-prefix(/kache/home,/kache/rustup,/kache/target,/kache/tmp,/kache/workspace,/rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4)
+2026-10-11T06:59:28.059279Z TRACE kache::cache_key: [key:locator] final=18d55d6a0639ceaf
+2026-10-11T06:59:28.059646Z DEBUG kache::wrapper: cache key for locator: 18d55d6a0639ceaf
+2026-10-11T06:59:28.059727Z DEBUG kache::scheduler: scheduler resource snapshot; resource-aware admission is future work available=16 ancestor_limits_complete=false current_memory_events_known=false current_memory_low=0 current_memory_high=0 current_memory_max=0 current_memory_oom=0 current_memory_oom_kill=0 current_memory_oom_group_kill=0
+2026-10-11T06:59:28.060261Z DEBUG kache::wrapper: cache miss for locator, compiling (18d55d6a0639ceaf)
+2026-10-11T06:59:28.061240Z DEBUG kache::compile: running: /Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/rustc --crate-name locator --crate-type rlib --edition 2021 --emit=link lib.rs --out-dir /Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-locator-wff_k6th/checkout_a/target/debug/deps
+2026-10-11T06:59:28.089018Z DEBUG kache::compile: [kache] no rustc artifact notifications for locator; falling back to candidate path discovery

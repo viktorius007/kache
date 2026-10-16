@@ -1,0 +1,11 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/key-env-001)
+    Finished `test` profile [unoptimized] target(s) in 22.41s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 3 tests
+test cache_key::tests::parse_env_dep_info_distinguishes_absent_and_empty_variables ... ok
+test cache_key::tests::portable_predictions_preserve_absent_and_empty_env_values ... ok
+test prediction_share::tests::shared_plain_rows_preserve_absent_and_empty_env_values ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 0.00s
+

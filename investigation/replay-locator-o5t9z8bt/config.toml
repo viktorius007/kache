@@ -1,0 +1,5 @@
+[cache]
+local_only = true
+ignore_env = true
+local_store = "/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-locator-o5t9z8bt/cache"
+runtime_dir = "/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-locator-o5t9z8bt/cache"

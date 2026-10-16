@@ -1,0 +1,25 @@
+{
+  "cache_key": "ab47dbd872a741db6ad3000de2109643c9648c3206c739f043d73face2fe4d73",
+  "key_schema": 32,
+  "crate_name": "pgo_probe",
+  "crate_types": [
+    "rlib"
+  ],
+  "files": [
+    {
+      "name": "libpgo_probe.rlib",
+      "size": 7152,
+      "hash": "61bdec1a76bcc4c31b04b50b5d4ea8f742519a5a50413144d41ab3d185c7c762",
+      "executable": false
+    }
+  ],
+  "stdout": "",
+  "stderr": "warning: /Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/pgo-fixture/use.profdata: Not an IR level instrumentation profile\n\nwarning: 1 warning emitted\n\n",
+  "features": [],
+  "target": "host",
+  "profile": "release",
+  "compile_time_ms": 27,
+  "emit_kinds": [
+    "link"
+  ]
+}

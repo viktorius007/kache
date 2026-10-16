@@ -1,0 +1,24 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/key-env-001)
+    Finished `test` profile [unoptimized] target(s) in 0.68s
+     Running tests/cache_key_underkeying_test.rs (target/debug/deps/cache_key_underkeying_test-b317127eabbeef47)
+
+running 1 test
+test option_env_presence_changes_cached_behavior ... FAILED
+
+failures:
+
+---- option_env_presence_changes_cached_behavior stdout ----
+
+thread 'option_env_presence_changes_cached_behavior' (51180166) panicked at tests/cache_key_underkeying_test.rs:1072:13:
+assertion `left == right` failed: cached option_env! must distinguish absent and empty values (predictions=true, value=Some(""))
+  left: "unset"
+ right: "empty"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    option_env_presence_changes_cached_behavior
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.79s
+
+error: test failed, to rerun pass `--test cache_key_underkeying_test`

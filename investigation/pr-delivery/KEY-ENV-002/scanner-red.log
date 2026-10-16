@@ -1,0 +1,47 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/key-env-002)
+    Finished `test` profile [unoptimized] target(s) in 21.39s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/key-env-001/target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+test cache_key::tests::source_env_dep_use_rejects_ambiguous_include_names ... FAILED
+
+failures:
+
+---- cache_key::tests::source_env_dep_use_rejects_ambiguous_include_names stdout ----
+
+thread 'cache_key::tests::source_env_dep_use_rejects_ambiguous_include_names' (52204747) panicked at src/cache_key/tests.rs:16125:13:
+assertion `left == right` failed: macro_rules! include { ($path:expr) => { $path }; } include!(env!("OUT_DIR"));
+  left: IncludeLocator
+ right: RuntimeValue
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    cache_key::tests::source_env_dep_use_rejects_ambiguous_include_names
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--bin kache`
+    Finished `test` profile [unoptimized] target(s) in 1.79s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/key-env-001/target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+test cache_key::tests::shadowed_include_names_rescan_version_three_memos ... FAILED
+
+failures:
+
+---- cache_key::tests::shadowed_include_names_rescan_version_three_memos stdout ----
+
+thread 'cache_key::tests::shadowed_include_names_rescan_version_three_memos' (52205902) panicked at src/cache_key/tests.rs:16168:5:
+assertion `left == right` failed
+  left: IncludeLocator
+ right: RuntimeValue
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    cache_key::tests::shadowed_include_names_rescan_version_three_memos
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--bin kache`

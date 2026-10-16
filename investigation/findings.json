@@ -1,0 +1,141 @@
+[
+  {
+    "id": "KEY-ENV-001",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:09:37.470305+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 Codex",
+      "mode": "production-readiness",
+      "slice": "key-native-inputs"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Unset and set-to-empty compile-time environment variables share a cache key and can restore the wrong option_env! result.",
+    "scenario": "Build an rlib containing option_env!(\"KACHE_AUDIT_SWITCH\").is_some() while the variable is unset, establish an unchanged warm hit, then set it to the empty string without changing source or argv. Kache returns a local hit whose consumer prints false; direct rustc under the empty value prints true.",
+    "evidence": [
+      {
+        "path": "src/cache_key.rs",
+        "lines": "8607-8621",
+        "point": "parse_env_dep_info stores both # env-dep:VAR and # env-dep:VAR= as the same (VAR, empty String)."
+      },
+      {
+        "path": "src/cache_key.rs",
+        "lines": "3210-3247",
+        "point": "compute_key_into folds only variable name and normalized string value, without a presence discriminator."
+      },
+      {
+        "path": "src/cache_key.rs",
+        "lines": "6739-6755",
+        "point": "validate_prediction accepts an absent variable for an empty recorded string."
+      },
+      {
+        "path": "src/cache_key/tests.rs",
+        "lines": "2655-2685",
+        "point": "Existing prediction test intentionally accepts unset as an empty record; it does not compare runtime option_env! presence."
+      }
+    ],
+    "trace": "Kache CLI rustc invocation -> wrapper dependency discovery/prediction -> parse_env_dep_info loses presence -> compute_key_into emits identical env fields -> local cache restore -> consumer observes false instead of true.",
+    "authority": {
+      "source": "docs/how-it-works/cache-key.mdx:6; direct rustc behavioral oracle",
+      "quote": "Kache hashes the inputs that can change compiler output and normalizes machine-local paths that should not. Missing a real input risks a wrong hit; retaining harmless machine identity causes avoidable misses."
+    },
+    "proof": {
+      "red_test": "#!/usr/bin/env python3\n\"\"\"Behavioral cache oracle: run one isolated case; baseline is expected red.\nRun with --direct-only for the green direct-rustc discrimination control.\n\"\"\"\nimport argparse\nimport json\nimport os\nfrom pathlib import Path\nimport subprocess\nimport tempfile\n\nPARSER = argparse.ArgumentParser()\nPARSER.add_argument(\"case\", choices=[\"empty\", \"locator\"])\nPARSER.add_argument(\"--kache\", default=\"/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache\")\nPARSER.add_argument(\"--direct-only\", action=\"store_true\")\nARGS = PARSER.parse_args()\nBASE = Path(__file__).resolve().parent\nROOT = Path(tempfile.mkdtemp(prefix=\"replay-\" + ARGS.case + \"-\", dir=BASE))\nRUSTC = subprocess.check_output([\"rustup\", \"which\", \"rustc\"], text=True).strip()\nCACHE = ROOT / \"cache\"\nCACHE.mkdir()\nCONFIG = ROOT / \"config.toml\"\nCONFIG.write_text('[cache]\\nlocal_only = true\\nignore_env = true\\nlocal_store = \"' + str(CACHE) + '\"\\nruntime_dir = \"' + str(CACHE) + '\"\\n')\nENV = os.environ.copy()\nfor key in list(ENV):\n    if key.startswith(\"KACHE_\") or key.startswith(\"CARGO_\") or key in (\"OUT_DIR\", \"RUSTC_WRAPPER\", \"RUSTC_WORKSPACE_WRAPPER\", \"RUSTFLAGS\", \"CARGO_ENCODED_RUSTFLAGS\"):\n        ENV.pop(key, None)\nENV.update(KACHE_CONFIG=str(CONFIG), KACHE_CACHE_DIR=str(CACHE),\n           KACHE_LOG=\"kache=trace\", KACHE_SCHEDULER=\"0\",\n           KACHE_DEFERRED_DISCOVERY=\"0\", RUSTC_WRAPPER=\"\",\n           HOST_CC=\"clang\", HOST_CXX=\"clang++\", CC=\"clang\", CXX=\"clang++\")\nRESULTS = {\"case\": ARGS.case, \"root\": str(ROOT), \"direct_only\": ARGS.direct_only}\n\ndef run(argv, cwd, env, name):\n    result = subprocess.run(argv, cwd=cwd, env=env, capture_output=True, text=True, timeout=60)\n    (ROOT / (name + \".log\")).write_text(result.stdout + result.stderr)\n    assert result.returncode == 0, \"setup/compile failed: \" + name + \"\\n\" + result.stderr\n    return result\n\ndef compile_lib(cwd, env, name, label, wrapped=True):\n    out = cwd / \"target/debug/deps\"\n    out.mkdir(parents=True, exist_ok=True)\n    argv = [RUSTC, \"--crate-name\", name, \"--crate-type\", \"rlib\", \"--edition\", \"2021\", \"--emit=link\", \"lib.rs\", \"--out-dir\", str(out)]\n    if wrapped and not ARGS.direct_only:\n        argv.insert(0, ARGS.kache)\n    result = run(argv, cwd, env, label)\n    return out / (\"lib\" + name + \".rlib\"), result\n\ndef observe(cwd, env, name, artifact, label):\n    main = cwd / \"main.rs\"\n    expression = name + \"::present()\" if ARGS.case == \"empty\" else name + \"::BAKED\"\n    main.write_text('fn main() { println!(\"{}\", ' + expression + '); }\\n')\n    executable = ROOT / (label + \"-consumer\")\n    run([RUSTC, \"--edition=2021\", str(main), \"--extern\", name + \"=\" + str(artifact), \"-o\", str(executable)], cwd, env, label + \"-consumer-compile\")\n    return run([str(executable)], cwd, env, label + \"-consumer-run\").stdout.strip()\n\nif ARGS.case == \"empty\":\n    cwd = ROOT / \"checkout\"\n    cwd.mkdir()\n    (cwd / \"lib.rs\").write_text('pub fn present() -> bool { option_env!(\"KACHE_AUDIT_SWITCH\").is_some() }\\n')\n    initial_env = ENV.copy()\n    artifact, cold = compile_lib(cwd, initial_env, \"empty\", \"cold-unset\")\n    initial = observe(cwd, initial_env, \"empty\", artifact, \"cold-unset\")\n    assert initial == \"false\", \"cold control must observe unset\"\n    artifact, warm = compile_lib(cwd, initial_env, \"empty\", \"warm-unset\")\n    assert observe(cwd, initial_env, \"empty\", artifact, \"warm-unset\") == initial\n    if not ARGS.direct_only:\n        assert \"local cache hit for empty\" in warm.stderr, \"warm control must be a cache hit\"\n    changed_env = initial_env.copy()\n    changed_env[\"KACHE_AUDIT_SWITCH\"] = \"\"\n    artifact, changed = compile_lib(cwd, changed_env, \"empty\", \"changed-empty\")\n    cached = observe(cwd, changed_env, \"empty\", artifact, \"changed-empty\")\n    artifact, direct = compile_lib(cwd, changed_env, \"empty\", \"direct-empty\", wrapped=False)\n    expected = observe(cwd, changed_env, \"empty\", artifact, \"direct-empty\")\n    assert expected == \"true\", \"direct control must observe empty as present\"\nelse:\n    source = 'macro_rules! include { ($path:expr) => { $path }; }\\npub const BAKED: &str = include!(env!(\"OUT_DIR\"));\\npub const TEXT: &str = include_str!(concat!(env!(\"OUT_DIR\"), \"/data.txt\"));\\n'\n    checkouts = []\n    for name in [\"checkout_a\", \"checkout_b\"]:\n        cwd = ROOT / name\n        cwd.mkdir()\n        (cwd / \"lib.rs\").write_text(source)\n        out_dir = cwd / \"target/debug/build/pkg-deadbeef/out\"\n        out_dir.mkdir(parents=True)\n        (out_dir / \"data.txt\").write_text(\"identical generated bytes\\n\")\n        env = ENV.copy()\n        env[\"OUT_DIR\"] = str(out_dir)\n        checkouts.append((cwd, env))\n    first, first_env = checkouts[0]\n    artifact, cold = compile_lib(first, first_env, \"locator\", \"cold-a\")\n    initial = observe(first, first_env, \"locator\", artifact, \"cold-a\")\n    assert initial == first_env[\"OUT_DIR\"], \"cold control must embed producer OUT_DIR\"\n    artifact, warm = compile_lib(first, first_env, \"locator\", \"warm-a\")\n    assert observe(first, first_env, \"locator\", artifact, \"warm-a\") == initial\n    if not ARGS.direct_only:\n        assert \"local cache hit for locator\" in warm.stderr, \"warm control must hit\"\n    second, changed_env = checkouts[1]\n    artifact, changed = compile_lib(second, changed_env, \"locator\", \"changed-b\")\n    cached = observe(second, changed_env, \"locator\", artifact, \"changed-b\")\n    artifact, direct = compile_lib(second, changed_env, \"locator\", \"direct-b\", wrapped=False)\n    expected = observe(second, changed_env, \"locator\", artifact, \"direct-b\")\n    assert expected == changed_env[\"OUT_DIR\"], \"direct control must embed consumer OUT_DIR\"\nRESULTS.update(initial=initial, cached=cached, direct=expected,\n               changed_cache_hit=(\"local cache hit for \" in changed.stderr))\n(ROOT / \"results.json\").write_text(json.dumps(RESULTS, indent=2) + \"\\n\")\nprint(json.dumps(RESULTS, indent=2), flush=True)\nassert cached == expected, \"ASSERTION key oracle violated: cached=\" + repr(cached) + \" direct=\" + repr(expected)\nprint(\"PASS: cached observation matches direct compiler\")\n",
+      "name": "python3 investigation/repro_env_cases.py empty",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "{\n  \"case\": \"empty\",\n  \"root\": \"/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-empty-svqhtoyc\",\n  \"direct_only\": false,\n  \"initial\": \"false\",\n  \"cached\": \"false\",\n  \"direct\": \"true\",\n  \"changed_cache_hit\": true\n}\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/repro_env_cases.py\", line 107, in <module>\n    assert cached == expected, \"ASSERTION key oracle violated: cached=\" + repr(cached) + \" direct=\" + repr(expected)\nAssertionError: ASSERTION key oracle violated: cached='false' direct='true'\n"
+    },
+    "severity": "Ordinary option_env! use is reachable without proc macros, custom toolchains, opt-in normalization or a remote cache. A shell/CI change between absent and empty values can silently change generated branches or constants while the restored artifact retains the earlier semantics. The local proof establishes wrong executable behavior; it does not establish deployment or data loss.",
+    "status": "open"
+  },
+  {
+    "id": "KEY-ENV-002",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:09:37.470305+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 Codex",
+      "mode": "production-readiness",
+      "slice": "key-native-inputs"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "A user-defined include! macro is treated as a builtin path locator, allowing restored artifacts to embed another checkout's OUT_DIR.",
+    "scenario": "Two equivalent checkouts define macro_rules! include { ($path:expr) => { $path }; }, bake include!(env!(\"OUT_DIR\")) into a public constant, and also include_str! identical data beneath OUT_DIR. The producer compiles and hits unchanged. The consumer gets a local hit and prints the producer OUT_DIR; direct rustc prints the consumer OUT_DIR.",
+    "evidence": [
+      {
+        "path": "src/cache_key.rs",
+        "lines": "5426-5484",
+        "point": "OUT_DIR normalization is automatic when dep-info shows an included file beneath it and source scan reports include-only use."
+      },
+      {
+        "path": "src/cache_key.rs",
+        "lines": "5639-5695",
+        "point": "env_dep_source_decision treats IncludeLocator as positive proof; source comments explicitly enumerate shadowed include macros as a residual gap."
+      },
+      {
+        "path": "src/cache_key.rs",
+        "lines": "5266-5350",
+        "point": "normalize_env_dep_value_with_hasher turns proven locator OUT_DIR values into shared sentinel identity."
+      },
+      {
+        "path": "src/cache_key/tests.rs",
+        "lines": "10104-10160",
+        "point": "Scanner tests cover builtin spellings, obvious value uses and comments, but not a semantically different macro named include."
+      }
+    ],
+    "trace": "Kache CLI rustc invocation -> rustc dep-info discovers data.txt and OUT_DIR -> path-shape gate succeeds -> textual include locator scanner credits shadowed macro -> OUT_DIR value normalized across checkouts -> same key -> donor rlib restored -> baked path references producer checkout.",
+    "authority": {
+      "source": "docs/how-it-works/cache-key.mdx:6; direct rustc behavioral oracle",
+      "quote": "Kache hashes the inputs that can change compiler output and normalizes machine-local paths that should not. Missing a real input risks a wrong hit; retaining harmless machine identity causes avoidable misses."
+    },
+    "proof": {
+      "red_test": "#!/usr/bin/env python3\n\"\"\"Behavioral cache oracle: run one isolated case; baseline is expected red.\nRun with --direct-only for the green direct-rustc discrimination control.\n\"\"\"\nimport argparse\nimport json\nimport os\nfrom pathlib import Path\nimport subprocess\nimport tempfile\n\nPARSER = argparse.ArgumentParser()\nPARSER.add_argument(\"case\", choices=[\"empty\", \"locator\"])\nPARSER.add_argument(\"--kache\", default=\"/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache\")\nPARSER.add_argument(\"--direct-only\", action=\"store_true\")\nARGS = PARSER.parse_args()\nBASE = Path(__file__).resolve().parent\nROOT = Path(tempfile.mkdtemp(prefix=\"replay-\" + ARGS.case + \"-\", dir=BASE))\nRUSTC = subprocess.check_output([\"rustup\", \"which\", \"rustc\"], text=True).strip()\nCACHE = ROOT / \"cache\"\nCACHE.mkdir()\nCONFIG = ROOT / \"config.toml\"\nCONFIG.write_text('[cache]\\nlocal_only = true\\nignore_env = true\\nlocal_store = \"' + str(CACHE) + '\"\\nruntime_dir = \"' + str(CACHE) + '\"\\n')\nENV = os.environ.copy()\nfor key in list(ENV):\n    if key.startswith(\"KACHE_\") or key.startswith(\"CARGO_\") or key in (\"OUT_DIR\", \"RUSTC_WRAPPER\", \"RUSTC_WORKSPACE_WRAPPER\", \"RUSTFLAGS\", \"CARGO_ENCODED_RUSTFLAGS\"):\n        ENV.pop(key, None)\nENV.update(KACHE_CONFIG=str(CONFIG), KACHE_CACHE_DIR=str(CACHE),\n           KACHE_LOG=\"kache=trace\", KACHE_SCHEDULER=\"0\",\n           KACHE_DEFERRED_DISCOVERY=\"0\", RUSTC_WRAPPER=\"\",\n           HOST_CC=\"clang\", HOST_CXX=\"clang++\", CC=\"clang\", CXX=\"clang++\")\nRESULTS = {\"case\": ARGS.case, \"root\": str(ROOT), \"direct_only\": ARGS.direct_only}\n\ndef run(argv, cwd, env, name):\n    result = subprocess.run(argv, cwd=cwd, env=env, capture_output=True, text=True, timeout=60)\n    (ROOT / (name + \".log\")).write_text(result.stdout + result.stderr)\n    assert result.returncode == 0, \"setup/compile failed: \" + name + \"\\n\" + result.stderr\n    return result\n\ndef compile_lib(cwd, env, name, label, wrapped=True):\n    out = cwd / \"target/debug/deps\"\n    out.mkdir(parents=True, exist_ok=True)\n    argv = [RUSTC, \"--crate-name\", name, \"--crate-type\", \"rlib\", \"--edition\", \"2021\", \"--emit=link\", \"lib.rs\", \"--out-dir\", str(out)]\n    if wrapped and not ARGS.direct_only:\n        argv.insert(0, ARGS.kache)\n    result = run(argv, cwd, env, label)\n    return out / (\"lib\" + name + \".rlib\"), result\n\ndef observe(cwd, env, name, artifact, label):\n    main = cwd / \"main.rs\"\n    expression = name + \"::present()\" if ARGS.case == \"empty\" else name + \"::BAKED\"\n    main.write_text('fn main() { println!(\"{}\", ' + expression + '); }\\n')\n    executable = ROOT / (label + \"-consumer\")\n    run([RUSTC, \"--edition=2021\", str(main), \"--extern\", name + \"=\" + str(artifact), \"-o\", str(executable)], cwd, env, label + \"-consumer-compile\")\n    return run([str(executable)], cwd, env, label + \"-consumer-run\").stdout.strip()\n\nif ARGS.case == \"empty\":\n    cwd = ROOT / \"checkout\"\n    cwd.mkdir()\n    (cwd / \"lib.rs\").write_text('pub fn present() -> bool { option_env!(\"KACHE_AUDIT_SWITCH\").is_some() }\\n')\n    initial_env = ENV.copy()\n    artifact, cold = compile_lib(cwd, initial_env, \"empty\", \"cold-unset\")\n    initial = observe(cwd, initial_env, \"empty\", artifact, \"cold-unset\")\n    assert initial == \"false\", \"cold control must observe unset\"\n    artifact, warm = compile_lib(cwd, initial_env, \"empty\", \"warm-unset\")\n    assert observe(cwd, initial_env, \"empty\", artifact, \"warm-unset\") == initial\n    if not ARGS.direct_only:\n        assert \"local cache hit for empty\" in warm.stderr, \"warm control must be a cache hit\"\n    changed_env = initial_env.copy()\n    changed_env[\"KACHE_AUDIT_SWITCH\"] = \"\"\n    artifact, changed = compile_lib(cwd, changed_env, \"empty\", \"changed-empty\")\n    cached = observe(cwd, changed_env, \"empty\", artifact, \"changed-empty\")\n    artifact, direct = compile_lib(cwd, changed_env, \"empty\", \"direct-empty\", wrapped=False)\n    expected = observe(cwd, changed_env, \"empty\", artifact, \"direct-empty\")\n    assert expected == \"true\", \"direct control must observe empty as present\"\nelse:\n    source = 'macro_rules! include { ($path:expr) => { $path }; }\\npub const BAKED: &str = include!(env!(\"OUT_DIR\"));\\npub const TEXT: &str = include_str!(concat!(env!(\"OUT_DIR\"), \"/data.txt\"));\\n'\n    checkouts = []\n    for name in [\"checkout_a\", \"checkout_b\"]:\n        cwd = ROOT / name\n        cwd.mkdir()\n        (cwd / \"lib.rs\").write_text(source)\n        out_dir = cwd / \"target/debug/build/pkg-deadbeef/out\"\n        out_dir.mkdir(parents=True)\n        (out_dir / \"data.txt\").write_text(\"identical generated bytes\\n\")\n        env = ENV.copy()\n        env[\"OUT_DIR\"] = str(out_dir)\n        checkouts.append((cwd, env))\n    first, first_env = checkouts[0]\n    artifact, cold = compile_lib(first, first_env, \"locator\", \"cold-a\")\n    initial = observe(first, first_env, \"locator\", artifact, \"cold-a\")\n    assert initial == first_env[\"OUT_DIR\"], \"cold control must embed producer OUT_DIR\"\n    artifact, warm = compile_lib(first, first_env, \"locator\", \"warm-a\")\n    assert observe(first, first_env, \"locator\", artifact, \"warm-a\") == initial\n    if not ARGS.direct_only:\n        assert \"local cache hit for locator\" in warm.stderr, \"warm control must hit\"\n    second, changed_env = checkouts[1]\n    artifact, changed = compile_lib(second, changed_env, \"locator\", \"changed-b\")\n    cached = observe(second, changed_env, \"locator\", artifact, \"changed-b\")\n    artifact, direct = compile_lib(second, changed_env, \"locator\", \"direct-b\", wrapped=False)\n    expected = observe(second, changed_env, \"locator\", artifact, \"direct-b\")\n    assert expected == changed_env[\"OUT_DIR\"], \"direct control must embed consumer OUT_DIR\"\nRESULTS.update(initial=initial, cached=cached, direct=expected,\n               changed_cache_hit=(\"local cache hit for \" in changed.stderr))\n(ROOT / \"results.json\").write_text(json.dumps(RESULTS, indent=2) + \"\\n\")\nprint(json.dumps(RESULTS, indent=2), flush=True)\nassert cached == expected, \"ASSERTION key oracle violated: cached=\" + repr(cached) + \" direct=\" + repr(expected)\nprint(\"PASS: cached observation matches direct compiler\")\n",
+      "name": "python3 investigation/repro_env_cases.py locator",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "{\n  \"case\": \"locator\",\n  \"root\": \"/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-locator-o5t9z8bt\",\n  \"direct_only\": false,\n  \"initial\": \"/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-locator-o5t9z8bt/checkout_a/target/debug/build/pkg-deadbeef/out\",\n  \"cached\": \"/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-locator-o5t9z8bt/checkout_a/target/debug/build/pkg-deadbeef/out\",\n  \"direct\": \"/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-locator-o5t9z8bt/checkout_b/target/debug/build/pkg-deadbeef/out\",\n  \"changed_cache_hit\": true\n}\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/repro_env_cases.py\", line 107, in <module>\n    assert cached == expected, \"ASSERTION key oracle violated: cached=\" + repr(cached) + \" direct=\" + repr(expected)\nAssertionError: ASSERTION key oracle violated: cached='/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-locator-o5t9z8bt/checkout_a/target/debug/build/pkg-deadbeef/out' direct='/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-locator-o5t9z8bt/checkout_b/target/debug/build/pkg-deadbeef/out'\n"
+    },
+    "severity": "Requires a macro named include/include_str/include_bytes with value semantics alongside genuine included-file proof. No force allowlist is configured. The effect crosses worktrees and affects compiled constants or generated path behavior; the demonstrated consequence is a donor path in consumer runtime output. Broader attribute/proc-macro expansions mentioned in source remain unexecuted.",
+    "status": "open"
+  },
+  {
+    "id": "KEY-DISMISS-PGO-001",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:09:37.470305+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 Codex",
+      "mode": "production-readiness",
+      "slice": "key-native-inputs"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "The tested profile-use file is already content-keyed through rustc dep-info.",
+    "checked": "Inspected raw -Cprofile-use handling and executed cold, warm and same-path file-content mutation probes with rustc 1.99.0. A clang-generated profile produced an initial miss and unchanged hit; replacing its bytes produced a new key and a miss.",
+    "evidence": [
+      {
+        "path": "investigation/pgo-fixture/changed.log",
+        "lines": "1-23",
+        "point": "Dependency discovery reports two source files and folds use.profdata=3f3b9a3853b7af80 before cache miss 2debb9c87b81d709."
+      },
+      {
+        "path": "investigation/pgo-fixture/cold.log",
+        "lines": "1-30",
+        "point": "Initial profile bytes are included in source hash fields; warm.log confirms the unchanged local hit."
+      }
+    ],
+    "trace": "rustc dependency pre-pass -> dep-info lists profile-use input -> ordinary source content hashing -> changed key",
+    "authority": {
+      "source": "Executed baseline CLI and rustc trace",
+      "quote": "dep-info found 2 source files, 0 env deps"
+    },
+    "closed_by": {
+      "tier": 1,
+      "citation": "investigation/pgo-fixture/cold.log, warm.log, changed.log, direct.log"
+    },
+    "reopens_if": "A supported rustc/toolchain omits the profile-use file from dep-info, or another path-bound codegen input does not enter the discovered closure.",
+    "severity": "No admitted wrong-hit on the tested rustc; invalid profile bytes still compile with rustc warnings, which is compiler behavior rather than a Kache error.",
+    "status": "dismissed"
+  }
+]

@@ -1,0 +1,20 @@
+2026-10-11T05:49:45.029477Z  WARN kache::config: [cache] ignore_env = true: ignoring set env override(s) ["KACHE_CACHE_DIR", "KACHE_DEFERRED_DISCOVERY", "KACHE_SCHEDULER"] in favor of the config file
+2026-10-11T05:49:45.030227Z TRACE kache::cache_key: [key:locator] out_dir_alias: skip: not a registry package
+2026-10-11T05:49:45.031960Z TRACE kache::cache_key: [key:locator] key_version=32
+2026-10-11T05:49:45.032075Z TRACE kache::cache_key: [key:locator] rustc_version=rustc 1.99.0 (b940084d7 2026-09-28)
+2026-10-11T05:49:45.032085Z TRACE kache::cache_key: [key:locator] target=unknown
+2026-10-11T05:49:45.032097Z TRACE kache::cache_key: [key:locator] crate_name=locator
+2026-10-11T05:49:45.032104Z TRACE kache::cache_key: [key:locator] crate_type=rlib
+2026-10-11T05:49:45.032109Z TRACE kache::cache_key: [key:locator] edition=2021
+2026-10-11T05:49:45.032119Z TRACE kache::cache_key: [key:locator] emit:link
+2026-10-11T05:49:45.032959Z TRACE kache::cache_key: [key:locator] inputs=predicted
+2026-10-11T05:49:45.033057Z TRACE kache::cache_key: [key:locator] source:<CWD>/lib.rs=1206f9f160db6109
+2026-10-11T05:49:45.033067Z TRACE kache::cache_key: [key:locator] source:<CWD>/target_a/debug/build/pkg-deadbeef/out/data.txt=9b3a7844b08ff425
+2026-10-11T05:49:45.033237Z TRACE kache::cache_key: [key:locator] env_dep:OUT_DIR=<OUT_DIR:pkg-deadbeef> (normalized path-only)
+2026-10-11T05:49:45.033283Z TRACE kache::cache_key: [key:locator] cargo_cfg_count=0
+2026-10-11T05:49:45.033309Z TRACE kache::cache_key: [key:locator] remap=multi-prefix(/kache/.cargo,/kache/home,/kache/rustup,/kache/target,/kache/tmp,/kache/workspace,/rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4)
+2026-10-11T05:49:45.033336Z TRACE kache::cache_key: [key:locator] final=ebdc88603f4dda5c
+2026-10-11T05:49:45.033477Z DEBUG kache::wrapper: cache key for locator: ebdc88603f4dda5c
+2026-10-11T05:49:45.033603Z DEBUG kache::wrapper: local cache hit for locator (ebdc88603f4dda5c)
+2026-10-11T05:49:45.033828Z DEBUG kache::wrapper: restoring 1 files via platform=macos
+2026-10-11T05:49:45.034044Z DEBUG kache_store::link: reflinked /Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/env-locator-fixture/cache/store/blobs/6c/6cd09cd59f9b8f504febf5e4f306721ea311d7e4cfcba6834235e3883ef45e4f -> /Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/env-locator-fixture/target_a/debug/deps/liblocator.rlib

@@ -1,0 +1,26 @@
+{
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "production_diff": 0,
+  "compiler": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: aarch64-apple-darwin\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+  "tests": [
+    {
+      "case": "empty",
+      "red_log": "empty-red.log",
+      "direct_control_log": "empty-control.log",
+      "baseline_expected_exit": 1,
+      "control_exit": 0
+    },
+    {
+      "case": "locator",
+      "red_log": "locator-red.log",
+      "direct_control_log": "locator-control.log",
+      "baseline_expected_exit": 1,
+      "control_exit": 0
+    }
+  ],
+  "unexecuted_candidates": [
+    "Rust macOS dylib export/current-version/compatibility-version changes preserving install name",
+    "Static archive mutation after key hashing but before linker consumption",
+    "Compiler binary/sysroot contents changing while reported rustc -vV identity is unchanged; explicit key salt is documented boundary"
+  ]
+}

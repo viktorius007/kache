@@ -1,0 +1,25 @@
+{
+  "cache_key": "ed2bc9b70ce9c7b95a19802e4306e4831c28bcbf3a1ba16801655c8d6cf3a9dc",
+  "key_schema": 32,
+  "crate_name": "empty",
+  "crate_types": [
+    "rlib"
+  ],
+  "files": [
+    {
+      "name": "libempty.rlib",
+      "size": 8328,
+      "hash": "cf4ada9213d96c68a4f9aee851f77a118c90df5bc4c1636f7dde069365cb7f4a",
+      "executable": false
+    }
+  ],
+  "stdout": "",
+  "stderr": "",
+  "features": [],
+  "target": "host",
+  "profile": "dev",
+  "compile_time_ms": 137,
+  "emit_kinds": [
+    "link"
+  ]
+}

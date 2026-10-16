@@ -1,0 +1,25 @@
+{
+  "cache_key": "531579d9bfa51eac2df3b44c291e89ec0f4bb474af0f684b0ce3525427803977",
+  "key_schema": 32,
+  "crate_name": "locator",
+  "crate_types": [
+    "rlib"
+  ],
+  "files": [
+    {
+      "name": "liblocator.rlib",
+      "size": 6880,
+      "hash": "696258beae8f4a62dd7023ab0da79cbbaa399e1173a4ad43367cc08a53df43b5",
+      "executable": false
+    }
+  ],
+  "stdout": "",
+  "stderr": "",
+  "features": [],
+  "target": "host",
+  "profile": "dev",
+  "compile_time_ms": 23,
+  "emit_kinds": [
+    "link"
+  ]
+}

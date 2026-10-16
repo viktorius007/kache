@@ -1,0 +1,28 @@
+2026-10-11T05:49:03.981975Z  WARN kache::config: [cache] ignore_env = true: ignoring set env override(s) ["KACHE_CACHE_DIR", "KACHE_DEFERRED_DISCOVERY", "KACHE_SCHEDULER"] in favor of the config file
+2026-10-11T05:49:03.982815Z TRACE kache::cache_key: [key:pgo_probe] out_dir_alias: skip: not a registry package
+2026-10-11T05:49:04.025723Z TRACE kache::cache_key: [key:pgo_probe] key_version=32
+2026-10-11T05:49:04.025966Z TRACE kache::cache_key: [key:pgo_probe] rustc_version=rustc 1.99.0 (b940084d7 2026-09-28)
+2026-10-11T05:49:04.025978Z TRACE kache::cache_key: [key:pgo_probe] target=unknown
+2026-10-11T05:49:04.025995Z TRACE kache::cache_key: [key:pgo_probe] crate_name=pgo_probe
+2026-10-11T05:49:04.026001Z TRACE kache::cache_key: [key:pgo_probe] crate_type=rlib
+2026-10-11T05:49:04.026012Z TRACE kache::cache_key: [key:pgo_probe] emit:link
+2026-10-11T05:49:04.026030Z TRACE kache::cache_key: [key:pgo_probe] codegen:opt-level=3
+2026-10-11T05:49:04.026045Z  WARN kache::path_normalizer: residual absolute path detected in `codegen:profile-use` (prefix `/Users/`): .../Users/viktor/Developer/github/kache-investigat...
+2026-10-11T05:49:04.026057Z TRACE kache::cache_key: [key:pgo_probe] codegen:profile-use=/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/pgo-fixture/use.profdata
+2026-10-11T05:49:04.030449Z TRACE kache::cache_key: [key:pgo_probe] inputs=dep-info(no-record)
+2026-10-11T05:49:04.031246Z TRACE kache::cache_key: dep-info pre-pass: "/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/rustc" "/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/pgo-fixture/lib.rs" "--crate-name" "pgo_probe" "--crate-type" "rlib" "-O" "-Cprofile-use=/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/pgo-fixture/use.profdata" "--emit" "dep-info" "-o" "/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/kache-depinfo9BUZI7/deps.d"
+2026-10-11T05:49:04.050620Z TRACE kache::cache_key: dep-info found 2 source files, 0 env deps for /Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/pgo-fixture/lib.rs
+2026-10-11T05:49:04.051014Z TRACE kache::cache_key: [key:pgo_probe] source:<CWD>/investigation/pgo-fixture/lib.rs=c89f87348a8cda4f
+2026-10-11T05:49:04.051027Z TRACE kache::cache_key: [key:pgo_probe] source:<CWD>/investigation/pgo-fixture/use.profdata=c11d0fff3410a83f
+2026-10-11T05:49:04.051124Z TRACE kache::cache_key: [key:pgo_probe] cargo_cfg_count=0
+2026-10-11T05:49:04.051164Z TRACE kache::cache_key: [key:pgo_probe] remap=multi-prefix(/kache/.cargo,/kache/home,/kache/rustup,/kache/target,/kache/tmp,/kache/workspace,/rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4)
+2026-10-11T05:49:04.051196Z TRACE kache::cache_key: [key:pgo_probe] final=ab47dbd872a741db
+2026-10-11T05:49:04.051783Z DEBUG kache::wrapper: cache key for pgo_probe: ab47dbd872a741db
+2026-10-11T05:49:04.051881Z DEBUG kache::scheduler: scheduler resource snapshot; resource-aware admission is future work available=16 ancestor_limits_complete=false current_memory_events_known=false current_memory_low=0 current_memory_high=0 current_memory_max=0 current_memory_oom=0 current_memory_oom_kill=0 current_memory_oom_group_kill=0
+2026-10-11T05:49:04.052778Z DEBUG kache::wrapper: cache miss for pgo_probe, compiling (ab47dbd872a741db)
+2026-10-11T05:49:04.054017Z DEBUG kache::compile: running: /Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/rustc --crate-name pgo_probe --crate-type rlib --emit=link -O -Cprofile-use=/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/pgo-fixture/use.profdata /Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/pgo-fixture/lib.rs --out-dir /Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/pgo-fixture/out
+2026-10-11T05:49:04.080158Z DEBUG kache::compile: [kache] no rustc artifact notifications for pgo_probe; falling back to candidate path discovery
+warning: /Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/pgo-fixture/use.profdata: Not an IR level instrumentation profile
+
+warning: 1 warning emitted
+

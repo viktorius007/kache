@@ -1,0 +1,25 @@
+2026-10-11T05:49:04.129212Z  WARN kache::config: [cache] ignore_env = true: ignoring set env override(s) ["KACHE_CACHE_DIR", "KACHE_DEFERRED_DISCOVERY", "KACHE_SCHEDULER"] in favor of the config file
+2026-10-11T05:49:04.130100Z TRACE kache::cache_key: [key:pgo_probe] out_dir_alias: skip: not a registry package
+2026-10-11T05:49:04.132196Z TRACE kache::cache_key: [key:pgo_probe] key_version=32
+2026-10-11T05:49:04.132428Z TRACE kache::cache_key: [key:pgo_probe] rustc_version=rustc 1.99.0 (b940084d7 2026-09-28)
+2026-10-11T05:49:04.132447Z TRACE kache::cache_key: [key:pgo_probe] target=unknown
+2026-10-11T05:49:04.132461Z TRACE kache::cache_key: [key:pgo_probe] crate_name=pgo_probe
+2026-10-11T05:49:04.132467Z TRACE kache::cache_key: [key:pgo_probe] crate_type=rlib
+2026-10-11T05:49:04.132481Z TRACE kache::cache_key: [key:pgo_probe] emit:link
+2026-10-11T05:49:04.132498Z TRACE kache::cache_key: [key:pgo_probe] codegen:opt-level=3
+2026-10-11T05:49:04.132515Z  WARN kache::path_normalizer: residual absolute path detected in `codegen:profile-use` (prefix `/Users/`): .../Users/viktor/Developer/github/kache-investigat...
+2026-10-11T05:49:04.132526Z TRACE kache::cache_key: [key:pgo_probe] codegen:profile-use=/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/pgo-fixture/use.profdata
+2026-10-11T05:49:04.134062Z TRACE kache::cache_key: [key:pgo_probe] inputs=predicted
+2026-10-11T05:49:04.134219Z TRACE kache::cache_key: [key:pgo_probe] source:<CWD>/investigation/pgo-fixture/lib.rs=c89f87348a8cda4f
+2026-10-11T05:49:04.134234Z TRACE kache::cache_key: [key:pgo_probe] source:<CWD>/investigation/pgo-fixture/use.profdata=c11d0fff3410a83f
+2026-10-11T05:49:04.134290Z TRACE kache::cache_key: [key:pgo_probe] cargo_cfg_count=0
+2026-10-11T05:49:04.134318Z TRACE kache::cache_key: [key:pgo_probe] remap=multi-prefix(/kache/.cargo,/kache/home,/kache/rustup,/kache/target,/kache/tmp,/kache/workspace,/rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4)
+2026-10-11T05:49:04.134347Z TRACE kache::cache_key: [key:pgo_probe] final=ab47dbd872a741db
+2026-10-11T05:49:04.134790Z DEBUG kache::wrapper: cache key for pgo_probe: ab47dbd872a741db
+2026-10-11T05:49:04.134980Z DEBUG kache::wrapper: local cache hit for pgo_probe (ab47dbd872a741db)
+2026-10-11T05:49:04.135237Z DEBUG kache::wrapper: restoring 1 files via platform=macos
+2026-10-11T05:49:04.135471Z DEBUG kache_store::link: reflinked /Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/pgo-fixture/cache/store/blobs/61/61bdec1a76bcc4c31b04b50b5d4ea8f742519a5a50413144d41ab3d185c7c762 -> /Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/pgo-fixture/out/libpgo_probe.rlib
+warning: /Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/pgo-fixture/use.profdata: Not an IR level instrumentation profile
+
+warning: 1 warning emitted
+

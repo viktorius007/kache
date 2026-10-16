@@ -1,0 +1,25 @@
+{
+  "cache_key": "2debb9c87b81d7096834f7196c7f9f4e76da67f105a0962daaf4584d6d7bba9e",
+  "key_schema": 32,
+  "crate_name": "pgo_probe",
+  "crate_types": [
+    "rlib"
+  ],
+  "files": [
+    {
+      "name": "libpgo_probe.rlib",
+      "size": 7152,
+      "hash": "61bdec1a76bcc4c31b04b50b5d4ea8f742519a5a50413144d41ab3d185c7c762",
+      "executable": false
+    }
+  ],
+  "stdout": "",
+  "stderr": "warning: /Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/pgo-fixture/use.profdata: invalid instrumentation profile data (bad magic)\n\nwarning: 1 warning emitted\n\n",
+  "features": [],
+  "target": "host",
+  "profile": "release",
+  "compile_time_ms": 29,
+  "emit_kinds": [
+    "link"
+  ]
+}

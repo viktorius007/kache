@@ -1,0 +1,29 @@
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/key-env-002/crates/kache-fs)
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/key-env-002/crates/kache-format)
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/key-env-002)
+   Compiling kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-prs/key-env-002/crates/kache-shims)
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/key-env-002/crates/kache-store)
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/key-env-002/crates/kache-core)
+    Finished `test` profile [unoptimized] target(s) in 20.72s
+     Running tests/cache_key_underkeying_test.rs (/Users/viktor/Developer/github/kache-prs/key-env-001/target/debug/deps/cache_key_underkeying_test-b317127eabbeef47)
+
+running 1 test
+test shadowed_include_macro_keeps_checkout_environment_value ... FAILED
+
+failures:
+
+---- shadowed_include_macro_keeps_checkout_environment_value stdout ----
+
+thread 'shadowed_include_macro_keeps_checkout_environment_value' (52165464) panicked at tests/cache_key_underkeying_test.rs:1066:13:
+assertion `left == right` failed: a shadowed include! must retain this checkout's OUT_DIR (predictions=true, checkout_b)
+  left: "/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpyR9INE/checkout_a-true/target/debug/build/pkg-deadbeef/out"
+ right: "/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpyR9INE/checkout_b-true/target/debug/build/pkg-deadbeef/out"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    shadowed_include_macro_keeps_checkout_environment_value
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.76s
+
+error: test failed, to rerun pass `--test cache_key_underkeying_test`

@@ -1,0 +1,19 @@
+2026-10-11T05:57:49.796045Z  WARN kache::config: [cache] ignore_env = true: ignoring set env override(s) ["KACHE_CACHE_DIR", "KACHE_DEFERRED_DISCOVERY", "KACHE_SCHEDULER"] in favor of the config file
+2026-10-11T05:57:49.796772Z TRACE kache::cache_key: [key:empty] out_dir_alias: skip: not a registry package
+2026-10-11T05:57:49.815644Z TRACE kache::cache_key: [key:empty] key_version=32
+2026-10-11T05:57:49.815792Z TRACE kache::cache_key: [key:empty] rustc_version=rustc 1.99.0 (b940084d7 2026-09-28)
+2026-10-11T05:57:49.815805Z TRACE kache::cache_key: [key:empty] target=unknown
+2026-10-11T05:57:49.815816Z TRACE kache::cache_key: [key:empty] crate_name=empty
+2026-10-11T05:57:49.815823Z TRACE kache::cache_key: [key:empty] crate_type=rlib
+2026-10-11T05:57:49.815827Z TRACE kache::cache_key: [key:empty] edition=2021
+2026-10-11T05:57:49.815839Z TRACE kache::cache_key: [key:empty] emit:link
+2026-10-11T05:57:49.816512Z TRACE kache::cache_key: [key:empty] inputs=predicted
+2026-10-11T05:57:49.816613Z TRACE kache::cache_key: [key:empty] source:<OPAQUE_PATH>/f0f9ef1f53b23b9434aa557d08c9f0825bffb2cfac8373d73852cd1c9fbef06a=c1cc02ab6b64b334
+2026-10-11T05:57:49.816663Z TRACE kache::cache_key: [key:empty] env_dep:KACHE_AUDIT_SWITCH= (kept absolute: not a path-only var)
+2026-10-11T05:57:49.816709Z TRACE kache::cache_key: [key:empty] cargo_cfg_count=0
+2026-10-11T05:57:49.816733Z TRACE kache::cache_key: [key:empty] remap=multi-prefix(/kache/.cargo,/kache/home,/kache/rustup,/kache/target,/kache/tmp,/kache/workspace,/rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4)
+2026-10-11T05:57:49.816764Z TRACE kache::cache_key: [key:empty] final=ed2bc9b70ce9c7b9
+2026-10-11T05:57:49.816917Z DEBUG kache::wrapper: cache key for empty: ed2bc9b70ce9c7b9
+2026-10-11T05:57:49.817051Z DEBUG kache::wrapper: local cache hit for empty (ed2bc9b70ce9c7b9)
+2026-10-11T05:57:49.817303Z DEBUG kache::wrapper: restoring 1 files via platform=macos
+2026-10-11T05:57:49.817589Z DEBUG kache_store::link: reflinked /Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-empty-svqhtoyc/cache/store/blobs/cf/cf4ada9213d96c68a4f9aee851f77a118c90df5bc4c1636f7dde069365cb7f4a -> /Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-empty-svqhtoyc/checkout/target/debug/deps/libempty.rlib

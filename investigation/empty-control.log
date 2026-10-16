@@ -1,0 +1,10 @@
+{
+  "case": "empty",
+  "root": "/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-empty-zx6gbf_q",
+  "direct_only": true,
+  "initial": "false",
+  "cached": "true",
+  "direct": "true",
+  "changed_cache_hit": false
+}
+PASS: cached observation matches direct compiler

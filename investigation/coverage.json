@@ -1,0 +1,440 @@
+{
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "slice": "key-native-inputs",
+  "graph": {
+    "project": "Users-viktor-Developer-github-kache-investigations-coordinator",
+    "state": "ready",
+    "nodes": 26827,
+    "edges": 149258,
+    "limits": [
+      "Rust semantic_partial",
+      "binding_oracle_unavailable",
+      "expanded_calls_unavailable",
+      "impl_relationships_unavailable",
+      "many unresolved edges; graph used for positive orientation only, full production source fallback"
+    ]
+  },
+  "paths": [
+    {
+      "path": "docs/how-it-works/cache-key.mdx",
+      "state": "reviewed",
+      "evidence": "Full assigned text read; contract and risk semantics inspected. No new admitted defect. Repository test suites were not run.",
+      "reviewed_ranges": [
+        [
+          1,
+          230
+        ]
+      ],
+      "omitted_ranges": [],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "src/cache_key.rs",
+      "state": "reviewed",
+      "evidence": "Full source read, including Rust key derivation, environment parser/normalizer, predictions, guarded file hashing, C memo interaction, native archives, linker and toolchain probes. Two executed environment findings and one executed PGO dismissal. Native race and dynamic export candidates remain unexecuted.",
+      "reviewed_ranges": [
+        [
+          1,
+          9651
+        ]
+      ],
+      "omitted_ranges": [],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "src/cache_key/apple_install_name.rs",
+      "state": "reviewed",
+      "evidence": "Full assigned text read; contract and risk semantics inspected. No new admitted defect. Repository test suites were not run.",
+      "reviewed_ranges": [
+        [
+          1,
+          286
+        ]
+      ],
+      "omitted_ranges": [],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "src/cache_key/tests.rs",
+      "state": "sampled",
+      "evidence": "Deliberate sample of declared env presence tests, prediction unset/empty test, locator scanner cases, rejection cases and dep-info parser tests. No execution of the repository suite.",
+      "reviewed_ranges": [
+        [
+          1200,
+          1256
+        ],
+        [
+          2580,
+          2685
+        ],
+        [
+          10100,
+          10161
+        ],
+        [
+          10534,
+          10655
+        ],
+        [
+          11420,
+          11448
+        ]
+      ],
+      "omitted_ranges": [
+        [
+          1,
+          1199
+        ],
+        [
+          1257,
+          2579
+        ],
+        [
+          2686,
+          10099
+        ],
+        [
+          10162,
+          10533
+        ],
+        [
+          10656,
+          11419
+        ],
+        [
+          11449,
+          16106
+        ]
+      ],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "src/checked_regions.rs",
+      "state": "reviewed",
+      "evidence": "Full assigned text read; contract and risk semantics inspected. No new admitted defect. Repository test suites were not run.",
+      "reviewed_ranges": [
+        [
+          1,
+          77
+        ]
+      ],
+      "omitted_ranges": [],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "src/extra_inputs.rs",
+      "state": "sampled",
+      "evidence": "Full production body read through opaque digest helper; inline test body omitted. Followed equality-based re-resolution in wrapper.rs to establish metadata observation use and fail-closed post-compile checks.",
+      "reviewed_ranges": [
+        [
+          1,
+          2332
+        ]
+      ],
+      "omitted_ranges": [
+        [
+          2333,
+          4718
+        ]
+      ],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "src/identity.rs",
+      "state": "sampled",
+      "evidence": "Full production body read; beginning of inline tests sampled. Prefetch manifest identity is advisory and final action keys remain authoritative.",
+      "reviewed_ranges": [
+        [
+          1,
+          350
+        ]
+      ],
+      "omitted_ranges": [
+        [
+          351,
+          681
+        ]
+      ],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "src/key_env.rs",
+      "state": "reviewed",
+      "evidence": "Full assigned text read; contract and risk semantics inspected. No new admitted defect. Repository test suites were not run.",
+      "reviewed_ranges": [
+        [
+          1,
+          222
+        ]
+      ],
+      "omitted_ranges": [],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "src/native_archive.rs",
+      "state": "sampled",
+      "evidence": "Full production parser/hash body read, plus initial test scaffolding. Reviewed malformed member/header handling, thin/fat archives, domain-tagged structural vs path-bound fallback and object format gates. No new executable malformed-archive or semantic-equivalence probe.",
+      "reviewed_ranges": [
+        [
+          1,
+          1359
+        ]
+      ],
+      "omitted_ranges": [
+        [
+          1360,
+          3685
+        ]
+      ],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "src/native_link_key.rs",
+      "state": "sampled",
+      "evidence": "Full production linker argument resolution and host-link context read. Platform-specific tests omitted; Linux/Windows outcomes were not executed on this macOS host.",
+      "reviewed_ranges": [
+        [
+          1,
+          1855
+        ]
+      ],
+      "omitted_ranges": [
+        [
+          1856,
+          4146
+        ]
+      ],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "src/path_normalizer.rs",
+      "state": "sampled",
+      "evidence": "Full production rules, relocation identity, remap flags and Windows variants read. Inline tests omitted. Environment locator semantics proved through baseline CLI; Windows spelling/Unicode cases remain source-only.",
+      "reviewed_ranges": [
+        [
+          1,
+          1626
+        ]
+      ],
+      "omitted_ranges": [
+        [
+          1627,
+          3858
+        ]
+      ],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "src/policy.rs",
+      "state": "reviewed",
+      "evidence": "Full assigned text read; contract and risk semantics inspected. No new admitted defect. Repository test suites were not run.",
+      "reviewed_ranges": [
+        [
+          1,
+          288
+        ]
+      ],
+      "omitted_ranges": [],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "src/toolchain_dylib.rs",
+      "state": "reviewed",
+      "evidence": "Full assigned text read; contract and risk semantics inspected. No new admitted defect. Repository test suites were not run.",
+      "reviewed_ranges": [
+        [
+          1,
+          149
+        ]
+      ],
+      "omitted_ranges": [],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "src/tree_stamp.rs",
+      "state": "sampled",
+      "evidence": "Full production tree guard and bounded traversal read; inline tests omitted. No load or cap benchmark; no claim of complete directory-enumeration detection.",
+      "reviewed_ranges": [
+        [
+          1,
+          363
+        ]
+      ],
+      "omitted_ranges": [
+        [
+          364,
+          716
+        ]
+      ],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "tests/cache_key_underkeying_test.rs",
+      "state": "sampled",
+      "evidence": "Deliberate sample of fixture isolation, direct-compiler oracle, native flags/sysroot/extra-input tests and source mapping test. Remaining matrix/lint/response/Unicode tests omitted.",
+      "reviewed_ranges": [
+        [
+          1,
+          221
+        ],
+        [
+          301,
+          445
+        ],
+        [
+          749,
+          903
+        ]
+      ],
+      "omitted_ranges": [
+        [
+          222,
+          300
+        ],
+        [
+          446,
+          748
+        ],
+        [
+          904,
+          958
+        ]
+      ],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "tests/codegen_backend_test.rs",
+      "state": "reviewed",
+      "evidence": "Full assigned text read; contract and risk semantics inspected. No new admitted defect. Repository test suites were not run.",
+      "reviewed_ranges": [
+        [
+          1,
+          94
+        ]
+      ],
+      "omitted_ranges": [],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "tests/extra_inputs_warm_target_test.rs",
+      "state": "sampled",
+      "evidence": "Deliberate sample of proc-macro scaffolding and first cold/warm/declaration-activation/input-edit assertions; later passthrough/error/watch variants omitted.",
+      "reviewed_ranges": [
+        [
+          1,
+          140
+        ],
+        [
+          396,
+          510
+        ]
+      ],
+      "omitted_ranges": [
+        [
+          141,
+          395
+        ],
+        [
+          511,
+          957
+        ]
+      ],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "tests/input_prediction_test.rs",
+      "state": "sampled",
+      "evidence": "Deliberate sample of cold/warm/off/stale closure integration test; broader races and cross-checkout matrix omitted.",
+      "reviewed_ranges": [
+        [
+          277,
+          346
+        ]
+      ],
+      "omitted_ranges": [
+        [
+          1,
+          276
+        ],
+        [
+          347,
+          2029
+        ]
+      ],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "tests/macos_native_install_name_test.rs",
+      "state": "reviewed",
+      "evidence": "Full assigned text read; contract and risk semantics inspected. No new admitted defect. Repository test suites were not run.",
+      "reviewed_ranges": [
+        [
+          1,
+          171
+        ]
+      ],
+      "omitted_ranges": [],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "tests/proc_macro_env_key_test.rs",
+      "state": "reviewed",
+      "evidence": "Full assigned text read; contract and risk semantics inspected. No new admitted defect. Repository test suites were not run.",
+      "reviewed_ranges": [
+        [
+          1,
+          243
+        ]
+      ],
+      "omitted_ranges": [],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "tests/workspace_extra_inputs_test.rs",
+      "state": "sampled",
+      "evidence": "Full main semantic integration case sampled; fixture scaffolding and helpers omitted.",
+      "reviewed_ranges": [
+        [
+          274,
+          395
+        ]
+      ],
+      "omitted_ranges": [
+        [
+          1,
+          273
+        ]
+      ],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "tests/worktree_depinfo_test.rs",
+      "state": "reviewed",
+      "evidence": "Full assigned text read; contract and risk semantics inspected. No new admitted defect. Repository test suites were not run.",
+      "reviewed_ranges": [
+        [
+          1,
+          198
+        ]
+      ],
+      "omitted_ranges": [],
+      "reopen_conditions": "Reopen for changes to the inspected path, a production reachability trace through an omitted case, or supported-platform behavioral evidence not represented by the macOS rustc 1.99.0 probes."
+    },
+    {
+      "path": "src/wrapper.rs",
+      "state": "collateral",
+      "evidence": "Owned interaction only: extra-input snapshot equality re-resolution and key input revalidation. Full wrapper review belongs to Rust-wrapper owner.",
+      "reviewed_ranges": [
+        [
+          3400,
+          3495
+        ],
+        [
+          3670,
+          3706
+        ]
+      ],
+      "reopen_conditions": "Native interleaving proof or change to post-compile key-input checking."
+    }
+  ]
+}

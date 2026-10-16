@@ -1,0 +1,22 @@
+2026-10-11T05:50:19.408489Z  WARN kache::config: [cache] ignore_env = true: ignoring set env override(s) ["KACHE_CACHE_DIR", "KACHE_DEFERRED_DISCOVERY", "KACHE_SCHEDULER"] in favor of the config file
+2026-10-11T05:50:19.409255Z TRACE kache::cache_key: [key:locator] out_dir_alias: skip: not a registry package
+2026-10-11T05:50:19.410966Z TRACE kache::cache_key: [key:locator] key_version=32
+2026-10-11T05:50:19.411087Z TRACE kache::cache_key: [key:locator] rustc_version=rustc 1.99.0 (b940084d7 2026-09-28)
+2026-10-11T05:50:19.411096Z TRACE kache::cache_key: [key:locator] target=unknown
+2026-10-11T05:50:19.411108Z TRACE kache::cache_key: [key:locator] crate_name=locator
+2026-10-11T05:50:19.411115Z TRACE kache::cache_key: [key:locator] crate_type=rlib
+2026-10-11T05:50:19.411120Z TRACE kache::cache_key: [key:locator] edition=2021
+2026-10-11T05:50:19.411133Z TRACE kache::cache_key: [key:locator] emit:link
+2026-10-11T05:50:19.412041Z TRACE kache::cache_key: [key:locator] inputs=dep-info(no-record)
+2026-10-11T05:50:19.412333Z TRACE kache::cache_key: dep-info pre-pass: "/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/rustc" "lib.rs" "--crate-name" "locator" "--crate-type" "rlib" "--edition" "2021" "--emit" "dep-info" "-o" "/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/kache-depinfoRzz70v/deps.d"
+2026-10-11T05:50:19.433413Z TRACE kache::cache_key: dep-info found 2 source files, 1 env deps for lib.rs
+2026-10-11T05:50:19.433783Z TRACE kache::cache_key: [key:locator] source:<CWD>/target/debug/build/pkg-deadbeef/out/data.txt=9b3a7844b08ff425
+2026-10-11T05:50:19.433798Z TRACE kache::cache_key: [key:locator] source:<OPAQUE_PATH>/f0f9ef1f53b23b9434aa557d08c9f0825bffb2cfac8373d73852cd1c9fbef06a=1206f9f160db6109
+2026-10-11T05:50:19.434130Z TRACE kache::cache_key: [key:locator] env_dep:OUT_DIR=<OUT_DIR:pkg-deadbeef> (normalized path-only)
+2026-10-11T05:50:19.434215Z TRACE kache::cache_key: [key:locator] cargo_cfg_count=0
+2026-10-11T05:50:19.434265Z TRACE kache::cache_key: [key:locator] remap=multi-prefix(/kache/.cargo,/kache/home,/kache/rustup,/kache/target,/kache/tmp,/kache/workspace,/rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4)
+2026-10-11T05:50:19.434305Z TRACE kache::cache_key: [key:locator] final=531579d9bfa51eac
+2026-10-11T05:50:19.434641Z DEBUG kache::wrapper: cache key for locator: 531579d9bfa51eac
+2026-10-11T05:50:19.434822Z DEBUG kache::wrapper: local cache hit for locator (531579d9bfa51eac)
+2026-10-11T05:50:19.435127Z DEBUG kache::wrapper: restoring 1 files via platform=macos
+2026-10-11T05:50:19.435298Z DEBUG kache_store::link: reflinked /Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/env-locator-fixture/cache2/store/blobs/69/696258beae8f4a62dd7023ab0da79cbbaa399e1173a4ad43367cc08a53df43b5 -> /Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/env-locator-fixture/checkout_b/target/debug/deps/liblocator.rlib
