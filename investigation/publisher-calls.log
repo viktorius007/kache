@@ -1,0 +1,48 @@
+COMMAND: ['rg', '-n', '\\b(build_pack|encode_catalog|pack_meta_object_key|PackMeta)\\b', '--glob', '*.rs', 'src', 'crates']
+src/remote_pack.rs:117:pub(crate) struct PackMeta {
+src/remote_pack.rs:179:pub(crate) fn pack_meta_object_key(prefix: &str, digest: &str) -> Result<String> {
+src/remote_pack.rs:209:pub(crate) fn build_pack(
+src/remote_pack.rs:344:pub(crate) fn encode_catalog(prefix: &str, catalog: PackCatalog) -> Result<EncodedCatalog> {
+src/remote_pack.rs:783:            let built = build_pack("property", entries.clone(), TEST_CAP).unwrap();
+src/remote_pack.rs:784:            let permuted = build_pack("property", permutation, TEST_CAP).unwrap();
+src/remote_pack.rs:840:            let rebuilt = build_pack("property", rebuilt_entries, TEST_CAP).unwrap();
+src/remote_pack.rs:851:        let forward = build_pack("artifacts", vec![one.clone(), two.clone()], 4096).unwrap();
+src/remote_pack.rs:852:        let reversed = build_pack("artifacts", vec![two, one], 4096).unwrap();
+src/remote_pack.rs:884:        assert!(build_pack("", vec![one.clone(), one.clone()], 4096).is_err());
+src/remote_pack.rs:888:        assert!(build_pack("", vec![traversal], 4096).is_err());
+src/remote_pack.rs:890:        let built = build_pack("", vec![one], 4096).unwrap();
+src/remote_pack.rs:891:        assert!(build_pack("", vec![input("tiny-cap", "serde", b"x")], 1).is_err());
+src/remote_pack.rs:998:        let built = build_pack("", vec![entry.clone()], 4096).unwrap();
+src/remote_pack.rs:1000:        assert!(build_pack("", vec![entry.clone()], exact).is_ok());
+src/remote_pack.rs:1001:        assert!(build_pack("", vec![entry], exact - 2).is_err());
+src/remote_pack.rs:1008:        let built = build_pack("", vec![input("magic", "serde", b"x")], 4096).unwrap();
+src/remote_pack.rs:1096:        let exact = build_pack("", exact_index_inputs.clone(), DEFAULT_MAX_PACK_BYTES).unwrap();
+src/remote_pack.rs:1107:            build_pack("", exact_index_inputs, DEFAULT_MAX_PACK_BYTES).is_err(),
+src/remote_pack.rs:1110:        assert!(build_pack("", inputs(MAX_PACK_ENTRIES + 1), DEFAULT_MAX_PACK_BYTES,).is_err());
+src/remote_pack.rs:1111:        assert!(build_pack("", inputs(MAX_PACK_ENTRIES + 2), DEFAULT_MAX_PACK_BYTES,).is_err());
+src/remote_pack.rs:1123:            encode_catalog(
+src/remote_pack.rs:1133:            encode_catalog(
+src/remote_pack.rs:1140:            encode_catalog(
+src/remote_pack.rs:1152:            encode_catalog(
+src/remote_pack.rs:1160:            encode_catalog(
+src/remote_pack.rs:1167:            encode_catalog(
+src/remote_pack.rs:1178:        assert!(encode_catalog("", catalog_with(Vec::new(), exact_fallback)).is_ok());
+src/remote_pack.rs:1180:        assert!(encode_catalog("", catalog_with(Vec::new(), over_fallback)).is_err());
+src/remote_pack.rs:1189:        assert!(encode_catalog("", catalog_with(packs.clone(), Vec::new())).is_ok());
+src/remote_pack.rs:1196:        assert!(encode_catalog("", catalog_with(over, Vec::new())).is_err());
+src/remote_pack.rs:1201:        let encoded = encode_catalog("", catalog_with(Vec::new(), vec![catalog_entry(0)])).unwrap();
+src/remote_pack.rs:1214:        let built = build_pack("", vec![input("binding", "serde", b"payload")], 4096).unwrap();
+src/remote_pack.rs:1248:        assert!(encode_catalog("", catalog_with(Vec::new(), vec![unsafe_entry])).is_err());
+src/remote_pack.rs:1271:        assert!(pack_meta_object_key("", &"A".repeat(64)).is_err());
+src/remote_pack.rs:1316:        let encoded = encode_catalog("artifacts", catalog).unwrap();
+src/remote_pack.rs:1364:        assert!(encode_catalog("", catalog).is_err());
+src/remote_pack.rs:1392:        assert!(encode_catalog("", wrong_recipe).is_err());
+src/remote_pack.rs:1395:        assert!(encode_catalog("", wrong_selector).is_err());
+src/remote_pack.rs:1398:        assert!(encode_catalog("", expired).is_err());
+src/remote_pack.rs:1400:        let encoded = encode_catalog("", base).unwrap();
+src/daemon/tests.rs:6764:    let built = crate::remote_pack::build_pack(
+src/daemon/tests.rs:6802:    let encoded = crate::remote_pack::encode_catalog("prefix", catalog).unwrap();
+src/daemon/tests.rs:7781:        let built = crate::remote_pack::build_pack(
+src/daemon/tests.rs:7805:    let encoded = crate::remote_pack::encode_catalog(
+src/daemon/tests.rs:8150:    let built = crate::remote_pack::build_pack(
+src/daemon/tests.rs:8183:    let encoded = crate::remote_pack::encode_catalog("prefix", catalog).unwrap();

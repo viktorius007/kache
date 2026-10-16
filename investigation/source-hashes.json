@@ -1,0 +1,10 @@
+{
+  "src/remote_pack.rs": "185713e11ac7f5da43f096837bc483c5e6667ba66216468cd7665affcf8cec76",
+  "src/remote_layout.rs": "c7ad76225d41f749e5349fab626825aece153e197eddb250e50c0bebddfbc3c8",
+  "src/daemon.rs": "bd896394f22294fe4a2582b70fb5d2a444ce0d01b6b612ee79f1b35e3b6b50e3",
+  "src/daemon/tests.rs": "b54d0f6ff3c8eceed3893bd1071007cafbb03648c5361b01175ce8c474f44e19",
+  "src/cache_remote.rs": "21bd18baaffe8b6ad485f441b2328dc7e01ad123ccc329f575536835d86b67e7",
+  "src/remote_backend.rs": "6e272ae27075325b6607c101443f0026c9eacbc9b54b0b662b6a1702193c52ec",
+  "crates/kache-store/src/store.rs": "f257078be67112a5ebbf6b3705414a5352804bfcb47b85095cf1ef69ca1f635f",
+  "src/config.rs": "2331a40edfb12827787ad445432c4f638eaaa8cecc10037a97ae1e551ddde01c"
+}

@@ -1,0 +1,26 @@
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/pack-prefetch-entry-budget/crates/kache-fs)
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/pack-prefetch-entry-budget/crates/kache-format)
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/pack-prefetch-entry-budget)
+   Compiling kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-prs/pack-prefetch-entry-budget/crates/kache-shims)
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/pack-prefetch-entry-budget/crates/kache-store)
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/pack-prefetch-entry-budget/crates/kache-core)
+    Finished `test` profile [unoptimized] target(s) in 48.20s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+
+thread 'daemon::tests::packed_prefetch_limits_cold_siblings_without_displacing_requested_entries' (56002670) panicked at src/daemon/tests.rs:7647:9:
+assertion `left == right` failed: packed cold imports must honor limit 1, skipping warm siblings without spending it
+  left: 3
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test daemon::tests::packed_prefetch_limits_cold_siblings_without_displacing_requested_entries ... FAILED
+
+failures:
+
+failures:
+    daemon::tests::packed_prefetch_limits_cold_siblings_without_displacing_requested_entries
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4395 filtered out; finished in 0.14s
+
+error: test failed, to rerun pass `--bin kache`

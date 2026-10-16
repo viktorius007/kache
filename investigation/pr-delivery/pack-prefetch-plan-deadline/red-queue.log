@@ -1,0 +1,19 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/pack-prefetch-plan-deadline)
+    Finished `test` profile [unoptimized] target(s) in 18.42s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+
+thread 'daemon::tests::packed_prefetch_queue_expires_before_the_restore_timeout' (57949409) panicked at src/daemon/tests.rs:7742:6:
+an expired plan must stop waiting for local capacity before the 10s restore timeout: Elapsed(())
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test daemon::tests::packed_prefetch_queue_expires_before_the_restore_timeout ... FAILED
+
+failures:
+
+failures:
+    daemon::tests::packed_prefetch_queue_expires_before_the_restore_timeout
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 3.01s
+
+error: test failed, to rerun pass `--bin kache`

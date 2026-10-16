@@ -1,0 +1,16 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/pack-prefetch-plan-deadline)
+    Finished `test` profile [unoptimized] target(s) in 18.80s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 8 tests
+test daemon::tests::packed_prefetch_context_is_derived_from_a_complete_build_intent ... ok
+test daemon::tests::packed_prefetch_discovers_one_pack_and_batch_imports_all_entries ... ok
+test daemon::tests::packed_prefetch_drains_bodies_with_room_for_only_one_object ... ok
+test daemon::tests::packed_prefetch_queue_expires_before_the_restore_timeout ... ok
+test daemon::tests::packed_prefetch_response_returns_before_blocked_pack_get ... ok
+test daemon::tests::packed_prefetch_skips_the_catalog_when_listing_is_off_or_refused ... ok
+test remote_layout::tests::packed_prefetch_checks_each_outer_and_inner_binding_independently ... ok
+test daemon::tests::packed_prefetch_honors_dispatch_deadline_without_cancelling_started_transfers ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 4389 filtered out; finished in 4.85s
+

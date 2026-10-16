@@ -1,0 +1,1867 @@
+FILE: src/daemon.rs:1191-1235
+1191: struct PackPrefetchContext {
+1192:     manifest_key: String,
+1193:     namespace: String,
+1194:     shard_hashes: Vec<String>,
+1195:     selector: String,
+1196: }
+1197: 
+1198: impl PackPrefetchContext {
+1199:     fn from_deps(manifest_key: String, namespace: &str, deps: &[(String, String)]) -> Result<Self> {
+1200:         if deps.is_empty() {
+1201:             anyhow::bail!("packed-prefetch requires Cargo.lock dependencies");
+1202:         }
+1203:         let mut shard_hashes = crate::shards::compute_shards(deps)
+1204:             .shards
+1205:             .into_iter()
+1206:             .map(|(hash, _)| hash)
+1207:             .collect::<Vec<_>>();
+1208:         shard_hashes.sort();
+1209:         let selector = crate::remote_pack::selector_hash(
+1210:             &manifest_key,
+1211:             namespace,
+1212:             &shard_hashes,
+1213:             crate::cache_key::CACHE_KEY_VERSION,
+1214:         )?;
+1215:         Ok(Self {
+1216:             manifest_key,
+1217:             namespace: namespace.to_string(),
+1218:             shard_hashes,
+1219:             selector,
+1220:         })
+1221:     }
+1222: 
+1223:     fn from_intent(intent: &kache_core::BuildIntent) -> Option<Self> {
+1224:         let namespace = intent.namespace.as_deref()?;
+1225:         let manifest_key = crate::identity::manifest_lookup_keys(intent.identity_key.as_deref())
+1226:             .into_iter()
+1227:             .next()
+1228:             .unwrap_or_else(crate::identity::host_target_triple);
+1229:         Self::from_deps(manifest_key, namespace, &intent.cargo_lock_deps).ok()
+1230:     }
+1231: }
+1232: 
+1233: #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+1234: pub struct BuildStartedRequest {
+1235:     #[serde(default)]
+FILE: src/daemon.rs:4980-5517
+4980:     }
+4981: 
+4982:     async fn packed_prefetch_list(
+4983:         &self,
+4984:         v3: &crate::cache_remote::V3Remote,
+4985:         prefix: &str,
+4986:         receipt: &mut PrefetchReceipt,
+4987:     ) -> Result<Vec<String>> {
+4988:         let breaker = self
+4989:             .remote_breaker
+4990:             .try_acquire(RemoteOperation::PrefetchGet)
+4991:             .ok_or_else(|| anyhow::anyhow!("remote read breaker open"))?;
+4992:         let deadline = RemoteDeadline::from_secs(self.config.remote_restore_timeout_secs);
+4993:         let gate = deadline
+4994:             .run("pack catalog gate", async {
+4995:                 self.prefetch_gate
+4996:                     .clone()
+4997:                     .acquire_owned()
+4998:                     .await
+4999:                     .map_err(|_| anyhow::anyhow!("prefetch gate closed"))
+5000:             })
+5001:             .await?;
+5002:         let semaphore = deadline
+5003:             .run("pack catalog LIST queue", async {
+5004:                 self.s3_semaphore
+5005:                     .acquire()
+5006:                     .await
+5007:                     .map_err(|_| anyhow::anyhow!("remote semaphore closed"))
+5008:             })
+5009:             .await?;
+5010:         anyhow::ensure!(
+5011:             !self.prefetch_stopping.load(Ordering::Acquire),
+5012:             "daemon stopping before packed prefetch request"
+5013:         );
+5014:         receipt.event.semaphore_wait_ms = receipt.started.elapsed().as_millis() as u64;
+5015:         let network_start = Instant::now();
+5016:         self.prefetch_stats
+5017:             .pack_requests_total
+5018:             .fetch_add(1, Ordering::Relaxed);
+5019:         let result = deadline
+5020:             .run("pack catalog LIST", async {
+5021:                 receipt.event.request_count = 1;
+5022:                 v3.list_prefetch_objects(prefix).await
+5023:             })
+5024:             .await;
+5025:         receipt.event.network_ms = network_start.elapsed().as_millis() as u64;
+5026:         drop(semaphore);
+5027:         drop(gate);
+5028:         match result {
+5029:             Ok(objects) => {
+5030:                 receipt.accounting().list_result_count = Some(objects.len() as u64);
+5031:                 receipt.finish("completed");
+5032:                 breaker.success();
+5033:                 Ok(objects)
+5034:             }
+5035:             Err(error) => {
+5036:                 receipt.finish("error");
+5037:                 let class = classify_remote_error(&error);
+5038:                 breaker.failure(class, &format!("packed-prefetch LIST failed: {error:#}"));
+5039:                 Err(error)
+5040:             }
+5041:         }
+5042:     }
+5043: 
+5044:     async fn packed_prefetch_get(
+5045:         &self,
+5046:         v3: &crate::cache_remote::V3Remote,
+5047:         key: &str,
+5048:         max_bytes: u64,
+5049:         stage: &'static str,
+5050:         receipt: &mut PrefetchReceipt,
+5051:     ) -> Result<Option<crate::remote_backend::GetObject>> {
+5052:         let breaker = self
+5053:             .remote_breaker
+5054:             .try_acquire(RemoteOperation::PrefetchGet)
+5055:             .ok_or_else(|| anyhow::anyhow!("remote read breaker open"))?;
+5056:         let deadline = RemoteDeadline::from_secs(self.config.remote_restore_timeout_secs);
+5057:         let gate = deadline
+5058:             .run("packed-prefetch gate", async {
+5059:                 self.prefetch_gate
+5060:                     .clone()
+5061:                     .acquire_owned()
+5062:                     .await
+5063:                     .map_err(|_| anyhow::anyhow!("prefetch gate closed"))
+5064:             })
+5065:             .await?;
+5066:         let semaphore = deadline
+5067:             .run("packed-prefetch GET queue", async {
+5068:                 self.s3_semaphore
+5069:                     .acquire()
+5070:                     .await
+5071:                     .map_err(|_| anyhow::anyhow!("remote semaphore closed"))
+5072:             })
+5073:             .await?;
+5074:         anyhow::ensure!(
+5075:             !self.prefetch_stopping.load(Ordering::Acquire),
+5076:             "daemon stopping before packed prefetch request"
+5077:         );
+5078:         receipt.event.semaphore_wait_ms = receipt.started.elapsed().as_millis() as u64;
+5079:         let network_start = Instant::now();
+5080:         self.prefetch_stats
+5081:             .pack_requests_total
+5082:             .fetch_add(1, Ordering::Relaxed);
+5083:         let result = deadline
+5084:             .run(stage, async {
+5085:                 receipt.event.request_count = 1;
+5086:                 receipt.accounting().bytes_complete = false;
+5087:                 v3.get_prefetch_object(key, max_bytes).await
+5088:             })
+5089:             .await;
+5090:         receipt.event.network_ms = network_start.elapsed().as_millis() as u64;
+5091:         drop(semaphore);
+5092:         drop(gate);
+5093:         match result {
+5094:             Ok(object) => {
+5095:                 breaker.success();
+5096:                 if let Some(object) = &object {
+5097:                     receipt.received(object);
+5098:                     self.prefetch_stats
+5099:                         .pack_bytes_downloaded
+5100:                         .fetch_add(object.body.len() as u64, Ordering::Relaxed);
+5101:                 }
+5102:                 if object.is_none() {
+5103:                     receipt.accounting().bytes_complete = true;
+5104:                     receipt.finish("not_found");
+5105:                 }
+5106:                 Ok(object)
+5107:             }
+5108:             Err(error) => {
+5109:                 receipt.finish("error");
+5110:                 let class = classify_remote_error(&error);
+5111:                 breaker.failure(class, &format!("{stage} failed: {error:#}"));
+5112:                 Err(error)
+5113:             }
+5114:         }
+5115:     }
+5116: 
+5117:     /// Try the manifest-level immutable pack catalog, returning candidate keys
+5118:     /// successfully imported. Every other candidate remains eligible for the
+5119:     /// existing v3 coordinator below.
+5120:     async fn try_packed_prefetch(
+5121:         self: &Arc<Self>,
+5122:         context: &PackPrefetchContext,
+5123:         v3: &Arc<crate::cache_remote::V3Remote>,
+5124:         remote: &crate::config::RemoteConfig,
+5125:         candidates: &[(String, String, PathBuf)],
+5126:         bytes_at_plan_start: u64,
+5127:         attribution: &PackedAttribution<'_>,
+5128:     ) -> HashSet<String> {
+5129:         let wanted = candidates
+5130:             .iter()
+5131:             .map(|(key, _, _)| key.clone())
+5132:             .collect::<HashSet<_>>();
+5133:         let mut imported = HashSet::new();
+5134:         // Finding the latest catalog is a LIST, which needs s3:ListBucket.
+5135:         // Without it the entries come one by one, as they would with no catalog.
+5136:         if !self.config.remote_key_listing || self.listing_refused.load(Ordering::Relaxed) {
+5137:             return imported;
+5138:         }
+5139:         let catalog_prefix =
+5140:             match crate::remote_pack::catalog_prefix(&remote.prefix, &context.selector) {
+5141:                 Ok(prefix) => prefix,
+5142:                 Err(error) => {
+5143:                     tracing::warn!("packed-prefetch selector rejected: {error:#}");
+5144:                     return imported;
+5145:                 }
+5146:             };
+5147:         let mut list_receipt = PrefetchReceipt::new(
+5148:             self.prefetch_receipts.clone(),
+5149:             attribution.origin.clone(),
+5150:             &catalog_prefix,
+5151:             "pack_catalog",
+5152:             PrefetchOperation::List,
+5153:         );
+5154:         let objects = match self
+5155:             .packed_prefetch_list(v3.as_ref(), &catalog_prefix, &mut list_receipt)
+5156:             .await
+5157:         {
+5158:             Ok(objects) => objects,
+5159:             Err(error) => {
+5160:                 list_receipt.finish("error");
+5161:                 tracing::debug!("packed-prefetch catalog discovery failed: {error:#}");
+5162:                 self.prefetch_stats
+5163:                     .pack_fallback_entries
+5164:                     .fetch_add(wanted.len() as u64, Ordering::Relaxed);
+5165:                 return imported;
+5166:             }
+5167:         };
+5168:         drop(list_receipt);
+5169:         let catalog_ref = match crate::remote_pack::latest_catalog_object(
+5170:             &remote.prefix,
+5171:             &context.selector,
+5172:             &objects,
+5173:         ) {
+5174:             Ok(Some(catalog)) => catalog,
+5175:             Ok(None) => {
+5176:                 self.prefetch_stats
+5177:                     .pack_fallback_entries
+5178:                     .fetch_add(wanted.len() as u64, Ordering::Relaxed);
+5179:                 return imported;
+5180:             }
+5181:             Err(error) => {
+5182:                 tracing::warn!("packed-prefetch catalog key rejected: {error:#}");
+5183:                 self.prefetch_stats
+5184:                     .pack_validation_failures
+5185:                     .fetch_add(1, Ordering::Relaxed);
+5186:                 self.prefetch_stats
+5187:                     .pack_fallback_entries
+5188:                     .fetch_add(wanted.len() as u64, Ordering::Relaxed);
+5189:                 return imported;
+5190:             }
+5191:         };
+5192:         let mut catalog_receipt = PrefetchReceipt::new(
+5193:             self.prefetch_receipts.clone(),
+5194:             attribution.origin.clone(),
+5195:             &catalog_ref.object_key,
+5196:             "pack_catalog",
+5197:             PrefetchOperation::Get,
+5198:         );
+5199:         let Some(catalog_object) = self
+5200:             .packed_prefetch_get(
+5201:                 v3.as_ref(),
+5202:                 &catalog_ref.object_key,
+5203:                 crate::remote_pack::MAX_CATALOG_BYTES as u64,
+5204:                 "packed-prefetch catalog GET",
+5205:                 &mut catalog_receipt,
+5206:             )
+5207:             .await
+5208:             .inspect_err(|_| catalog_receipt.finish("error"))
+5209:             .ok()
+5210:             .flatten()
+5211:         else {
+5212:             self.prefetch_stats
+5213:                 .pack_fallback_entries
+5214:                 .fetch_add(wanted.len() as u64, Ordering::Relaxed);
+5215:             return imported;
+5216:         };
+5217:         catalog_receipt.event.outcome = "validation_error".to_owned();
+5218:         let now_ms = unix_time_ms();
+5219:         let catalog = match crate::remote_pack::decode_catalog_for_selector(
+5220:             &catalog_object.body,
+5221:             &catalog_ref.digest,
+5222:             &context.selector,
+5223:             now_ms,
+5224:         ) {
+5225:             Ok(catalog)
+5226:                 if catalog.created_at_ms == catalog_ref.created_at_ms
+5227:                     && catalog.manifest_key == context.manifest_key
+5228:                     && catalog.namespace == context.namespace
+5229:                     && catalog.shard_hashes == context.shard_hashes =>
+5230:             {
+5231:                 catalog
+5232:             }
+5233:             Ok(_) => {
+5234:                 tracing::warn!("packed-prefetch catalog context binding mismatch");
+5235:                 self.prefetch_stats
+5236:                     .pack_validation_failures
+5237:                     .fetch_add(1, Ordering::Relaxed);
+5238:                 self.prefetch_stats
+5239:                     .pack_fallback_entries
+5240:                     .fetch_add(wanted.len() as u64, Ordering::Relaxed);
+5241:                 return imported;
+5242:             }
+5243:             Err(error) => {
+5244:                 tracing::warn!("packed-prefetch catalog validation failed: {error:#}");
+5245:                 self.prefetch_stats
+5246:                     .pack_validation_failures
+5247:                     .fetch_add(1, Ordering::Relaxed);
+5248:                 self.prefetch_stats
+5249:                     .pack_fallback_entries
+5250:                     .fetch_add(wanted.len() as u64, Ordering::Relaxed);
+5251:                 return imported;
+5252:             }
+5253:         };
+5254: 
+5255:         // Parsing owns the catalog data. Release its download reservation
+5256:         // before scheduling pack GETs against the same memory budget.
+5257:         catalog_receipt.finish("completed");
+5258:         drop(catalog_receipt);
+5259:         drop(catalog_object);
+5260:         let selected = catalog
+5261:             .packs
+5262:             .iter()
+5263:             .filter(|pack| {
+5264:                 pack.entries
+5265:                     .iter()
+5266:                     .any(|entry| wanted.contains(&entry.cache_key))
+5267:             })
+5268:             .collect::<Vec<_>>();
+5269:         let already_spent = self
+5270:             .prefetch_stats
+5271:             .bytes_downloaded
+5272:             .load(Ordering::Relaxed)
+5273:             .saturating_sub(bytes_at_plan_start);
+5274:         let mut reserved = 0u64;
+5275:         let admitted = selected
+5276:             .into_iter()
+5277:             .filter(|pack| {
+5278:                 if self.config.prefetch_max_bytes == 0 {
+5279:                     return true;
+5280:                 }
+5281:                 let fits = pack.pack_bytes
+5282:                     <= self
+5283:                         .config
+5284:                         .prefetch_max_bytes
+5285:                         .saturating_sub(already_spent.saturating_add(reserved));
+5286:                 if fits {
+5287:                     reserved = reserved.saturating_add(pack.pack_bytes);
+5288:                 }
+5289:                 fits
+5290:             })
+5291:             .cloned()
+5292:             .collect::<Vec<_>>();
+5293:         use futures::StreamExt as _;
+5294:         let mut fetched = futures::stream::iter(admitted)
+5295:             .map(|pack_ref| async move {
+5296:                 let pack_key =
+5297:                     crate::remote_pack::pack_object_key(&remote.prefix, &pack_ref.digest);
+5298:                 let key = match pack_key {
+5299:                     Ok(key) => key,
+5300:                     Err(error) => {
+5301:                         tracing::warn!("packed-prefetch pack key rejected: {error:#}");
+5302:                         self.prefetch_stats
+5303:                             .pack_validation_failures
+5304:                             .fetch_add(1, Ordering::Relaxed);
+5305:                         return (pack_ref, None);
+5306:                     }
+5307:                 };
+5308:                 let mut receipt = PrefetchReceipt::new(
+5309:                     self.prefetch_receipts.clone(),
+5310:                     attribution.origin.clone(),
+5311:                     &key,
+5312:                     "pack",
+5313:                     PrefetchOperation::Get,
+5314:                 );
+5315:                 let object = match self
+5316:                     .packed_prefetch_get(
+5317:                         v3.as_ref(),
+5318:                         &key,
+5319:                         pack_ref.pack_bytes,
+5320:                         "packed-prefetch pack GET",
+5321:                         &mut receipt,
+5322:                     )
+5323:                     .await
+5324:                 {
+5325:                     Ok(Some(object)) => Some((object, receipt)),
+5326:                     Ok(None) => None,
+5327:                     Err(_) => {
+5328:                         receipt.finish("error");
+5329:                         None
+5330:                     }
+5331:                 };
+5332:                 (pack_ref, object)
+5333:             })
+5334:             .buffer_unordered(prefetch_concurrency_cap(self.config.s3_concurrency));
+5335: 
+5336:         let mut verified = Vec::new();
+5337:         let mut receipts = Vec::new();
+5338:         // Consume each body as it arrives. Retaining completed bodies while
+5339:         // waiting for another GET can fill the budget and block that GET.
+5340:         while let Some((pack_ref, pack_object)) = fetched.next().await {
+5341:             let Some((pack_object, receipt)) = pack_object else {
+5342:                 continue;
+5343:             };
+5344:             let pack_index = receipts.len();
+5345:             receipts.push(receipt);
+5346:             let receipt = &mut receipts[pack_index];
+5347:             let decoded = match crate::remote_pack::decode_catalog_pack(
+5348:                 &pack_object.body,
+5349:                 &pack_ref,
+5350:                 crate::remote_pack::DEFAULT_MAX_PACK_BYTES,
+5351:             ) {
+5352:                 Ok(decoded) => decoded,
+5353:                 Err(error) => {
+5354:                     receipt.finish("validation_error");
+5355:                     tracing::warn!("packed-prefetch pack validation failed: {error:#}");
+5356:                     self.prefetch_stats
+5357:                         .pack_validation_failures
+5358:                         .fetch_add(1, Ordering::Relaxed);
+5359:                     continue;
+5360:                 }
+5361:             };
+5362:             self.transfer_counters
+5363:                 .downloads_completed
+5364:                 .fetch_add(1, Ordering::Relaxed);
+5365:             self.transfer_counters
+5366:                 .bytes_downloaded
+5367:                 .fetch_add(pack_object.body.len() as u64, Ordering::Relaxed);
+5368:             self.prefetch_stats
+5369:                 .bytes_downloaded
+5370:                 .fetch_add(pack_object.body.len() as u64, Ordering::Relaxed);
+5371: 
+5372:             for entry in decoded.entries {
+5373:                 let key = &entry.descriptor.cache_key;
+5374:                 let entry_index = receipt.accounting().entries.len();
+5375:                 receipt.accounting().entries.push(PackedEntryTransfer {
+5376:                     cache_key: key.clone(),
+5377:                     crate_name: entry.descriptor.crate_name.clone(),
+5378:                     compressed_bytes: entry.payload.len() as u64,
+5379:                     prefetch: attribution.for_key(key),
+5380:                     outcome: "cancelled".to_owned(),
+5381:                     ..Default::default()
+5382:                 });
+5383:                 let entry_dir = self.entry_dir_for(key);
+5384:                 if !try_claim_packed_download(&self.downloading, key, &entry_dir).await {
+5385:                     receipt.accounting().entries[entry_index].outcome =
+5386:                         "already_present_or_inflight".to_owned();
+5387:                     continue;
+5388:                 }
+5389:                 let guard = DownloadingGuard::new(self.downloading.clone(), key.clone());
+5390:                 match crate::remote_layout::extract_verified_prefetch_entry(
+5391:                     key,
+5392:                     &entry.descriptor.crate_name,
+5393:                     &entry.descriptor.meta_digest,
+5394:                     entry.payload,
+5395:                     &entry_dir,
+5396:                     None,
+5397:                 ) {
+5398:                     Ok(extracted) => verified.push((extracted, guard, pack_index, entry_index)),
+5399:                     Err(error) => {
+5400:                         receipt.accounting().entries[entry_index].outcome =
+5401:                             "validation_error".to_owned();
+5402:                         tracing::warn!(
+5403:                             key = key_prefix(key),
+5404:                             "packed-prefetch entry validation failed: {error:#}"
+5405:                         );
+5406:                         self.prefetch_stats
+5407:                             .pack_validation_failures
+5408:                             .fetch_add(1, Ordering::Relaxed);
+5409:                     }
+5410:                 }
+5411:             }
+5412:         }
+5413: 
+5414:         let batch = verified
+5415:             .iter()
+5416:             .map(|(entry, _, _, _)| entry.restored.clone())
+5417:             .collect::<Vec<_>>();
+5418:         if !batch.is_empty() {
+5419:             let import_start = Instant::now();
+5420:             match self.with_store(|store| store.import_verified_restored_entries(&batch)) {
+5421:                 Ok(_) => {
+5422:                     let completed_at_ms = unix_time_ms();
+5423:                     let original_bytes = verified
+5424:                         .iter()
+5425:                         .map(|(entry, _, _, _)| entry.original_bytes)
+5426:                         .sum::<u64>();
+5427:                     let extract_ms = verified
+5428:                         .iter()
+5429:                         .map(|(entry, _, _, _)| entry.extract_ms)
+5430:                         .sum::<u64>();
+5431:                     // No await before every successfully imported entry has its
+5432:                     // exact availability boundary, including other packs in this batch.
+5433:                     let import_ms = import_start.elapsed().as_millis() as u64;
+5434:                     // One shared batch import: charge its duration once, to
+5435:                     // the first imported pack, rather than once per object.
+5436:                     receipts[verified[0].2].event.import_ms = import_ms;
+5437:                     for (entry, _, pack_index, entry_index) in &verified {
+5438:                         let receipt = &mut receipts[*pack_index];
+5439:                         charge_packed_import(
+5440:                             &mut receipt.event,
+5441:                             entry.original_bytes,
+5442:                             entry.extract_ms,
+5443:                         );
+5444:                         let logical = &mut receipt.accounting().entries[*entry_index];
+5445:                         logical.finished_at_ms = completed_at_ms;
+5446:                         logical.outcome = "completed".to_owned();
+5447:                         let key = &entry.restored.cache_key;
+5448:                         imported.insert(key.clone());
+5449:                         let mut plan = self.active_plan.lock().unwrap_or_else(|p| p.into_inner());
+5450:                         if let Some(plan) = plan.as_mut() {
+5451:                             plan.record_download_from(
+5452:                                 &logical.prefetch,
+5453:                                 key,
+5454:                                 logical.compressed_bytes,
+5455:                             );
+5456:                         }
+5457:                     }
+5458:                     self.prefetch_stats
+5459:                         .downloads_completed
+5460:                         .fetch_add(batch.len() as u64, Ordering::Relaxed);
+5461:                     tracing::info!(
+5462:                         entries = batch.len(),
+5463:                         original_bytes,
+5464:                         extract_ms,
+5465:                         import_ms = import_start.elapsed().as_millis() as u64,
+5466:                         "packed-prefetch batch imported"
+5467:                     );
+5468:                 }
+5469:                 Err(error) => {
+5470:                     tracing::warn!("packed-prefetch batch import failed: {error:#}");
+5471:                     self.prefetch_stats
+5472:                         .pack_validation_failures
+5473:                         .fetch_add(1, Ordering::Relaxed);
+5474:                     for (entry, _, pack_index, entry_index) in &verified {
+5475:                         receipts[*pack_index].accounting().entries[*entry_index].outcome =
+5476:                             "import_error".to_owned();
+5477:                         let _ =
+5478:                             std::fs::remove_dir_all(self.entry_dir_for(&entry.restored.cache_key));
+5479:                     }
+5480:                 }
+5481:             }
+5482:         }
+5483:         for receipt in &mut receipts {
+5484:             // A body that failed whole-pack validation has no trustworthy entries.
+5485:             if receipt.event.outcome == "validation_error" {
+5486:                 continue;
+5487:             }
+5488:             let failed = receipt.accounting().entries.iter().any(|entry| {
+5489:                 entry.outcome == "validation_error" || entry.outcome == "import_error"
+5490:             });
+5491:             receipt.finish(if failed { "import_error" } else { "completed" });
+5492:         }
+5493:         drop(receipts);
+5494:         for (entry, _, _, _) in &verified {
+5495:             if imported.contains(&entry.restored.cache_key) {
+5496:                 self.note_key_present(&entry.restored.cache_key, &entry.restored.meta.crate_name)
+5497:                     .await;
+5498:             }
+5499:         }
+5500:         drop(verified);
+5501: 
+5502:         if !imported.is_empty() {
+5503:             const MAX_PREFETCHED_KEYS: usize = 50_000;
+5504:             let mut prefetched = self.prefetched_keys.write().await;
+5505:             if prefetched.len().saturating_add(imported.len()) >= MAX_PREFETCHED_KEYS {
+5506:                 prefetched.clear();
+5507:                 self.prefetch_used_keys.write().await.clear();
+5508:             }
+5509:             prefetched.extend(imported.iter().cloned());
+5510:         }
+5511:         self.prefetch_stats.pack_fallback_entries.fetch_add(
+5512:             wanted.difference(&imported).count() as u64,
+5513:             Ordering::Relaxed,
+5514:         );
+5515:         imported
+5516:     }
+5517: 
+FILE: src/daemon.rs:5643-5940
+5643:         pack_context: Option<PackPrefetchContext>,
+5644:         plan_started_at: Instant,
+5645:     ) -> Response {
+5646:         if self.prefetch_stopping.load(Ordering::Acquire) {
+5647:             if let Some(origin) = &req.origin {
+5648:                 self.cancel_prefetch_plan(origin);
+5649:             }
+5650:             return Response::ok();
+5651:         }
+5652:         if !self.config.prefetch_enabled {
+5653:             tracing::debug!("prefetch request ignored: speculative prefetch disabled");
+5654:             return Response::ok();
+5655:         }
+5656:         let Some(remote) = &self.config.remote else {
+5657:             return Response::err("no remote configured");
+5658:         };
+5659: 
+5660:         let origin = req.origin.clone().unwrap_or_else(|| PrefetchOrigin {
+5661:             source: "unscoped".to_string(),
+5662:             ..PrefetchOrigin::default()
+5663:         });
+5664:         let init_deadline = RemoteDeadline::from_secs(self.config.remote_restore_timeout_secs);
+5665:         let v3_remote = match init_deadline
+5666:             .run("prefetch backend initialization", self.v3_remote())
+5667:             .await
+5668:         {
+5669:             Ok(v3_remote) => v3_remote,
+5670:             Err(error) => return Response::err(format!("remote backend init failed: {error:#}")),
+5671:         };
+5672:         let v3_remote = Arc::clone(v3_remote);
+5673:         let remote_cache: Arc<dyn crate::cache_remote::CacheRemote> = v3_remote.clone();
+5674:         let bytes_at_plan_start = self.prefetch_stats.bytes_downloaded.load(Ordering::Relaxed);
+5675: 
+5676:         // Filter to keys that need downloading: (cache_key, crate_name, entry_dir)
+5677:         let mut keys_to_fetch: Vec<(String, String, PathBuf)> = Vec::new();
+5678:         let downloading_guard = self.downloading.read().await;
+5679:         for (key, crate_name) in &req.keys {
+5680:             if !crate::cache_key::is_valid_cache_key(key)
+5681:                 || !crate::cache_key::is_valid_crate_name(crate_name)
+5682:             {
+5683:                 tracing::warn!(
+5684:                     key = key_prefix(key),
+5685:                     "prefetch: skipping request key with invalid cache_key/crate_name"
+5686:                 );
+5687:                 continue;
+5688:             }
+5689:             let entry_dir = self.entry_dir_for(key);
+5690:             if entry_dir.exists() {
+5691:                 continue;
+5692:             }
+5693:             if downloading_guard.contains_key(key) {
+5694:                 continue;
+5695:             }
+5696:             // Explicit prefetch candidates are treated as authoritative. Negative
+5697:             // key-cache knowledge is only used during discovery paths, not to veto
+5698:             // planner- or caller-supplied keys here.
+5699:             keys_to_fetch.push((key.clone(), crate_name.clone(), entry_dir));
+5700:         }
+5701:         drop(downloading_guard);
+5702: 
+5703:         // Explicitly requested whole-remote warm (#615). Never inferred from an
+5704:         // empty candidate list: that made "nothing to prefetch" mean "download
+5705:         // the bucket".
+5706:         if req.warm_all {
+5707:             let deadline = RemoteDeadline::from_secs(self.config.remote_restore_timeout_secs);
+5708:             let s3_keys = if let Some(breaker) = self
+5709:                 .remote_breaker
+5710:                 .try_acquire(RemoteOperation::WarmAllList)
+5711:             {
+5712:                 let result = self
+5713:                     .list_warm_all_keys(remote_cache.as_ref(), origin.clone(), deadline)
+5714:                     .await;
+5715:                 match result {
+5716:                     Ok(keys) => {
+5717:                         breaker.success();
+5718:                         Some(keys)
+5719:                     }
+5720:                     Err(error) => {
+5721:                         let class = classify_remote_error(&error);
+5722:                         breaker.failure(class, &format!("{error:#}"));
+5723:                         None
+5724:                     }
+5725:                 }
+5726:             } else {
+5727:                 None
+5728:             };
+5729:             for (key, crate_name) in s3_keys.unwrap_or_default() {
+5730:                 if !crate::cache_key::is_valid_cache_key(&key)
+5731:                     || !crate::cache_key::is_valid_crate_name(&crate_name)
+5732:                 {
+5733:                     tracing::warn!(
+5734:                         key = key_prefix(&key),
+5735:                         "prefetch: skipping listing key with invalid cache_key/crate_name"
+5736:                     );
+5737:                     continue;
+5738:                 }
+5739:                 let entry_dir = self.entry_dir_for(&key);
+5740:                 if !entry_dir.exists() {
+5741:                     keys_to_fetch.push((key, crate_name, entry_dir));
+5742:                 }
+5743:             }
+5744:         }
+5745: 
+5746:         // Key budget (kunobi-ninja/kache#616). Applied AFTER the filters above,
+5747:         // so the budget bounds work actually to be done rather than being spent
+5748:         // on candidates that are already local or already in flight.
+5749:         let offered = keys_to_fetch.len();
+5750:         let dropped_over_key_budget =
+5751:             prefetch_key_budget_overflow(offered, self.config.prefetch_max_keys);
+5752:         if dropped_over_key_budget > 0 {
+5753:             keys_to_fetch.truncate(offered - dropped_over_key_budget);
+5754:         }
+5755: 
+5756:         let count = keys_to_fetch.len();
+5757:         if count == 0 {
+5758:             tracing::info!("prefetch: nothing to fetch");
+5759:             return Response::ok();
+5760:         }
+5761: 
+5762:         // Never silently truncate: a plan cut short by a budget must not look
+5763:         // like a plan that had nothing more to offer (#616).
+5764:         if dropped_over_key_budget > 0 {
+5765:             self.prefetch_stats
+5766:                 .keys_over_budget
+5767:                 .fetch_add(dropped_over_key_budget as u64, Ordering::Relaxed);
+5768:             tracing::warn!(
+5769:                 offered,
+5770:                 admitted = count,
+5771:                 dropped = dropped_over_key_budget,
+5772:                 max_keys = self.config.prefetch_max_keys,
+5773:                 "prefetch: plan truncated by the key budget"
+5774:             );
+5775:         }
+5776: 
+5777:         // Candidates are deliberately NOT claimed here (kunobi-ninja/kache#613).
+5778:         // Claiming the whole plan up front put every candidate in `downloading`
+5779:         // before any of them was being downloaded, so a wrapper demanding a key
+5780:         // deep in the plan parked on its `Notify` for up to
+5781:         // `DOWNLOAD_JOIN_BUDGET` waiting for a leader that had not started —
+5782:         // and never reached the point of taking one of the S3 permits the
+5783:         // prefetch cap reserves for demand. Each task claims its own key
+5784:         // immediately before downloading it instead, so demand never queues
+5785:         // behind speculation.
+5786: 
+5787:         let candidate_sources = req.candidate_sources.clone();
+5788:         let ranks: HashMap<String, u64> = req
+5789:             .keys
+5790:             .iter()
+5791:             .enumerate()
+5792:             .rev()
+5793:             .map(|(rank, (key, _))| (key.clone(), rank as u64))
+5794:             .collect();
+5795: 
+5796:         // Spawn a single coordinator task with bounded concurrency
+5797:         let daemon = Arc::clone(self);
+5798:         let remote_config = (*remote).clone();
+5799:         let cancel_rx = self.prefetch_cancel.subscribe();
+5800:         self.spawn_prefetch_task(origin.clone(), async move {
+5801:             if daemon.prefetch_stopping.load(Ordering::Acquire) {
+5802:                 daemon.cancel_prefetch_plan(&origin);
+5803:                 daemon
+5804:                     .prefetch_stats
+5805:                     .keys_cancelled
+5806:                     .fetch_add(keys_to_fetch.len() as u64, Ordering::Relaxed);
+5807:                 return;
+5808:             }
+5809:             if let Some(context) = pack_context.as_ref() {
+5810:                 let packed = daemon
+5811:                     .try_packed_prefetch(
+5812:                         context,
+5813:                         &v3_remote,
+5814:                         &remote_config,
+5815:                         &keys_to_fetch,
+5816:                         bytes_at_plan_start,
+5817:                         &PackedAttribution {
+5818:                             origin: &origin,
+5819:                             ranks: &ranks,
+5820:                             sources: &candidate_sources,
+5821:                         },
+5822:                     )
+5823:                     .await;
+5824:                 daemon.flush_prefetch_receipts();
+5825:                 keys_to_fetch.retain(|(key, _, _)| !packed.contains(key));
+5826:             }
+5827: 
+5828:             let mut in_flight = futures::stream::FuturesUnordered::new();
+5829:             // Speculative prefetch is capped BELOW the S3 permit pool so an
+5830:             // interactive RemoteCheck can always acquire a permit without
+5831:             // queueing behind a wall of prefetch downloads (#485 Phase 0).
+5832:             // A fixed cap (not an available_permits snapshot, which raced
+5833:             // whatever happened to be free at spawn time): total minus a
+5834:             // reserve of 1/4 of the pool, at least 1, at most 4. With the
+5835:             // default 16 permits prefetch uses at most 12, leaving 4 for
+5836:             // on-demand traffic; a 1-permit pool degrades to no reservation.
+5837:             let max_concurrent = prefetch_concurrency_cap(daemon.config.s3_concurrency);
+5838: 
+5839:             // Byte and time budgets (#616). Both bound what this plan may still
+5840:             // START; work already in flight is left to finish, because
+5841:             // cancelling a live download throws away bytes already paid for.
+5842:             //
+5843:             // The byte budget is therefore SOFT: overshoot is bounded by what
+5844:             // was in flight when it tripped, at most `max_concurrent` objects.
+5845:             // A hard cap needs counted, cancellable reads in the backend.
+5846:             let byte_budget = daemon.config.prefetch_max_bytes;
+5847:             let bytes_at_start = bytes_at_plan_start;
+5848:             let deadline = match daemon.config.prefetch_deadline_secs {
+5849:                 0 => None,
+5850:                 secs => Some(Instant::now() + Duration::from_secs(secs)),
+5851:             };
+5852: 
+5853:             let mut keys_iter = keys_to_fetch.into_iter().peekable();
+5854:             while let Some((key, crate_name, entry_dir)) = keys_iter.next() {
+5855:                 if let Some(deadline) = deadline
+5856:                     && Instant::now() >= deadline
+5857:                 {
+5858:                     let dropped = 1 + keys_iter.count() as u64;
+5859:                     daemon
+5860:                         .prefetch_stats
+5861:                         .keys_over_budget
+5862:                         .fetch_add(dropped, Ordering::Relaxed);
+5863:                     tracing::warn!(
+5864:                         dropped,
+5865:                         deadline_secs = daemon.config.prefetch_deadline_secs,
+5866:                         "prefetch: plan truncated by the time budget"
+5867:                     );
+5868:                     break;
+5869:                 }
+5870: 
+5871:                 {
+5872:                     let spent = daemon
+5873:                         .prefetch_stats
+5874:                         .bytes_downloaded
+5875:                         .load(Ordering::Relaxed)
+5876:                         .saturating_sub(bytes_at_start);
+5877:                     if prefetch_byte_budget_exhausted(byte_budget, spent) {
+5878:                         let dropped = 1 + keys_iter.count() as u64;
+5879:                         daemon
+5880:                             .prefetch_stats
+5881:                             .keys_over_budget
+5882:                             .fetch_add(dropped, Ordering::Relaxed);
+5883:                         tracing::warn!(
+5884:                             dropped,
+5885:                             spent_bytes = spent,
+5886:                             max_bytes = byte_budget,
+5887:                             in_flight = in_flight.len(),
+5888:                             "prefetch: plan truncated by the byte budget (soft: in-flight \
+5889:                              downloads still finish)"
+5890:                         );
+5891:                         break;
+5892:                     }
+5893:                 }
+5894: 
+5895:                 // Check adaptive cancellation and shutdown independently:
+5896:                 // shutdown must not set the adaptive hit-rate latch.
+5897:                 if daemon.prefetch_stopping.load(Ordering::Acquire) || *cancel_rx.borrow() {
+5898:                     daemon.cancel_prefetch_plan(&origin);
+5899:                     tracing::info!("prefetch: remaining candidates cancelled");
+5900:                     // Nothing to drain: an un-started candidate holds no claim
+5901:                     // (#613), so no waiter can be parked on one. Tasks already
+5902:                     // in flight keep their own `DownloadingGuard`, which wakes
+5903:                     // their waiters when it drops.
+5904:                     let cancelled = 1 + keys_iter.count() as u64;
+5905:                     daemon
+5906:                         .prefetch_stats
+5907:                         .keys_cancelled
+5908:                         .fetch_add(cancelled, Ordering::Relaxed);
+5909:                     break;
+5910:                 }
+5911: 
+5912:                 // If we're at max concurrency, wait for one to complete
+5913:                 while in_flight.len() >= max_concurrent {
+5914:                     use futures::StreamExt;
+5915:                     in_flight.next().await;
+5916:                     daemon.flush_prefetch_receipts();
+5917:                 }
+5918: 
+5919:                 let sem = daemon.s3_semaphore.clone();
+5920:                 let d = daemon.clone();
+5921:                 let remote_cache = remote_cache.clone();
+5922:                 let download_plan = crate::remote_plan::RemotePlanner::new(&d.config)
+5923:                     .plan(crate::remote_plan::RemoteWorkload::Prefetch);
+5924:                 let plan_deadline = deadline;
+5925:                 let mut origin = origin.clone();
+5926:                 origin.candidate_rank = ranks.get(&key).copied();
+5927:                 origin.candidate_source = candidate_sources.get(&key).copied().unwrap_or_default();
+5928:                 let task = daemon.spawn_prefetch_task(origin.clone(), async move {
+5929:                     if d.prefetch_stopping.load(Ordering::Acquire) {
+5930:                         d.cancel_prefetch_plan(&origin);
+5931:                         d.prefetch_stats
+5932:                             .keys_cancelled
+5933:                             .fetch_add(1, Ordering::Relaxed);
+5934:                         return;
+5935:                     }
+5936:                     let item_deadline =
+5937:                         RemoteDeadline::from_secs(d.config.remote_restore_timeout_secs)
+5938:                             .min(RemoteDeadline::from_instant(plan_deadline));
+5939:                     // The entry may have landed since planning (an interactive
+5940:                     // RemoteCheck, or another coordinator) — re-check before
+FILE: src/daemon.rs:7913-7921
+7913: async fn try_claim_packed_download(
+7914:     downloading: &RwLock<HashMap<String, Arc<Notify>>>,
+7915:     key: &str,
+7916:     entry_dir: &Path,
+7917: ) -> bool {
+7918:     if entry_dir.exists() {
+7919:         return false;
+7920:     }
+7921:     claim_download(downloading, key).await.is_none()
+FILE: src/remote_layout.rs:239-321
+239:     pub async fn upload_entry_until(
+240:         &self,
+241:         cache_key: &str,
+242:         crate_name: &str,
+243:         entry_dir: &Path,
+244:         blobs_dir: &Path,
+245:         compression_level: i32,
+246:         deadline: Option<Instant>,
+247:     ) -> Result<RemoteUploadResult> {
+248:         deadline_io_check(deadline, "upload preparation")?;
+249:         let meta_path = entry_dir.join("meta.json");
+250:         let meta_content = std::fs::read_to_string(&meta_path).context("reading meta.json")?;
+251:         let meta: EntryMeta = serde_json::from_str(&meta_content).context("parsing meta.json")?;
+252: 
+253:         let compression_start = std::time::Instant::now();
+254:         let packed =
+255:             create_entry_pack_zstd_until(entry_dir, blobs_dir, &meta, compression_level, deadline)?;
+256:         let compression_ms = compression_start.elapsed().as_millis() as u64;
+257:         let pack_bytes = packed.len() as u64;
+258:         let original_bytes =
+259:             meta.files.iter().map(|f| f.size).sum::<u64>() + meta_content.len() as u64;
+260: 
+261:         let pack_key = v3_pack_key(&self.remote.prefix, cache_key, crate_name);
+262:         let put_pack_start = std::time::Instant::now();
+263:         self.put_immutable(&pack_key, packed, None)
+264:             .await
+265:             .context("uploading v3 pack")?;
+266:         deadline_io_check(deadline, "pack PUT")?;
+267:         let mut network_ms = put_pack_start.elapsed().as_millis() as u64;
+268: 
+269:         let manifest = V3Manifest {
+270:             version: V3_MANIFEST_VERSION,
+271:             cache_key: cache_key.to_string(),
+272:             crate_name: crate_name.to_string(),
+273:             pack_key: pack_key.clone(),
+274:             pack_bytes,
+275:             original_bytes,
+276:             file_count: meta.files.len(),
+277:         };
+278:         let manifest_body = serde_json::to_vec(&manifest).context("serializing v3 manifest")?;
+279:         let manifest_len = manifest_body.len() as u64;
+280:         let manifest_key = v3_manifest_key(&self.remote.prefix, cache_key, crate_name);
+281: 
+282:         let put_manifest_start = std::time::Instant::now();
+283:         self.put_immutable(&manifest_key, manifest_body, Some("application/json"))
+284:             .await
+285:             .context("uploading v3 manifest")?;
+286:         deadline_io_check(deadline, "manifest PUT")?;
+287:         network_ms += put_manifest_start.elapsed().as_millis() as u64;
+288: 
+289:         Ok(RemoteUploadResult {
+290:             format: "v3",
+291:             transfer: UploadResult {
+292:                 compressed_bytes: pack_bytes + manifest_len,
+293:                 compression_ms,
+294:                 head_checks_ms: 0,
+295:                 network_ms,
+296:             },
+297:         })
+298:     }
+299: 
+300:     /// Store an object that is never rewritten: a v3 pack or entry manifest,
+301:     /// both named by the cache key. Written create-only, so a second uploader
+302:     /// of the same key, or one that cannot tell an existing entry from a
+303:     /// missing one, never replaces it. A pack is checked against the metadata
+304:     /// inside it when restored, so the first upload is as good as any.
+305:     /// Where the store cannot write create-only, the object is written plainly.
+306:     async fn put_immutable(
+307:         &self,
+308:         key: &str,
+309:         body: Vec<u8>,
+310:         content_type: Option<&str>,
+311:     ) -> Result<()> {
+312:         match self
+313:             .backend
+314:             .put_if_absent(key, body.clone(), content_type)
+315:             .await?
+316:         {
+317:             PutIfAbsentResult::Created | PutIfAbsentResult::AlreadyExists => Ok(()),
+318:             PutIfAbsentResult::Unsupported => self.backend.put(key, body, content_type).await,
+319:         }
+320:     }
+321: 
+FILE: src/remote_layout.rs:408-448
+408: pub(crate) fn extract_verified_prefetch_entry(
+409:     cache_key: &str,
+410:     crate_name: &str,
+411:     meta_digest: &str,
+412:     payload: &[u8],
+413:     entry_dir: &Path,
+414:     deadline: Option<Instant>,
+415: ) -> Result<VerifiedPackEntry> {
+416:     if !crate::cache_key::is_valid_cache_key(cache_key)
+417:         || !crate::cache_key::is_valid_crate_name(crate_name)
+418:         || !crate::cache_key::is_valid_cache_key(meta_digest)
+419:     {
+420:         bail!("invalid packed-prefetch entry binding");
+421:     }
+422:     let extract_start = Instant::now();
+423:     let guarded = DeadlineReader {
+424:         inner: std::io::Cursor::new(payload),
+425:         deadline,
+426:     };
+427:     let mut decoder = zstd::stream::Decoder::new(guarded)
+428:         .context("creating packed-prefetch entry zstd decoder")?;
+429:     decoder
+430:         .window_log_max(MAX_ZSTD_WINDOW_LOG)
+431:         .context("setting packed-prefetch zstd window-log cap")?;
+432:     let extracted = extract_entry_pack_until(
+433:         decoder,
+434:         entry_dir,
+435:         deadline,
+436:         Some(ExpectedEntryBinding {
+437:             cache_key,
+438:             crate_name,
+439:             meta_digest,
+440:         }),
+441:     )?;
+442:     Ok(VerifiedPackEntry {
+443:         restored: VerifiedRestoredEntry {
+444:             cache_key: cache_key.to_string(),
+445:             meta: extracted.meta,
+446:         },
+447:         original_bytes: extracted.original_bytes,
+448:         extract_ms: extract_start.elapsed().as_millis() as u64,
+FILE: src/remote_layout.rs:639-791
+639: fn extract_entry_pack_until<R: std::io::Read>(
+640:     reader: R,
+641:     dest_dir: &Path,
+642:     deadline: Option<Instant>,
+643:     expected: Option<ExpectedEntryBinding<'_>>,
+644: ) -> Result<ExtractedEntry> {
+645:     deadline_io_check(deadline, "extraction setup")?;
+646:     let parent = dest_dir.parent().unwrap_or(Path::new("/tmp"));
+647:     std::fs::create_dir_all(parent)?;
+648:     let tmp_dir = tempfile::tempdir_in(parent).context("creating temp dir for v3 extraction")?;
+649: 
+650:     let mut archive = tar::Archive::new(reader);
+651:     let mut total_bytes = 0u64;
+652:     // blake3 of each extracted file, computed in the same pass that writes it to
+653:     // disk (no second read) so we can verify against meta.json below.
+654:     let mut computed_hashes: HashMap<PathBuf, String> = HashMap::new();
+655: 
+656:     for entry in archive.entries()? {
+657:         deadline_io_check(deadline, "tar extraction")?;
+658:         let mut entry = entry?;
+659:         // Bomb guard: a tar can declare an enormous entry that a tiny zstd
+660:         // frame expands to. tar framing means the reader below yields at most
+661:         // `entry.size()` bytes, so the running declared total upper-bounds what
+662:         // we will ever write to disk — reject before writing anything (#212).
+663:         total_bytes = total_bytes.saturating_add(entry.size());
+664:         if total_bytes > MAX_EXTRACTED_BYTES {
+665:             bail!(
+666:                 "entry pack exceeds the {MAX_EXTRACTED_BYTES}-byte extraction cap \
+667:                  (possible decompression bomb)"
+668:             );
+669:         }
+670:         let path = entry.path()?.to_path_buf();
+671: 
+672:         if is_rooted_path(&path) {
+673:             bail!("tar entry contains absolute path: {}", path.display());
+674:         }
+675:         if path
+676:             .components()
+677:             .any(|c| c == std::path::Component::ParentDir)
+678:         {
+679:             bail!("tar entry contains path traversal: {}", path.display());
+680:         }
+681:         if entry.header().entry_type().is_symlink() || entry.header().entry_type().is_hard_link() {
+682:             bail!(
+683:                 "tar entry contains link (rejected for security): {}",
+684:                 path.display()
+685:             );
+686:         }
+687: 
+688:         let dest = tmp_dir.path().join(&path);
+689:         if entry.header().entry_type().is_dir() {
+690:             entry.unpack(&dest)?;
+691:             continue;
+692:         }
+693:         if let Some(parent) = dest.parent() {
+694:             std::fs::create_dir_all(parent)?;
+695:         }
+696: 
+697:         // Tee the bytes through blake3 as we write them — one pass, no re-read.
+698:         let file =
+699:             std::fs::File::create(&dest).with_context(|| format!("creating {}", dest.display()))?;
+700:         let mut writer = HashingWriter {
+701:             inner: file,
+702:             hasher: blake3::Hasher::new(),
+703:             deadline,
+704:         };
+705:         std::io::copy(&mut entry, &mut writer)
+706:             .with_context(|| format!("extracting {}", path.display()))?;
+707:         computed_hashes.insert(path, writer.hasher.finalize().to_hex().to_string());
+708:     }
+709: 
+710:     // Integrity gate (#178): every artifact the entry declares must hash to the
+711:     // content address meta.json advertises. A remote that serves corrupt,
+712:     // truncated, or swapped bytes is rejected here, before the entry is
+713:     // imported or any build can hardlink it. (Authenticating the meta.json ↔
+714:     // key binding itself is the separate signing work in #179.)
+715:     let meta_path = tmp_dir.path().join("meta.json");
+716:     deadline_io_check(deadline, "integrity validation")?;
+717:     let meta_content =
+718:         std::fs::read_to_string(&meta_path).context("reading downloaded meta.json")?;
+719:     let meta: EntryMeta =
+720:         serde_json::from_str(&meta_content).context("parsing downloaded meta.json")?;
+721:     if meta.key_schema != crate::cache_key::CACHE_KEY_VERSION {
+722:         bail!(
+723:             "downloaded entry uses incompatible key schema {}",
+724:             meta.key_schema
+725:         );
+726:     }
+727:     if let Some(expected) = expected {
+728:         if meta.cache_key != expected.cache_key || meta.crate_name != expected.crate_name {
+729:             bail!("packed-prefetch cache-key or crate binding mismatch");
+730:         }
+731:         let actual_meta_digest = computed_hashes
+732:             .get(Path::new("meta.json"))
+733:             .context("missing streamed meta.json digest")?;
+734:         if actual_meta_digest != expected.meta_digest {
+735:             bail!(
+736:                 "packed-prefetch meta.json digest mismatch (expected {}, got {})",
+737:                 expected.meta_digest,
+738:                 actual_meta_digest
+739:             );
+740:         }
+741:     }
+742:     // Validate declared fields from the untrusted meta.json before they flow
+743:     // into hash/path logic (#211). A malformed hash or an unsafe file name is a
+744:     // hostile/corrupt remote — reject loudly rather than build a bad path.
+745:     for cached_file in &meta.files {
+746:         if !is_blob_hash(&cached_file.hash) {
+747:             bail!(
+748:                 "downloaded entry declares a malformed blob hash for {}: {:?}",
+749:                 cached_file.name,
+750:                 cached_file.hash
+751:             );
+752:         }
+753:         if !is_safe_artifact_name(&cached_file.name) {
+754:             bail!(
+755:                 "downloaded entry declares an unsafe file name: {:?}",
+756:                 cached_file.name
+757:             );
+758:         }
+759:     }
+760:     for cached_file in &meta.files {
+761:         match computed_hashes.get(Path::new(&cached_file.name)) {
+762:             Some(actual) if actual == &cached_file.hash => {}
+763:             Some(actual) => bail!(
+764:                 "content hash mismatch for {} (expected {}, got {})",
+765:                 cached_file.name,
+766:                 cached_file.hash,
+767:                 actual
+768:             ),
+769:             None => bail!(
+770:                 "downloaded entry pack is missing declared file {}",
+771:                 cached_file.name
+772:             ),
+773:         }
+774:     }
+775: 
+776:     if dest_dir.exists() {
+777:         deadline_io_check(deadline, "entry publication")?;
+778:         std::fs::remove_dir_all(dest_dir).context("removing existing extracted v3 entry dir")?;
+779:     }
+780: 
+781:     let tmp_path = tmp_dir.keep();
+782:     std::fs::rename(&tmp_path, dest_dir).or_else(|_| {
+783:         copy_dir_all_until(&tmp_path, dest_dir, deadline).and_then(|()| {
+784:             std::fs::remove_dir_all(&tmp_path).context("removing temp dir after v3 copy")
+785:         })
+786:     })?;
+787: 
+788:     deadline_io_check(deadline, "entry publication")?;
+789: 
+790:     Ok(ExtractedEntry {
+791:         original_bytes: total_bytes,
+FILE: src/remote_pack.rs:1-32
+1: //! Immutable multi-entry transport packs for speculative remote prefetch.
+2: //!
+3: //! A pack is a thin frame around existing v3 entry-pack payloads, not another
+4: //! compression layer. That keeps byte overhead bounded and lets the importer
+5: //! reuse established per-entry zstd/tar validation:
+6: //!
+7: //! `KACHPK01 | index_len: u64 LE | PackIndex JSON | v3 payloads...`
+8: //!
+9: //! Offsets are relative to the payload section, avoiding a circular dependency
+10: //! between JSON length and encoded offsets.
+11: 
+12: #![allow(dead_code)] // Publisher helpers are pending; daemon prefetch consumes the reader.
+13: 
+14: use std::collections::HashSet;
+15: 
+16: use anyhow::{Context, Result, bail};
+17: use serde::{Deserialize, Serialize};
+18: 
+19: pub(crate) const PACK_VERSION: u32 = 1;
+20: pub(crate) const CATALOG_VERSION: u32 = 1;
+21: pub(crate) const DEFAULT_MAX_PACK_BYTES: u64 = 256 * 1024 * 1024;
+22: pub(crate) const PACK_CONTENT_TYPE: &str = "application/vnd.kache.prefetch-pack.v1";
+23: pub(crate) const CATALOG_CONTENT_TYPE: &str = "application/vnd.kache.prefetch-catalog.v1+json";
+24: 
+25: const PACK_MAGIC: &[u8; 8] = b"KACHPK01";
+26: const PACK_HEADER_BYTES: usize = PACK_MAGIC.len() + size_of::<u64>();
+27: const MAX_PACK_INDEX_BYTES: usize = 16 * 1024 * 1024;
+28: pub(crate) const MAX_CATALOG_BYTES: usize = 64 * 1024 * 1024;
+29: const MAX_PACK_ENTRIES: usize = 65_536;
+30: const MAX_CATALOG_PACKS: usize = 16_384;
+31: const MAX_SELECTOR_TEXT_BYTES: usize = 4096;
+32: 
+FILE: src/remote_pack.rs:209-342
+209: pub(crate) fn build_pack(
+210:     prefix: &str,
+211:     mut entries: Vec<PackInputEntry>,
+212:     max_bytes: u64,
+213: ) -> Result<BuiltPack> {
+214:     validate_pack_cap(max_bytes)?;
+215:     if entries.is_empty() {
+216:         bail!("cannot build an empty prefetch pack");
+217:     }
+218:     if entries.len() > MAX_PACK_ENTRIES {
+219:         bail!("prefetch pack has too many entries: {}", entries.len());
+220:     }
+221:     entries.sort_by(|left, right| {
+222:         (&left.cache_key, &left.crate_name).cmp(&(&right.cache_key, &right.crate_name))
+223:     });
+224: 
+225:     let mut index_entries = Vec::with_capacity(entries.len());
+226:     let mut next_offset = 0_u64;
+227:     let mut previous_key: Option<&str> = None;
+228:     for entry in &entries {
+229:         validate_entry_fields(&entry.cache_key, &entry.crate_name, &entry.meta_digest)?;
+230:         if previous_key == Some(entry.cache_key.as_str()) {
+231:             bail!(
+232:                 "prefetch pack contains duplicate cache key {}",
+233:                 entry.cache_key
+234:             );
+235:         }
+236:         previous_key = Some(&entry.cache_key);
+237:         if entry.payload.is_empty() {
+238:             bail!(
+239:                 "prefetch pack entry {} has an empty v3 payload",
+240:                 entry.cache_key
+241:             );
+242:         }
+243:         let length = u64::try_from(entry.payload.len()).context("entry payload length overflow")?;
+244:         index_entries.push(PackIndexEntry {
+245:             cache_key: entry.cache_key.clone(),
+246:             crate_name: entry.crate_name.clone(),
+247:             meta_digest: entry.meta_digest.clone(),
+248:             offset: next_offset,
+249:             length,
+250:         });
+251:         next_offset = next_offset
+252:             .checked_add(length)
+253:             .context("prefetch pack payload length overflow")?;
+254:     }
+255: 
+256:     let index = PackIndex {
+257:         version: PACK_VERSION,
+258:         key_schema: crate::cache_key::CACHE_KEY_VERSION,
+259:         entries: index_entries,
+260:     };
+261:     let index_json = serde_json::to_vec(&index).context("serializing prefetch pack index")?;
+262:     if index_json.len() > MAX_PACK_INDEX_BYTES {
+263:         bail!("prefetch pack index exceeds {MAX_PACK_INDEX_BYTES} bytes");
+264:     }
+265:     let payload_len = usize::try_from(next_offset).context("prefetch payload length overflow")?;
+266:     let total_len = PACK_HEADER_BYTES
+267:         .checked_add(index_json.len())
+268:         .and_then(|len| len.checked_add(payload_len))
+269:         .context("prefetch pack length overflow")?;
+270:     if total_len as u64 > max_bytes {
+271:         bail!("prefetch pack is {total_len} bytes, above the {max_bytes}-byte cap");
+272:     }
+273: 
+274:     let mut bytes = Vec::with_capacity(total_len);
+275:     bytes.extend_from_slice(PACK_MAGIC);
+276:     bytes.extend_from_slice(&(index_json.len() as u64).to_le_bytes());
+277:     bytes.extend_from_slice(&index_json);
+278:     for entry in entries {
+279:         bytes.extend_from_slice(&entry.payload);
+280:     }
+281:     debug_assert_eq!(bytes.len(), total_len);
+282:     let digest = blake3::hash(&bytes).to_hex().to_string();
+283:     let object_key = pack_object_key(prefix, &digest)?;
+284:     Ok(BuiltPack {
+285:         bytes,
+286:         digest,
+287:         object_key,
+288:         index,
+289:     })
+290: }
+291: 
+292: pub(crate) fn decode_pack<'a>(
+293:     bytes: &'a [u8],
+294:     expected_digest: &str,
+295:     max_bytes: u64,
+296: ) -> Result<DecodedPack<'a>> {
+297:     validate_pack_cap(max_bytes)?;
+298:     validate_digest("expected pack digest", expected_digest)?;
+299:     if bytes.len() as u64 > max_bytes {
+300:         bail!(
+301:             "prefetch pack is {} bytes, above the {max_bytes}-byte cap",
+302:             bytes.len()
+303:         );
+304:     }
+305:     let actual_digest = blake3::hash(bytes).to_hex().to_string();
+306:     if actual_digest != expected_digest {
+307:         bail!("prefetch pack digest mismatch (expected {expected_digest}, got {actual_digest})");
+308:     }
+309:     if bytes.len() < PACK_HEADER_BYTES || &bytes[..PACK_MAGIC.len()] != PACK_MAGIC {
+310:         bail!("invalid prefetch pack magic or truncated header");
+311:     }
+312:     let index_len = u64::from_le_bytes(
+313:         bytes[PACK_MAGIC.len()..PACK_HEADER_BYTES]
+314:             .try_into()
+315:             .expect("fixed-size header slice"),
+316:     );
+317:     let index_len = usize::try_from(index_len).context("prefetch pack index length overflow")?;
+318:     if index_len > MAX_PACK_INDEX_BYTES {
+319:         bail!("prefetch pack index exceeds {MAX_PACK_INDEX_BYTES} bytes");
+320:     }
+321:     let payload_start = PACK_HEADER_BYTES
+322:         .checked_add(index_len)
+323:         .context("prefetch pack index length overflow")?;
+324:     if payload_start > bytes.len() {
+325:         bail!("prefetch pack index length exceeds object length");
+326:     }
+327:     let index: PackIndex = serde_json::from_slice(&bytes[PACK_HEADER_BYTES..payload_start])
+328:         .context("parsing prefetch pack index")?;
+329:     let payload = &bytes[payload_start..];
+330:     let ranges = validate_pack_index(&index, payload.len())?;
+331: 
+332:     let entries = index
+333:         .entries
+334:         .iter()
+335:         .zip(ranges)
+336:         .map(|(entry, range)| DecodedPackEntry {
+337:             descriptor: entry.clone(),
+338:             payload: &payload[range],
+339:         })
+340:         .collect();
+341:     Ok(DecodedPack { index, entries })
+342: }
+FILE: src/remote_pack.rs:365-455
+365: pub(crate) fn decode_catalog(bytes: &[u8], expected_digest: &str) -> Result<PackCatalog> {
+366:     validate_digest("expected catalog digest", expected_digest)?;
+367:     if bytes.len() > MAX_CATALOG_BYTES {
+368:         bail!("prefetch pack catalog exceeds {MAX_CATALOG_BYTES} bytes");
+369:     }
+370:     let actual_digest = blake3::hash(bytes).to_hex().to_string();
+371:     if actual_digest != expected_digest {
+372:         bail!("prefetch catalog digest mismatch (expected {expected_digest}, got {actual_digest})");
+373:     }
+374:     let catalog: PackCatalog =
+375:         serde_json::from_slice(bytes).context("parsing prefetch pack catalog")?;
+376:     let canonical = canonicalize_catalog(catalog.clone())?;
+377:     if canonical != catalog {
+378:         bail!("prefetch pack catalog is not canonically ordered");
+379:     }
+380:     Ok(catalog)
+381: }
+382: 
+383: pub(crate) fn decode_catalog_for_selector(
+384:     bytes: &[u8],
+385:     expected_digest: &str,
+386:     expected_selector: &str,
+387:     now_ms: u64,
+388: ) -> Result<PackCatalog> {
+389:     let catalog = decode_catalog(bytes, expected_digest)?;
+390:     if catalog.selector_hash != expected_selector {
+391:         bail!("prefetch catalog does not match the requested selector");
+392:     }
+393:     if catalog.expires_at_ms <= now_ms {
+394:         bail!("prefetch catalog expired at {}", catalog.expires_at_ms);
+395:     }
+396:     Ok(catalog)
+397: }
+398: 
+399: /// Choose the newest syntactically valid immutable catalog object. Catalog
+400: /// contents remain untrusted until [`decode_catalog_for_selector`] succeeds.
+401: pub(crate) fn latest_catalog_object(
+402:     prefix: &str,
+403:     selector: &str,
+404:     object_keys: &[String],
+405: ) -> Result<Option<CatalogObjectRef>> {
+406:     let expected_prefix = catalog_prefix(prefix, selector)?;
+407:     Ok(object_keys
+408:         .iter()
+409:         .filter_map(|key| parse_catalog_object_ref(&expected_prefix, key))
+410:         .max_by(|left, right| {
+411:             (left.created_at_ms, &left.digest).cmp(&(right.created_at_ms, &right.digest))
+412:         }))
+413: }
+414: 
+415: fn parse_catalog_object_ref(prefix: &str, key: &str) -> Option<CatalogObjectRef> {
+416:     let filename = key.strip_prefix(prefix)?.strip_suffix(".json")?;
+417:     let (created_at, digest) = filename.split_once('-')?;
+418:     if created_at.len() != 20 || !created_at.bytes().all(|byte| byte.is_ascii_digit()) {
+419:         return None;
+420:     }
+421:     if validate_digest("catalog digest", digest).is_err() {
+422:         return None;
+423:     }
+424:     Some(CatalogObjectRef {
+425:         object_key: key.to_string(),
+426:         created_at_ms: created_at.parse().ok()?,
+427:         digest: digest.to_string(),
+428:     })
+429: }
+430: 
+431: pub(crate) fn decode_catalog_pack<'a>(
+432:     bytes: &'a [u8],
+433:     pack: &CatalogPackRef,
+434:     max_bytes: u64,
+435: ) -> Result<DecodedPack<'a>> {
+436:     if bytes.len() as u64 != pack.pack_bytes {
+437:         bail!(
+438:             "prefetch pack size mismatch (catalog {}, object {})",
+439:             pack.pack_bytes,
+440:             bytes.len()
+441:         );
+442:     }
+443:     let decoded = decode_pack(bytes, &pack.digest, max_bytes)?;
+444:     if decoded.entries.len() != pack.entries.len() {
+445:         bail!("prefetch pack entry count does not match its catalog");
+446:     }
+447:     for (decoded, catalog) in decoded.entries.iter().zip(&pack.entries) {
+448:         if decoded.descriptor.cache_key != catalog.cache_key
+449:             || decoded.descriptor.crate_name != catalog.crate_name
+450:             || decoded.descriptor.meta_digest != catalog.meta_digest
+451:         {
+452:             bail!("prefetch pack index does not match its catalog binding");
+453:         }
+454:     }
+455:     Ok(decoded)
+FILE: src/remote_pack.rs:475-621
+475: fn validate_catalog(catalog: &PackCatalog) -> Result<()> {
+476:     if catalog.version != CATALOG_VERSION {
+477:         bail!("unsupported prefetch catalog version {}", catalog.version);
+478:     }
+479:     if catalog.key_schema != crate::cache_key::CACHE_KEY_VERSION {
+480:         bail!(
+481:             "prefetch catalog key schema {} does not match current recipe {}",
+482:             catalog.key_schema,
+483:             crate::cache_key::CACHE_KEY_VERSION
+484:         );
+485:     }
+486:     validate_selector_text("manifest key", &catalog.manifest_key)?;
+487:     validate_selector_text("namespace", &catalog.namespace)?;
+488:     if catalog.created_at_ms >= catalog.expires_at_ms {
+489:         bail!("prefetch catalog expiry must be after creation");
+490:     }
+491:     if catalog
+492:         .shard_hashes
+493:         .windows(2)
+494:         .any(|pair| pair[0] == pair[1])
+495:     {
+496:         bail!("prefetch catalog contains duplicate Cargo.lock shard hashes");
+497:     }
+498:     for shard in &catalog.shard_hashes {
+499:         validate_digest("Cargo.lock shard hash", shard)?;
+500:     }
+501:     let expected_selector = selector_hash(
+502:         &catalog.manifest_key,
+503:         &catalog.namespace,
+504:         &catalog.shard_hashes,
+505:         catalog.key_schema,
+506:     )?;
+507:     if catalog.selector_hash != expected_selector {
+508:         bail!(
+509:             "prefetch catalog selector mismatch (expected {expected_selector}, got {})",
+510:             catalog.selector_hash
+511:         );
+512:     }
+513:     if catalog.packs.len() > MAX_CATALOG_PACKS {
+514:         bail!(
+515:             "prefetch catalog has too many packs: {}",
+516:             catalog.packs.len()
+517:         );
+518:     }
+519: 
+520:     let mut pack_digests = HashSet::new();
+521:     let mut cache_keys = HashSet::new();
+522:     let mut total_entries = 0usize;
+523:     for pack in &catalog.packs {
+524:         validate_digest("pack digest", &pack.digest)?;
+525:         if !pack_digests.insert(&pack.digest) {
+526:             bail!("prefetch catalog contains duplicate pack {}", pack.digest);
+527:         }
+528:         if pack.pack_bytes == 0 || pack.pack_bytes > DEFAULT_MAX_PACK_BYTES {
+529:             bail!(
+530:                 "prefetch catalog pack {} has invalid size {}",
+531:                 pack.digest,
+532:                 pack.pack_bytes
+533:             );
+534:         }
+535:         if pack.entries.is_empty() || pack.entries.len() > MAX_PACK_ENTRIES {
+536:             bail!(
+537:                 "prefetch catalog pack {} has an invalid entry count",
+538:                 pack.digest
+539:             );
+540:         }
+541:         for entry in &pack.entries {
+542:             validate_entry(entry)?;
+543:             if !cache_keys.insert(&entry.cache_key) {
+544:                 bail!(
+545:                     "prefetch catalog contains duplicate cache key {}",
+546:                     entry.cache_key
+547:                 );
+548:             }
+549:         }
+550:         total_entries = total_entries
+551:             .checked_add(pack.entries.len())
+552:             .context("prefetch catalog entry count overflow")?;
+553:     }
+554:     for entry in &catalog.fallback_entries {
+555:         validate_entry(entry)?;
+556:         if !cache_keys.insert(&entry.cache_key) {
+557:             bail!(
+558:                 "prefetch catalog contains duplicate cache key {}",
+559:                 entry.cache_key
+560:             );
+561:         }
+562:     }
+563:     total_entries = total_entries
+564:         .checked_add(catalog.fallback_entries.len())
+565:         .context("prefetch catalog entry count overflow")?;
+566:     if total_entries > MAX_PACK_ENTRIES {
+567:         bail!("prefetch catalog has too many entries: {total_entries}");
+568:     }
+569:     Ok(())
+570: }
+571: 
+572: fn validate_pack_index(
+573:     index: &PackIndex,
+574:     payload_len: usize,
+575: ) -> Result<Vec<std::ops::Range<usize>>> {
+576:     if index.version != PACK_VERSION {
+577:         bail!("unsupported prefetch pack version {}", index.version);
+578:     }
+579:     if index.key_schema != crate::cache_key::CACHE_KEY_VERSION {
+580:         bail!(
+581:             "prefetch pack key schema {} does not match current recipe {}",
+582:             index.key_schema,
+583:             crate::cache_key::CACHE_KEY_VERSION
+584:         );
+585:     }
+586:     if index.entries.is_empty() || index.entries.len() > MAX_PACK_ENTRIES {
+587:         bail!("prefetch pack has an invalid entry count");
+588:     }
+589:     let mut expected_offset = 0_u64;
+590:     let mut previous_key: Option<&str> = None;
+591:     let mut ranges = Vec::with_capacity(index.entries.len());
+592:     for entry in &index.entries {
+593:         validate_entry_fields(&entry.cache_key, &entry.crate_name, &entry.meta_digest)?;
+594:         if previous_key.is_some_and(|previous| previous >= entry.cache_key.as_str()) {
+595:             bail!("prefetch pack entries are duplicated or not canonically ordered");
+596:         }
+597:         previous_key = Some(&entry.cache_key);
+598:         let Some((next_offset, (start, end))) =
+599:             crate::checked_regions::checked_nonempty_contiguous_region(
+600:                 expected_offset,
+601:                 entry.offset,
+602:                 entry.length,
+603:                 payload_len,
+604:             )
+605:         else {
+606:             bail!(
+607:                 "prefetch pack entry frames overlap, contain a gap, are empty, or exceed the payload"
+608:             );
+609:         };
+610:         expected_offset = next_offset;
+611:         ranges.push(start..end);
+612:     }
+613:     let payload_len =
+614:         u64::try_from(payload_len).context("prefetch pack payload length overflow")?;
+615:     if expected_offset != payload_len {
+616:         bail!(
+617:             "prefetch pack frame lengths total {expected_offset} bytes, object contains {payload_len}"
+618:         );
+619:     }
+620:     Ok(ranges)
+621: }
+FILE: crates/kache-store/src/store.rs:3200-3370
+3200:     /// transaction for the whole batch.
+3201:     ///
+3202:     /// Artifact content is not hashed again: callers may only construct
+3203:     /// [`VerifiedRestoredEntry`] after extraction verified each byte against
+3204:     /// `meta.files[].hash`. This method still performs a complete metadata and
+3205:     /// on-disk length preflight before moving blobs or opening the transaction.
+3206:     pub fn import_verified_restored_entries(
+3207:         &self,
+3208:         entries: &[VerifiedRestoredEntry],
+3209:     ) -> Result<usize> {
+3210:         self.refuse_write("import entries")?;
+3211:         let mut cache_keys = std::collections::HashSet::new();
+3212:         for entry in entries {
+3213:             if !kache_format::is_valid_cache_key(&entry.cache_key)
+3214:                 || entry.meta.cache_key != entry.cache_key
+3215:             {
+3216:                 anyhow::bail!("verified restore has an invalid cache-key binding");
+3217:             }
+3218:             if entry.meta.key_schema != kache_format::CACHE_KEY_VERSION {
+3219:                 anyhow::bail!(
+3220:                     "verified restore {} uses incompatible key schema {}",
+3221:                     &entry.cache_key[..16],
+3222:                     entry.meta.key_schema
+3223:                 );
+3224:             }
+3225:             if !kache_format::is_valid_crate_name(&entry.meta.crate_name) {
+3226:                 anyhow::bail!("verified restore has an unsafe crate name");
+3227:             }
+3228:             if !cache_keys.insert(entry.cache_key.as_str()) {
+3229:                 anyhow::bail!("verified restore batch contains a duplicate cache key");
+3230:             }
+3231: 
+3232:             let entry_dir = self.entry_dir(&entry.cache_key);
+3233:             let meta_bytes = fs::read(entry_dir.join("meta.json"))
+3234:                 .context("reading stream-verified entry metadata")?;
+3235:             let disk_meta: EntryMeta = serde_json::from_slice(&meta_bytes)
+3236:                 .context("parsing stream-verified entry metadata")?;
+3237:             if disk_meta != entry.meta {
+3238:                 anyhow::bail!("verified restore metadata changed after extraction");
+3239:             }
+3240: 
+3241:             let mut artifact_names = std::collections::HashSet::new();
+3242:             for file in &entry.meta.files {
+3243:                 if !kache_format::is_safe_artifact_name(&file.name)
+3244:                     || !kache_format::is_valid_cache_key(&file.hash)
+3245:                     || !artifact_names.insert(file.name.as_str())
+3246:                 {
+3247:                     anyhow::bail!(
+3248:                         "verified restore contains unsafe or duplicate artifact metadata"
+3249:                     );
+3250:                 }
+3251:                 let artifact = entry_dir.join(&file.name);
+3252:                 let actual_size = fs::metadata(&artifact)
+3253:                     .with_context(|| format!("stat verified artifact {}", file.name))?
+3254:                     .len();
+3255:                 if actual_size != file.size {
+3256:                     anyhow::bail!(
+3257:                         "verified artifact {} size mismatch (expected {}, got {})",
+3258:                         file.name,
+3259:                         file.size,
+3260:                         actual_size
+3261:                     );
+3262:                 }
+3263:             }
+3264:         }
+3265: 
+3266:         // Make every content-addressed blob durable before the database can
+3267:         // advertise a reference to it. Existing blobs leave the extracted copy
+3268:         // in place as the in-transaction race fallback below.
+3269:         for entry in entries {
+3270:             let entry_dir = self.entry_dir(&entry.cache_key);
+3271:             for file in &entry.meta.files {
+3272:                 let blob = self.blob_path(&file.hash);
+3273:                 if !blob.is_file() {
+3274:                     let artifact = entry_dir.join(&file.name);
+3275:                     fs::create_dir_all(blob.parent().expect("blob path has a parent"))
+3276:                         .context("creating verified blob shard directory")?;
+3277:                     fs::rename(&artifact, &blob).with_context(|| {
+3278:                         format!(
+3279:                             "moving verified artifact {} to blob store",
+3280:                             artifact.display()
+3281:                         )
+3282:                     })?;
+3283:                     crate::atomic::fsync_file(&blob)
+3284:                         .context("flushing verified restored blob to disk")?;
+3285:                     set_blob_readonly(&blob);
+3286:                 }
+3287:             }
+3288:         }
+3289: 
+3290:         let tx = self.db.unchecked_transaction()?;
+3291:         let mut imported = 0usize;
+3292:         for entry in entries {
+3293:             let meta = &entry.meta;
+3294:             let total_size: u64 = meta.files.iter().map(|file| file.size).sum();
+3295:             let crate_type = meta.crate_types.join(",");
+3296:             let content_hash = compute_content_hash(&meta.files);
+3297:             // A crash or legacy importer may have left an uncommitted row.
+3298:             // It is not a cache hit and must not permanently block a verified
+3299:             // replacement through INSERT OR IGNORE. Undo any partial mapping
+3300:             // bookkeeping in this same transaction before replacing it.
+3301:             tx.execute(
+3302:                 "UPDATE blobs
+3303:                  SET refcount = MAX(0, refcount - COALESCE((
+3304:                      SELECT refs FROM entry_blobs
+3305:                      WHERE cache_key = ?1 AND hash = blobs.hash
+3306:                  ), 0))
+3307:                  WHERE hash IN (
+3308:                      SELECT hash FROM entry_blobs WHERE cache_key = ?1
+3309:                  ) AND EXISTS (
+3310:                      SELECT 1 FROM entries
+3311:                      WHERE cache_key = ?1 AND committed = 0
+3312:                  )",
+3313:                 params![entry.cache_key],
+3314:             )?;
+3315:             tx.execute(
+3316:                 "DELETE FROM entry_blobs
+3317:                  WHERE cache_key = ?1 AND EXISTS (
+3318:                      SELECT 1 FROM entries
+3319:                      WHERE cache_key = ?1 AND committed = 0
+3320:                  )",
+3321:                 params![entry.cache_key],
+3322:             )?;
+3323:             tx.execute(
+3324:                 "DELETE FROM entries WHERE cache_key = ?1 AND committed = 0",
+3325:                 params![entry.cache_key],
+3326:             )?;
+3327:             tx.execute("DELETE FROM blobs WHERE refcount <= 0", [])?;
+3328:             let inserted = tx.execute(
+3329:                 "INSERT OR IGNORE INTO entries (cache_key, crate_name, crate_type, profile, num_features, size, content_hash, compile_time_ms, key_schema, committed, imported_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 0, unixepoch())",
+3330:                 params![
+3331:                     entry.cache_key,
+3332:                     meta.crate_name,
+3333:                     crate_type,
+3334:                     meta.profile,
+3335:                     meta.features.len() as i64,
+3336:                     total_size as i64,
+3337:                     content_hash,
+3338:                     meta.compile_time_ms as i64,
+3339:                     meta.key_schema
+3340:                 ],
+3341:             )?;
+3342:             if inserted == 0 {
+3343:                 continue;
+3344:             }
+3345:             // No row owned this key, so a mapping still recorded for it is
+3346:             // a leftover whose references nothing else will release.
+3347:             release_entry_blob_refs(&tx, &entry.cache_key)?;
+3348: 
+3349:             let entry_dir = self.entry_dir(&entry.cache_key);
+3350:             for file in &meta.files {
+3351:                 let added = tx.execute(
+3352:                     "INSERT OR IGNORE INTO blobs (hash, size, refcount) VALUES (?1, ?2, 1)",
+3353:                     params![file.hash, file.size as i64],
+3354:                 )?;
+3355:                 if added == 0 {
+3356:                     tx.execute(
+3357:                         "UPDATE blobs SET refcount = refcount + 1 WHERE hash = ?1",
+3358:                         params![file.hash],
+3359:                     )?;
+3360:                 }
+3361:                 self.install_verified_blob(&entry_dir, file)?;
+3362:             }
+3363:             record_entry_blobs(&tx, &entry.cache_key, &meta.files)?;
+3364:             tx.execute(
+3365:                 "UPDATE entries SET committed = 1 WHERE cache_key = ?1",
+3366:                 params![entry.cache_key],
+3367:             )?;
+3368:             imported += 1;
+3369:         }
+3370:         tx.commit()?;
+FILE: src/remote_backend.rs:87-96
+87: 
+88: /// Outcome of an atomic create-only remote publication.
+89: #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+90: pub enum PutIfAbsentResult {
+91:     Created,
+92:     AlreadyExists,
+93:     /// The store cannot make the write create-only. Nothing was written.
+94:     Unsupported,
+95: }
+96: 
+FILE: src/remote_backend.rs:620-700
+620:     async fn put_if_absent(
+621:         &self,
+622:         key: &str,
+623:         body: Vec<u8>,
+624:         content_type: Option<&str>,
+625:     ) -> Result<PutIfAbsentResult> {
+626:         self.validate_key("CREATE", key, false)?;
+627:         self.verify_write_containment(key)?;
+628:         if !self.operator.info().capability().write_with_if_not_exists {
+629:             return Ok(PutIfAbsentResult::Unsupported);
+630:         }
+631:         let request = self.operator.write_with(key, body).if_not_exists(true);
+632:         let result = match content_type {
+633:             Some(content_type) => request.content_type(content_type).await,
+634:             None => request.await,
+635:         };
+636:         match result {
+637:             Ok(_) => Ok(PutIfAbsentResult::Created),
+638:             Err(error) => match classify_create_error(&error) {
+639:                 Some(outcome) => Ok(outcome),
+640:                 None => Err(self.contextual_error("CREATE", key, error)),
+641:             },
+642:         }
+643:     }
+644: 
+645:     async fn list(&self, prefix: &str) -> Result<Vec<String>> {
+646:         self.validate_key("LIST", prefix, true)?;
+647:         let mut lister = match self.operator.lister_with(prefix).recursive(true).await {
+648:             Ok(lister) => lister,
+649:             Err(error) if error.kind() == ErrorKind::NotFound => return Ok(Vec::new()),
+650:             Err(error) => return Err(self.contextual_error("LIST", prefix, error)),
+651:         };
+652: 
+653:         let mut entries = Vec::new();
+654:         let mut seen = HashSet::new();
+655:         let mut key_bytes = 0_usize;
+656:         let list_start = Instant::now();
+657:         loop {
+658:             // Two guards: no-progress (a stalled lister) and total elapsed (one that
+659:             // keeps trickling entries forever). Wait for whichever comes first, so
+660:             // the total deadline cannot be overshot by a whole progress timeout.
+661:             let elapsed = list_start.elapsed();
+662:             let Some(remaining) = LIST_TOTAL_TIMEOUT.checked_sub(elapsed) else {
+663:                 anyhow::bail!(
+664:                     "LIST {} exceeded its {}s total deadline after {} entries",
+665:                     self.describe(prefix),
+666:                     LIST_TOTAL_TIMEOUT.as_secs(),
+667:                     entries.len()
+668:                 );
+669:             };
+670:             let wait = LIST_PROGRESS_TIMEOUT.min(remaining);
+671:             let next = tokio::time::timeout(wait, lister.try_next())
+672:                 .await
+673:                 .with_context(|| {
+674:                     if wait == remaining {
+675:                         format!(
+676:                             "LIST {} exceeded its {}s total deadline",
+677:                             self.describe(prefix),
+678:                             LIST_TOTAL_TIMEOUT.as_secs()
+679:                         )
+680:                     } else {
+681:                         format!(
+682:                             "LIST {} made no progress for {}s",
+683:                             self.describe(prefix),
+684:                             LIST_PROGRESS_TIMEOUT.as_secs()
+685:                         )
+686:                     }
+687:                 })?;
+688:             match next {
+689:                 Ok(Some(entry)) => {
+690:                     let path = entry.path().to_string();
+691:                     if !seen.insert(path.clone()) {
+692:                         anyhow::bail!(
+693:                             "LIST {} returned duplicate entry {path:?}; \
+694:                              the remote likely supplied an invalid continuation token",
+695:                             self.describe(prefix)
+696:                         );
+697:                     }
+698:                     // Bound entries AND bytes: each path is retained twice (once in
+699:                     // `seen`, once in `entries`), so a flood of long keys can exhaust
+700:                     // memory well before any plausible entry count.
+FILE: src/config.rs:200-218
+200:     /// Max cache entries one prefetch plan may download (default 2000, 0 =
+201:     /// unlimited). A guardrail against a pathological plan, not a tuned
+202:     /// optimum (kunobi-ninja/kache#616). Set via `KACHE_PREFETCH_MAX_KEYS` or
+203:     /// `[cache] prefetch_max_keys`.
+204:     pub prefetch_max_keys: u64,
+205:     /// Max compressed bytes one prefetch plan may download (default 2 GiB,
+206:     /// 0 = unlimited).
+207:     ///
+208:     /// SOFT cap: the coordinator stops LAUNCHING downloads once the budget is
+209:     /// spent, so the overshoot is bounded by whatever was already in flight
+210:     /// (at most `prefetch_concurrency_cap` objects). A hard cap would need a
+211:     /// counted, cancellable read path in the remote backend. Set via
+212:     /// `KACHE_PREFETCH_MAX_BYTES` or `[cache] prefetch_max_bytes`.
+213:     pub prefetch_max_bytes: u64,
+214:     /// How long one prefetch plan may keep starting downloads, in seconds
+215:     /// (default 300, 0 = no deadline). Measured from plan dispatch. Downloads
+216:     /// already in flight are allowed to finish: cancelling one throws away
+217:     /// bytes already paid for.
+218:     pub prefetch_deadline_secs: u64,

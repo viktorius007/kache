@@ -1,0 +1,24 @@
+    Finished `test` profile [unoptimized] target(s) in 0.52s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+test daemon::tests::corrupt_pack_falls_back_only_to_the_existing_v3_entry ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 0.05s
+
+    Finished `test` profile [unoptimized] target(s) in 0.26s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+test daemon::tests::traversal_in_one_pack_entry_preserves_valid_batch_and_falls_back_per_entry ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 0.07s
+
+    Finished `test` profile [unoptimized] target(s) in 0.27s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+test daemon::tests::test_prefetch_deadline_stops_the_plan ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 0.08s
+

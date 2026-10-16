@@ -1,0 +1,26 @@
+{
+  "id": "pack-prefetch-plan-deadline",
+  "status": "READY",
+  "branch": "fix/pack-prefetch-plan-deadline",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/pack-prefetch-plan-deadline",
+  "test_commit": "7f002434667bef82d4e9b809eeb298acd682523f",
+  "fix_commit": "b8d8f0513597f60de190f56395f5317238ff01f2",
+  "title": "Stop packed prefetch from starting requests after the plan deadline",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/pack-publisher/investigation/pr-delivery/pack-prefetch-plan-deadline/pr-body.md",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "gate_command": "env -u KACHE_RUNTIME_DIR KACHE_PR_TEST_THREADS=1 CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/pack-prefetch-plan-deadline/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py just check",
+  "gate_exit": 0,
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/pack-publisher/investigation/pr-delivery/pack-prefetch-plan-deadline/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/pack-publisher/investigation/pr-delivery/pack-prefetch-plan-deadline/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/pack-publisher/investigation/pr-delivery/pack-prefetch-plan-deadline/gate.log",
+  "changed_files": [
+    "src/daemon.rs",
+    "src/daemon/tests.rs"
+  ],
+  "red_queue_log": "/Users/viktor/Developer/github/kache-investigations/pack-publisher/investigation/pr-delivery/pack-prefetch-plan-deadline/red-queue.log",
+  "controls_log": "/Users/viktor/Developer/github/kache-investigations/pack-publisher/investigation/pr-delivery/pack-prefetch-plan-deadline/controls.log",
+  "red_exit": 101,
+  "red_queue_exit": 101,
+  "green_exit": 0,
+  "controls_exit": 0
+}

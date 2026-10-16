@@ -1,0 +1,2 @@
+git diff --exit-code -- src crates Cargo.toml Cargo.lock
+EXIT: 0

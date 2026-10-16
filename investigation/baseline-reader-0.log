@@ -1,0 +1,25 @@
+COMMAND: ['/private/tmp/kache-d5-release-target/release/deps/kache-db3e2e345e4f7b02', 'remote_pack::tests::', '--test-threads=1', '--nocapture']
+
+running 19 tests
+test remote_pack::tests::catalog_decoder_accepts_exact_byte_limit_and_rejects_overshoot ... ok
+test remote_pack::tests::catalog_discovery_filters_bad_timestamp_shape_and_digits_separately ... ok
+test remote_pack::tests::catalog_pack_binding_rejects_each_mismatch_independently ... ok
+test remote_pack::tests::catalog_pack_size_and_entry_limits_are_independent ... ok
+test remote_pack::tests::catalog_rejects_an_individually_unsafe_fallback_entry ... ok
+test remote_pack::tests::catalog_rejects_duplicate_or_unsafe_entries ... ok
+test remote_pack::tests::catalog_rejects_wrong_recipe_selector_digest_and_expiry ... ok
+test remote_pack::tests::catalog_total_entry_and_pack_count_limits_are_inclusive ... ok
+test remote_pack::tests::decoder_checks_magic_index_span_and_index_byte_boundaries_independently ... ok
+test remote_pack::tests::length_prefixes_keep_selector_fields_unambiguous ... ok
+test remote_pack::tests::object_keys_accept_only_digests_not_path_components ... ok
+test remote_pack::tests::pack_builder_entry_count_accepts_exact_limit_only ... ok
+test remote_pack::tests::pack_encoding_is_deterministic_and_round_trips ... ok
+test remote_pack::tests::pack_index_entry_count_accepts_exact_limit_only ... ok
+test remote_pack::tests::pack_rejects_duplicates_traversal_digest_length_and_cap_violations ... ok
+test remote_pack::tests::pack_size_caps_accept_the_limit_and_reject_real_overshoot ... ok
+test remote_pack::tests::property_pack_build_decode_and_rebuild_is_canonical ... ok
+test remote_pack::tests::protocol_limits_and_inclusive_boundaries_are_exact ... ok
+test remote_pack::tests::selector_and_catalog_are_order_independent_and_content_addressed ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 4379 filtered out; finished in 1.08s
+

@@ -1,0 +1,9 @@
+{
+  "number": 812,
+  "title": "L2: publish batch packs and catalogs",
+  "state": "open",
+  "html_url": "https://github.com/kunobi-ninja/kache/issues/812",
+  "created_at": "2026-08-24T11:53:28Z",
+  "updated_at": "2026-09-19T11:28:20Z",
+  "body": "Parent: #810\n\nDeliver immutable multi-entry remote prefetch packs that remove the cold-run small-object fan-out without weakening Kache's content-addressed trust boundary.\n\n## Required behavior\n\n- Select pack contents from the existing manifest/shard/namespace planning context.\n- Use content-addressed, create-only pack objects and bounded metadata.\n- Verify every cache-key binding, `meta.json`, artifact name/size, and blob hash before publication.\n- Import verified entries in a batch; do not re-hash bytes already verified while streaming extraction.\n- Missing, corrupt, incompatible, or incomplete packs fall back to current v3 objects.\n- Keep on-demand v3 reads available while a pack is fetched.\n- Report pack/v3 request counts, bytes, validation/fallback, and real plan wall time.\n\n## Acceptance\n\n- At least 90% fewer remote requests on the representative cold-node arm.\n- No more than 10% extra remote bytes versus object-by-object v3 prefetch.\n- Deterministic corruption, traversal, partial-pack, concurrent publication, and fallback tests.\n- Five clean representative runs for both object and pack arms.\n\n"
+}

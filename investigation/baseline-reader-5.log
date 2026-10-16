@@ -1,0 +1,7 @@
+COMMAND: ['/private/tmp/kache-d5-release-target/release/deps/kache-db3e2e345e4f7b02', 'daemon::tests::demand_v3_read_completes', '--test-threads=1', '--nocapture']
+
+running 1 test
+test daemon::tests::demand_v3_read_completes_while_a_prefetch_pack_is_blocked ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4397 filtered out; finished in 0.17s
+

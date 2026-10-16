@@ -1,0 +1,199 @@
+[
+  {
+    "id": "pack-prefetch-entry-budget",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T05:51:46.419390+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 inherited coordinator model",
+      "mode": "production-readiness",
+      "slice": "packed-remote-publication-read-import-fallback"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Packed prefetch imports sibling entries excluded by the configured per-plan entry budget.",
+    "scenario": "With remote listing enabled, prefetch_max_keys=1 and two requested candidates, a valid two-entry externally seeded pack is selected by its first admitted candidate and both entries become committed local Store.get hits.",
+    "evidence": [
+      {
+        "path": "src/config.rs",
+        "lines": "200-204",
+        "point": "Max cache entries one prefetch plan may download (default 2000, 0 = unlimited)."
+      },
+      {
+        "path": "src/daemon.rs",
+        "lines": "5746-5754",
+        "point": "Candidate truncation occurs before packed selection."
+      },
+      {
+        "path": "src/daemon.rs",
+        "lines": "5370-5403",
+        "point": "Every decoded entry is claimed/extracted regardless of membership in the admitted candidates."
+      },
+      {
+        "path": "src/daemon.rs",
+        "lines": "5413-5464",
+        "point": "The entire verified sibling batch is imported and counted."
+      }
+    ],
+    "trace": "BuildStarted/startup namespaced lockfile context -> handle_prefetch_with_context truncates candidates -> try_packed_prefetch selects intersecting pack -> extracts all siblings -> import_verified_restored_entries commits both -> Store.get returns both.",
+    "authority": {
+      "source": "src/config.rs:200-204 and docs/getting-started/configuration.mdx:539",
+      "quote": "Max cache entries one prefetch plan may download (default 2000, 0 = unlimited)."
+    },
+    "proof": {
+      "red_test": "\n#[tokio::test]\nasync fn investigation_packed_prefetch_obeys_the_configured_entry_budget() {\n    let dir = tempfile::tempdir().unwrap();\n    let mut config = test_config(dir.path());\n    config.remote_key_listing = true;\n    config.remote = Some(test_remote_config());\n    config.prefetch_max_bytes = 0;\n    let limit = if std::env::var_os(\"KACHE_INV_ALLOW_TWO\").is_some() { 2 } else { 1 };\n    config.prefetch_max_keys = limit;\n    let backend = test_remote_backend();\n    let daemon = Arc::new(Daemon::new(config));\n    assert!(daemon.remote_backend.set(backend.clone()).is_ok());\n    let context = PackPrefetchContext::from_deps(\n        crate::identity::host_target_triple(), \"linux/toolchain/release\",\n        &[(\"serde\".into(), \"1.0.0\".into())],\n    ).unwrap();\n    let key_a = test_cache_key(\"investigation-budget-a\");\n    let key_b = test_cache_key(\"investigation-budget-b\");\n    let (payload_a, meta_a) = build_entry_pack_with_meta(&key_a, \"serde\");\n    let (payload_b, meta_b) = build_entry_pack_with_meta(&key_b, \"tokio\");\n    seed_packed_catalog(&backend, &context, vec![\n        crate::remote_pack::PackInputEntry {cache_key:key_a.clone(),crate_name:\"serde\".into(),meta_digest:meta_a,payload:payload_a},\n        crate::remote_pack::PackInputEntry {cache_key:key_b.clone(),crate_name:\"tokio\".into(),meta_digest:meta_b,payload:payload_b},\n    ], None).await;\n    let response = daemon.handle_prefetch_with_context(&PrefetchRequest {\n        keys:vec![(key_a.clone(),\"serde\".into()),(key_b.clone(),\"tokio\".into())],\n        warm_all:false,origin:None,candidate_sources:HashMap::new(),\n    }, Some(context), Instant::now()).await;\n    assert!(response.ok);\n    wait_for_store_entry(&daemon,&key_a).await;\n    let present = daemon.with_store(|store| Ok(\n        [&key_a,&key_b].into_iter().filter(|key|store.get(key).unwrap().is_some()).count()\n    )).unwrap();\n    assert_eq!(present, limit as usize,\n        \"packed prefetch must honor the configured maximum entries per plan\");\n}\n",
+      "name": "daemon::tests::investigation_packed_prefetch_obeys_the_configured_entry_budget",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "COMMAND: ['/Users/viktor/Developer/github/kache-investigations/pack-publisher/investigation/pack-probe', 'daemon::tests::investigation_packed_prefetch_obeys_the_configured_entry_budget', '--exact', '--nocapture', '--test-threads=1']\nFIXTURE_OVERRIDES: {}\nEXIT: 101\n\nrunning 1 test\ntest daemon::tests::investigation_packed_prefetch_obeys_the_configured_entry_budget ... \nthread 'daemon::tests::investigation_packed_prefetch_obeys_the_configured_entry_budget' (46253147) panicked at /Users/viktor/Developer/github/kache-investigations/pack-publisher/investigation/overlay/daemon-tests.rs:14935:5:\nassertion `left == right` failed: packed prefetch must honor the configured maximum entries per plan\n  left: 2\n right: 1\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\nFAILED\n\nfailures:\n\nfailures:\n    daemon::tests::investigation_packed_prefetch_obeys_the_configured_entry_budget\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 0.10s\n\n",
+      "command": "investigation/pack-probe daemon::tests::investigation_packed_prefetch_obeys_the_configured_entry_budget --exact --nocapture --test-threads=1",
+      "control": "KACHE_INV_ALLOW_TWO=1 passes the same test with a budget of two; investigation/entry-budget-green.log.",
+      "build": "python3 investigation/build-probe.py; links unchanged production source with test-only overlay and read-only prebuilt baseline dependency artifacts."
+    },
+    "severity": "Resource guardrail bypass when a valid pack is externally published: one admitted candidate can import up to the catalog cap of 65,536 siblings despite a budget of one or default 2,000. Extra extraction, hashing, disk occupancy and SQLite/blob writes contend with Rust builds. No wrong bytes demonstrated. First-party publisher absence limits current exposure; v3-only workloads unaffected.",
+    "status": "open"
+  },
+  {
+    "id": "pack-prefetch-plan-deadline",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:06:00.366583+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 inherited coordinator model",
+      "mode": "production-readiness",
+      "slice": "packed-remote-publication-read-import-fallback"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Packed prefetch starts new pack downloads after the configured plan dispatch deadline.",
+    "scenario": "With prefetch_deadline_secs=1 and remote_restore_timeout_secs=10, a valid catalog GET started within budget takes 1.5 seconds; once it completes the reader starts a new pack GET after the plan deadline and imports its entry.",
+    "evidence": [
+      {
+        "path": "src/config.rs",
+        "lines": "214-218",
+        "point": "The plan deadline is measured from dispatch and only in-flight downloads may finish."
+      },
+      {
+        "path": "src/daemon.rs",
+        "lines": "5045-5115",
+        "point": "Each packed GET uses a fresh remote_restore_timeout_secs deadline; no plan deadline is applied."
+      },
+      {
+        "path": "src/daemon.rs",
+        "lines": "5120-5129",
+        "point": "try_packed_prefetch does not receive the plan dispatch deadline."
+      },
+      {
+        "path": "src/daemon.rs",
+        "lines": "5810-5851",
+        "point": "The packed phase runs before the v3 coordinator initializes its plan time budget."
+      }
+    ],
+    "trace": "Namespaced BuildStarted/startup context -> handle_prefetch_with_context spawns coordinator -> try_packed_prefetch awaits catalog GET -> catalog completes after dispatch budget -> packed_prefetch_get starts another object using only a fresh restore timeout -> entry is imported.",
+    "authority": {
+      "source": "src/config.rs:214-218; docs/getting-started/configuration.mdx:541",
+      "quote": "How long one prefetch plan may keep starting downloads, in seconds (default 300, 0 = no deadline). Measured from plan dispatch. Downloads already in flight are allowed to finish."
+    },
+    "proof": {
+      "red_test": "\nstruct InvestigationSlowCatalog {\n    inner: Arc<dyn crate::remote_backend::RemoteBackend>,\n    dispatch: Instant,\n    delay: Duration,\n    late_pack_gets: Arc<AtomicU64>,\n}\n\n#[async_trait::async_trait]\nimpl crate::remote_backend::RemoteBackend for InvestigationSlowCatalog {\n    async fn head(&self, key: &str) -> Result<bool> { self.inner.head(key).await }\n    async fn get(&self, key: &str, max: Option<u64>) -> Result<Option<crate::remote_backend::GetObject>> {\n        if key.contains(\"/v4/prefetch/catalogs/\") {\n            tokio::time::sleep(self.delay).await;\n        }\n        if key.contains(\"/v4/prefetch/packs/\") && self.dispatch.elapsed() >= Duration::from_secs(1) {\n            self.late_pack_gets.fetch_add(1, Ordering::Relaxed);\n        }\n        self.inner.get(key, max).await\n    }\n    async fn put(&self, key: &str, body: Vec<u8>, ct: Option<&str>) -> Result<()> { self.inner.put(key,body,ct).await }\n    async fn list(&self, prefix: &str) -> Result<Vec<String>> { self.inner.list(prefix).await }\n    fn describe(&self, key: &str) -> String { self.inner.describe(key) }\n}\n\n#[tokio::test]\nasync fn investigation_packed_prefetch_stops_starting_objects_after_plan_deadline() {\n    let dir = tempfile::tempdir().unwrap();\n    let mut config = test_config(dir.path());\n    config.remote_key_listing = true;\n    config.remote = Some(test_remote_config());\n    config.prefetch_deadline_secs = 1;\n    config.remote_restore_timeout_secs = 10;\n    let inner = test_remote_backend();\n    let context = PackPrefetchContext::from_deps(\n        crate::identity::host_target_triple(), \"linux/toolchain/release\",\n        &[(\"serde\".into(), \"1.0.0\".into())],\n    ).unwrap();\n    let key = test_cache_key(\"investigation-plan-deadline\");\n    let (payload, meta_digest) = build_entry_pack_with_meta(&key,\"serde\");\n    seed_packed_catalog(&inner,&context,vec![crate::remote_pack::PackInputEntry {\n        cache_key:key.clone(),crate_name:\"serde\".into(),meta_digest,payload,\n    }],None).await;\n    let dispatch=Instant::now();\n    let late_pack_gets=Arc::new(AtomicU64::new(0));\n    let delay=if std::env::var_os(\"KACHE_INV_FAST_CATALOG\").is_some() {Duration::ZERO} else {Duration::from_millis(1500)};\n    let backend: Arc<dyn crate::remote_backend::RemoteBackend>=Arc::new(InvestigationSlowCatalog {\n        inner,dispatch,delay,late_pack_gets:late_pack_gets.clone(),\n    });\n    let daemon=Arc::new(Daemon::new(config));\n    assert!(daemon.remote_backend.set(backend).is_ok());\n    let response=daemon.handle_prefetch_with_context(&PrefetchRequest {\n        keys:vec![(key.clone(),\"serde\".into())],warm_all:false,origin:None,candidate_sources:HashMap::new(),\n    },Some(context),dispatch).await;\n    assert!(response.ok);\n    let mut tasks={ std::mem::take(&mut *daemon.prefetch_tasks.lock().unwrap()) };\n    tokio::time::timeout(Duration::from_secs(10),async {\n        while let Some(result)=tasks.join_next().await {result.unwrap();}\n    }).await.expect(\"fixture transfers finish independently of the plan deadline\");\n    if delay.is_zero() {\n        assert!(daemon.with_store(|store| Ok(store.get(&key)?.is_some())).unwrap(),\n            \"the fast control must successfully import its valid pack\");\n    }\n    assert_eq!(late_pack_gets.load(Ordering::Relaxed),0,\n        \"packed prefetch must not start another object after the plan dispatch deadline\");\n}\n",
+      "name": "daemon::tests::investigation_packed_prefetch_stops_starting_objects_after_plan_deadline",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "COMMAND: ['/Users/viktor/Developer/github/kache-investigations/pack-publisher/investigation/pack-probe', 'daemon::tests::investigation_packed_prefetch_stops_starting_objects_after_plan_deadline', '--exact', '--nocapture', '--test-threads=1']\nFIXTURE_OVERRIDES: {}\nEXIT: 101\n\nrunning 1 test\ntest daemon::tests::investigation_packed_prefetch_stops_starting_objects_after_plan_deadline ... \nthread 'daemon::tests::investigation_packed_prefetch_stops_starting_objects_after_plan_deadline' (46253450) panicked at /Users/viktor/Developer/github/kache-investigations/pack-publisher/investigation/overlay/daemon-tests.rs:15001:5:\nassertion `left == right` failed: packed prefetch must not start another object after the plan dispatch deadline\n  left: 1\n right: 0\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\nFAILED\n\nfailures:\n\nfailures:\n    daemon::tests::investigation_packed_prefetch_stops_starting_objects_after_plan_deadline\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 1.56s\n\n",
+      "command": "investigation/pack-probe daemon::tests::investigation_packed_prefetch_stops_starting_objects_after_plan_deadline --exact --nocapture --test-threads=1",
+      "control": "KACHE_INV_FAST_CATALOG=1: same valid catalog/pack with no catalog delay imports successfully and has no late pack starts; investigation/plan-deadline-green.log.",
+      "build": "python3 investigation/build-probe.py; isolated test-only overlay with untouched production source and read-only prebuilt dependencies.",
+      "replay": "python3 investigation/run-probes.py plan-deadline; expected red101 and control0 are checked mechanically."
+    },
+    "severity": "Resource/time guardrail bypass for namespaced packed plans on slow remote/catalog discovery: new network, extraction and import work starts after the user-configured stop-starting boundary; the subsequent v3 phase also receives a fresh time budget. Catalogs can schedule multiple bounded packs, so the configured plan duration does not bound their admission. No wrong bytes or indefinite hang demonstrated. First-party publisher absent at this SHA limits current exposure to externally seeded packs.",
+    "status": "open"
+  },
+  {
+    "id": "pack-corruption-fallback",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:51:46.419390+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 inherited coordinator model",
+      "mode": "production-readiness",
+      "slice": "packed-remote-publication-read-import-fallback"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Corrupt pack is rejected and falls back to its existing v3 entry.",
+    "checked": "Executed corrupt_pack_falls_back_only_to_the_existing_v3_entry with corrupt pack and valid v3 object.",
+    "closed_by": "Tier 1: investigation/baseline-reader-3.log: 1 passed; validation_error receipt and v3_requests_total=1 asserted.",
+    "reopens_if": "Different transport, validation binding or fallback failure class.",
+    "status": "dismissed"
+  },
+  {
+    "id": "pack-traversal-sibling",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:51:46.419390+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 inherited coordinator model",
+      "mode": "production-readiness",
+      "slice": "packed-remote-publication-read-import-fallback"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Traversal in one entry does not escape extraction or discard a verified sibling.",
+    "checked": "Executed traversal_in_one_pack_entry_preserves_valid_batch_and_falls_back_per_entry.",
+    "closed_by": "Tier 1: investigation/baseline-reader-4.log: 1 passed; escape file absent, good sibling hit, bad sibling restored from v3.",
+    "reopens_if": "Different tar entry type or changed extraction validation.",
+    "status": "dismissed"
+  },
+  {
+    "id": "pack-demand-concurrency",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:51:46.419390+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 inherited coordinator model",
+      "mode": "production-readiness",
+      "slice": "packed-remote-publication-read-import-fallback"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "An unrelated demand v3 restore completes during a blocked speculative pack GET.",
+    "checked": "Executed demand_v3_read_completes_while_a_prefetch_pack_is_blocked and response/memory-draining tests.",
+    "closed_by": "Tier 1: investigation/baseline-reader-5.log: 1 passed; baseline-reader-2.log: 5 passed.",
+    "reopens_if": "Single-permit pool or same-key demand after extraction but before batch commit; outside this executed sample.",
+    "status": "dismissed"
+  },
+  {
+    "id": "pack-bindings",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:51:46.419390+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 inherited coordinator model",
+      "mode": "production-readiness",
+      "slice": "packed-remote-publication-read-import-fallback"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Outer catalog/index bindings and inner entry bindings reject independently corrupted fixtures.",
+    "checked": "Executed remote_pack tests and packed_prefetch_checks_each_outer_and_inner_binding_independently.",
+    "closed_by": "Tier 1: investigation/baseline-reader-0.log: 19 passed; baseline-reader-1.log: 1 passed. Tier 2: src/remote_layout.rs:408-448,639-791; crates/kache-store/src/store.rs:3213-3274.",
+    "reopens_if": "New schema, encoder, trust source or size/hash validation change.",
+    "status": "dismissed"
+  },
+  {
+    "id": "pack-catalog-context",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:51:46.419390+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 inherited coordinator model",
+      "mode": "production-readiness",
+      "slice": "packed-remote-publication-read-import-fallback"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Catalog filename timestamp mismatch rejects context and uses v3.",
+    "checked": "Executed catalog_filename_timestamp_mismatch_rejects_context_and_uses_v3 and sampled syntax/schema/digest/expiry fixtures.",
+    "closed_by": "Tier 1: investigation/baseline-reader-6.log: 1 passed; baseline-reader-0.log: 19 passed.",
+    "reopens_if": "Publication order changes, catalog pointers or context normalization changes.",
+    "status": "dismissed"
+  }
+]

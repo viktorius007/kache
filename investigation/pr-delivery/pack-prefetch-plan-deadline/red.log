@@ -1,0 +1,26 @@
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/pack-prefetch-plan-deadline/crates/kache-fs)
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/pack-prefetch-plan-deadline/crates/kache-format)
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/pack-prefetch-plan-deadline)
+   Compiling kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-prs/pack-prefetch-plan-deadline/crates/kache-shims)
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/pack-prefetch-plan-deadline/crates/kache-store)
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/pack-prefetch-plan-deadline/crates/kache-core)
+    Finished `test` profile [unoptimized] target(s) in 54.18s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+
+thread 'daemon::tests::packed_prefetch_honors_dispatch_deadline_without_cancelling_started_transfers' (57854344) panicked at src/daemon/tests.rs:7684:13:
+assertion `left == right` failed: packed and fallback requests must not start after the plan dispatch deadline
+  left: 1
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test daemon::tests::packed_prefetch_honors_dispatch_deadline_without_cancelling_started_transfers ... FAILED
+
+failures:
+
+failures:
+    daemon::tests::packed_prefetch_honors_dispatch_deadline_without_cancelling_started_transfers
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4395 filtered out; finished in 1.61s
+
+error: test failed, to rerun pass `--bin kache`

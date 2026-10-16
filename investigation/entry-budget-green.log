@@ -1,0 +1,9 @@
+COMMAND: ['/Users/viktor/Developer/github/kache-investigations/pack-publisher/investigation/pack-probe', 'daemon::tests::investigation_packed_prefetch_obeys_the_configured_entry_budget', '--exact', '--nocapture', '--test-threads=1']
+FIXTURE_OVERRIDES: {'KACHE_INV_ALLOW_TWO': '1'}
+EXIT: 0
+
+running 1 test
+test daemon::tests::investigation_packed_prefetch_obeys_the_configured_entry_budget ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 0.07s
+

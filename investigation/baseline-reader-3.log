@@ -1,0 +1,7 @@
+COMMAND: ['/private/tmp/kache-d5-release-target/release/deps/kache-db3e2e345e4f7b02', 'daemon::tests::corrupt_pack_falls_back', '--test-threads=1', '--nocapture']
+
+running 1 test
+test daemon::tests::corrupt_pack_falls_back_only_to_the_existing_v3_entry ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4397 filtered out; finished in 0.08s
+

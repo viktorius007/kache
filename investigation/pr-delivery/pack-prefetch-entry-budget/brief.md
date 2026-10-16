@@ -1,0 +1,1 @@
+Deliver saved pack-prefetch-entry-budget proof. Enforce configured per-plan entry budget during packed sibling imports, preserving exact requested entry and valid warm skip. Reuse saved proofs only; separate test/fix commits from 4ee0f9e; inactive exclusive permit target, build-slot, full just check 0. Follow coordinator common-brief.md. Parent handles publication.

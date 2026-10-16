@@ -1,0 +1,8 @@
+{
+  "id": "pack-prefetch-entry-budget",
+  "url": "https://github.com/kunobi-ninja/kache/pull/1523",
+  "branch": "fix/pack-prefetch-entry-budget",
+  "fix_commit": "91132248be1015dd43013328cae3f834a0356ff9",
+  "state": "draft",
+  "review": "investigation/pr-delivery/reviews/pack-prefetch-entry-budget.md"
+}
