@@ -1,0 +1,24 @@
+[
+  {
+    "name": "contracts",
+    "argv": [
+      "python3",
+      "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/contract_probes.py"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance",
+    "timeout_seconds": 180,
+    "expected_exit_code": 0,
+    "assertion_regex": "ALL PUBLIC-CONTRACT PROBES PASSED"
+  },
+  {
+    "name": "fallback",
+    "argv": [
+      "python3",
+      "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fallback_probes.py"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance",
+    "timeout_seconds": 180,
+    "expected_exit_code": 0,
+    "assertion_regex": "PASS fallback failure"
+  }
+]

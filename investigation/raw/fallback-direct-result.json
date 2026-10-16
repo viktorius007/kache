@@ -1,0 +1,9 @@
+{
+  "argv": [
+    "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/fallback/fallback_fixture"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/fallback",
+  "returncode": 0,
+  "stdout": "direct-result\n",
+  "stderr": ""
+}

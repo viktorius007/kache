@@ -1,0 +1,3 @@
+CONTROL explicit --crate-type bin: fallback runtime output=true
+OBSERVED omitted --crate-type: fallback runtime output=false
+MANUFACTURED CONTROL: rejected incorrect claim that implicit bin already uses fallback

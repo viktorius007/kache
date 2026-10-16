@@ -1,0 +1,8 @@
+__kache_root__/debug/deps/contract_fixture-9c235d8fe8a13631.d: src/main.rs __kache_target_rule__/debug/build/contract-fixture-95b6dffc433873e9/out/generated.txt
+
+__kache_root__/debug/deps/contract_fixture-9c235d8fe8a13631: src/main.rs __kache_target_rule__/debug/build/contract-fixture-95b6dffc433873e9/out/generated.txt
+
+src/main.rs:
+__kache_target_rule__/debug/build/contract-fixture-95b6dffc433873e9/out/generated.txt:
+
+# env-dep:OUT_DIR=__kache_target_rule__/debug/build/contract-fixture-95b6dffc433873e9/out

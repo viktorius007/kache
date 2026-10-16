@@ -1,0 +1,5 @@
+[cache]
+local_only = true
+adaptive_incremental = false
+seed_new_targets = false
+explain_miss = true

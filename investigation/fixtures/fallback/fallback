@@ -1,0 +1,4 @@
+#!/bin/sh
+printf invoked > "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/fallback/fallback-ran"
+printf fallback-diagnostic >&2
+exit 143

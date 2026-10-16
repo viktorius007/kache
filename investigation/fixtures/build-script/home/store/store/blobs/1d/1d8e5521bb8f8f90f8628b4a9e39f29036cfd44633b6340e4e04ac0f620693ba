@@ -1,0 +1,1 @@
+{"version":1,"directories":[],"empty_files":[],"stdout":"cargo:rerun-if-changed=input.txt\ncargo:rerun-if-env-changed=AUDIT_SCRIPT_VALUE\n","stderr":""}

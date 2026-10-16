@@ -1,0 +1,4 @@
+#!/bin/sh
+compiler="$1"
+shift
+exec "$compiler" "$@" --cfg fallback_was_used

@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+    "/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/rustc",
+    "--crate-name",
+    "default_bin_fixture",
+    "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/default-bin-policy/main.rs",
+    "--out-dir",
+    "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/default-bin-policy",
+    "--crate-type",
+    "bin"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/default-bin-policy",
+  "returncode": 0,
+  "stdout": "",
+  "stderr": ""
+}

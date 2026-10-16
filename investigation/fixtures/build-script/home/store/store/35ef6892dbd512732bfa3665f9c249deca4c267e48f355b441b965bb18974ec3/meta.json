@@ -1,0 +1,29 @@
+{
+  "cache_key": "35ef6892dbd512732bfa3665f9c249deca4c267e48f355b441b965bb18974ec3",
+  "key_schema": 32,
+  "crate_name": "build_script_run",
+  "crate_types": [
+    "build-script"
+  ],
+  "files": [
+    {
+      "name": "out/generated.txt",
+      "size": 10,
+      "hash": "0052b9f181740e15c0faac46bb8c767958758f3ad56b9117df712ebf0e363ca3",
+      "executable": false
+    },
+    {
+      "name": "kache-build-script.json",
+      "size": 152,
+      "hash": "1d8e5521bb8f8f90f8628b4a9e39f29036cfd44633b6340e4e04ac0f620693ba",
+      "executable": false
+    }
+  ],
+  "stdout": "",
+  "stderr": "",
+  "features": [],
+  "target": "aarch64-apple-darwin",
+  "profile": "debug",
+  "compile_time_ms": 2,
+  "emit_kinds": []
+}

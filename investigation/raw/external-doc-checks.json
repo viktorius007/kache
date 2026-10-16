@@ -1,0 +1,10 @@
+{
+  "checked_date": "2026-10-11",
+  "primary_urls": [
+    "https://ninja.kunobi.com/docs/kache/how-it-works/architecture",
+    "https://ninja.kunobi.com/docs/kache/getting-started/configuration",
+    "https://ninja.kunobi.com/docs/kache/compatibility",
+    "https://ninja.kunobi.com/docs/kache/getting-started/quick-start"
+  ],
+  "result": "Current website browsed as secondary context; pinned repository docs govern baseline review. Some website text differs from baseline; no minor docs issue reported."
+}

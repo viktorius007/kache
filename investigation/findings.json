@@ -1,0 +1,160 @@
+[
+  {
+    "id": "CONTRACT-BIN-001",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:00:30Z",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "codex",
+      "mode": "spec-conformance",
+      "slice": "public-contracts"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Implicit default-bin rustc invocations ignore cache_executables=false and skip the configured fallback.",
+    "scenario": "A custom Rust build tool or build script calls Kache with rustc, a main.rs source and no --crate-type while KACHE_CACHE_EXECUTABLES=0 and KACHE_FALLBACK are set. The explicit-bin control invokes the fallback and its real rustc output prints true; the default-bin invocation bypasses the fallback, stores a cache miss and its output prints false.",
+    "evidence": [
+      {
+        "path": "src/args.rs",
+        "lines": "755-757",
+        "point": "is_user_facing_executable accepts only --test or an explicit bin element in crate_types."
+      },
+      {
+        "path": "src/wrapper.rs",
+        "lines": "3802,3947-3962",
+        "point": "skip_user_facing is false for an omitted crate type, so executable cache-disable does not reach intentional passthrough."
+      },
+      {
+        "path": "investigation/raw/default-bin-policy.log",
+        "lines": "1-10",
+        "point": "Explicit bin fallback runtime output=true; omitted type output=false; the behavioral assertion failed."
+      }
+    ],
+    "trace": "src/main.rs compiler-wrapper dispatch -> wrapper::run -> RustcArgs::parse (empty crate_types) -> run_parsed_rustc skip_user_facing=false -> compute key -> direct rustc compile and local cache put; explicit bin -> intentional_passthrough_with_event -> fallback::run -> real rustc with fallback cfg.",
+    "authority": {
+      "source": "docs/getting-started/comparison.mdx:Use sccache as a fallback and docs/getting-started/configuration.mdx:Compiler policy",
+      "quote": "Compiler invocations it passes through go to sccache instead of the bare compiler.",
+      "supporting_quote": "Cache eligible Rust bins and test executables",
+      "external_source": "https://doc.rust-lang.org/reference/linkage.html#linkage",
+      "external_quote": "This is the default crate type."
+    },
+    "proof": {
+      "red_test": "#!/usr/bin/env python3\n\"\"\"Red public-contract test: implicit Rust bin must respect cache_executables=0.\"\"\"\nimport json\nfrom pathlib import Path\nimport shutil\nimport sys\nfrom contract_probes import FIX, RAW, KACHE, TOOLCHAIN, command, environment, events\n\n\ndef main():\n    path = FIX / 'default-bin-policy'\n    if path.exists():\n        shutil.rmtree(path)\n    env = environment('default-bin-policy')\n    env['KACHE_CACHE_EXECUTABLES'] = '0'\n    env['KACHE_FALLBACK'] = str(path / 'fallback-wrapper')\n    source = path / 'main.rs'\n    source.write_text('fn main(){println!(\"{}\",cfg!(fallback_was_used));}\\n')\n    fallback = Path(env['KACHE_FALLBACK'])\n    fallback.write_text('#!/bin/sh\\ncompiler=\"$1\"\\nshift\\nexec \"$compiler\" \"$@\" --cfg fallback_was_used\\n')\n    fallback.chmod(0o755)\n    base = [KACHE, TOOLCHAIN / 'rustc', '--crate-name', 'default_bin_fixture', source, '--out-dir', path]\n    command(base + ['--crate-type', 'bin'], path, env, 'default-bin-explicit-control')\n    control = command([path / 'default_bin_fixture'], path, env, 'default-bin-explicit-run').strip()\n    assert control == 'true', f'explicit bin must use the configured fallback: {control!r}'\n    (path / 'default_bin_fixture').unlink()\n    command(base, path, env, 'default-bin-implicit')\n    observed = command([path / 'default_bin_fixture'], path, env, 'default-bin-implicit-run').strip()\n    records = events(env)\n    filename = 'default-bin-policy-control-events.json' if '--negative-control' in sys.argv else 'default-bin-policy-events.json'\n    (RAW / filename).write_text(json.dumps(records, indent=2))\n    print(f'CONTROL explicit --crate-type bin: fallback runtime output={control}', flush=True)\n    print(f'OBSERVED omitted --crate-type: fallback runtime output={observed}', flush=True)\n    if '--negative-control' in sys.argv:\n        assert observed == 'false', 'manufactured control must reject an incorrect claimed defect'\n        print('MANUFACTURED CONTROL: rejected incorrect claim that implicit bin already uses fallback')\n        return\n    assert observed == 'true', 'executable caching disabled must route default-bin rustc invocation through fallback; expected true, observed '+observed\n\n\nif __name__ == '__main__':\n    main()\n",
+      "supporting_files": {
+        "investigation/contract_probes.py": "#!/usr/bin/env python3\n\"\"\"Exercise public Rust contracts on an untouched baseline CLI in fixture homes.\"\"\"\nimport json\nimport os\nfrom pathlib import Path\nimport shutil\nimport subprocess\nimport sys\n\nROOT = Path(__file__).resolve().parent\nKACHE = Path(os.environ.get('AUDIT_KACHE', '/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache'))\nTOOLCHAIN = Path('/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin')\nFIX = ROOT / 'fixtures'\nRAW = ROOT / 'raw'\n\n\ndef command(argv, cwd, env, name, expected=0):\n    p = subprocess.run(list(map(str, argv)), cwd=cwd, env=env, capture_output=True, text=True, timeout=120)\n    result = dict(argv=list(map(str, argv)), workdir=str(cwd), returncode=p.returncode, stdout=p.stdout, stderr=p.stderr)\n    (RAW / (name + '.json')).write_text(json.dumps(result, indent=2))\n    assert p.returncode == expected, f'{name}: expected exit {expected}, observed {p.returncode}: {p.stderr}'\n    return p.stdout\n\n\ndef environment(group):\n    home = FIX / group / 'home'\n    home.mkdir(parents=True, exist_ok=True)\n    conf = home / 'config.toml'\n    conf.write_text('[cache]\\nlocal_only = true\\nadaptive_incremental = false\\nseed_new_targets = false\\nexplain_miss = true\\n')\n    env = {k: v for k, v in os.environ.items() if not k.startswith(('KACHE_', 'CARGO_', 'RUSTC_', 'RUSTFLAGS', 'CLIPPY_'))}\n    env.update(HOME=str(home), CARGO_HOME=str(home / 'cargo'), RUSTUP_HOME='/Users/viktor/.rustup', RUSTC=str(TOOLCHAIN / 'rustc'),\n               RUSTC_WRAPPER=str(KACHE), KACHE_CONFIG=str(conf), KACHE_HOST_CONFIG='', KACHE_CACHE_DIR=str(home / 'store'),\n               KACHE_RUNTIME_DIR=str(home / 'runtime'), KACHE_SOCKET_PATH=str(home / 'runtime' / 'absent.sock'),\n               KACHE_LOG='warn', KACHE_PROGRESS='verbose', HOST_CC='clang', HOST_CXX='clang++', CC='clang', CXX='clang++')\n    return env\n\n\ndef project(path, source, build=None):\n    (path / 'src').mkdir(parents=True)\n    (path / 'Cargo.toml').write_text('[package]\\nname=\"contract-fixture\"\\nversion=\"0.1.0\"\\nedition=\"2021\"\\n[workspace]\\n[features]\\nchanged=[]\\n')\n    (path / 'src/main.rs').write_text(source)\n    if build:\n        (path / 'build.rs').write_text(build)\n        (path / 'input.txt').write_text('first')\n\n\ndef build(path, env, name, extra=()):\n    command([TOOLCHAIN / 'cargo', 'build', '--offline', '--target-dir', path / 'target', *extra], path, env, name)\n    return command([path / 'target/debug/contract-fixture'], path, env, name + '-run').strip()\n\n\ndef events(env):\n    return [json.loads(line) for p in Path(env['KACHE_RUNTIME_DIR']).rglob('*.jsonl') for line in p.read_text().splitlines() if line.strip()]\n\n\ndef relocation():\n    env = environment('relocation')\n    source = 'fn main(){println!(\"{} {}\", env!(\"AUDIT_VALUE\"), cfg!(feature=\"changed\"));}\\n'\n    a, b = FIX / 'relocation/a', FIX / 'relocation/b'\n    project(a, source)\n    project(b, source)\n    env['AUDIT_VALUE'] = 'original'\n    assert build(a, env, 'relocation-cold') == 'original false'\n    assert build(b, env, 'relocation-warm') == 'original false'\n    shutil.rmtree(b / 'target')\n    env['AUDIT_VALUE'] = 'updated'\n    assert build(b, env, 'relocation-env-change') == 'updated false', 'compile-time environment changes must invalidate cached output'\n    shutil.rmtree(b / 'target')\n    assert build(b, env, 'relocation-feature-change', ['--features', 'changed']) == 'updated true', 'feature changes must invalidate cached output'\n    records = events(env)\n    (RAW / 'relocation-events.json').write_text(json.dumps(records, indent=2))\n    assert any(e.get('result') == 'local_hit' and e.get('root') == str(b) and e.get('crate_name') == 'contract_fixture' and e.get('compiler_runs') == 0 and e.get('size', 0) > 0 for e in records), 'second checkout must exercise a real cache restore'\n    print('PASS relocation output, compile-time env invalidation and feature invalidation')\n\n\ndef manifest_path():\n    env = environment('manifest-path')\n    source = 'fn main(){println!(\"{}\",env!(\"CARGO_MANIFEST_DIR\"));}\\n'\n    for tree in ['a', 'b']:\n        path = FIX / 'manifest-path' / tree\n        project(path, source)\n        actual = build(path, env, 'manifest-' + tree)\n        assert actual == str(path), f'runtime manifest path must equal current checkout: {actual}'\n    (RAW / 'manifest-events.json').write_text(json.dumps(events(env), indent=2))\n    print('PASS runtime manifest path remains checkout-local')\n\n\ndef build_script():\n    env = environment('build-script')\n    source = 'fn main(){println!(\"{}\",include_str!(concat!(env!(\"OUT_DIR\"),\"/generated.txt\")));}\\n'\n    script = '''fn main(){\nprintln!(\"cargo:rerun-if-changed=input.txt\");\nprintln!(\"cargo:rerun-if-env-changed=AUDIT_SCRIPT_VALUE\");\nlet out=std::path::PathBuf::from(std::env::var(\"OUT_DIR\").unwrap());\nlet input=std::fs::read_to_string(\"input.txt\").unwrap();\nlet value=std::env::var(\"AUDIT_SCRIPT_VALUE\").unwrap_or_else(|_| \"unset\".into());\nstd::fs::write(out.join(\"generated.txt\"),format!(\"{}:{}\",input,value)).unwrap();\n}\\n'''\n    env['AUDIT_SCRIPT_VALUE'] = 'old'\n    for tree in ['a', 'b']:\n        path = FIX / 'build-script' / tree\n        project(path, source, script)\n        assert build(path, env, 'script-' + tree) == 'first:old'\n    path = FIX / 'build-script/b'\n    shutil.rmtree(path / 'target')\n    (path / 'input.txt').write_text('second')\n    assert build(path, env, 'script-input-change') == 'second:old', 'declared input changes must invalidate build-script run and Rust artifacts'\n    shutil.rmtree(path / 'target')\n    env['AUDIT_SCRIPT_VALUE'] = 'new'\n    assert build(path, env, 'script-env-change') == 'second:new', 'declared environment changes must invalidate build-script run and Rust artifacts'\n    records = events(env)\n    (RAW / 'script-events.json').write_text(json.dumps(records, indent=2))\n    assert any(e.get('result') == 'local_hit' and e.get('crate_name') == 'build_script_run' for e in records), 'canonical script fixture must exercise a cached build-script run'\n    print('PASS build-script relocation, declared-file invalidation and declared-env invalidation')\n\n\ndef main():\n    RAW.mkdir(exist_ok=True)\n    assert KACHE.is_file(), KACHE\n    if FIX.exists():\n        shutil.rmtree(FIX)\n    relocation()\n    manifest_path()\n    build_script()\n    print('ALL PUBLIC-CONTRACT PROBES PASSED')\n\n\nif __name__ == '__main__':\n    main()\n"
+      },
+      "name": "default_bin_respects_executable_cache_disable",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "CONTROL explicit --crate-type bin: fallback runtime output=true\nOBSERVED omitted --crate-type: fallback runtime output=false\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/default_bin_policy.py\", line 42, in <module>\n    main()\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/default_bin_policy.py\", line 38, in main\n    assert observed == 'true', 'executable caching disabled must route default-bin rustc invocation through fallback; expected true, observed '+observed\nAssertionError: executable caching disabled must route default-bin rustc invocation through fallback; expected true, observed false\n",
+      "replay_case": "investigation/default-bin-policy-case.json",
+      "oracle_reasoning": "The test-owned source prints cfg!(fallback_was_used). Only the configured fallback appends that flag. Explicit --crate-type bin gives true with the same source/environment/compiler, independently establishing the expected routing. Omitted --crate-type produces a runnable bin but false; the assertion checks user-visible compiled behavior, not timing or logs."
+    },
+    "severity": "Reachable for direct/custom rustc wrappers and build-script compiler calls that omit the optional --crate-type flag. A documented executable cache-disable control is ignored and fallback-specific compiler behavior is lost. Cargo normal bin commands provide explicit bin, limiting common Cargo impact. No data loss, Linux inode-sharing defect, or missing linker identity is claimed; invokes_linker already recognizes empty crate types.",
+    "status": "open"
+  },
+  {
+    "id": "CONTRACT-LIMIT-001",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:00:30Z",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "codex",
+      "mode": "spec-conformance",
+      "slice": "public-contracts"
+    },
+    "summary": "Undeclared PATH/system probes are a documented build-script caching limit.",
+    "checked": "Compared quoted public scope to the proposed counterexample; ordinary manifest-path behavior additionally exercised by contract_probes.py.",
+    "closed_by": {
+      "tier": 4,
+      "path": "docs/how-it-works/build-scripts.mdx",
+      "line": 276,
+      "quote": "It does not cover state a script probes"
+    },
+    "reopens_if": "A declared path/environment input changes and stale output is restored.",
+    "status": "no-action"
+  },
+  {
+    "id": "CONTRACT-LIMIT-002",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:00:30Z",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "codex",
+      "mode": "spec-conformance",
+      "slice": "public-contracts"
+    },
+    "summary": "Nonhermetic derived path hashes and lengths are explicitly outside safe relocation guarantees.",
+    "checked": "Compared quoted public scope to the proposed counterexample; ordinary manifest-path behavior additionally exercised by contract_probes.py.",
+    "closed_by": {
+      "tier": 4,
+      "path": "docs/how-it-works/build-scripts.mdx",
+      "line": 274,
+      "quote": "a hash, is restored unchanged and can be wrong there."
+    },
+    "reopens_if": "Hermetic mode with a shared root restores different behavior for the same modeled inputs.",
+    "status": "no-action"
+  },
+  {
+    "id": "CONTRACT-LIMIT-003",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:00:30Z",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "codex",
+      "mode": "spec-conformance",
+      "slice": "public-contracts"
+    },
+    "summary": "Runtime manifest-path misses are intentional correctness protection.",
+    "checked": "Compared quoted public scope to the proposed counterexample; ordinary manifest-path behavior additionally exercised by contract_probes.py.",
+    "closed_by": {
+      "tier": 4,
+      "path": "docs/getting-started/mutation-testing.mdx",
+      "line": 50,
+      "quote": "Kache keeps that value verbatim in the key because the compiled artifact can embed it."
+    },
+    "reopens_if": "The ordinary manifest-path fixture restores another checkout value.",
+    "status": "no-action"
+  },
+  {
+    "id": "CONTRACT-LIMIT-004",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:00:30Z",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "codex",
+      "mode": "spec-conformance",
+      "slice": "public-contracts"
+    },
+    "summary": "Time saved is aggregate compile work, not a wall-time speed guarantee.",
+    "checked": "Compared quoted public scope to the proposed counterexample; ordinary manifest-path behavior additionally exercised by contract_probes.py.",
+    "closed_by": {
+      "tier": 4,
+      "path": "docs/getting-started/quick-start.mdx",
+      "line": 72,
+      "quote": "not elapsed build time saved."
+    },
+    "reopens_if": "A counter claims wall time rather than aggregate work, or a controlled performance measurement proves a promised workload divergence.",
+    "status": "no-action"
+  },
+  {
+    "id": "CONTRACT-LIMIT-005",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:00:30Z",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "codex",
+      "mode": "spec-conformance",
+      "slice": "public-contracts"
+    },
+    "summary": "Rust 1.99 rustdoc merge-mode passthrough is a documented compatibility limit.",
+    "checked": "Compared quoted public scope to the proposed counterexample; ordinary manifest-path behavior additionally exercised by contract_probes.py.",
+    "closed_by": {
+      "tier": 4,
+      "path": "docs/getting-started/rustdoc.mdx",
+      "line": 14,
+      "quote": "documentation passes through on Rust 1.99"
+    },
+    "reopens_if": "A supported older merge invocation behaves inconsistently with its documented contract.",
+    "status": "no-action"
+  }
+]

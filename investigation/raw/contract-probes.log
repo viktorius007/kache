@@ -1,0 +1,4 @@
+PASS relocation output, compile-time env invalidation and feature invalidation
+PASS runtime manifest path remains checkout-local
+PASS build-script relocation, declared-file invalidation and declared-env invalidation
+ALL PUBLIC-CONTRACT PROBES PASSED

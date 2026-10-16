@@ -1,0 +1,5 @@
+__kache_root__/build/contract-fixture-4dc0a3e5ed2ac142/build_script_build-4dc0a3e5ed2ac142.d: build.rs
+
+__kache_root__/build/contract-fixture-4dc0a3e5ed2ac142/build_script_build-4dc0a3e5ed2ac142: build.rs
+
+build.rs:

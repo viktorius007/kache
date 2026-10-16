@@ -1,0 +1,12 @@
+{
+  "name": "manufactured_false_claim",
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/default_bin_policy.py",
+    "--negative-control"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance",
+  "timeout_seconds": 120,
+  "assertion_regex": "MANUFACTURED CONTROL: rejected incorrect claim",
+  "expected_exit_code": 0
+}

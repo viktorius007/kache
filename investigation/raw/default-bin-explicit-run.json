@@ -1,0 +1,9 @@
+{
+  "argv": [
+    "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/default-bin-policy/default_bin_fixture"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/default-bin-policy",
+  "returncode": 0,
+  "stdout": "true\n",
+  "stderr": ""
+}

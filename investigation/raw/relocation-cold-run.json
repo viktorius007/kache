@@ -1,0 +1,9 @@
+{
+  "argv": [
+    "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/relocation/a/target/debug/contract-fixture"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/relocation/a",
+  "returncode": 0,
+  "stdout": "original false\n",
+  "stderr": ""
+}

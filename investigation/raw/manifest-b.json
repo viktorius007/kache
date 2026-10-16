@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/cargo",
+    "build",
+    "--offline",
+    "--target-dir",
+    "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/manifest-path/b/target"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/manifest-path/b",
+  "returncode": 0,
+  "stdout": "",
+  "stderr": "   Compiling contract-fixture v0.1.0 (/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/manifest-path/b)\n[kache] contract_fixture: miss (249ms, 2.7 MiB)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.32s\n"
+}

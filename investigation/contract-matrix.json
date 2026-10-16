@@ -1,0 +1,332 @@
+{
+  "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "contracts": [
+    {
+      "id": "reuse",
+      "source": {
+        "path": "README.md",
+        "line": 11,
+        "quote": "It restores matching compiler outputs across worktrees and CI runs"
+      },
+      "obligation": "Equivalent eligible compile inputs should restore outputs in a fresh checkout.",
+      "implementation_or_test_evidence": [
+        "contract_probes.py:relocation",
+        "raw/relocation-events.json"
+      ],
+      "observed_verdict": "executed-pass",
+      "scope_limit": "Dependency-free binary on macOS/APFS; registry target seeding disabled."
+    },
+    {
+      "id": "env-values",
+      "source": {
+        "path": "docs/how-it-works/cache-key.mdx",
+        "line": 23,
+        "quote": "- compile-time environment values rustc reports"
+      },
+      "obligation": "A changed reported compile-time value must not restore stale output.",
+      "implementation_or_test_evidence": [
+        "contract_probes.py:relocation",
+        "raw/relocation-env-change-run.json"
+      ],
+      "observed_verdict": "executed-pass-for-nonempty-values",
+      "scope_limit": "Unset/empty edge is separately owned by audit_key_native_inputs.",
+      "primary_owner_evidence": {
+        "kind": "relayed-proven-finding",
+        "ids": [
+          "KEY-ENV-001"
+        ],
+        "owner": "audit_key_native_inputs",
+        "status": "owner report pending; not independently replayed here"
+      }
+    },
+    {
+      "id": "build-settings",
+      "source": {
+        "path": "README.md",
+        "line": 48,
+        "quote": "Reuse requires matching inputs, toolchain,\nand build settings."
+      },
+      "obligation": "Changed Cargo feature settings must produce matching fresh output.",
+      "implementation_or_test_evidence": [
+        "contract_probes.py:relocation",
+        "raw/relocation-feature-change-run.json"
+      ],
+      "observed_verdict": "executed-pass",
+      "scope_limit": "One boolean feature; no arbitrary flag exhaustiveness claim."
+    },
+    {
+      "id": "runtime-path",
+      "source": {
+        "path": "docs/getting-started/mutation-testing.mdx",
+        "line": 50,
+        "quote": "Kache keeps that value verbatim in the key because the compiled artifact can embed it."
+      },
+      "obligation": "The current checkout must retain its own runtime CARGO_MANIFEST_DIR.",
+      "implementation_or_test_evidence": [
+        "contract_probes.py:manifest_path",
+        "src/cache_key.rs:5266 normalize_env_dep_value_with_hasher",
+        "raw/manifest-b-run.json"
+      ],
+      "observed_verdict": "executed-pass",
+      "scope_limit": "Ordinary env! use; macro-shadowing edge separately owned by key reviewer.",
+      "primary_owner_evidence": {
+        "kind": "relayed-proven-finding",
+        "ids": [
+          "KEY-ENV-002"
+        ],
+        "owner": "audit_key_native_inputs",
+        "status": "owner report pending; ordinary manifest-path control does not refute macro-shadowing case"
+      }
+    },
+    {
+      "id": "script-runs",
+      "source": {
+        "path": "docs/how-it-works/build-scripts.mdx",
+        "line": 13,
+        "quote": "Kache therefore caches the run itself."
+      },
+      "obligation": "Eligible canonical script runs should restore generated output without rerunning the script.",
+      "implementation_or_test_evidence": [
+        "contract_probes.py:build_script",
+        "raw/script-events.json"
+      ],
+      "observed_verdict": "executed-pass",
+      "scope_limit": "Text OUT_DIR output; no hermetic sandbox or platform launcher crash injection."
+    },
+    {
+      "id": "script-inputs",
+      "source": {
+        "path": "docs/how-it-works/build-scripts.mdx",
+        "line": 52,
+        "quote": "- the content of every path the script declared with `cargo:rerun-if-changed`"
+      },
+      "obligation": "Changed declared files must invalidate run and generated-code consumer.",
+      "implementation_or_test_evidence": [
+        "contract_probes.py:build_script",
+        "raw/script-input-change-run.json"
+      ],
+      "observed_verdict": "executed-pass-for-canonical-declaration",
+      "scope_limit": "Whitespace declaration edge owned by audit_cargo_build.",
+      "primary_owner_evidence": {
+        "kind": "relayed-proven-finding",
+        "ids": [
+          "cargo-build-001"
+        ],
+        "owner": "audit_cargo_build",
+        "source": "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/report.md",
+        "status": "primary owner report and real Cargo red/control evidence persisted; not independently replayed by secondary sweep",
+        "replay": "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/proofs/cargo-declarations.replay.json"
+      }
+    },
+    {
+      "id": "script-env",
+      "source": {
+        "path": "docs/how-it-works/build-scripts.mdx",
+        "line": 50,
+        "quote": "- the values of every variable the script declared with\n  `cargo:rerun-if-env-changed`;"
+      },
+      "obligation": "Changed declared environment values must invalidate run and consumer.",
+      "implementation_or_test_evidence": [
+        "contract_probes.py:build_script",
+        "raw/script-env-change-run.json"
+      ],
+      "observed_verdict": "executed-pass-for-canonical-declaration",
+      "scope_limit": "Whitespace declaration edge owned by audit_cargo_build.",
+      "primary_owner_evidence": {
+        "kind": "relayed-proven-finding",
+        "ids": [
+          "cargo-build-001"
+        ],
+        "owner": "audit_cargo_build",
+        "source": "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/report.md",
+        "status": "primary owner report and real Cargo red/control evidence persisted; not independently replayed by secondary sweep",
+        "replay": "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/proofs/cargo-declarations.replay.json"
+      }
+    },
+    {
+      "id": "fallback-failure",
+      "source": {
+        "path": "docs/getting-started/comparison.mdx",
+        "line": 63,
+        "quote": "If the fallback fails to start or exits unsuccessfully, Kache warns and retries once\nwith the direct compiler."
+      },
+      "obligation": "Ordinary wrapper failure or missing fallback must preserve successful direct compiler behavior.",
+      "implementation_or_test_evidence": [
+        "fallback_probes.py:main",
+        "src/fallback.rs:35 run",
+        "raw/fallback-exit-42.json",
+        "raw/fallback-missing-run.json"
+      ],
+      "observed_verdict": "executed-pass",
+      "scope_limit": "Simple Rust bin passthrough forced by cache_executables=0."
+    },
+    {
+      "id": "fallback-cancel",
+      "source": {
+        "path": "docs/getting-started/comparison.mdx",
+        "line": 65,
+        "quote": "Interrupts and termination requests (including shell statuses 130 and 143) do not trigger a retry."
+      },
+      "obligation": "Cancellation must propagate without creating direct compiler output.",
+      "implementation_or_test_evidence": [
+        "fallback_probes.py:main",
+        "src/fallback.rs:99 status_attempt",
+        "raw/fallback-exit-130.json",
+        "raw/fallback-exit-143.json"
+      ],
+      "observed_verdict": "executed-pass",
+      "scope_limit": "Shell-forwarded statuses 130/143, not live signal-race sampling."
+    },
+    {
+      "id": "disabled",
+      "source": {
+        "path": "docs/getting-started/quick-start.mdx",
+        "line": 126,
+        "quote": "This keeps the wrapper in place but passes compiler work through."
+      },
+      "obligation": "KACHE_DISABLED=1 must directly compile and skip configured fallback.",
+      "implementation_or_test_evidence": [
+        "fallback_probes.py:main",
+        "raw/disabled-no-fallback.json",
+        "raw/disabled-direct-run.json"
+      ],
+      "observed_verdict": "executed-pass",
+      "scope_limit": "Single Rust compiler invocation; installer configuration belongs to CLI owner."
+    },
+    {
+      "id": "local-without-daemon",
+      "source": {
+        "path": "docs/daemon/overview.mdx",
+        "line": 39,
+        "quote": "Local-only caching works with no daemon."
+      },
+      "obligation": "An unavailable isolated daemon must not prevent local restore and compile.",
+      "implementation_or_test_evidence": [
+        "contract_probes.py:environment",
+        "raw/relocation-events.json"
+      ],
+      "observed_verdict": "executed-pass",
+      "scope_limit": "No remote configured; no live-daemon crash timing."
+    },
+    {
+      "id": "coalescing",
+      "source": {
+        "path": "docs/how-it-works/limits.mdx",
+        "line": 20,
+        "quote": "Two cargo processes that miss the same crate still share one real compile when the first stores an entry the second can restore."
+      },
+      "obligation": "Matching concurrent misses should avoid duplicate successful compilation.",
+      "implementation_or_test_evidence": [
+        "scenarios/e2e-rust-parallel-coalesce/scenario.toml",
+        "primary owner audit_rust_wrapper"
+      ],
+      "observed_verdict": "delegated-not-independently-executed",
+      "scope_limit": "No concurrency proof claimed by this secondary sweep."
+    },
+    {
+      "id": "compiler-identity",
+      "source": {
+        "path": "docs/how-it-works/cache-key.mdx",
+        "line": 12,
+        "quote": "- rustc identity and target, including the contents of a custom target spec file"
+      },
+      "obligation": "Changed modeled compiler and target identity must separate incompatible output.",
+      "implementation_or_test_evidence": [
+        "src/cache_key.rs:2996 compute_key_into",
+        "src/cache_key.rs:8668 get_rustc_version",
+        "primary owner audit_key_native_inputs"
+      ],
+      "observed_verdict": "delegated",
+      "scope_limit": "Reported version identity sampled in source only; custom sysroot content documented salt boundary."
+    },
+    {
+      "id": "restores-safe",
+      "source": {
+        "path": "docs/deduplication.mdx",
+        "line": 28,
+        "quote": "Other executable and loadable outputs use clone or copy, never the hardlink fallback"
+      },
+      "obligation": "Post-restore executable mutation must not alter cache bytes.",
+      "implementation_or_test_evidence": [
+        "primary owner audit_store_core",
+        "primary owner audit_filesystem_targets"
+      ],
+      "observed_verdict": "delegated",
+      "scope_limit": "Store integrity and platform restoration execution belong to primary risk seams."
+    },
+    {
+      "id": "time-saved",
+      "source": {
+        "path": "docs/getting-started/quick-start.mdx",
+        "line": 72,
+        "quote": "The report's Time saved row is compile work avoided: the summed compile time of the entries that hit, not elapsed build time saved."
+      },
+      "obligation": "Interpret reuse counters as aggregate compiler work rather than elapsed speedup.",
+      "implementation_or_test_evidence": [
+        "docs/benchmarks.mdx",
+        "primary owner release_performance"
+      ],
+      "observed_verdict": "explicit-measurement-boundary",
+      "scope_limit": "This sweep performs no load-sensitive benchmark; no performance verdict."
+    },
+    {
+      "id": "undeclared-script-state",
+      "source": {
+        "path": "docs/how-it-works/build-scripts.mdx",
+        "line": 276,
+        "quote": "It does not cover state a script probes\nwithout declaring it: system libraries, `pkg-config` results, or tools found on\n`PATH`."
+      },
+      "obligation": "Undeclared tool changes are outside the run-reuse guarantee.",
+      "implementation_or_test_evidence": [
+        "docs/how-it-works/build-scripts.mdx:Limits"
+      ],
+      "observed_verdict": "explicit-limit-dismissal",
+      "scope_limit": "Reopens when a declaration exists yet changed state produces a stale run."
+    },
+    {
+      "id": "derived-script-path",
+      "source": {
+        "path": "docs/how-it-works/build-scripts.mdx",
+        "line": 272,
+        "quote": "A\nvalue the script derives from a root without spelling it, such as its length or\na hash, is restored unchanged and can be wrong there."
+      },
+      "obligation": "Nonhermetic transformed-root values are explicitly outside safe relocation claims.",
+      "implementation_or_test_evidence": [
+        "docs/how-it-works/build-scripts.mdx:Limits"
+      ],
+      "observed_verdict": "explicit-limit-dismissal",
+      "scope_limit": "Hermetic mode uses a shared OUT_DIR; not independently exercised here."
+    },
+    {
+      "id": "rustdoc-compatibility",
+      "source": {
+        "path": "docs/getting-started/rustdoc.mdx",
+        "line": 13,
+        "quote": "Kache does not\nsupport those arguments yet, so documentation passes through on Rust 1.99"
+      },
+      "obligation": "Rust 1.99 documentation caching is explicitly not promised.",
+      "implementation_or_test_evidence": [
+        "docs/index.mdx:Current support",
+        "primary owner audit_rust_wrapper"
+      ],
+      "observed_verdict": "explicit-limit-dismissal",
+      "scope_limit": "No older compatible Cargo/rustdoc binary built in this sweep."
+    },
+    {
+      "id": "executable-policy-default-bin",
+      "source": {
+        "path": "docs/getting-started/configuration.mdx",
+        "quote": "Cache eligible Rust bins and test executables"
+      },
+      "obligation": "cache_executables=false must suppress caching of a default-bin rustc invocation and allow ordinary fallback routing.",
+      "implementation_or_test_evidence": [
+        "src/args.rs:755 is_user_facing_executable",
+        "src/wrapper.rs:3802 run_parsed_rustc",
+        "default_bin_policy.py",
+        "raw/default-bin-policy.log"
+      ],
+      "observed_verdict": "confirmed-defect CONTRACT-BIN-001",
+      "scope_limit": "Direct/custom rustc invocations; normal Cargo explicitly passes bin."
+    }
+  ]
+}

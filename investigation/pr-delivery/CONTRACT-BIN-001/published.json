@@ -1,0 +1,8 @@
+{
+  "id": "CONTRACT-BIN-001",
+  "url": "https://github.com/kunobi-ninja/kache/pull/1516",
+  "branch": "fix/contract-bin-001",
+  "fix_commit": "44d79666bacc71d75eb52c342f42aed8e5b776f6",
+  "state": "draft",
+  "review": "investigation/pr-delivery/reviews/CONTRACT-BIN-001.md"
+}

@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+    "/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/rustc",
+    "--crate-name",
+    "fallback_fixture",
+    "--crate-type",
+    "bin",
+    "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/fallback/main.rs",
+    "--out-dir",
+    "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/fallback"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/fallback",
+  "returncode": 0,
+  "stdout": "",
+  "stderr": "fallback-diagnostickache: warning: fallback `/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/fallback/fallback`: exit status: 42; compiling directly without fallback\n"
+}

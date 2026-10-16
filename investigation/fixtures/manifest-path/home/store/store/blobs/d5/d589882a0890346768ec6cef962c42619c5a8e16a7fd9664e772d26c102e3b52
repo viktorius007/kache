@@ -1,0 +1,7 @@
+__kache_root__/debug/deps/contract_fixture-49207097789c0670.d: src/main.rs
+
+__kache_root__/debug/deps/contract_fixture-49207097789c0670: src/main.rs
+
+src/main.rs:
+
+# env-dep:CARGO_MANIFEST_DIR=/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/manifest-path/b

@@ -1,0 +1,19 @@
+{
+  "id": "CONTRACT-BIN-001",
+  "branch": "fix/contract-bin-001",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/contract-bin-001",
+  "test_commit": "ba54810fce5d6461a6927e4884cbfbd4420a0952",
+  "fix_commit": "44d79666bacc71d75eb52c342f42aed8e5b776f6",
+  "title": "Honor executable cache policy for default rustc binaries",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/pr-delivery/CONTRACT-BIN-001/pr-body.md",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "gate_command": "CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/contract-bin-001/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py just check",
+  "gate_exit": 0,
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/pr-delivery/CONTRACT-BIN-001/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/pr-delivery/CONTRACT-BIN-001/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/pr-delivery/CONTRACT-BIN-001/gate.log",
+  "changed_files": [
+    "src/args.rs",
+    "tests/adaptive_incremental_test.rs"
+  ]
+}

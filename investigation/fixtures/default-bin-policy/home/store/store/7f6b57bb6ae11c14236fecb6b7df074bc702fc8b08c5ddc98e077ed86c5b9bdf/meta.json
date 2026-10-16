@@ -1,0 +1,23 @@
+{
+  "cache_key": "7f6b57bb6ae11c14236fecb6b7df074bc702fc8b08c5ddc98e077ed86c5b9bdf",
+  "key_schema": 32,
+  "crate_name": "default_bin_fixture",
+  "crate_types": [],
+  "files": [
+    {
+      "name": "default_bin_fixture",
+      "size": 471552,
+      "hash": "c939523da77e13619712d09bae78a08c104e2eb4c2b1c6535a646b633aea6dec",
+      "executable": true
+    }
+  ],
+  "stdout": "",
+  "stderr": "",
+  "features": [],
+  "target": "host",
+  "profile": "dev",
+  "compile_time_ms": 70,
+  "emit_kinds": [
+    "link"
+  ]
+}

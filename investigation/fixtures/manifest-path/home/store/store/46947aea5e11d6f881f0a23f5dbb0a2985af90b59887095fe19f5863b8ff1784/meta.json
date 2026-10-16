@@ -1,0 +1,38 @@
+{
+  "cache_key": "46947aea5e11d6f881f0a23f5dbb0a2985af90b59887095fe19f5863b8ff1784",
+  "key_schema": 32,
+  "crate_name": "contract_fixture",
+  "crate_types": [
+    "bin"
+  ],
+  "files": [
+    {
+      "name": "contract_fixture-49207097789c0670.d",
+      "size": 311,
+      "hash": "d589882a0890346768ec6cef962c42619c5a8e16a7fd9664e772d26c102e3b52",
+      "executable": false
+    },
+    {
+      "name": "contract_fixture-49207097789c0670",
+      "size": 472336,
+      "hash": "c4b9379556d60041dc4e4085b54d4ff2a8b93629350309d781ab655c58926d81",
+      "executable": true
+    },
+    {
+      "name": "contract_fixture-49207097789c0670.dsym.tar",
+      "size": 2348544,
+      "hash": "f4ee3fa4593daf7b48247c22a623e50f133791a35d396ae9741ca65139b3166d",
+      "executable": false
+    }
+  ],
+  "stdout": "",
+  "stderr": "{\"$message_type\":\"artifact\",\"artifact\":\"/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/manifest-path/b/target/debug/deps/contract_fixture-49207097789c0670.d\",\"emit\":\"dep-info\"}\n{\"$message_type\":\"artifact\",\"artifact\":\"/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/fixtures/manifest-path/b/target/debug/deps/contract_fixture-49207097789c0670\",\"emit\":\"link\"}\n",
+  "features": [],
+  "target": "host",
+  "profile": "dev",
+  "compile_time_ms": 66,
+  "emit_kinds": [
+    "dep-info",
+    "link"
+  ]
+}
