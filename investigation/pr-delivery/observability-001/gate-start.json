@@ -1,0 +1,21 @@
+{
+  "commit": "bbe72d7a4f0f219dc6a7c6a0ba59311510b79563",
+  "HOME": "/Users/viktor",
+  "TMPDIR": "/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/",
+  "test_threads": 1,
+  "diagnosis": "Coordinated cargo-agent controls reproduced the sandbox test failure with globally temporary HOME alone or TMPDIR alone; normal toolchain HOME/TMPDIR passes. The runner now retains inherited toolchain HOME/TMPDIR. Per-CLI fixtures remain isolated. No source changes, skips, or warming.",
+  "failed_logs": [
+    "gate-sandbox-preflight-failed.log",
+    "sandbox-control.log",
+    "sandbox-warm-control.log"
+  ],
+  "private_target": "/Users/viktor/Developer/github/kache-prs/observability-003/target",
+  "command": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-001/run.py",
+    "gate.log",
+    "just",
+    "check"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-prs/observability-001"
+}

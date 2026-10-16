@@ -1,0 +1,3 @@
+CONTROL rustc produced rlib; production event records admission-threshold
+OBSERVED report bypass root = redacted
+CONTROL ordinary report retains workspace root and identical summary; redacted bypass root is redacted

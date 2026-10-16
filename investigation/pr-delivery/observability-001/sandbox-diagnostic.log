@@ -1,0 +1,30 @@
+{
+  "pid": 17422,
+  "server": "/private/tmp/obs-sandbox-ai5tcqr8/sccache",
+  "port": 60850,
+  "lsof": [
+    {
+      "elapsed_ms": 232.58416699999998,
+      "exit": 0,
+      "stdout": "p17422\nf3\n",
+      "stderr": ""
+    },
+    {
+      "elapsed_ms": 59.345790999999984,
+      "exit": 0,
+      "stdout": "p17422\nf3\n",
+      "stderr": ""
+    },
+    {
+      "elapsed_ms": 60.31183299999998,
+      "exit": 0,
+      "stdout": "p17422\nf3\n",
+      "stderr": ""
+    }
+  ],
+  "native_policy": {
+    "sandboxed": 1,
+    "denies_create": 1,
+    "denies_data": 1
+  }
+}

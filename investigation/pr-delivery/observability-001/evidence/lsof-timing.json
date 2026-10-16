@@ -1,0 +1,23 @@
+[
+  {
+    "sample": 0,
+    "elapsed_ms": 231.71279100000004,
+    "exit": 0,
+    "stdout": "p60117\nf3\n",
+    "expected_pid": 60117
+  },
+  {
+    "sample": 1,
+    "elapsed_ms": 58.55091699999998,
+    "exit": 0,
+    "stdout": "p60117\nf3\n",
+    "expected_pid": 60117
+  },
+  {
+    "sample": 2,
+    "elapsed_ms": 57.966416000000024,
+    "exit": 0,
+    "stdout": "p60117\nf3\n",
+    "expected_pid": 60117
+  }
+]

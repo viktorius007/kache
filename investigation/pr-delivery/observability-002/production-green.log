@@ -1,0 +1,3 @@
+CONTROL rustc produced rlib; production event records admission-threshold
+OBSERVED report reason = admission-threshold
+CONTROL successful skip remains skipped with zero errors and dedicated grouped reason

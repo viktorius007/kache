@@ -1,0 +1,8 @@
+{
+  "id": "observability-003",
+  "url": "https://github.com/kunobi-ninja/kache/pull/1518",
+  "branch": "fix/observability-003",
+  "fix_commit": "106ea8bb3352b78d2e09d01d7fbc8228478003ad",
+  "state": "draft",
+  "review": "investigation/pr-delivery/reviews/observability-003.md"
+}

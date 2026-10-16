@@ -1,0 +1,244 @@
+[
+  {
+    "id": "observability-001",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T05:59:09.916080+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 Codex",
+      "mode": "production-readiness",
+      "slice": "observability"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Redacted JSON reports expose workspace roots in bypass.slowest rows.",
+    "scenario": "A real successful Rust compile is skipped from retention by configured min_store_compile_ms=60000; stats --format json --redact redacts trace args.root but emits the private workspace path in bypass.slowest[0].root.",
+    "evidence": [
+      {
+        "path": "src/report.rs",
+        "lines": "1888-1903",
+        "point": "to_bypass_detail copies e.root into BypassDetail.root."
+      },
+      {
+        "path": "src/report.rs",
+        "lines": "2785-2821",
+        "point": "redact_report visits meta, trace, event details, errors and transfers but never report.bypass.slowest."
+      },
+      {
+        "path": "src/cli.rs",
+        "lines": "1738-1744",
+        "point": "Production CLI calls redact_report before JSON serialization."
+      },
+      {
+        "path": "docs/commands/reference.mdx",
+        "lines": "337-355",
+        "point": "Roots must be replaced with redacted; --redact applies to every format."
+      }
+    ],
+    "trace": "actual kache/rustc compile \u2192 wrapper admission gate \u2192 schema26 Skipped root \u2192 build_bypass_analysis/to_bypass_detail \u2192 CLI redact_report omits bypass \u2192 JSON stdout retains root.",
+    "authority": {
+      "source": "docs/commands/reference.mdx:337,355 and src/report.rs:2785-2787",
+      "quote": "Replace cache keys, roots, object keys, and object paths with redacted; --redact applies to every format."
+    },
+    "proof": {
+      "red_test": "#!/usr/bin/env python3\n\"\"\"Actual untouched Kache + rustc compile proving reports lose skip reasons.\"\"\"\nimport argparse\nimport json\nimport os\nfrom pathlib import Path\nimport subprocess\nimport tempfile\n\nKACHE = '/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache'\nRUSTC = '/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/rustc'\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument('case', choices=['skip-reason', 'redact-root', 'torn-utf8'])\n    args = parser.parse_args()\n    evidence = Path(__file__).resolve().parents[1] / 'evidence'\n    with tempfile.TemporaryDirectory(prefix='obs-', dir='/private/tmp') as tmp:\n        fixture = Path(tmp)\n        workspace = fixture / ('customer-secret-workspace-\u20ac' if args.case == 'torn-utf8' else 'customer-secret-workspace')\n        out = workspace / 'target/debug/deps'\n        out.mkdir(parents=True)\n        source = workspace / 'lib.rs'\n        source.write_text('pub fn number() -> u32 { 42 }\\n')\n        (workspace / 'Cargo.toml').write_text('[package]\\nname=\"fixture\"\\nversion=\"0.1.0\"\\nedition=\"2024\"\\n[lib]\\npath=\"lib.rs\"\\n')\n        config = fixture / 'config.toml'\n        config.write_text('[cache]\\nmin_store_compile_ms=60000\\n')\n        host = fixture / 'host.toml'\n        host.write_text('')\n        home = fixture / 'home'\n        home.mkdir()\n        env = {key: value for key, value in os.environ.items() if not key.startswith(('KACHE_', 'CARGO_', 'RUSTC_', 'RUSTFLAGS'))}\n        env.update(HOME=str(home), XDG_CONFIG_HOME=str(home / '.config'), KACHE_CONFIG=str(config),\n                   KACHE_HOST_CONFIG=str(host), KACHE_CACHE_DIR=str(fixture / 'cache'),\n                   KACHE_RUNTIME_DIR=str(fixture / 'runtime'), KACHE_SOCKET_PATH=str(fixture / 'daemon.sock'),\n                   KACHE_PROGRESS='0', CARGO_MANIFEST_DIR=str(workspace), CARGO_PKG_NAME='fixture',\n                   CARGO_PRIMARY_PACKAGE='1', CARGO_PKG_VERSION='0.1.0')\n        compiler_argv = [KACHE, RUSTC, '--crate-name', 'fixture', '--crate-type', 'rlib', '--edition', '2024',\n                         '--emit=dep-info,metadata,link', '-C', 'extra-filename=-fixture',\n                         '--out-dir', str(out), str(source)]\n        if args.case == 'torn-utf8':\n            first = subprocess.run(compiler_argv, env=env, cwd=workspace, capture_output=True, text=True, timeout=30)\n            assert first.returncode == 0, 'initial unicode-root production compile failed: ' + first.stderr\n            initial = (fixture / 'runtime/events.jsonl').read_bytes()\n            unicode_at = initial.index('\u20ac'.encode())\n            interrupted = initial[:unicode_at + 1]\n            (evidence / 'real-torn-utf8.complete-before.bin').write_bytes(initial)\n            (evidence / 'real-torn-utf8.interrupted.bin').write_bytes(interrupted)\n            (fixture / 'runtime/events.jsonl').write_bytes(interrupted)\n        compiled = subprocess.run(compiler_argv, env=env, cwd=workspace, capture_output=True, text=True, timeout=30)\n        assert compiled.returncode == 0, 'production compile failed: ' + compiled.stderr\n        assert (out / 'libfixture-fixture.rlib').exists(), 'actual rustc artifact missing'\n        events_path = fixture / 'runtime/events.jsonl'\n        raw = events_path.read_bytes()\n        (evidence / ('real-' + args.case + '.events.bin')).write_bytes(raw)\n        events = []\n        for line in raw.splitlines():\n            try:\n                events.append(json.loads(line))\n            except (ValueError, UnicodeDecodeError):\n                pass\n        (evidence / ('real-' + args.case + '.events.json')).write_text(json.dumps(events, indent=2))\n        skipped = [event for event in events if event.get('result') == 'skipped']\n        assert len(skipped) == 1 and skipped[0]['skip_reason'] == 'admission-threshold', 'production skip gate control failed'\n        report_argv = [KACHE, 'stats', '--format', 'json']\n        if args.case == 'redact-root':\n            report_argv.append('--redact')\n        reported = subprocess.run(report_argv, env=env, cwd=workspace, capture_output=True, text=True, timeout=20)\n        (evidence / ('real-' + args.case + '.report.stderr.txt')).write_text(reported.stderr)\n        (evidence / ('real-' + args.case + '.compile.stderr.txt')).write_text(compiled.stderr)\n        if args.case == 'torn-utf8':\n            print('CONTROL rustc produced rlib; next valid event retained after repaired newline', flush=True)\n            print('OBSERVED stats exit = ' + str(reported.returncode) + '; stderr = ' + reported.stderr.strip(), flush=True)\n            assert reported.returncode == 0, 'TORN_UTF8_POISONS_REPORT: valid production event unavailable after interrupted unicode log record'\n            return\n        assert reported.returncode == 0, reported.stderr\n        (evidence / ('real-' + args.case + '.report.json')).write_text(reported.stdout)\n        (evidence / ('real-' + args.case + '.compile.stderr.txt')).write_text(compiled.stderr)\n        report = json.loads(reported.stdout)\n        row = report['bypass']['slowest'][0]\n        print('CONTROL rustc produced rlib; production event records admission-threshold', flush=True)\n        if args.case == 'skip-reason':\n            print('OBSERVED report reason = ' + row['reason'], flush=True)\n            assert row['reason'] == 'admission-threshold', 'SKIP_REASON_LOST: production skip became unknown in report'\n        else:\n            assert report['traceEvents'][0]['args']['root'] == 'redacted', 'redaction control failed'\n            print('OBSERVED report bypass root = ' + row['root'], flush=True)\n            assert row['root'] == 'redacted', 'REDACT_BYPASS_ROOT_LEAK: production root survives --redact'\n\nif __name__ == '__main__':\n    main()\n",
+      "name": "real_compile_report:redact-root",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "CONTROL rustc produced rlib; production event records admission-threshold\nOBSERVED report bypass root = /private/tmp/obs-1ae59xvg/customer-secret-workspace\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/probes/real_compile_report.py\", line 91, in <module>\n    main()\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/probes/real_compile_report.py\", line 88, in main\n    assert row['root'] == 'redacted', 'REDACT_BYPASS_ROOT_LEAK: production root survives --redact'\nAssertionError: REDACT_BYPASS_ROOT_LEAK: production root survives --redact\n",
+      "artifacts": [
+        "investigation/probes/real_compile_report.py",
+        "investigation/evidence/red-redact-root.result.json",
+        "investigation/evidence/red-redact-root.stdout.txt",
+        "investigation/evidence/red-redact-root.stderr.txt"
+      ]
+    },
+    "severity": "Privacy/operational defect: explicitly sanitized shareable JSON leaks typed workspace root, which can reveal user/customer/project naming. Ordinary skipped/passthrough activity is reachable. Requires sharing the report; no artifact corruption or secrets beyond the recorded path established. Medium priority relative to observability slice.",
+    "status": "open"
+  },
+  {
+    "id": "observability-002",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T05:59:09.916080+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 Codex",
+      "mode": "production-readiness",
+      "slice": "observability"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Report bypass reasons discard the dedicated skip_reason recorded by successful Rust skip gates.",
+    "scenario": "The same real compile records result=skipped and skip_reason=admission-threshold while passthrough_reason is empty; report bypass.slowest.reason and grouped reasons become unknown.",
+    "evidence": [
+      {
+        "path": "src/report.rs",
+        "lines": "1943-1950",
+        "point": "bypass_reason reads only e.passthrough_reason, returning unknown for empty."
+      },
+      {
+        "path": "src/wrapper.rs",
+        "lines": "4733-4752",
+        "point": "Production put-side admission gate emits EventResult::Skipped with skip_reason(admission-threshold)."
+      },
+      {
+        "path": "src/report/tests.rs",
+        "lines": "3018-3031",
+        "point": "Skipped test fixture populates passthrough_reason rather than dedicated skip_reason."
+      }
+    ],
+    "trace": "actual compiler succeeds \u2192 wrapper emits admission-threshold skip_reason \u2192 report skipped route \u2192 bypass_reason ignores field \u2192 unknown row and grouping.",
+    "authority": {
+      "source": "failure-mode and actual producer/consumer semantics",
+      "quote": "A successful compile declined by put-side admission control records its reason in skip_reason; the report exposes bypass reasons for operational diagnosis."
+    },
+    "proof": {
+      "red_test": "#!/usr/bin/env python3\n\"\"\"Actual untouched Kache + rustc compile proving reports lose skip reasons.\"\"\"\nimport argparse\nimport json\nimport os\nfrom pathlib import Path\nimport subprocess\nimport tempfile\n\nKACHE = '/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache'\nRUSTC = '/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/rustc'\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument('case', choices=['skip-reason', 'redact-root', 'torn-utf8'])\n    args = parser.parse_args()\n    evidence = Path(__file__).resolve().parents[1] / 'evidence'\n    with tempfile.TemporaryDirectory(prefix='obs-', dir='/private/tmp') as tmp:\n        fixture = Path(tmp)\n        workspace = fixture / ('customer-secret-workspace-\u20ac' if args.case == 'torn-utf8' else 'customer-secret-workspace')\n        out = workspace / 'target/debug/deps'\n        out.mkdir(parents=True)\n        source = workspace / 'lib.rs'\n        source.write_text('pub fn number() -> u32 { 42 }\\n')\n        (workspace / 'Cargo.toml').write_text('[package]\\nname=\"fixture\"\\nversion=\"0.1.0\"\\nedition=\"2024\"\\n[lib]\\npath=\"lib.rs\"\\n')\n        config = fixture / 'config.toml'\n        config.write_text('[cache]\\nmin_store_compile_ms=60000\\n')\n        host = fixture / 'host.toml'\n        host.write_text('')\n        home = fixture / 'home'\n        home.mkdir()\n        env = {key: value for key, value in os.environ.items() if not key.startswith(('KACHE_', 'CARGO_', 'RUSTC_', 'RUSTFLAGS'))}\n        env.update(HOME=str(home), XDG_CONFIG_HOME=str(home / '.config'), KACHE_CONFIG=str(config),\n                   KACHE_HOST_CONFIG=str(host), KACHE_CACHE_DIR=str(fixture / 'cache'),\n                   KACHE_RUNTIME_DIR=str(fixture / 'runtime'), KACHE_SOCKET_PATH=str(fixture / 'daemon.sock'),\n                   KACHE_PROGRESS='0', CARGO_MANIFEST_DIR=str(workspace), CARGO_PKG_NAME='fixture',\n                   CARGO_PRIMARY_PACKAGE='1', CARGO_PKG_VERSION='0.1.0')\n        compiler_argv = [KACHE, RUSTC, '--crate-name', 'fixture', '--crate-type', 'rlib', '--edition', '2024',\n                         '--emit=dep-info,metadata,link', '-C', 'extra-filename=-fixture',\n                         '--out-dir', str(out), str(source)]\n        if args.case == 'torn-utf8':\n            first = subprocess.run(compiler_argv, env=env, cwd=workspace, capture_output=True, text=True, timeout=30)\n            assert first.returncode == 0, 'initial unicode-root production compile failed: ' + first.stderr\n            initial = (fixture / 'runtime/events.jsonl').read_bytes()\n            unicode_at = initial.index('\u20ac'.encode())\n            interrupted = initial[:unicode_at + 1]\n            (evidence / 'real-torn-utf8.complete-before.bin').write_bytes(initial)\n            (evidence / 'real-torn-utf8.interrupted.bin').write_bytes(interrupted)\n            (fixture / 'runtime/events.jsonl').write_bytes(interrupted)\n        compiled = subprocess.run(compiler_argv, env=env, cwd=workspace, capture_output=True, text=True, timeout=30)\n        assert compiled.returncode == 0, 'production compile failed: ' + compiled.stderr\n        assert (out / 'libfixture-fixture.rlib').exists(), 'actual rustc artifact missing'\n        events_path = fixture / 'runtime/events.jsonl'\n        raw = events_path.read_bytes()\n        (evidence / ('real-' + args.case + '.events.bin')).write_bytes(raw)\n        events = []\n        for line in raw.splitlines():\n            try:\n                events.append(json.loads(line))\n            except (ValueError, UnicodeDecodeError):\n                pass\n        (evidence / ('real-' + args.case + '.events.json')).write_text(json.dumps(events, indent=2))\n        skipped = [event for event in events if event.get('result') == 'skipped']\n        assert len(skipped) == 1 and skipped[0]['skip_reason'] == 'admission-threshold', 'production skip gate control failed'\n        report_argv = [KACHE, 'stats', '--format', 'json']\n        if args.case == 'redact-root':\n            report_argv.append('--redact')\n        reported = subprocess.run(report_argv, env=env, cwd=workspace, capture_output=True, text=True, timeout=20)\n        (evidence / ('real-' + args.case + '.report.stderr.txt')).write_text(reported.stderr)\n        (evidence / ('real-' + args.case + '.compile.stderr.txt')).write_text(compiled.stderr)\n        if args.case == 'torn-utf8':\n            print('CONTROL rustc produced rlib; next valid event retained after repaired newline', flush=True)\n            print('OBSERVED stats exit = ' + str(reported.returncode) + '; stderr = ' + reported.stderr.strip(), flush=True)\n            assert reported.returncode == 0, 'TORN_UTF8_POISONS_REPORT: valid production event unavailable after interrupted unicode log record'\n            return\n        assert reported.returncode == 0, reported.stderr\n        (evidence / ('real-' + args.case + '.report.json')).write_text(reported.stdout)\n        (evidence / ('real-' + args.case + '.compile.stderr.txt')).write_text(compiled.stderr)\n        report = json.loads(reported.stdout)\n        row = report['bypass']['slowest'][0]\n        print('CONTROL rustc produced rlib; production event records admission-threshold', flush=True)\n        if args.case == 'skip-reason':\n            print('OBSERVED report reason = ' + row['reason'], flush=True)\n            assert row['reason'] == 'admission-threshold', 'SKIP_REASON_LOST: production skip became unknown in report'\n        else:\n            assert report['traceEvents'][0]['args']['root'] == 'redacted', 'redaction control failed'\n            print('OBSERVED report bypass root = ' + row['root'], flush=True)\n            assert row['root'] == 'redacted', 'REDACT_BYPASS_ROOT_LEAK: production root survives --redact'\n\nif __name__ == '__main__':\n    main()\n",
+      "name": "real_compile_report:skip-reason",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "CONTROL rustc produced rlib; production event records admission-threshold\nOBSERVED report reason = unknown\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/probes/real_compile_report.py\", line 91, in <module>\n    main()\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/probes/real_compile_report.py\", line 84, in main\n    assert row['reason'] == 'admission-threshold', 'SKIP_REASON_LOST: production skip became unknown in report'\nAssertionError: SKIP_REASON_LOST: production skip became unknown in report\n",
+      "artifacts": [
+        "investigation/probes/real_compile_report.py",
+        "investigation/evidence/red-skip-reason.result.json",
+        "investigation/evidence/red-skip-reason.stdout.txt",
+        "investigation/evidence/red-skip-reason.stderr.txt"
+      ]
+    },
+    "severity": "Lower-priority diagnosis gap. Hides why retention was declined and merges distinct safeguards/admission policies into unknown. No evidence of integrity failure, wrong reuse or compiler result change. Only report consumer proven; other diagnostics not independently asserted.",
+    "status": "open"
+  },
+  {
+    "id": "observability-003",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T05:59:09.916080+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 Codex",
+      "mode": "production-readiness",
+      "slice": "observability"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "An interrupted event record inside a UTF-8 character poisons reporting even after the next valid event is appended.",
+    "scenario": "First compile successfully in a Unicode workspace so the baseline emits a genuine event. Truncate that actual serialized record immediately after the first byte of its workspace-root multibyte character, modeling an interrupted write. A real successful compiler appends a complete event after newline repair. stats --format json then exits 1 with invalid UTF-8 instead of skipping the abandoned fragment and reporting the valid event.",
+    "evidence": [
+      {
+        "path": "src/events.rs",
+        "lines": "684-705",
+        "point": "append_log_line terminates an abandoned byte fragment with newline but preserves incomplete UTF-8."
+      },
+      {
+        "path": "src/events.rs",
+        "lines": "824-843",
+        "point": "read_events_and uses reader.lines(); line? aborts before invalid JSON skip logic when UTF-8 decoding fails."
+      },
+      {
+        "path": "src/events.rs",
+        "lines": "1234-1242",
+        "point": "Rotation also reads entire log as UTF-8 text, so source indicates ordinary rotation cannot clear invalid bytes; rotation consequence not separately executed."
+      }
+    ],
+    "trace": "short write/process interruption in unicode JSON root \u2192 next ordinary wrapper append repairs newline \u2192 good compiler event preserved \u2192 stats/read_events_and decodes abandoned fragment \u2192 I/O invalid UTF-8 aborts report.",
+    "authority": {
+      "source": "src/events.rs:684-689 interrupted-write recovery contract and failure-mode",
+      "quote": "Terminate the abandoned fragment as its own (invalid, skipped) record first; the valid event must survive."
+    },
+    "proof": {
+      "red_test": "#!/usr/bin/env python3\n\"\"\"Actual untouched Kache + rustc compile proving reports lose skip reasons.\"\"\"\nimport argparse\nimport json\nimport os\nfrom pathlib import Path\nimport subprocess\nimport tempfile\n\nKACHE = '/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache'\nRUSTC = '/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/rustc'\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument('case', choices=['skip-reason', 'redact-root', 'torn-utf8'])\n    args = parser.parse_args()\n    evidence = Path(__file__).resolve().parents[1] / 'evidence'\n    with tempfile.TemporaryDirectory(prefix='obs-', dir='/private/tmp') as tmp:\n        fixture = Path(tmp)\n        workspace = fixture / ('customer-secret-workspace-\u20ac' if args.case == 'torn-utf8' else 'customer-secret-workspace')\n        out = workspace / 'target/debug/deps'\n        out.mkdir(parents=True)\n        source = workspace / 'lib.rs'\n        source.write_text('pub fn number() -> u32 { 42 }\\n')\n        (workspace / 'Cargo.toml').write_text('[package]\\nname=\"fixture\"\\nversion=\"0.1.0\"\\nedition=\"2024\"\\n[lib]\\npath=\"lib.rs\"\\n')\n        config = fixture / 'config.toml'\n        config.write_text('[cache]\\nmin_store_compile_ms=60000\\n')\n        host = fixture / 'host.toml'\n        host.write_text('')\n        home = fixture / 'home'\n        home.mkdir()\n        env = {key: value for key, value in os.environ.items() if not key.startswith(('KACHE_', 'CARGO_', 'RUSTC_', 'RUSTFLAGS'))}\n        env.update(HOME=str(home), XDG_CONFIG_HOME=str(home / '.config'), KACHE_CONFIG=str(config),\n                   KACHE_HOST_CONFIG=str(host), KACHE_CACHE_DIR=str(fixture / 'cache'),\n                   KACHE_RUNTIME_DIR=str(fixture / 'runtime'), KACHE_SOCKET_PATH=str(fixture / 'daemon.sock'),\n                   KACHE_PROGRESS='0', CARGO_MANIFEST_DIR=str(workspace), CARGO_PKG_NAME='fixture',\n                   CARGO_PRIMARY_PACKAGE='1', CARGO_PKG_VERSION='0.1.0')\n        compiler_argv = [KACHE, RUSTC, '--crate-name', 'fixture', '--crate-type', 'rlib', '--edition', '2024',\n                         '--emit=dep-info,metadata,link', '-C', 'extra-filename=-fixture',\n                         '--out-dir', str(out), str(source)]\n        if args.case == 'torn-utf8':\n            first = subprocess.run(compiler_argv, env=env, cwd=workspace, capture_output=True, text=True, timeout=30)\n            assert first.returncode == 0, 'initial unicode-root production compile failed: ' + first.stderr\n            initial = (fixture / 'runtime/events.jsonl').read_bytes()\n            unicode_at = initial.index('\u20ac'.encode())\n            interrupted = initial[:unicode_at + 1]\n            (evidence / 'real-torn-utf8.complete-before.bin').write_bytes(initial)\n            (evidence / 'real-torn-utf8.interrupted.bin').write_bytes(interrupted)\n            (fixture / 'runtime/events.jsonl').write_bytes(interrupted)\n        compiled = subprocess.run(compiler_argv, env=env, cwd=workspace, capture_output=True, text=True, timeout=30)\n        assert compiled.returncode == 0, 'production compile failed: ' + compiled.stderr\n        assert (out / 'libfixture-fixture.rlib').exists(), 'actual rustc artifact missing'\n        events_path = fixture / 'runtime/events.jsonl'\n        raw = events_path.read_bytes()\n        (evidence / ('real-' + args.case + '.events.bin')).write_bytes(raw)\n        events = []\n        for line in raw.splitlines():\n            try:\n                events.append(json.loads(line))\n            except (ValueError, UnicodeDecodeError):\n                pass\n        (evidence / ('real-' + args.case + '.events.json')).write_text(json.dumps(events, indent=2))\n        skipped = [event for event in events if event.get('result') == 'skipped']\n        assert len(skipped) == 1 and skipped[0]['skip_reason'] == 'admission-threshold', 'production skip gate control failed'\n        report_argv = [KACHE, 'stats', '--format', 'json']\n        if args.case == 'redact-root':\n            report_argv.append('--redact')\n        reported = subprocess.run(report_argv, env=env, cwd=workspace, capture_output=True, text=True, timeout=20)\n        (evidence / ('real-' + args.case + '.report.stderr.txt')).write_text(reported.stderr)\n        (evidence / ('real-' + args.case + '.compile.stderr.txt')).write_text(compiled.stderr)\n        if args.case == 'torn-utf8':\n            print('CONTROL rustc produced rlib; next valid event retained after repaired newline', flush=True)\n            print('OBSERVED stats exit = ' + str(reported.returncode) + '; stderr = ' + reported.stderr.strip(), flush=True)\n            assert reported.returncode == 0, 'TORN_UTF8_POISONS_REPORT: valid production event unavailable after interrupted unicode log record'\n            return\n        assert reported.returncode == 0, reported.stderr\n        (evidence / ('real-' + args.case + '.report.json')).write_text(reported.stdout)\n        (evidence / ('real-' + args.case + '.compile.stderr.txt')).write_text(compiled.stderr)\n        report = json.loads(reported.stdout)\n        row = report['bypass']['slowest'][0]\n        print('CONTROL rustc produced rlib; production event records admission-threshold', flush=True)\n        if args.case == 'skip-reason':\n            print('OBSERVED report reason = ' + row['reason'], flush=True)\n            assert row['reason'] == 'admission-threshold', 'SKIP_REASON_LOST: production skip became unknown in report'\n        else:\n            assert report['traceEvents'][0]['args']['root'] == 'redacted', 'redaction control failed'\n            print('OBSERVED report bypass root = ' + row['root'], flush=True)\n            assert row['root'] == 'redacted', 'REDACT_BYPASS_ROOT_LEAK: production root survives --redact'\n\nif __name__ == '__main__':\n    main()\n",
+      "name": "real_compile_report:torn-utf8",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "CONTROL rustc produced rlib; next valid event retained after repaired newline\nOBSERVED stats exit = 1; stderr = error: stream did not contain valid UTF-8\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/probes/real_compile_report.py\", line 91, in <module>\n    main()\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/probes/real_compile_report.py\", line 74, in main\n    assert reported.returncode == 0, 'TORN_UTF8_POISONS_REPORT: valid production event unavailable after interrupted unicode log record'\nAssertionError: TORN_UTF8_POISONS_REPORT: valid production event unavailable after interrupted unicode log record\n",
+      "artifacts": [
+        "investigation/probes/real_compile_report.py",
+        "investigation/evidence/red-torn-utf8.result.json",
+        "investigation/evidence/red-torn-utf8.stdout.txt",
+        "investigation/evidence/red-torn-utf8.stderr.txt"
+      ]
+    },
+    "severity": "Operational recovery defect after interrupted logging of unicode data. A single fragment blocks reports for subsequent valid compiles until log repair/replacement. Fixture executes actual producer and report consumer on macOS; it injects the interrupted byte state rather than timing a kill/disk-full event. Cache artifacts compile correctly; no cache integrity failure proven. Rotation consequence source-only.",
+    "status": "open"
+  },
+  {
+    "id": "observability-dismissal-001",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:59:09.916080+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 Codex",
+      "mode": "production-readiness",
+      "slice": "observability"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "False eviction after a nonpublished admission/safety skip. Examined stored_or_served Miss predicate against actual emitters and actual admission compile.",
+    "checked": "False eviction after a nonpublished admission/safety skip. Examined stored_or_served Miss predicate against actual emitters and actual admission compile.",
+    "closed_by": {
+      "tier": "production source + declared contract",
+      "citation": "src/tui_sessions.rs:647-653; src/wrapper.rs:4560-4756; evidence/real-skip-reason.events.json"
+    },
+    "reopens_if": "A producer labels a successful nonpublished result Miss with empty store_error instead of Skipped, or history starts treating Skipped as stored.",
+    "status": "dismissed"
+  },
+  {
+    "id": "observability-dismissal-002",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:59:09.916080+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 Codex",
+      "mode": "production-readiness",
+      "slice": "observability"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Transfer ambiguity causing cross-session attribution. Read complete production attribution and usefulness logic.",
+    "checked": "Transfer ambiguity causing cross-session attribution. Read complete production attribution and usefulness logic.",
+    "closed_by": {
+      "tier": "production source + declared contract",
+      "citation": "src/timeline.rs:260-297,393-515; explicit prefetch session, unique eligible key/window only; ambiguity returns None."
+    },
+    "reopens_if": "Origin session is mutated/omitted unexpectedly or ambiguous candidates become selected. Remote runtime lifecycle remains a consult limitation.",
+    "status": "dismissed"
+  },
+  {
+    "id": "observability-dismissal-003",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:59:09.916080+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 Codex",
+      "mode": "production-readiness",
+      "slice": "observability"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Unbounded causal-chain walk and mixed-unit roots. Reviewed complete production walk and identity filters.",
+    "checked": "Unbounded causal-chain walk and mixed-unit roots. Reviewed complete production walk and identity filters.",
+    "closed_by": {
+      "tier": "production source + declared contract",
+      "citation": "src/miss_chain.rs:83-87,377-520; MAX_DEPTH=12 and MAX_NODES=64 with explicit truncation, stable unit/root boundaries."
+    },
+    "reopens_if": "Walk branches bypass limits or identity gates change.",
+    "status": "dismissed"
+  },
+  {
+    "id": "observability-dismissal-004",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:59:09.916080+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "GPT-6 Codex",
+      "mode": "production-readiness",
+      "slice": "observability"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Savings ledger rotation crash loss treated as a durability violation.",
+    "checked": "Savings ledger rotation crash loss treated as a durability violation.",
+    "closed_by": {
+      "tier": "production source + declared contract",
+      "citation": "docs/commands/reference.mdx:310; src/events.rs:1194-1290; ledger fold after rotation is best effort and documentation qualifies crash durability."
+    },
+    "reopens_if": "Published contract guarantees durable all-time savings across crash or implementation double-counts under synchronized read.",
+    "status": "dismissed"
+  }
+]

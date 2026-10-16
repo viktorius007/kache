@@ -1,0 +1,9 @@
+{
+  "argv": [
+    "/Applications/Xcode.app/Contents/Developer/usr/bin/python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/probes/real_compile_report.py",
+    "skip-reason"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-observability",
+  "exit_code": 1
+}

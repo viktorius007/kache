@@ -1,0 +1,25 @@
+{
+  "id": "observability-002",
+  "branch": "fix/observability-002",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/observability-002",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "test_commit": "fb51c608a45297be5990aec672d064c86f3fad03",
+  "fix_commit": "fe6a80d51cad01478c45e89ceab89bd28af59e58",
+  "title": "Preserve dedicated skip reasons in bypass reports",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-002/pr-body.md",
+  "gate_command": "python3 /Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-002/run.py gate.log just check",
+  "gate_exit": 0,
+  "gate_sha": "fe6a80d51cad01478c45e89ceab89bd28af59e58",
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-002/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-002/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-002/gate.log",
+  "changed_files": [
+    "src/report.rs",
+    "src/report/tests.rs"
+  ],
+  "production_green_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-002/production-green.log",
+  "discriminator_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-002/discriminator.log",
+  "restored_green_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-002/restored-green.log",
+  "status": "ready-for-independent-review",
+  "private_target": "/Users/viktor/Developer/github/kache-prs/observability-003/target"
+}

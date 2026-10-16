@@ -1,0 +1,23 @@
+{
+  "id": "observability-003",
+  "branch": "fix/observability-003",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/observability-003",
+  "test_commit": "ccd7e177237ac2228ec01dba806a5dd1e461f6a4",
+  "fix_commit": "106ea8bb3352b78d2e09d01d7fbc8228478003ad",
+  "title": "Keep valid events readable after interrupted UTF-8 writes",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-003/pr-body.md",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "gate_command": "python3 /Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-003/run.py gate.log just check",
+  "gate_exit": 0,
+  "gate_sha": "106ea8bb3352b78d2e09d01d7fbc8228478003ad",
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-003/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-003/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-003/gate.log",
+  "changed_files": [
+    "src/events.rs"
+  ],
+  "production_green_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-003/production-green.log",
+  "discriminator_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-003/discriminator.log",
+  "restored_green_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-003/restored-green.log",
+  "status": "ready-for-independent-review"
+}

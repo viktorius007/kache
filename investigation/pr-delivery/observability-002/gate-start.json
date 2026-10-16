@@ -1,0 +1,16 @@
+{
+  "commit": "fe6a80d51cad01478c45e89ceab89bd28af59e58",
+  "command": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-002/run.py",
+    "gate.log",
+    "just",
+    "check"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-prs/observability-002",
+  "HOME": "/Users/viktor",
+  "TMPDIR": "/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/",
+  "test_threads": 1,
+  "private_target": "/Users/viktor/Developer/github/kache-prs/observability-003/target",
+  "isolation": "Normal toolchain HOME/TMPDIR; Kache global fixture config/cache with host layer disabled; CLI tests individually isolate their runtime fixtures; self wrapping cleared."
+}

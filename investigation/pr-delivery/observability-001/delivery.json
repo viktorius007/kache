@@ -1,0 +1,25 @@
+{
+  "id": "observability-001",
+  "branch": "fix/observability-001",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/observability-001",
+  "test_commit": "17ec179fc72c9acfc4b94ee58f19fc5ed2ec3f87",
+  "fix_commit": "bbe72d7a4f0f219dc6a7c6a0ba59311510b79563",
+  "title": "Redact workspace roots in report bypass rows",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-001/pr-body.md",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "gate_command": "python3 /Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-001/run.py gate.log just check",
+  "gate_exit": 0,
+  "gate_sha": "bbe72d7a4f0f219dc6a7c6a0ba59311510b79563",
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-001/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-001/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-001/gate.log",
+  "changed_files": [
+    "src/report.rs",
+    "src/report/tests.rs"
+  ],
+  "production_green_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-001/production-green.log",
+  "discriminator_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-001/discriminator.log",
+  "restored_green_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-001/restored-green.log",
+  "status": "ready-for-independent-review",
+  "private_target": "/Users/viktor/Developer/github/kache-prs/observability-003/target"
+}

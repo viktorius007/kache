@@ -1,0 +1,53 @@
+    Blocking waiting for file lock on package cache
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/observability-003)
+    Finished `test` profile [unoptimized] target(s) in 16.80s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 44 tests
+test events::tests::a_build_larger_than_the_cap_is_cut_and_named ... ok
+test events::tests::abandoned_torn_line_does_not_poison_the_next_event ... ok
+test events::tests::choosing_what_to_keep_stays_linear_in_the_log ... ok
+test events::tests::compute_stats_aggregates_copy_reasons ... ok
+test events::tests::compute_stats_totals_the_wrapper_phases_of_cacheable_outcomes ... ok
+test events::tests::empty_extern_digests_are_not_serialized ... ok
+test events::tests::heartbeat_lines_are_invisible_to_build_event_readers ... ok
+test events::tests::lagging_tailer_gets_retained_undelivered_events_exactly_once ... ok
+test events::tests::lines_without_a_session_rotate_by_count ... ok
+test events::tests::lookup_rejection_round_trips_and_defaults_for_older_events ... ok
+test events::tests::miss_reason_classifies_each_arm_and_old_logs_omit_none ... ok
+test events::tests::phase_arithmetic_attributes_overhead_and_clamps_the_remainder ... ok
+test events::tests::phase_fields_round_trip_and_default_for_older_events ... ok
+test events::tests::pre_609_events_deserialize_without_extern_digests ... ok
+test events::tests::read_events_preserves_valid_records_around_an_interrupted_utf8_record ... ok
+test events::tests::rotation_keeps_half_the_size_that_triggers_it ... ok
+test events::tests::rotation_keeps_the_whole_build_in_progress ... ok
+test events::tests::rotation_size_cap_trims_to_exactly_what_fits ... ok
+test events::tests::skip_reason_round_trips_and_defaults_for_older_events ... ok
+test events::tests::tailer_poll_records_yields_heartbeats_and_builds ... ok
+test events::tests::test_clear_events ... ok
+test events::tests::test_clear_events_nonexistent ... ok
+test events::tests::a_rotated_log_still_holds_every_event_of_the_build_in_progress ... ok
+test events::tests::test_compute_stats ... ok
+test events::tests::test_compute_stats_empty ... ok
+test events::tests::test_event_result_display ... ok
+test events::tests::test_event_rotation ... ok
+test events::tests::test_event_tailer ... ok
+test events::tests::test_event_tailer_handles_rename_rotation ... ok
+test events::tests::test_event_tailer_handles_truncation ... ok
+test events::tests::test_log_and_read_events ... ok
+test events::tests::test_read_events_nonexistent_file ... ok
+test events::tests::test_read_events_since ... ok
+test events::tests::test_read_events_with_invalid_lines ... ok
+test events::tests::test_read_transfers_missing_file_is_empty ... ok
+test events::tests::test_read_transfers_skips_blank_and_invalid_lines ... ok
+test events::tests::test_rotate_nonexistent ... ok
+test events::tests::test_rotate_skips_small_file ... ok
+test events::tests::test_rotate_transfers_skips_small_and_nonexistent ... ok
+test events::tests::test_rotate_transfers_trims_to_keep_lines_when_oversized ... ok
+test events::tests::torn_final_line_is_not_consumed_until_terminated ... ok
+test events::tests::typical_compile_ms_is_a_robust_per_crate_median ... ok
+test events::tests::verify_compare_round_trips_and_defaults_for_older_events ... ok
+test events::tests::test_concurrent_log_append_and_rotate ... ok
+
+test result: ok. 44 passed; 0 failed; 0 ignored; 0 measured; 4352 filtered out; finished in 1.36s
+

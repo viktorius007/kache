@@ -1,0 +1,9 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/observability-001)
+    Finished `test` profile [unoptimized] target(s) in 16.48s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/observability-003/target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+test report::tests::redact_replaces_keys_and_paths_and_leaves_empty_fields_empty ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4394 filtered out; finished in 0.04s
+

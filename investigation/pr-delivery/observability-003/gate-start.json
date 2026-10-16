@@ -1,0 +1,13 @@
+{
+  "commit": "106ea8bb3352b78d2e09d01d7fbc8228478003ad",
+  "command": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-003/run.py",
+    "gate.log",
+    "just",
+    "check"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-prs/observability-003",
+  "private_target": "/Users/viktor/Developer/github/kache-prs/observability-003/target",
+  "execution_environment": "run.py: isolated HOME/XDG/config/host config/cache, no ambient KACHE_RUNTIME_DIR, installed RUSTUP_HOME preserved, no self-wrapping; build-slot sets two compiler/test threads"
+}

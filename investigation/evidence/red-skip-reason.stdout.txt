@@ -1,0 +1,2 @@
+CONTROL rustc produced rlib; production event records admission-threshold
+OBSERVED report reason = unknown

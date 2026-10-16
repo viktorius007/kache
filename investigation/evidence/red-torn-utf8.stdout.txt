@@ -1,0 +1,2 @@
+CONTROL rustc produced rlib; next valid event retained after repaired newline
+OBSERVED stats exit = 1; stderr = error: stream did not contain valid UTF-8

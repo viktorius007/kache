@@ -1,0 +1,121 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/observability-001)
+    Finished `test` profile [unoptimized] target(s) in 21.07s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/observability-003/target/debug/deps/kache-1216026e9547a40d)
+
+running 100 tests
+test report::tests::assign_trace_lanes_packs_concurrent_events ... ok
+test report::tests::average_ms_prints_a_decimal_only_below_ten ... ok
+test report::tests::avg_ms_rounds_to_one_decimal_and_survives_an_empty_count ... ok
+test report::tests::copy_reason_bytes_total_adds_all_four_terms ... ok
+test report::tests::fallback_recovery_survives_report_conversion_and_formatting ... ok
+test report::tests::gc_runs_history_is_appended_only_with_record_sessions ... ok
+test report::tests::a_report_says_when_rotation_cut_its_build_short ... ok
+test report::tests::gc_stats_with_totals_from_an_earlier_version_still_parses ... ok
+test report::tests::gc_runs_history_rotates_like_the_other_logs ... ok
+test report::tests::has_storage_data_is_true_for_each_copy_reason ... ok
+test report::tests::last_build_does_not_fall_back_to_an_older_known_root ... ok
+test report::tests::last_build_infers_local_activity_with_idle_and_recorded_boundaries ... ok
+test report::tests::github_storage_summary_without_restores_shows_logical_and_blobs ... ok
+test report::tests::last_build_selects_recorded_root_and_id_by_timestamp ... ok
+test report::tests::load_gc_summary_absent_on_malformed_stats_file ... ok
+test report::tests::load_gc_summary_absent_when_no_stats_file ... ok
+test report::tests::load_gc_summary_all_sums_unique_stores_and_selects_latest_instant ... ok
+test report::tests::load_gc_summary_drops_run_older_than_window ... ok
+test report::tests::load_gc_summary_includes_a_run_exactly_at_the_cutoff ... ok
+test report::tests::load_gc_summary_returns_recent_run_within_window ... ok
+test report::tests::local_time_keeps_an_unparsed_input ... ok
+test report::tests::network_analysis_disk_fallback_subtracts_only_v3_import_timing ... ok
+test report::tests::network_analysis_distinguishes_observed_span_from_cumulative_service_time ... ok
+test report::tests::network_analysis_rejects_invalid_wall_intervals ... ok
+test report::tests::not_found_transfers_are_not_download_failures ... ok
+test report::tests::packed_list_and_cancellation_do_not_diagnose_download_failures ... ok
+test report::tests::pct_of_rounds_to_one_decimal_and_survives_an_empty_total ... ok
+test report::tests::probe_events_split_out_of_passthroughs ... ok
+test report::tests::push_storage_table_omits_copy_reasons_when_zero ... ok
+test report::tests::push_storage_table_renders_copy_reason_sums ... ok
+test report::tests::push_storage_table_renders_restore_copy_reasons ... ok
+test report::tests::push_storage_table_renders_store_copy_reasons ... ok
+test report::tests::push_storage_table_renders_store_ingest_line ... ok
+test report::tests::last_build_report_uses_retained_history_and_omits_unscoped_data ... ok
+test report::tests::record_gc_run_keeps_only_the_last_run ... ok
+test report::tests::redact_replaces_keys_and_paths_and_leaves_empty_fields_empty ... ok
+test report::tests::render_includes_storage_and_gc_sections_when_present ... ok
+test report::tests::report_counts_each_download_transfer_format ... ok
+test report::tests::report_preserves_daemon_publication_without_counting_it_as_wrapper_time ... ok
+test report::tests::report_preserves_non_diagnostic_and_invalid_json_reasons ... ok
+test report::tests::report_shortens_rustc_json_without_changing_stored_reason ... ok
+test report::tests::render_network_and_error_sections_with_all_optional_fields ... ok
+test report::tests::report_totals_the_wrapper_phases ... ok
+test report::tests::report_window_narrows_events_and_labels_itself ... ok
+test report::tests::reports_without_crates_show_no_phase_lines ... ok
+test report::tests::storage_render_flags_impossible_dedup_accounting ... ok
+test report::tests::store_failures_are_visible_without_leaving_the_miss_accounting ... ok
+test report::tests::suggestions_name_three_distinct_misses_only_above_the_share ... ok
+test report::tests::test_build_bypass_analysis_counts_groups_and_sorts ... ok
+test report::tests::test_build_bypass_analysis_respects_top_limit ... ok
+test report::tests::test_build_network_analysis_aggregates_transfers ... ok
+test report::tests::test_build_network_analysis_empty_is_zeroed ... ok
+test report::tests::test_bypass_reason_defaults_to_unknown ... ok
+test report::tests::test_bypass_route_reflects_result_and_fallback ... ok
+test report::tests::test_bypass_total_sums_passthroughs_probes_and_skipped ... ok
+test report::tests::storage_render_preserves_zero_boundaries_and_summary_choice ... ok
+test report::tests::test_empty_report ... ok
+test report::tests::test_format_bypass_summary_variants ... ok
+test report::tests::test_format_bytes ... ok
+test report::tests::test_format_exit_code ... ok
+test report::tests::test_generate_report_with_all_result_types ... ok
+test report::tests::test_format_json_conforms_to_schema_contract ... ok
+test report::tests::test_github_format_has_collapsible_sections ... ok
+test report::tests::test_markdown_cell_escapes_pipes_and_newlines ... ok
+test report::tests::test_json_roundtrip ... ok
+test report::tests::test_markdown_contains_sections ... ok
+test report::tests::test_push_bypass_tables_renders_reasons_and_slowest ... ok
+test report::tests::test_push_error_table_truncates_at_ten ... ok
+test report::tests::test_push_storage_table_renders_rows ... ok
+test report::tests::test_missing_transfer_data ... ok
+test report::tests::test_report_filters_by_root ... ok
+test report::tests::test_suggestion_high_hit_overhead ... ok
+test report::tests::test_suggestion_network_download_failures_and_fanout ... ok
+test report::tests::test_suggestion_high_miss_share ... ok
+test report::tests::test_suggestion_network_latency_thresholds ... ok
+test report::tests::test_text_output ... ok
+test report::tests::test_trace_json_format_is_minimal_chrome_trace_container ... ok
+
+thread 'report::tests::test_validator_rejects_invalid_schema_version' (56202449) panicked at src/report/tests.rs:1060:9:
+value at report.schema_version (Number(2)) not in enum set [Number(1)]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test report::tests::test_validator_rejects_invalid_schema_version - should panic ... ok
+
+thread 'report::tests::test_validator_rejects_missing_required_key' (56202454) panicked at src/report/tests.rs:957:29:
+missing required key 'schema_version' at report
+test report::tests::test_validator_rejects_missing_required_key - should panic ... ok
+
+thread 'report::tests::test_validator_rejects_out_of_bounds_integer_minimum' (56202455) panicked at src/report/tests.rs:917:13:
+expected >= 0 at report.summary.time_saved_ms, got -10
+test report::tests::test_validator_rejects_out_of_bounds_integer_minimum - should panic ... ok
+test report::tests::text_hit_table_appears_only_when_a_hit_is_listed ... ok
+
+thread 'report::tests::test_validator_rejects_out_of_bounds_number_maximum' (56202462) panicked at src/report/tests.rs:920:13:
+expected <= 100 at report.summary.hit_rate_pct, got 500
+test report::tests::test_validator_rejects_out_of_bounds_number_maximum - should panic ... ok
+test report::tests::text_network_and_storage_rows_hide_a_zero ... ok
+test report::tests::text_markdown_and_github_reports_show_the_wrapper_phases ... ok
+test report::tests::text_timing_and_bypass_sections_hide_a_zero ... ok
+test report::tests::text_summary_rows_appear_only_past_zero ... ok
+test report::tests::to_trace_event_carries_the_phase_numbers_in_args ... ok
+test report::tests::trace_json_emits_each_crate_slice_followed_by_its_phases ... ok
+test report::tests::trace_phase_events_are_empty_for_a_zero_length_parent ... ok
+test report::tests::trace_phase_events_clamp_to_the_parent_and_drop_what_follows ... ok
+test report::tests::trace_phase_events_keep_dep_info_inside_key ... ok
+test report::tests::trace_phase_events_nest_in_wrapper_order_on_the_parent_lane ... ok
+test report::tests::trace_phase_events_skip_empty_phases_and_never_draw_a_hit_compile ... ok
+test report::tests::trace_result_style_distinguishes_hit_and_miss ... ok
+test report::tests::timed_transfers_are_async_spans_and_a_zero_timestamp_is_skipped ... ok
+test report::tests::transfer_event_v2_deserializes_without_v3_timing_fields ... ok
+test report::tests::unexplained_alarm_line_needs_both_counts ... ok
+test report::tests::unexplained_suggestion_names_a_repeat ... ok
+test report::tests::window_label_falls_back_to_whole_hours ... ok
+test report::tests::unparseable_gc_stats_warns_before_it_is_replaced ... ok
+
+test result: ok. 100 passed; 0 failed; 0 ignored; 0 measured; 4295 filtered out; finished in 0.77s
+

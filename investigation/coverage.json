@@ -1,0 +1,500 @@
+{
+  "baseline": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "graph": {
+    "project": "Users-viktor-Developer-github-kache-investigations-coordinator",
+    "root": "/Users/viktor/Developer/github/kache-investigations/coordinator",
+    "state": "ready semantic_partial",
+    "limits": [
+      "binding_oracle_unavailable",
+      "expanded_calls_unavailable",
+      "impl_relationships_unavailable"
+    ],
+    "method": "index_status diagnostics + architecture + positive symbol/source snippets and trace_path; source read/rg fallback for consequential Rust branches; graph absence not used to prove no caller."
+  },
+  "paths": [
+    {
+      "path": "docs/commands/cli.schema.json",
+      "state": "reviewed",
+      "baseline_blob": "6e3a4162ec018b0887c8f7f38dad94f9cad18538",
+      "text_lines": 39,
+      "reviewed_ranges": [
+        [
+          1,
+          39
+        ]
+      ],
+      "omitted_ranges": [],
+      "evidence": "Full assigned text contract/risk review using bounded source reads; no separate runtime claim.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "docs/commands/meta.json",
+      "state": "reviewed",
+      "baseline_blob": "cf78015ec7da6f84f32741ca9f86510ecb0f4c0f",
+      "text_lines": 4,
+      "reviewed_ranges": [
+        [
+          1,
+          4
+        ]
+      ],
+      "omitted_ranges": [],
+      "evidence": "Full assigned text contract/risk review using bounded source reads; no separate runtime claim.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "docs/commands/reference.mdx",
+      "state": "reviewed",
+      "baseline_blob": "329d2c109a795e2c4b01b107fa677c9b52c60e4e",
+      "text_lines": 557,
+      "reviewed_ranges": [
+        [
+          1,
+          557
+        ]
+      ],
+      "omitted_ranges": [],
+      "evidence": "Full command contracts including redaction every format, default windows/session inference, lifetime savings durability caveat.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "docs/commands/report.schema.json",
+      "state": "reviewed",
+      "baseline_blob": "b29f8f4a2c929a221325bafd04ab7d1c2b8241bf",
+      "text_lines": 663,
+      "reviewed_ranges": [
+        [
+          1,
+          663
+        ]
+      ],
+      "omitted_ranges": [],
+      "evidence": "Full assigned text contract/risk review using bounded source reads; no separate runtime claim.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "docs/monitor.mdx",
+      "state": "reviewed",
+      "baseline_blob": "414b7ff5e27e3d1aac8602b186b9c0098fa04276",
+      "text_lines": 84,
+      "reviewed_ranges": [
+        [
+          1,
+          84
+        ]
+      ],
+      "omitted_ranges": [],
+      "evidence": "Full assigned text contract/risk review using bounded source reads; no separate runtime claim.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/events.rs",
+      "state": "sampled",
+      "baseline_blob": "e7130855832850b183249f8dee5c3bdfe1eac5eb",
+      "text_lines": 3219,
+      "reviewed_ranges": [
+        [
+          1,
+          1890
+        ]
+      ],
+      "omitted_ranges": [
+        [
+          1891,
+          3219
+        ]
+      ],
+      "evidence": "Full production event/heartbeat writer, tailer, rotation, summary/transfer append and readers, stats aggregation; test helpers and durability test sampled.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/explain.rs",
+      "state": "reviewed",
+      "baseline_blob": "57b73dc70f16dbb1b1a150cd9c1e61d136ddf0a4",
+      "text_lines": 700,
+      "reviewed_ranges": [
+        [
+          1,
+          700
+        ]
+      ],
+      "omitted_ranges": [],
+      "evidence": "Full assigned text contract/risk review using bounded source reads; no separate runtime claim.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/miss_chain.rs",
+      "state": "sampled",
+      "baseline_blob": "7c0bf22eb69e9f5b85ebd9f624a2855f1c62be81",
+      "text_lines": 2284,
+      "reviewed_ranges": [
+        [
+          1,
+          1000
+        ]
+      ],
+      "omitted_ranges": [
+        [
+          1001,
+          2284
+        ]
+      ],
+      "evidence": "Full production causal walk, stable unit/root boundaries, direct reasons, bounded depth/node truncation.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/otel.rs",
+      "state": "sampled",
+      "baseline_blob": "540055b865eb11b322283de1bcc18e5bd19ff87a",
+      "text_lines": 1145,
+      "reviewed_ranges": [
+        [
+          1,
+          820
+        ]
+      ],
+      "omitted_ranges": [
+        [
+          821,
+          1145
+        ]
+      ],
+      "evidence": "Full production attributes, metrics serialization, machine snapshots and exporter; allowlist and machine-metric test samples; no live OTLP collector.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/phase_trace.rs",
+      "state": "reviewed",
+      "baseline_blob": "49218168f29dcbc3b4200751d46b1b91a4b54e9f",
+      "text_lines": 230,
+      "reviewed_ranges": [
+        [
+          1,
+          230
+        ]
+      ],
+      "omitted_ranges": [],
+      "evidence": "Full assigned text contract/risk review using bounded source reads; no separate runtime claim.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/report.rs",
+      "state": "reviewed",
+      "baseline_blob": "83a82821e9a6dfd765393975670db6a56905330e",
+      "text_lines": 4302,
+      "reviewed_ranges": [
+        [
+          1,
+          4302
+        ]
+      ],
+      "omitted_ranges": [],
+      "evidence": "Full aggregation, session selection, trace phases, bypass rows, redaction, all serializers and formatters; two real production compiler red probes.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/report/eviction_evidence.rs",
+      "state": "reviewed",
+      "baseline_blob": "6abfc2f37c9a0d3aab2c09eb6794be7603d91c14",
+      "text_lines": 94,
+      "reviewed_ranges": [
+        [
+          1,
+          94
+        ]
+      ],
+      "omitted_ranges": [],
+      "evidence": "Full assigned text contract/risk review using bounded source reads; no separate runtime claim.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/report/eviction_evidence/tests.rs",
+      "state": "reviewed",
+      "baseline_blob": "9e07b6af85e41093a38551d9236118eb17409982",
+      "text_lines": 113,
+      "reviewed_ranges": [
+        [
+          1,
+          113
+        ]
+      ],
+      "omitted_ranges": [],
+      "evidence": "Full assigned text contract/risk review using bounded source reads; no separate runtime claim.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/report/tests.rs",
+      "state": "sampled",
+      "baseline_blob": "99aeceee54bb53996bb01463fc13a0908f3318e2",
+      "text_lines": 4243,
+      "reviewed_ranges": [
+        [
+          914,
+          1140
+        ],
+        [
+          1225,
+          1301
+        ],
+        [
+          1684,
+          1721
+        ],
+        [
+          2958,
+          3046
+        ],
+        [
+          3872,
+          3935
+        ]
+      ],
+      "omitted_ranges": [
+        [
+          1,
+          913
+        ],
+        [
+          1141,
+          1224
+        ],
+        [
+          1302,
+          1683
+        ],
+        [
+          1722,
+          2957
+        ],
+        [
+          3047,
+          3871
+        ],
+        [
+          3936,
+          4243
+        ]
+      ],
+      "evidence": "Sample schema validation, last-build, rotation cut, bypass reasons and redaction. Redaction sample lacks bypass rows; skipped sample populates legacy passthrough_reason.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/run_diff.rs",
+      "state": "reviewed",
+      "baseline_blob": "e310151279dadd6a0bd980eb42072f6ca17bd8a2",
+      "text_lines": 404,
+      "reviewed_ranges": [
+        [
+          1,
+          404
+        ]
+      ],
+      "omitted_ranges": [],
+      "evidence": "Full assigned text contract/risk review using bounded source reads; no separate runtime claim.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/savings.rs",
+      "state": "reviewed",
+      "baseline_blob": "e2292138cc3dcf50a15f9414cb9e5cedaaf2200a",
+      "text_lines": 254,
+      "reviewed_ranges": [
+        [
+          1,
+          254
+        ]
+      ],
+      "omitted_ranges": [],
+      "evidence": "Full assigned text contract/risk review using bounded source reads; no separate runtime claim.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/savings/tests.rs",
+      "state": "reviewed",
+      "baseline_blob": "8c4aeeb87f3c94f3d114218d6d5d3c6a14256e8c",
+      "text_lines": 353,
+      "reviewed_ranges": [
+        [
+          1,
+          353
+        ]
+      ],
+      "omitted_ranges": [],
+      "evidence": "Full assigned text contract/risk review using bounded source reads; no separate runtime claim.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/since.rs",
+      "state": "reviewed",
+      "baseline_blob": "952374671f436cb62801fcfe209040d745c1517e",
+      "text_lines": 247,
+      "reviewed_ranges": [
+        [
+          1,
+          247
+        ]
+      ],
+      "omitted_ranges": [],
+      "evidence": "Full assigned text contract/risk review using bounded source reads; no separate runtime claim.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/term.rs",
+      "state": "reviewed",
+      "baseline_blob": "0e3db4ab8ae875a1ecb7fc9cd463b321f5b34e3a",
+      "text_lines": 538,
+      "reviewed_ranges": [
+        [
+          1,
+          538
+        ]
+      ],
+      "omitted_ranges": [],
+      "evidence": "Full formatting/ANSI handling and inline tests; no platform terminal execution.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/timeline.rs",
+      "state": "sampled",
+      "baseline_blob": "1d3938f6c5da878a2a62923e1c204690949b7dec",
+      "text_lines": 1919,
+      "reviewed_ranges": [
+        [
+          1,
+          860
+        ]
+      ],
+      "omitted_ranges": [
+        [
+          861,
+          1919
+        ]
+      ],
+      "evidence": "Full production attribution, status mapping, demand/delivery usefulness and session assembly; real remote execution delegated to remote slice.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/tui.rs",
+      "state": "reviewed",
+      "baseline_blob": "73a1b7cfd68664aad9c3a6745b52a716af396f37",
+      "text_lines": 3103,
+      "reviewed_ranges": [
+        [
+          1,
+          3103
+        ]
+      ],
+      "omitted_ranges": [],
+      "evidence": "Full ingestion, live heartbeat handling, session refresh, filtering/rendering and terminal lifecycle; no interactive PTY or soak execution.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/tui/tests.rs",
+      "state": "sampled",
+      "baseline_blob": "3c56628fb7f9eac4ff6c672662ffe9076ffc02c1",
+      "text_lines": 2888,
+      "reviewed_ranges": [
+        [
+          1374,
+          1419
+        ],
+        [
+          1718,
+          1771
+        ]
+      ],
+      "omitted_ranges": [
+        [
+          1,
+          1373
+        ],
+        [
+          1420,
+          1717
+        ],
+        [
+          1772,
+          2888
+        ]
+      ],
+      "evidence": "Full assigned text contract/risk review using bounded source reads; no separate runtime claim.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/tui_sessions.rs",
+      "state": "sampled",
+      "baseline_blob": "07210605c4822d0cba769a2747a683ddeb2312af",
+      "text_lines": 1629,
+      "reviewed_ranges": [
+        [
+          1,
+          900
+        ]
+      ],
+      "omitted_ranges": [
+        [
+          901,
+          1629
+        ]
+      ],
+      "evidence": "Full production session grouping, retention/history and eviction diagnosis; skipped gates consulted against actual emitter.",
+      "reopen_conditions": "Reopen on changes to this path or neighboring emitted/consumed schema; omitted test ranges and unexecuted platform/load paths remain outside the review claim."
+    },
+    {
+      "path": "src/wrapper.rs",
+      "state": "collateral",
+      "reviewed_ranges": [
+        [
+          4560,
+          4756
+        ]
+      ],
+      "evidence": "Real Rust safety/admission gates emit Skipped with dedicated skip_reason; admission-threshold executed with actual rustc.",
+      "reopen_conditions": "Not primary-owned; consult owning slice if failure contract changes."
+    },
+    {
+      "path": "src/cli.rs",
+      "state": "collateral",
+      "reviewed_ranges": [
+        [
+          1716,
+          1797
+        ]
+      ],
+      "evidence": "Report generation then redact_report then selected formatter/output; unredacted telemetry recording explicitly occurs beforehand.",
+      "reopen_conditions": "Not primary-owned; consult owning slice if failure contract changes."
+    },
+    {
+      "path": "src/config.rs",
+      "state": "collateral",
+      "reviewed_ranges": [
+        [
+          1260,
+          1290
+        ],
+        [
+          1790,
+          1808
+        ],
+        [
+          3910,
+          3980
+        ]
+      ],
+      "evidence": "Isolated configuration path/bootstrap and min_store_compile_ms control.",
+      "reopen_conditions": "Not primary-owned; consult owning slice if failure contract changes."
+    },
+    {
+      "path": "src/daemon.rs",
+      "state": "collateral",
+      "reviewed_ranges": [
+        [
+          6367,
+          6418
+        ]
+      ],
+      "evidence": "Graph snippet of production durable summary emission; remote agent owns lifecycle fixture consultation.",
+      "reopen_conditions": "Not primary-owned; consult owning slice if failure contract changes."
+    }
+  ]
+}

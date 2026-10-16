@@ -1,0 +1,22 @@
+    Finished `test` profile [unoptimized] target(s) in 0.61s
+     Running tests/fallback_recovery_test.rs (/Users/viktor/Developer/github/kache-prs/observability-003/target/debug/deps/fallback_recovery_test-f38743893dd34a55)
+
+running 1 test
+
+thread 'sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server' (56842169) panicked at tests/fallback_recovery_test.rs:320:5:
+assertion `left == right` failed: fallback compiler error
+kache: warning: fallback `/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmprvrQPx/sccache`: exit status: 42; compiling directly without fallback
+
+  left: "fallback\ndirect\n"
+ right: "direct\n"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server ... FAILED
+
+failures:
+
+failures:
+    sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.62s
+
+error: test failed, to rerun pass `-p kache --test fallback_recovery_test`

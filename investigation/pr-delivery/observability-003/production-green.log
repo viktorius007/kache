@@ -1,0 +1,3 @@
+CONTROL rustc produced rlib; next valid event retained after repaired newline
+OBSERVED stats exit = 0; stderr = 
+CONTROL production report contains the valid subsequent fixture event

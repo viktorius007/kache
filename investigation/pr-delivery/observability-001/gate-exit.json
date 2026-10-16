@@ -1,0 +1,13 @@
+{
+  "commit": "bbe72d7a4f0f219dc6a7c6a0ba59311510b79563",
+  "exit_code": 0,
+  "command": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-001/run.py",
+    "gate.log",
+    "just",
+    "check"
+  ],
+  "log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-001/gate.log",
+  "environment_diagnosis": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-001/environment-diagnosis.json"
+}

@@ -1,0 +1,262 @@
+{
+  "eviction_evidence": {
+    "horizon_secs": 604800,
+    "as_of_unix_secs": 1791723226,
+    "limitations": [
+      "All-store observations tagged with value-density shadow decisions, independent of the build-event window and root filter.",
+      "Latest live eviction and first shadow-only sweep per key; repeated evictions overwrite history and cohorts can overlap.",
+      "Immature and invalid observations are excluded from demand and cost totals. Retained rows are not a complete sweep history.",
+      "Live demand counts first recorded post-eviction requests. Read-only clients and overwritten records can hide demand; absence of a stamp does not prove obsolescence.",
+      "Shadow demand bounds allow unrecorded requests because hit stamps are throttled, overwritten and reset on reinsertion.",
+      "Costs are gross measured compile time, excluding unknown costs and cache-serving cost. Logical bytes include shared blobs and do not estimate physically reclaimed bytes.",
+      "These observations do not select a policy winner or change live eviction."
+    ],
+    "stores": [
+      {
+        "store_index": 0,
+        "evidence": {
+          "as_of_unix_secs": 1791723226,
+          "horizon_secs": 604800,
+          "live_shadow_agreed": {
+            "observations": 0,
+            "immature": 0,
+            "invalid": 0,
+            "mature": 0,
+            "unknown_compile_cost": 0,
+            "demand_within_horizon_lower": 0,
+            "demand_within_horizon_upper": 0,
+            "known_cost_logical_bytes": 0,
+            "gross_compile_cost_ms": 0,
+            "demanded_gross_compile_cost_ms_lower": 0,
+            "demanded_gross_compile_cost_ms_upper": 0
+          },
+          "live_shadow_kept": {
+            "observations": 0,
+            "immature": 0,
+            "invalid": 0,
+            "mature": 0,
+            "unknown_compile_cost": 0,
+            "demand_within_horizon_lower": 0,
+            "demand_within_horizon_upper": 0,
+            "known_cost_logical_bytes": 0,
+            "gross_compile_cost_ms": 0,
+            "demanded_gross_compile_cost_ms_lower": 0,
+            "demanded_gross_compile_cost_ms_upper": 0
+          },
+          "shadow_only": {
+            "observations": 0,
+            "immature": 0,
+            "invalid": 0,
+            "mature": 0,
+            "unknown_compile_cost": 0,
+            "demand_within_horizon_lower": 0,
+            "demand_within_horizon_upper": 0,
+            "known_cost_logical_bytes": 0,
+            "gross_compile_cost_ms": 0,
+            "demanded_gross_compile_cost_ms_lower": 0,
+            "demanded_gross_compile_cost_ms_upper": 0
+          }
+        },
+        "error": null
+      }
+    ]
+  },
+  "schema_version": 1,
+  "meta": {
+    "kache_version": "1.0.0",
+    "generated_at": "2026-10-11T12:53:46.154086+00:00",
+    "since_hours": 24,
+    "since_secs": 86400,
+    "since": "24h"
+  },
+  "summary": {
+    "hit_rate_pct": 0.0,
+    "weighted_hit_rate_pct": null,
+    "time_saved_ms": 0,
+    "total_crates": 0,
+    "local_hits": 0,
+    "prefetch_hits": 0,
+    "remote_hits": 0,
+    "dups": 0,
+    "misses": 0,
+    "errors": 0,
+    "passthroughs": 0,
+    "probes": 0,
+    "skipped": 1,
+    "store_failures": 0,
+    "fallbacks": 0,
+    "total_duration_ms": 0,
+    "cache_efficiency_pct": 0.0
+  },
+  "timeline": {
+    "start_time": "2026-10-11T12:53:46.076588+00:00",
+    "end_time": "2026-10-11T12:53:46.142588+00:00",
+    "start_unix_ms": 1791723226076,
+    "end_unix_ms": 1791723226142,
+    "duration_ms": 66,
+    "event_count": 1,
+    "cacheable_count": 0,
+    "hit_count": 0,
+    "compiled_count": 0,
+    "passthrough_count": 0,
+    "probe_count": 0,
+    "skipped_count": 1,
+    "error_count": 0
+  },
+  "timing": {
+    "hit_time_ms": 0,
+    "miss_time_ms": 0,
+    "avg_hit_ms": 0.0,
+    "avg_miss_ms": 0.0,
+    "avg_hit_overhead_ms": 0.0,
+    "miss_compile_time_ms": 0,
+    "avg_key_ms": 0.0,
+    "avg_lookup_ms": 0.0,
+    "avg_restore_ms": 0.0,
+    "avg_store_ms": 0.0,
+    "total_key_ms": 0,
+    "total_lookup_ms": 0,
+    "total_restore_ms": 0,
+    "total_store_ms": 0,
+    "total_startup_ms": 0,
+    "avg_startup_ms": 0.0,
+    "total_dep_info_ms": 0,
+    "dep_info_runs": 0,
+    "avg_dep_info_ms": 0.0,
+    "prediction_mismatches": 0,
+    "total_wait_ms": 0,
+    "total_flight_wait_ms": 0,
+    "total_permit_wait_ms": 0,
+    "avg_wait_ms": 0.0,
+    "total_unattributed_ms": 0,
+    "avg_unattributed_ms": 0.0
+  },
+  "storage": {
+    "store_entries": 0,
+    "stores": [
+      {
+        "path": "/private/tmp/obs-qttpqno_/cache",
+        "bytes": 0,
+        "max_size": 49392123904,
+        "entries": 0,
+        "blob_stats": {
+          "total_blobs": 0,
+          "total_blob_size": 0,
+          "total_logical_size": 0,
+          "savings": 0
+        },
+        "error": null
+      }
+    ],
+    "reflinked_bytes": 0,
+    "hardlinked_bytes": 0,
+    "copied_bytes": 0,
+    "restored_bytes": 0,
+    "zero_copy_pct": 0.0,
+    "store_reflinked_bytes": 0,
+    "store_hardlinked_bytes": 0,
+    "store_copied_bytes": 0,
+    "store_copy_cross_device_bytes": 0,
+    "store_copy_permission_bytes": 0,
+    "store_copy_ineligible_bytes": 0,
+    "store_copy_other_bytes": 0,
+    "restore_copy_cross_device_bytes": 0,
+    "restore_copy_permission_bytes": 0,
+    "restore_copy_exclusive_bytes": 0,
+    "restore_copy_other_bytes": 0,
+    "store_blobs": 0,
+    "logical_bytes": 0,
+    "blob_bytes": 0,
+    "dedup_saved_bytes": 0,
+    "accounting_consistent": true
+  },
+  "network": null,
+  "prefetch": {
+    "prefetch_hits": 0,
+    "total_hits": 0,
+    "contribution_pct": 0.0
+  },
+  "top_misses": [],
+  "top_hits": [],
+  "all_events": [],
+  "traceEvents": [
+    {
+      "name": "skipped: fixture",
+      "cat": "kache",
+      "ph": "X",
+      "ts": 1791723226076588,
+      "dur": 66000,
+      "pid": 1,
+      "tid": 0,
+      "cname": "grey",
+      "args": {
+        "crate_name": "fixture",
+        "root": "/private/tmp/obs-qttpqno_/customer-secret-workspace",
+        "result": "skipped",
+        "route": "skipped",
+        "reason": "admission-threshold",
+        "cache_key": "3474286dc732159dc2a8124a80179e7e570239eb8c934f9406a3aae34fee05ef",
+        "elapsed_ms": 66,
+        "compile_time_ms": 23,
+        "overhead_ms": 43,
+        "size": 0,
+        "compiler_runs": 1,
+        "preprocessor_runs": 0,
+        "probe_runs": 0,
+        "store_output_blobs": 0,
+        "store_duplicate_blobs": 0,
+        "store_new_blobs": 0,
+        "startup_ms": 7,
+        "key_ms": 1,
+        "dep_info_ms": 0,
+        "dep_info_runs": 0,
+        "lookup_ms": 0,
+        "wait_ms": 0,
+        "flight_wait_ms": 0,
+        "permit_wait_ms": 0,
+        "restore_ms": 0,
+        "store_ms": 0,
+        "unattributed_ms": 35,
+        "exit_code": null
+      }
+    }
+  ],
+  "displayTimeUnit": "ms",
+  "bypass": {
+    "passthroughs": 0,
+    "probes": 0,
+    "skipped": 1,
+    "fallbacks": 0,
+    "direct_passthroughs": 0,
+    "reasons": [
+      {
+        "result": "skipped",
+        "route": "skipped",
+        "reason": "admission-threshold",
+        "count": 1,
+        "failures": 0,
+        "max_elapsed_ms": 66
+      }
+    ],
+    "slowest": [
+      {
+        "crate_name": "fixture",
+        "root": "/private/tmp/obs-qttpqno_/customer-secret-workspace",
+        "result": "skipped",
+        "route": "skipped",
+        "reason": "admission-threshold",
+        "start_time": "2026-10-11T12:53:46.076588+00:00",
+        "end_time": "2026-10-11T12:53:46.142588+00:00",
+        "start_unix_ms": 1791723226076,
+        "end_unix_ms": 1791723226142,
+        "elapsed_ms": 66,
+        "exit_code": null,
+        "timestamp": "2026-10-11T12:53:46.142588+00:00"
+      }
+    ]
+  },
+  "errors_detail": [],
+  "suggestions": [
+    "No remote transfer data available for this session"
+  ]
+}

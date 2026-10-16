@@ -1,0 +1,17 @@
+diff --git a/src/report.rs b/src/report.rs
+index 83a8282..5ce51eb 100644
+--- a/src/report.rs
++++ b/src/report.rs
+@@ -1941,7 +1941,11 @@ fn bypass_route(e: &BuildEvent) -> &'static str {
+ }
+ 
+ fn bypass_reason(e: &BuildEvent) -> String {
+-    let reason = e.passthrough_reason.trim();
++    let reason = if e.result == EventResult::Skipped && !e.skip_reason.trim().is_empty() {
++        e.skip_reason.trim()
++    } else {
++        e.passthrough_reason.trim()
++    };
+     if reason.is_empty() {
+         "unknown".to_string()
+     } else {

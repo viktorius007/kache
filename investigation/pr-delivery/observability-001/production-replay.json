@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-001/run.py",
+    "production-green.log",
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-001/probes/real_compile_report.py",
+    "redact-root"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-prs/observability-001",
+  "timeout_seconds": 60,
+  "expected_exit_code": 0,
+  "assertion_regex": "CONTROL ordinary report retains workspace root and identical summary; redacted bypass root is redacted",
+  "baseline_proof": "investigation/probes/real_compile_report.py redact-root",
+  "fix_sha": "bbe72d7a4f0f219dc6a7c6a0ba59311510b79563"
+}

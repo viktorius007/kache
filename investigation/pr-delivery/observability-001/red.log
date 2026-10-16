@@ -1,0 +1,21 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/observability-001)
+    Finished `test` profile [unoptimized] target(s) in 17.75s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/observability-003/target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+
+thread 'report::tests::redact_replaces_keys_and_paths_and_leaves_empty_fields_empty' (56116650) panicked at src/report/tests.rs:3928:5:
+assertion `left == right` failed: redacted reports must hide every nonempty bypass workspace root
+  left: ["/secret/skipped-workspace", "/secret/passthrough-workspace", ""]
+ right: ["redacted", "redacted", ""]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test report::tests::redact_replaces_keys_and_paths_and_leaves_empty_fields_empty ... FAILED
+
+failures:
+
+failures:
+    report::tests::redact_replaces_keys_and_paths_and_leaves_empty_fields_empty
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4394 filtered out; finished in 0.11s
+
+error: test failed, to rerun pass `-p kache --bin kache`

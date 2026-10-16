@@ -1,0 +1,1 @@
+No new production function, type or indirection. Reuse the existing redact_owned policy, including empty-field semantics, for the missed bypass detail collection. The existing redaction test is extended rather than creating a duplicate contract test; saved real compiler proof supplies production CLI reachability. No renewed audit.

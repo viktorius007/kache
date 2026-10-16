@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/probes/real_compile_report.py", line 91, in <module>
+    main()
+  File "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/probes/real_compile_report.py", line 88, in main
+    assert row['root'] == 'redacted', 'REDACT_BYPASS_ROOT_LEAK: production root survives --redact'
+AssertionError: REDACT_BYPASS_ROOT_LEAK: production root survives --redact

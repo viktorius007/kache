@@ -1,0 +1,8 @@
+{
+  "command": "just check",
+  "exit_code": 0,
+  "commit": "106ea8bb3352b78d2e09d01d7fbc8228478003ad",
+  "log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-003/gate.log",
+  "environment_correction_controls": "2 passed; 0 failed",
+  "failed_setup_log": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/pr-delivery/observability-003/gate-environment-failed.log"
+}
