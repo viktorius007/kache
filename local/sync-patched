@@ -1,101 +1,290 @@
 #!/usr/bin/env bash
 # Rebuild the local `patched` branch: upstream main plus every open PR by the author
-# and every branch in local/extra-branches,
-# then check and install it. Conflicts that rerere has seen before resolve themselves;
-# a PR with a new conflict is skipped and listed at the end.
+# and every branch in local/extra-branches, then check and install it.
 #
-# Lives in the main checkout under local/, which .git/info/exclude keeps out of commits.
+# Conflicts between those branches are resolved once, by hand, and replayed by git
+# rerere on every later run. A conflict nobody has resolved yet is skipped and listed
+# at the end; rerun with --resolve to stop at it and resolve it in place.
 #
-# Usage: local/sync-patched [--no-check] [--no-install]
+# Works from any clone of the fork or of upstream, on Linux or macOS. A fresh clone
+# needs only this file; see local/README.md.
+#
+# Usage: local/sync-patched [--resolve] [--clean] [--push] [--no-check] [--no-install]
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
-WORKTREE="$(dirname "$REPO")/kache-patched"
-UPSTREAM="kunobi-ninja/kache"
-AUTHOR="viktorius007"
-STATE="$HOME/.local/state/kache-patched"
+WORKTREE="${KACHE_PATCHED_WORKTREE:-$(dirname "$REPO")/kache-patched}"
+UPSTREAM="${KACHE_UPSTREAM:-kunobi-ninja/kache}"
+AUTHOR="${KACHE_AUTHOR:-viktorius007}"
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}/kache-patched"
+BRANCH=patched
 
-check=1 install=1
+usage() { sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; }
+
+resolve=0 clean=0 push=0 check=1 install=1
 for arg in "$@"; do
   case "$arg" in
+    --resolve) resolve=1 ;;
+    --clean) clean=1 ;;
+    --push) push=1 ;;
     --no-check) check=0 ;;
     --no-install) install=0 ;;
-    *) echo "unknown option: $arg" >&2; exit 2 ;;
+    -h | --help) usage; exit 0 ;;
+    *) echo "unknown option: $arg" >&2; usage >&2; exit 2 ;;
   esac
 done
 
-cd "$WORKTREE"
-if [ -n "$(git status --porcelain)" ]; then
-  echo "$WORKTREE has uncommitted changes; commit or stash them first." >&2
-  exit 1
+die() { echo "sync-patched: $*" >&2; exit 1; }
+
+# --- timing ---------------------------------------------------------------------
+# Wall time per phase, printed at the end and appended to $STATE/timings.log.
+mkdir -p "$STATE"
+run_started=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+timings=()
+now() {
+  # EPOCHREALTIME is bash 5; macOS /bin/bash is 3.2, which has only whole seconds.
+  if [ -n "${EPOCHREALTIME:-}" ]; then echo "${EPOCHREALTIME/,/.}"; else date +%s; fi
+}
+phase() {
+  local label=$1 start rc=0
+  shift
+  start=$(now)
+  "$@" || rc=$?
+  timings+=("$(awk -v l="$label" -v s="$start" -v e="$(now)" -v rc="$rc" \
+    'BEGIN { printf "%-34s %8.1fs  exit=%d", l, e - s, rc }')")
+  return "$rc"
+}
+report_timings() {
+  [ ${#timings[@]} -gt 0 ] || return 0
+  echo "timings:"
+  local line
+  for line in "${timings[@]}"; do
+    echo "  $line"
+    printf '%s\t%s\n' "$run_started" "$line" >>"$STATE/timings.log"
+  done
+}
+trap report_timings EXIT
+
+# --- prerequisites --------------------------------------------------------------
+for tool in git gh cargo just; do
+  command -v "$tool" >/dev/null || die "$tool is not on PATH (see local/README.md)"
+done
+gh auth status >/dev/null 2>&1 || die "gh is not logged in; run: gh auth login"
+
+cd "$REPO"
+git var GIT_COMMITTER_IDENT >/dev/null 2>&1 ||
+  die "git has no identity for merge commits; run: git config user.name ... && git config user.email ..."
+
+# The remote whose URL names the repo, so a clone of either the fork or upstream works.
+remote_for() {
+  git remote -v | awk -v repo="github[.]com[:/]$1([.]git)?\$" \
+    '$3 == "(fetch)" && $2 ~ repo { print $1; exit }'
+}
+up=$(remote_for "$UPSTREAM")
+if [ -z "$up" ]; then
+  git remote add upstream "https://github.com/$UPSTREAM"
+  up=upstream
 fi
-if [ "$(git config --get rerere.enabled)" != "true" ]; then
-  echo "rerere is off; run: git config rerere.enabled true && git config rerere.autoupdate true" >&2
-  exit 1
+fork=$(remote_for "$AUTHOR/kache")
+
+# One-time repository setup; each step is a no-op when already done.
+git config rerere.enabled true
+git config rerere.autoupdate true
+exclude="$(git rev-parse --git-common-dir)/info/exclude"
+grep -qx 'local/' "$exclude" 2>/dev/null || echo 'local/' >>"$exclude"
+if [ ! -e "$WORKTREE/.git" ]; then
+  git fetch -q "$up" main
+  git worktree add -q --detach "$WORKTREE" "$up/main"
+fi
+
+# --- merge ----------------------------------------------------------------------
+# Every merge, including one left for a human to resolve, uses the same settings:
+# rerere keys a resolution by the conflict's text, and the conflict style changes
+# that text, so a resolution recorded under other settings is never replayed.
+merge_with_settings() {
+  git -c merge.conflictStyle=diff3 merge -q -X diff-algorithm=histogram --no-edit "$@"
+}
+
+# Teach rerere every resolution a previous build already contains, so a new clone
+# or machine replays them. Each merge commit is redone in a scratch worktree and,
+# where it conflicts, its committed result is recorded as the resolution.
+learn_resolutions() {
+  local from=$1 scratch commit learned=0
+  scratch=$(mktemp -d "${TMPDIR:-/tmp}/kache-rerere.XXXXXX")
+  git worktree add -q --detach "$scratch" "$up/main"
+  for commit in $(git rev-list --first-parent --merges --reverse "$up/main..$from"); do
+    git -C "$scratch" checkout -q --detach "$commit^1"
+    if ! git -C "$scratch" -c merge.conflictStyle=diff3 merge -q -X diff-algorithm=histogram \
+      --no-commit --no-edit "$commit^2" >/dev/null 2>&1; then
+      if [ -n "$(git -C "$scratch" ls-files -u)" ]; then
+        git -C "$scratch" checkout -q "$commit" -- .
+        git -C "$scratch" rerere >/dev/null 2>&1
+        learned=$((learned + 1))
+      fi
+    fi
+    git -C "$scratch" reset -q --hard
+  done
+  git worktree remove --force "$scratch"
+  echo "learned $learned conflict resolutions from $from"
+}
+
+cd "$WORKTREE"
+if git rev-parse -q --verify MERGE_HEAD >/dev/null; then
+  die "$WORKTREE is mid-merge. Resolve the files, then: git -C $WORKTREE commit --no-edit, and rerun."
+fi
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+  die "$WORKTREE has uncommitted changes to tracked files; commit or stash them first."
+fi
+if [ -n "$(git status --porcelain)" ]; then
+  if [ "$clean" = 1 ]; then
+    git clean -q -fd
+  else
+    git status --porcelain | sed 's/^/  /' >&2
+    die "$WORKTREE has untracked files (often left by a failed test run). Rerun with --clean to delete them."
+  fi
 fi
 
 prs=$(gh pr list -R "$UPSTREAM" --author "$AUTHOR" --state open --limit 200 \
   --json number,title --jq 'sort_by(.number) | .[] | "\(.number)\t\(.title)"')
 refspecs=$(cut -f1 <<<"$prs" | sed 's#.*#+refs/pull/&/head:refs/remotes/pr/&#')
 # shellcheck disable=SC2086
-git fetch -q origin main $refspecs
+phase "fetch upstream" git fetch -q "$up" main $refspecs
+if [ -n "$fork" ]; then
+  phase "fetch fork" git fetch -q "$fork"
+fi
+
+# Learn from the build another machine pushed whenever it changed since last time,
+# and from the local build when rerere has no resolutions at all (a skipped conflict
+# still leaves a preimage, so an rr-cache that is not empty can know nothing).
+common_dir=$(git rev-parse --git-common-dir)
+learn_from=()
+if [ -n "$fork" ] && pushed=$(git rev-parse -q --verify "refs/remotes/$fork/$BRANCH"); then
+  [ "$pushed" = "$(git config --get sync-patched.learned || true)" ] ||
+    learn_from+=("refs/remotes/$fork/$BRANCH")
+fi
+if ! ls "$common_dir"/rr-cache/*/postimage* >/dev/null 2>&1 &&
+  git rev-parse -q --verify "refs/heads/$BRANCH" >/dev/null; then
+  learn_from+=("refs/heads/$BRANCH")
+fi
+if [ ${#learn_from[@]} -gt 0 ]; then
+  for previous_build in "${learn_from[@]}"; do
+    phase "learn resolutions" learn_resolutions "$previous_build"
+  done
+  [ -z "${pushed:-}" ] || git config sync-patched.learned "$pushed"
+fi
 
 previous=$(git rev-parse --short HEAD)
-git switch -q -C patched origin/main
+git switch -q -C "$BRANCH" "$up/main"
 
-merged=() skipped=()
-while IFS=$'\t' read -r number title; do
-  [ -n "$number" ] || continue
-  if git merge -q --no-edit -m "Merge #$number: $title" "pr/$number" >/dev/null 2>&1; then
-    merged+=("$number")
+merged=() skipped=() stopped=""
+# try_merge <rev> <message> <name>: merge, replay a recorded resolution, or skip.
+try_merge() {
+  if merge_with_settings -m "$2" "$1" >/dev/null 2>&1; then
+    merged+=("$3")
+  elif ! git rev-parse -q --verify MERGE_HEAD >/dev/null; then
+    # Not a conflict: the merge never started.
+    skipped+=("$3 (merge failed: run 'git -C $WORKTREE merge $1' to see why)")
   elif [ -z "$(git diff --name-only --diff-filter=U)" ]; then
     git commit -q --no-edit
-    merged+=("$number")
+    merged+=("$3")
+  elif [ "$resolve" = 1 ]; then
+    stopped=$3
+    return 1
   else
     git merge --abort
-    skipped+=("$number")
+    skipped+=("$3")
   fi
-done <<<"$prs"
+}
+merge_all() {
+  local number title branch rev
+  while IFS=$'\t' read -r number title; do
+    [ -n "$number" ] || continue
+    try_merge "pr/$number" "Merge #$number: $title" "#$number" || return 0
+  done <<<"$prs"
 
-# Local fix branches that have no PR yet, one per line in local/extra-branches.
-if [ -f "$REPO/local/extra-branches" ]; then
+  # Fix branches that have no PR yet, one per line in local/extra-branches.
+  # A branch that exists only on the fork is merged from there.
+  [ -f "$REPO/local/extra-branches" ] || return 0
   while read -r branch; do
+    branch=${branch%%#*}
+    branch=${branch//[[:space:]]/}
     [ -n "$branch" ] || continue
-    if git merge -q --no-edit -m "Merge local $branch" "$branch" >/dev/null 2>&1; then
-      merged+=("$branch")
-    elif [ -z "$(git diff --name-only --diff-filter=U)" ]; then
-      git commit -q --no-edit
-      merged+=("$branch")
-    else
-      git merge --abort
-      skipped+=("$branch")
+    rev=$branch
+    if ! git rev-parse -q --verify "refs/heads/$branch" >/dev/null && [ -n "$fork" ]; then
+      rev="$fork/$branch"
     fi
+    try_merge "$rev" "Merge local $branch" "$branch" || return 0
   done <"$REPO/local/extra-branches"
+}
+phase "merge" merge_all
+
+echo "upstream main: $(git rev-parse --short "$up/main") ($(git describe --tags "$up/main" 2>/dev/null || echo untagged))"
+echo "patched:       $(git rev-parse --short HEAD) (previous build $previous)"
+echo "merged ${#merged[@]}: ${merged[*]:-}"
+if [ -n "$stopped" ]; then
+  echo
+  echo "STOPPED at $stopped, which conflicts with what is merged before it:"
+  git diff --name-only --diff-filter=U | sed 's/^/  /'
+  echo "Resolve those files in $WORKTREE, then:"
+  echo "  git -C $WORKTREE add -A && git -C $WORKTREE commit --no-edit"
+  echo "  $REPO/local/sync-patched --resolve    # rerere replays it; repeat until nothing stops"
+  exit 3
+fi
+if [ ${#skipped[@]} -gt 0 ]; then
+  echo "SKIPPED ${#skipped[@]}:"
+  printf '  %s\n' "${skipped[@]}"
+  echo "  Rerun with --resolve to stop at the first one and resolve it."
 fi
 
-echo "upstream main: $(git rev-parse --short origin/main) ($(git describe --tags origin/main))"
-echo "patched:       $(git rev-parse --short HEAD) (previous build $previous)"
-echo "merged ${#merged[@]}: ${merged[*]}"
-if [ ${#skipped[@]} -gt 0 ]; then
-  echo "SKIPPED ${#skipped[@]} with new conflicts: ${skipped[*]}"
-  echo "  resolve one: git merge pr/<n>, fix the files, git commit (rerere remembers it), then rerun."
-fi
+# --- check ----------------------------------------------------------------------
+# Tests hard-link built binaries into temp dirs, so a TMPDIR on another filesystem
+# fails them with EXDEV, and other tests need temp dirs outside any checkout or Cargo
+# workspace. When TMPDIR is on another filesystem, use <mount of the worktree>/tmp.
+device_of() { stat -c %d "$1" 2>/dev/null || stat -f %d "$1"; }
+check_tmpdir() {
+  local tmp=${TMPDIR:-/tmp} mount
+  if [ "$(device_of "$tmp")" != "$(device_of "$WORKTREE")" ]; then
+    mount=$(df -P "$WORKTREE" | awk 'NR == 2 { print $NF }')
+    tmp="${mount%/}/tmp/kache-patched-check"
+    # Failed tests leave read-only store files behind.
+    if [ -d "$tmp" ]; then chmod -R u+w "$tmp"; rm -rf "$tmp"; fi
+    mkdir -p "$tmp"
+  fi
+  echo "$tmp"
+}
 
 if [ "$check" = 1 ]; then
-  just check
+  TMPDIR=$(check_tmpdir)
+  export TMPDIR
+  # The recipes `just check` depends on, one at a time so each is timed.
+  for recipe in fmt-check lint test-resource-guard-check test; do
+    phase "just $recipe" just "$recipe"
+  done
 fi
 
+# --- install --------------------------------------------------------------------
 if [ "$install" = 1 ]; then
   # Build without the installed kache, as the Justfile does.
-  RUSTC_WRAPPER= cargo install --path . --locked --force
-  kache daemon restart
-  mkdir -p "$STATE"
+  RUSTC_WRAPPER='' phase "cargo install" cargo install --path . --locked --force
+  installed="${CARGO_INSTALL_ROOT:-${CARGO_HOME:-$HOME/.cargo}}/bin/kache"
+  phase "kache daemon restart" "$installed" daemon restart
+  if [ "$(command -v kache || true)" != "$installed" ]; then
+    echo "WARNING: 'kache' on PATH is $(command -v kache || echo missing), not $installed."
+    echo "  Put $(dirname "$installed") first on PATH or remove the other install."
+  fi
   {
     echo "installed $(date '+%Y-%m-%d %H:%M')"
     echo "commit    $(git rev-parse HEAD)"
-    echo "upstream  $(git rev-parse origin/main)"
-    echo "merged    ${merged[*]}"
+    echo "upstream  $(git rev-parse "$up/main")"
+    echo "merged    ${merged[*]:-}"
     echo "skipped   ${skipped[*]:-}"
   } >"$STATE/installed.txt"
-  echo "installed $(kache --version); record in $STATE/installed.txt"
+  echo "installed $("$installed" --version); record in $STATE/installed.txt"
+fi
+
+# --- publish --------------------------------------------------------------------
+# The fork's copy of the build is where another machine learns its resolutions.
+if [ "$push" = 1 ]; then
+  [ -n "$fork" ] || die "no remote points at $AUTHOR/kache; cannot --push"
+  phase "push $BRANCH" git push -q --force "$fork" "HEAD:refs/heads/$BRANCH"
 fi
