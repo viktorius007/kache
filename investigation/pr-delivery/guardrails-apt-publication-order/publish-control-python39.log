@@ -1,0 +1,18 @@
+.F........
+======================================================================
+FAIL: test_cli_list_matches_discovery (__main__.CratesIoTests.test_cli_list_matches_discovery)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-prs/guardrails-apt-publication-order/scripts/test-crates-io.py", line 129, in test_cli_list_matches_discovery
+    self.assertEqual(result.returncode, 0, result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-prs/guardrails-apt-publication-order/scripts/crates-io.py", line 25, in <module>
+    import tomllib
+ModuleNotFoundError: No module named 'tomllib'
+
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.090s
+
+FAILED (failures=1)

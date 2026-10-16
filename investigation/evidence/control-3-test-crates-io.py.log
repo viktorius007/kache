@@ -1,0 +1,147 @@
+ARGV=['python3', 'scripts/test-crates-io.py']
+EXIT=1
+EEEEEEEEEE
+======================================================================
+ERROR: test_cargo_p_args_cover_every_publishable_crate (__main__.CratesIoTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 24, in setUp
+    self.mod = load_mod()
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 18, in load_mod
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 850, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/crates-io.py", line 25, in <module>
+    import tomllib
+ModuleNotFoundError: No module named 'tomllib'
+
+======================================================================
+ERROR: test_cli_list_matches_discovery (__main__.CratesIoTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 24, in setUp
+    self.mod = load_mod()
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 18, in load_mod
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 850, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/crates-io.py", line 25, in <module>
+    import tomllib
+ModuleNotFoundError: No module named 'tomllib'
+
+======================================================================
+ERROR: test_cycle_is_rejected (__main__.CratesIoTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 24, in setUp
+    self.mod = load_mod()
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 18, in load_mod
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 850, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/crates-io.py", line 25, in <module>
+    import tomllib
+ModuleNotFoundError: No module named 'tomllib'
+
+======================================================================
+ERROR: test_dependency_order_puts_leaves_first (__main__.CratesIoTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 24, in setUp
+    self.mod = load_mod()
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 18, in load_mod
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 850, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/crates-io.py", line 25, in <module>
+    import tomllib
+ModuleNotFoundError: No module named 'tomllib'
+
+======================================================================
+ERROR: test_desired_config_matches_publish_workflow_without_environment (__main__.CratesIoTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 24, in setUp
+    self.mod = load_mod()
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 18, in load_mod
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 850, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/crates-io.py", line 25, in <module>
+    import tomllib
+ModuleNotFoundError: No module named 'tomllib'
+
+======================================================================
+ERROR: test_empty_publish_list_is_unpublished (__main__.CratesIoTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 24, in setUp
+    self.mod = load_mod()
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 18, in load_mod
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 850, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/crates-io.py", line 25, in <module>
+    import tomllib
+ModuleNotFoundError: No module named 'tomllib'
+
+======================================================================
+ERROR: test_new_crate_hint_names_the_just_recipe (__main__.CratesIoTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 24, in setUp
+    self.mod = load_mod()
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 18, in load_mod
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 850, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/crates-io.py", line 25, in <module>
+    import tomllib
+ModuleNotFoundError: No module named 'tomllib'
+
+======================================================================
+ERROR: test_new_publishable_crate_is_listed_without_a_script_edit (__main__.CratesIoTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 24, in setUp
+    self.mod = load_mod()
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 18, in load_mod
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 850, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/crates-io.py", line 25, in <module>
+    import tomllib
+ModuleNotFoundError: No module named 'tomllib'
+
+======================================================================
+ERROR: test_sparse_index_path (__main__.CratesIoTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 24, in setUp
+    self.mod = load_mod()
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 18, in load_mod
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 850, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/crates-io.py", line 25, in <module>
+    import tomllib
+ModuleNotFoundError: No module named 'tomllib'
+
+======================================================================
+ERROR: test_unpublished_members_are_skipped (__main__.CratesIoTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 24, in setUp
+    self.mod = load_mod()
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-crates-io.py", line 18, in load_mod
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 850, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/crates-io.py", line 25, in <module>
+    import tomllib
+ModuleNotFoundError: No module named 'tomllib'
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.028s
+
+FAILED (errors=10)

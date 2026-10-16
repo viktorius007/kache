@@ -1,0 +1,119 @@
+
+> test
+> node workflow-policy.mjs ../.. && node --test *.test.mjs
+
+724 workflow policy checks passed across 36 validation selectors.
+✔ an adopted contribution stays quarantined when ready (38.974125ms)
+✔ an adopted contribution stays quarantined when draft (38.131625ms)
+✔ an adopted contribution stays quarantined when bench label (36.398125ms)
+✔ an adopted contribution stays quarantined when bench title (36.462083ms)
+✔ an adopted contribution stays quarantined when draft bench label (33.313666ms)
+✔ an adopted contribution stays quarantined when draft bench title (37.021792ms)
+✔ an ordinary ready same-repository PR remains eligible (38.334625ms)
+✔ an ordinary draft without a bench request stays skipped (33.479917ms)
+✔ an ordinary draft can request benchmarks with its label (34.915375ms)
+✔ an ordinary draft can request benchmarks with its title (38.551083ms)
+✔ a fork cannot authorize a self-hosted measurement (37.167ms)
+✔ a closed PR cannot authorize a self-hosted measurement (34.851584ms)
+✔ a stale head cannot authorize a self-hosted measurement (35.092083ms)
+✔ a missing head branch cannot authorize a self-hosted measurement (36.869125ms)
+✔ a missing base branch cannot authorize a self-hosted measurement (34.24025ms)
+✔ quarantine applies to the branch prefix rather than an interior substring (32.001792ms)
+✖ ordinary CI can reject sustained cold duplicate growth (336.119ms)
+✖ expanded CI can reject sustained cold duplicate growth (262.910458ms)
+✔ a validation job hardcodes a hosted runner (138.232708ms)
+✔ a matrix entry hardcodes a hosted runner (128.501375ms)
+✔ a job bypasses its configured runner matrix (128.867917ms)
+✔ a new helper job hardcodes a hosted runner (128.525417ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 20
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1268.752708
+
+✖ failing tests:
+
+test at perf-gate-authorization.test.mjs:159:3
+✖ ordinary CI can reject sustained cold duplicate growth (336.119ms)
+  AssertionError [ERR_ASSERTION]: aube: contention, 6 warm batches and 6 cold seeds per Kache arm; reference tools take 1 batches; see contention.log
+  E
+  ======================================================================
+  ERROR: test_ci_sampling_rejects_sustained_cold_growth (bench.tests.test_contention_counts.ContentionCountTests)
+  ----------------------------------------------------------------------
+  Traceback (most recent call last):
+    File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/bench/tests/test_contention_counts.py", line 141, in test_ci_sampling_rejects_sustained_cold_growth
+      result = short.run_contention(args, arms)
+    File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/bench/short.py", line 139, in run_contention
+      run_measurement(
+    File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/bench/tests/test_contention_counts.py", line 129, in measure
+      rows = records([0] * samples, [40] * samples)
+    File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/bench/tests/test_contention_counts.py", line 16, in records
+      for sample, (base, head) in enumerate(zip(base_counts, head_counts, strict=True)):
+  TypeError: zip() takes no keyword arguments
+  
+  ----------------------------------------------------------------------
+  Ran 1 test in 0.002s
+  
+  FAILED (errors=1)
+  
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///Users/viktor/Developer/github/kache-investigations/audit-guardrails/.github/tests/perf-gate-authorization.test.mjs:181:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at perf-gate-authorization.test.mjs:159:3
+✖ expanded CI can reject sustained cold duplicate growth (262.910458ms)
+  AssertionError [ERR_ASSERTION]: aube: contention, 6 warm batches and 6 cold seeds per Kache arm; reference tools take 6 batches; see contention.log
+  E
+  ======================================================================
+  ERROR: test_ci_sampling_rejects_sustained_cold_growth (bench.tests.test_contention_counts.ContentionCountTests)
+  ----------------------------------------------------------------------
+  Traceback (most recent call last):
+    File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/bench/tests/test_contention_counts.py", line 141, in test_ci_sampling_rejects_sustained_cold_growth
+      result = short.run_contention(args, arms)
+    File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/bench/short.py", line 139, in run_contention
+      run_measurement(
+    File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/bench/tests/test_contention_counts.py", line 129, in measure
+      rows = records([0] * samples, [40] * samples)
+    File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/bench/tests/test_contention_counts.py", line 16, in records
+      for sample, (base, head) in enumerate(zip(base_counts, head_counts, strict=True)):
+  TypeError: zip() takes no keyword arguments
+  
+  ----------------------------------------------------------------------
+  Ran 1 test in 0.002s
+  
+  FAILED (errors=1)
+  
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///Users/viktor/Developer/github/kache-investigations/audit-guardrails/.github/tests/perf-gate-authorization.test.mjs:181:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

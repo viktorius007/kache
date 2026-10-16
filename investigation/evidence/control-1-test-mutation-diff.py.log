@@ -1,0 +1,497 @@
+ARGV=['python3', 'scripts/test-mutation-diff.py']
+EXIT=1
+......./Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmp4v11on25'>
+  _warnings.warn(warn_message, ResourceWarning)
+./Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpv0i0h3h9'>
+  _warnings.warn(warn_message, ResourceWarning)
+./Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpl9ugglbh'>
+  _warnings.warn(warn_message, ResourceWarning)
+./Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpsimthkgs'>
+  _warnings.warn(warn_message, ResourceWarning)
+./Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpe1s1if7n'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpxbni39_9'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmp53f3nfrk'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpdphvddk1'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpa9xe5fou'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpbwd2h34t'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmp3w8uxfzb'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpahw8wlwr'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmp6qz2srmo'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpgjhms2nu'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpgzu70e2v'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpyy9n8gf1'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpadqsnoav'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmp_1kk2ij4'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpxvw_o8cu'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmp3cmroyko'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmp1njx58bp'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpd6c78m5g'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpt60ga1rr'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpundmf09k'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpco_x6e9y'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpblo4bcpq'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpkfkeeacw'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpqzvwxjsw'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmplzq6a64q'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpno49ejo5'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmp4wcx7g10'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpe97cfxrw'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpj9oxk14f'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpmuvp2rlj'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpxyp_xs7j'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmp5d651e3m'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpbfgzmx68'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmp9qahtey1'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmp7xc39yhd'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmp193w8dcn'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpg6tgli9n'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmp_n7vwjyz'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpye8_7jak'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpl_ayx5uo'>
+  _warnings.warn(warn_message, ResourceWarning)
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tempfile.py:817: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/tmpcs8mkgh5'>
+  _warnings.warn(warn_message, ResourceWarning)
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=2)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=3)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=4)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=5)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=6)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=7)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=8)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=9)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=10)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=11)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=12)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=13)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=14)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=15)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=16)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=17)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=18)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=19)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=20)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=21)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=22)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=23)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=24)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=25)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=26)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=27)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=28)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=29)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=30)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=31)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=32)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=33)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=34)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=35)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=36)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=37)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=38)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+======================================================================
+ERROR: test_rewritten_diffs_are_well_formed_and_match_the_tree (__main__.PropertyTests) (seed=39)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-mutation-diff.py", line 284, in test_rewritten_diffs_are_well_formed_and_match_the_tree
+    self.assertLessEqual(Counter(added(diff)), Counter(added(plain)))
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py", line 1221, in assertLessEqual
+    if not a <= b:
+TypeError: '<=' not supported between instances of 'Counter' and 'Counter'
+
+----------------------------------------------------------------------
+Ran 12 tests in 5.468s
+
+FAILED (errors=40)

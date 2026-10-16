@@ -1,0 +1,7 @@
+Syncing dists/unstable/ to R2...
+Copying pool/ to R2 (additive)...
+kache APT repository published to R2 (channel: unstable, suites: unstable)
+publish_exit=0
+boundary_calls=["sync", "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/investigation/apt-order-w9mfuat2/repo/dists/unstable/", "r2:fixture/kache/apt/dists/unstable/"]; ["copy", "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/investigation/apt-order-w9mfuat2/repo/pool/", "r2:fixture/kache/apt/pool/"]
+PUBLIC_INDEX_FILENAME=pool/main/k/kache/new.deb
+PUBLIC_PACKAGE_EXISTS=True

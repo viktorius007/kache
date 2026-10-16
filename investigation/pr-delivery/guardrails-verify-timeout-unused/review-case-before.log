@@ -1,0 +1,45 @@
+   Compiling kache-e2e v1.0.0 (/Users/viktor/Developer/github/kache-prs/guardrails-verify-timeout-unused/crates/kache-e2e)
+    Finished `test` profile [unoptimized] target(s) in 2.69s
+     Running unittests src/lib.rs (/Users/viktor/Developer/github/kache-prs/contract-bin-001/target/debug/deps/kache_e2e-a32f1e52020be651)
+
+running 1 test
+test runner::tests::verify_deadline_stops_a_stdout_holder_after_its_parent_exits ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 283 filtered out; finished in 1.01s
+
+     Running unittests src/bin/e2e-fallback.rs (/Users/viktor/Developer/github/kache-prs/contract-bin-001/target/debug/deps/e2e_fallback-fa7c40f5544b8e40)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/kache-cc.rs (/Users/viktor/Developer/github/kache-prs/contract-bin-001/target/debug/deps/kache_cc-99b75dcd7eb07929)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/kache-cxx.rs (/Users/viktor/Developer/github/kache-prs/contract-bin-001/target/debug/deps/kache_cxx-4c813fb6218ccb14)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/kache-scenario.rs (/Users/viktor/Developer/github/kache-prs/contract-bin-001/target/debug/deps/kache_scenario-5a8b22179b25dcba)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/skip_summary.rs (/Users/viktor/Developer/github/kache-prs/contract-bin-001/target/debug/deps/skip_summary-5fc0dd84d351b101)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/strict_gate.rs (/Users/viktor/Developer/github/kache-prs/contract-bin-001/target/debug/deps/strict_gate-4a7f4dfdec81c9ef)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+

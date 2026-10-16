@@ -1,0 +1,15 @@
+{
+  "runtime_root": "/tmp/gapt-iweptz0n",
+  "proof_source_byte_identical": true,
+  "argv": [
+    "/opt/homebrew/bin/python3.14",
+    "/tmp/gapt-iweptz0n/investigation/probe-apt-publication.py"
+  ],
+  "healthy_argv": [
+    "/opt/homebrew/bin/python3.14",
+    "/tmp/gapt-iweptz0n/investigation/probe-apt-publication.py",
+    "--healthy"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-prs/guardrails-apt-publication-order",
+  "adapters": "local rclone boundary; no R2, signatures, real deploy or APT client"
+}

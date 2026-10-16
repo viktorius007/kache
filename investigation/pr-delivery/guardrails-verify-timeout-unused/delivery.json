@@ -1,0 +1,31 @@
+{
+  "id": "guardrails-verify-timeout-unused",
+  "branch": "fix/guardrails-verify-timeout-unused",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/guardrails-verify-timeout-unused",
+  "test_commit": "962f9919a0796f5276d92eabc0b0c2ce3e402b6a",
+  "fix_commit": "9ea3e56c34f77506cf2816f6577501694eac26e4",
+  "title": "Enforce fixture verification deadlines",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/investigation/pr-delivery/guardrails-verify-timeout-unused/pr-body.md",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "gate_command": "CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/contract-bin-001/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py just check",
+  "gate_exit": 0,
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/investigation/pr-delivery/guardrails-verify-timeout-unused/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/investigation/pr-delivery/guardrails-verify-timeout-unused/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/investigation/pr-delivery/guardrails-verify-timeout-unused/gate.log",
+  "changed_files": [
+    "Cargo.lock",
+    "crates/kache-e2e/Cargo.toml",
+    "crates/kache-e2e/src/runner.rs",
+    "crates/kache-e2e/src/runner/verify_process.rs"
+  ],
+  "commit_pairs": [
+    {
+      "test": "962f9919a0796f5276d92eabc0b0c2ce3e402b6a",
+      "fix": "b8982f82e1e8b64ad805fc2e7dff8988b16fbd6f"
+    },
+    {
+      "test": "84e72a60f2a0bd90eb4a3c5bde7f9d3af62fc3ba",
+      "fix": "9ea3e56c34f77506cf2816f6577501694eac26e4"
+    }
+  ]
+}

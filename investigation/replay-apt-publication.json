@@ -1,0 +1,10 @@
+{
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/investigation/probe-apt-publication.py"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-guardrails",
+  "timeout_seconds": 20,
+  "expected_failure_regex": "AssertionError",
+  "assertion_regex": "APT publication integrity: live index points at absent package"
+}

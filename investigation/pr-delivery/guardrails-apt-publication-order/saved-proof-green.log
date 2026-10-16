@@ -1,0 +1,6 @@
+injected object-store failure during package upload
+Copying pool/ to R2 (additive)...
+publish_exit=9
+boundary_calls=["copy", "/private/tmp/gapt-iweptz0n/investigation/apt-order-jsbsak6d/repo/pool/", "r2:fixture/kache/apt/pool/"]
+PUBLIC_INDEX_FILENAME=pool/old.deb
+PUBLIC_PACKAGE_EXISTS=True

@@ -1,0 +1,54 @@
+   Compiling serde_core v1.0.229
+   Compiling syn v3.0.5
+   Compiling num-traits v0.2.19
+   Compiling rustix v1.1.4
+   Compiling errno v0.3.14
+   Compiling serde_json v1.0.151
+   Compiling getrandom v0.4.3
+   Compiling clap_derive v4.6.4
+   Compiling serde_derive v1.0.229
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling serde_spanned v1.1.1
+   Compiling memchr v2.8.3
+   Compiling hashbrown v0.17.1
+   Compiling once_cell v1.21.4
+   Compiling tempfile v3.27.0
+   Compiling serde v1.0.229
+   Compiling toml v1.1.5+spec-1.1.0
+   Compiling indexmap v2.14.2
+   Compiling chrono v0.4.45
+   Compiling clap v4.6.6
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/guardrails-verify-timeout-unused/crates/kache-fs)
+   Compiling kache-e2e v1.0.0 (/Users/viktor/Developer/github/kache-prs/guardrails-verify-timeout-unused/crates/kache-e2e)
+    Finished `test` profile [unoptimized] target(s) in 9.72s
+     Running unittests src/lib.rs (/Users/viktor/Developer/github/kache-prs/contract-bin-001/target/debug/deps/kache_e2e-777f2463f216f82f)
+
+running 3 tests
+test runner::tests::verify_deadline_preserves_timely_exit_and_stdout_contract ... ok
+test runner::tests::verify_deadline_rejects_late_output_and_reaps_descendants ... FAILED
+test runner::tests::verify_deadline_fails_and_short_circuits_the_fixture_with_cache_cleanup ... FAILED
+
+failures:
+
+---- runner::tests::verify_deadline_rejects_late_output_and_reaps_descendants stdout ----
+
+thread 'runner::tests::verify_deadline_rejects_late_output_and_reaps_descendants' (56125576) panicked at crates/kache-e2e/src/runner.rs:1638:9:
+verification exceeded its declared deadline
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- runner::tests::verify_deadline_fails_and_short_circuits_the_fixture_with_cache_cleanup stdout ----
+--- shim-test (cache: /var/folders/wq/48xldn_s09x1lqc7t7m16q7w0000gp/T/.tmpnWZykA)
+
+thread 'runner::tests::verify_deadline_fails_and_short_circuits_the_fixture_with_cache_cleanup' (56125496) panicked at crates/kache-e2e/src/runner.rs:1698:9:
+assertion `left == right` failed: late verification passed the fixture
+  left: "pass"
+ right: "fail"
+
+
+failures:
+    runner::tests::verify_deadline_fails_and_short_circuits_the_fixture_with_cache_cleanup
+    runner::tests::verify_deadline_rejects_late_output_and_reaps_descendants
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 280 filtered out; finished in 12.10s
+
+error: test failed, to rerun pass `-p kache-e2e --lib`

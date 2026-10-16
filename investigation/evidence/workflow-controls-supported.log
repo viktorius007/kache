@@ -1,0 +1,35 @@
+
+> test
+> node workflow-policy.mjs ../.. && node --test *.test.mjs
+
+724 workflow policy checks passed across 36 validation selectors.
+✔ an adopted contribution stays quarantined when ready (41.868125ms)
+✔ an adopted contribution stays quarantined when draft (37.877625ms)
+✔ an adopted contribution stays quarantined when bench label (39.482083ms)
+✔ an adopted contribution stays quarantined when bench title (37.111666ms)
+✔ an adopted contribution stays quarantined when draft bench label (39.078833ms)
+✔ an adopted contribution stays quarantined when draft bench title (39.539875ms)
+✔ an ordinary ready same-repository PR remains eligible (38.302291ms)
+✔ an ordinary draft without a bench request stays skipped (37.152875ms)
+✔ an ordinary draft can request benchmarks with its label (40.369125ms)
+✔ an ordinary draft can request benchmarks with its title (38.647ms)
+✔ a fork cannot authorize a self-hosted measurement (35.94025ms)
+✔ a closed PR cannot authorize a self-hosted measurement (33.892542ms)
+✔ a stale head cannot authorize a self-hosted measurement (36.5245ms)
+✔ a missing head branch cannot authorize a self-hosted measurement (39.374666ms)
+✔ a missing base branch cannot authorize a self-hosted measurement (33.615417ms)
+✔ quarantine applies to the branch prefix rather than an interior substring (32.408417ms)
+✔ ordinary CI can reject sustained cold duplicate growth (251.759583ms)
+✔ expanded CI can reject sustained cold duplicate growth (127.629833ms)
+✔ a validation job hardcodes a hosted runner (137.982292ms)
+✔ a matrix entry hardcodes a hosted runner (135.230458ms)
+✔ a job bypasses its configured runner matrix (131.891625ms)
+✔ a new helper job hardcodes a hosted runner (129.358125ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1067.098625

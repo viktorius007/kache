@@ -1,0 +1,66 @@
+ARGV=['python3', 'scripts/test-version-consistency.py']
+EXIT=1
+FFFF
+======================================================================
+FAIL: test_chart_and_release_tag_must_match (__main__.VersionConsistencyTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-version-consistency.py", line 81, in test_chart_and_release_tag_must_match
+    self.assertIn("tag version", result.stderr)
+AssertionError: 'tag version' not found in 'Traceback (most recent call last):\n  File "<stdin>", line 1, in <module>\nModuleNotFoundError: No module named \'tomllib\'\n'
+
+======================================================================
+FAIL: test_missing_or_stale_dependency_pin_is_rejected (__main__.VersionConsistencyTests) (pin='')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-version-consistency.py", line 69, in test_missing_or_stale_dependency_pin_is_rejected
+    self.assertIn("dependency pin for kache-format", result.stderr)
+AssertionError: 'dependency pin for kache-format' not found in 'Traceback (most recent call last):\n  File "<stdin>", line 1, in <module>\nModuleNotFoundError: No module named \'tomllib\'\n'
+
+======================================================================
+FAIL: test_missing_or_stale_dependency_pin_is_rejected (__main__.VersionConsistencyTests) (pin=', version = "0.16.0"')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-version-consistency.py", line 69, in test_missing_or_stale_dependency_pin_is_rejected
+    self.assertIn("dependency pin for kache-format", result.stderr)
+AssertionError: 'dependency pin for kache-format' not found in 'Traceback (most recent call last):\n  File "<stdin>", line 1, in <module>\nModuleNotFoundError: No module named \'tomllib\'\n'
+
+======================================================================
+FAIL: test_missing_or_stale_dependency_pin_is_rejected (__main__.VersionConsistencyTests) (pin=', version = "^0.16.1"')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-version-consistency.py", line 69, in test_missing_or_stale_dependency_pin_is_rejected
+    self.assertIn("dependency pin for kache-format", result.stderr)
+AssertionError: 'dependency pin for kache-format' not found in 'Traceback (most recent call last):\n  File "<stdin>", line 1, in <module>\nModuleNotFoundError: No module named \'tomllib\'\n'
+
+======================================================================
+FAIL: test_new_publishable_crate_is_checked_without_a_script_edit (__main__.VersionConsistencyTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-version-consistency.py", line 60, in test_new_publishable_crate_is_checked_without_a_script_edit
+    self.assertIn("kache-store version", result.stderr)
+AssertionError: 'kache-store version' not found in 'Traceback (most recent call last):\n  File "<stdin>", line 1, in <module>\nModuleNotFoundError: No module named \'tomllib\'\n'
+
+======================================================================
+FAIL: test_unpublished_dependency_cannot_ship (__main__.VersionConsistencyTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-version-consistency.py", line 76, in test_unpublished_dependency_cannot_ship
+    self.assertIn("unpublished local crate kache-format", result.stderr)
+AssertionError: 'unpublished local crate kache-format' not found in 'Traceback (most recent call last):\n  File "<stdin>", line 1, in <module>\nModuleNotFoundError: No module named \'tomllib\'\n'
+
+======================================================================
+FAIL: test_versions_and_tag_agree_while_unpublished_version_differs (__main__.VersionConsistencyTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/scripts/test-version-consistency.py", line 51, in test_versions_and_tag_agree_while_unpublished_version_differs
+    self.assertEqual(result.returncode, 0, result.stderr)
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'tomllib'
+
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.215s
+
+FAILED (failures=7)

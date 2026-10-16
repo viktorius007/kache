@@ -1,0 +1,7 @@
+ARGV=['/opt/homebrew/bin/python3.14', 'scripts/test-version-consistency.py']
+EXIT=0
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.282s
+
+OK

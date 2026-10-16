@@ -1,0 +1,5 @@
+ARGV=['bash', 'scripts/test-with-test-resources.sh']
+EXIT=0
+warning: could not raise soft nofile limit 64 to 4096; capping Rust test threads at 1
+warning: could not raise soft nofile limit 64 to 4096; capping Rust test threads at 8
+test-resource guard: all checks passed

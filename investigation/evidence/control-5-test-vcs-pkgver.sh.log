@@ -1,0 +1,13 @@
+ARGV=['bash', 'scripts/aur/test-vcs-pkgver.sh']
+EXIT=0
+vcs-pkgver.sh
+  ok   tagged repo yields <version>.r<count>.g<sha>
+  ok   leading v is stripped from the tag
+  ok   untagged repo falls back to 0.0.0
+  ok   commit count reflects full history
+  ok   shallow clone is refused, not silently counted as r1
+  ok   a non-repo path is refused
+  ok   a missing path is refused
+  ok   output matches the PKGBUILD's own pkgver() byte for byte
+
+passed: 8  failed: 0

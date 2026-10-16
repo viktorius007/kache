@@ -1,0 +1,10 @@
+{
+  "id": "guardrails-apt-publication-order",
+  "agent": "sweep_map",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/guardrails-apt-publication-order",
+  "branch": "fix/guardrails-apt-publication-order",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "authority": "Root dispatch: reuse saved proof, separate test/fix commits, full just check, offline fixtures only",
+  "saved_proof": "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/investigation/probe-apt-publication.py",
+  "target": "/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/pr-delivery/benchmark-guardrails-001/target"
+}

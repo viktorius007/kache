@@ -1,0 +1,75 @@
+FFFF
+======================================================================
+FAIL: test_package_upload_failure_keeps_live_indexes_unchanged (__main__.AptPublicationTests.test_package_upload_failure_keeps_live_indexes_unchanged) (channel='stable')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-prs/guardrails-apt-publication-order/scripts/test-apt-publish.py", line 155, in test_package_upload_failure_keeps_live_indexes_unchanged
+    self.assertEqual((self.remote / "apt/dists" / suite / "Packages").read_bytes(),
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     b"old index", "package upload failure replaced a live index")
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'Package: kache\nFilename: pool/main/k/kache/new.deb\n' != b'old index' : package upload failure replaced a live index
+
+======================================================================
+FAIL: test_package_upload_failure_keeps_live_indexes_unchanged (__main__.AptPublicationTests.test_package_upload_failure_keeps_live_indexes_unchanged) (channel='unstable')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-prs/guardrails-apt-publication-order/scripts/test-apt-publish.py", line 155, in test_package_upload_failure_keeps_live_indexes_unchanged
+    self.assertEqual((self.remote / "apt/dists" / suite / "Packages").read_bytes(),
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     b"old index", "package upload failure replaced a live index")
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'Package: kache\nFilename: pool/main/k/kache/new.deb\n' != b'old index' : package upload failure replaced a live index
+
+======================================================================
+FAIL: test_packages_exist_before_each_suite_index_is_published (__main__.AptPublicationTests.test_packages_exist_before_each_suite_index_is_published) (channel='stable')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-prs/guardrails-apt-publication-order/scripts/test-apt-publish.py", line 128, in test_packages_exist_before_each_suite_index_is_published
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        [call["missing_payloads"] for call in calls if call["args"][0] == "sync"],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        [[] for _ in range(len(suites) + 1)],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        "publication exposed an index before its package payload existed",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: Lists differ: [['pool/main/k/kache/new.deb'], ['pool/main/k/kache/new.deb'], []] != [[], [], []]
+
+First differing element 0:
+['pool/main/k/kache/new.deb']
+[]
+
+- [['pool/main/k/kache/new.deb'], ['pool/main/k/kache/new.deb'], []]
++ [[], [], []] : publication exposed an index before its package payload existed
+
+======================================================================
+FAIL: test_packages_exist_before_each_suite_index_is_published (__main__.AptPublicationTests.test_packages_exist_before_each_suite_index_is_published) (channel='unstable')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-prs/guardrails-apt-publication-order/scripts/test-apt-publish.py", line 128, in test_packages_exist_before_each_suite_index_is_published
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        [call["missing_payloads"] for call in calls if call["args"][0] == "sync"],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        [[] for _ in range(len(suites) + 1)],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        "publication exposed an index before its package payload existed",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: Lists differ: [['pool/main/k/kache/new.deb'], []] != [[], []]
+
+First differing element 0:
+['pool/main/k/kache/new.deb']
+[]
+
+- [['pool/main/k/kache/new.deb'], []]
++ [[], []] : publication exposed an index before its package payload existed
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.527s
+
+FAILED (failures=4)

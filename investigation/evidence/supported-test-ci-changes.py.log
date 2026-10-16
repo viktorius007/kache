@@ -1,0 +1,7 @@
+ARGV=['/opt/homebrew/bin/python3.14', 'scripts/test-ci-changes.py']
+EXIT=0
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 0.001s
+
+OK
