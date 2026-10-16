@@ -1,0 +1,12 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/contract-bin-001)
+    Finished `test` profile [unoptimized] target(s) in 4.79s
+     Running tests/adaptive_incremental_test.rs (target/debug/deps/adaptive_incremental_test-de4c0ac861946a57)
+
+running 1 test
+test user_facing_executable_preserves_configured_fallback_contract ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.44s
+
