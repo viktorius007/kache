@@ -1,0 +1,7 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-d5-investigation)
+    Finished `test` profile [unoptimized] target(s) in 1m 20s
+  Executable unittests src/main.rs (/private/tmp/kache-d5-target/debug/deps/kache-1216026e9547a40d)

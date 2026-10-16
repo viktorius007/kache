@@ -2,6 +2,8 @@ use super::*;
 use std::fs;
 use std::sync::mpsc;
 
+mod post_upload_gc;
+
 #[test]
 fn identity_publish_context_requires_both_nonempty_values() {
     assert_eq!(identity_publish_context(None, "session", true, false), None);

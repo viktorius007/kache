@@ -1,0 +1,231 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/d5)
+    Finished `test` profile [unoptimized] target(s) in 20.97s
+     Running unittests src/main.rs (/private/tmp/kache-pr-d5-target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+test daemon::tests::post_upload_gc::a_post_upload_gc_sweep_allows_health_requests_while_a_writer_is_busy ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4395 filtered out; finished in 1.33s
+
+     Running tests/adaptive_incremental_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/adaptive_incremental_test-de4c0ac861946a57)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+     Running tests/adaptive_incremental_workspace_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/adaptive_incremental_workspace_test-8ddf40ae10ce1908)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+     Running tests/binstall_metadata_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/binstall_metadata_test-9592a72e3ea71fd7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/build_script_declared_inputs_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/build_script_declared_inputs_test-c34fd4487b7a1383)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/build_script_inputs_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/build_script_inputs_test-fa96cee14a662034)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/build_script_launcher_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/build_script_launcher_test-4fdaec0d2c59bdbc)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/cache_key_underkeying_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/cache_key_underkeying_test-b317127eabbeef47)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.00s
+
+     Running tests/cached_units_regression_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/cached_units_regression_test-a10f56b8767b71cd)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 18 filtered out; finished in 0.00s
+
+     Running tests/cargo_proxy_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/cargo_proxy_test-862467b832a697af)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 24 filtered out; finished in 0.00s
+
+     Running tests/cc_family_probe_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/cc_family_probe_test-1fd4713be5df042c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/cc_passthrough_args_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/cc_passthrough_args_test-36590001524819ec)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.00s
+
+     Running tests/cc_release_regression_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/cc_release_regression_test-c1d9ab4a263f8184)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/cli_commands_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/cli_commands_test-02de9353427050e5)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 116 filtered out; finished in 0.00s
+
+     Running tests/codegen_backend_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/codegen_backend_test-195cb20deac5e9e8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/custom_harness_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/custom_harness_test-0e43e32350571d7c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/eviction_evidence_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/eviction_evidence_test-4fc4cbbe5d66361e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/extra_inputs_warm_target_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/extra_inputs_warm_target_test-308ca2ad63da3d0c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/fallback_recovery_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/fallback_recovery_test-f38743893dd34a55)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+     Running tests/filesystem_remote_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/filesystem_remote_test-c39d7d13b2a02c45)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 0.00s
+
+     Running tests/host_config_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/host_config_test-6c48ef02c6b7aa92)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/incremental_passthrough_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/incremental_passthrough_test-1848aa1aa2175523)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s
+
+     Running tests/input_prediction_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/input_prediction_test-1e6eccd46c7cbc50)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 37 filtered out; finished in 0.00s
+
+     Running tests/integration_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/integration_test-03dc587eb7b988d6)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 42 filtered out; finished in 0.00s
+
+     Running tests/macos_adaptive_debug_info_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/macos_adaptive_debug_info_test-e050ab66ae8da3a1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/macos_local_network_metadata_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/macos_local_network_metadata_test-1ebf0b5e735c7e14)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/macos_native_install_name_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/macos_native_install_name_test-0064f844de8a7de3)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/metadata_streaming_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/metadata_streaming_test-a2f6d4baacdb8a18)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/nvcc_cuda_toolchain_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/nvcc_cuda_toolchain_test-7a71b05a71fca871)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s
+
+     Running tests/out_dir_alias_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/out_dir_alias_test-a5a1a6c3af2bcc9b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/proc_macro_env_key_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/proc_macro_env_key_test-c660e4d27dfc247a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/readonly_store_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/readonly_store_test-63cf04b7bce9931b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/s3_remote_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/s3_remote_test-d09f41f66b98b06d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/stale_artifact_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/stale_artifact_test-69b838a16d861264)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s
+
+     Running tests/test_runner_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/test_runner_test-a572e46bf7024c51)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 0.00s
+
+     Running tests/unknown_compiler_probe_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/unknown_compiler_probe_test-d36e03cf1ebbfe36)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/workspace_extra_inputs_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/workspace_extra_inputs_test-4f2249f5abc92ee7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/worktree_depinfo_test.rs (/private/tmp/kache-pr-d5-target/debug/deps/worktree_depinfo_test-d0a0cb6ea9ec3a93)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+

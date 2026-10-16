@@ -1,0 +1,47 @@
+[
+  {
+    "path": "src/daemon.rs",
+    "sha256": "bd896394f22294fe4a2582b70fb5d2a444ce0d01b6b612ee79f1b35e3b6b50e3",
+    "equals_baseline": true
+  },
+  {
+    "path": "src/volume_gc.rs",
+    "sha256": "14f9d0ee667301e8b4d8993d70010921f7068332f46f89edcb19db8458025551",
+    "equals_baseline": true
+  },
+  {
+    "path": "src/disk_recovery.rs",
+    "sha256": "c88633d1243cc782ba0c899251b90b443357ae3654ede0908d562aa9d6d4086c",
+    "equals_baseline": true
+  },
+  {
+    "path": "src/config.rs",
+    "sha256": "2331a40edfb12827787ad445432c4f638eaaa8cecc10037a97ae1e551ddde01c",
+    "equals_baseline": true
+  },
+  {
+    "path": "src/wrapper.rs",
+    "sha256": "76cd6e01e0cf93d484f84ddd3aeb9ea980ec0082144c10d6b5f1b0a64190c09f",
+    "equals_baseline": true
+  },
+  {
+    "path": "crates/kache-store/src/store.rs",
+    "sha256": "f257078be67112a5ebbf6b3705414a5352804bfcb47b85095cf1ef69ca1f635f",
+    "equals_baseline": true
+  },
+  {
+    "path": "Cargo.lock",
+    "sha256": "47adbcb8356555d2b7d85e05aa7ca7127645794a67330dc23e417646ac9e7c3a",
+    "equals_baseline": true
+  },
+  {
+    "path": "src/wrapper/remote.rs",
+    "sha256": "107c78ea84161c56c0bea77e3aea18167ec7eff5cb84f49493bf6c98ebe4eaa5",
+    "equals_baseline": true
+  },
+  {
+    "path": "src/daemon_publish.rs",
+    "sha256": "6320291e5015ddd9435e107a3716f6272c8ed431a71be9aa15472fa03faa071b",
+    "equals_baseline": true
+  }
+]

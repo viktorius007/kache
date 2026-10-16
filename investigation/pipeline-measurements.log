@@ -1,0 +1,24 @@
+
+running 1 test
+test daemon::tests::multi_upload_gc::measure_pipeline_gc_capacity ... D5_PIPELINE async_workers=1 upload_workers=16 stores=1 repetition=0 health_before_release=false health_ms=666.620 peers_before_release=0 finished_before_release=0 finished_total=32
+D5_PIPELINE async_workers=1 upload_workers=16 stores=1 repetition=1 health_before_release=false health_ms=645.419 peers_before_release=0 finished_before_release=0 finished_total=32
+D5_PIPELINE async_workers=1 upload_workers=16 stores=1 repetition=2 health_before_release=false health_ms=638.120 peers_before_release=0 finished_before_release=0 finished_total=32
+D5_PIPELINE async_workers=2 upload_workers=1 stores=1 repetition=0 health_before_release=true health_ms=0.022 peers_before_release=0 finished_before_release=0 finished_total=32
+D5_PIPELINE async_workers=2 upload_workers=1 stores=1 repetition=1 health_before_release=true health_ms=0.034 peers_before_release=0 finished_before_release=0 finished_total=32
+D5_PIPELINE async_workers=2 upload_workers=1 stores=1 repetition=2 health_before_release=true health_ms=0.037 peers_before_release=0 finished_before_release=0 finished_total=32
+D5_PIPELINE async_workers=2 upload_workers=16 stores=1 repetition=0 health_before_release=true health_ms=0.035 peers_before_release=31 finished_before_release=31 finished_total=32
+D5_PIPELINE async_workers=2 upload_workers=16 stores=1 repetition=1 health_before_release=true health_ms=0.035 peers_before_release=21 finished_before_release=21 finished_total=32
+D5_PIPELINE async_workers=2 upload_workers=16 stores=1 repetition=2 health_before_release=true health_ms=0.033 peers_before_release=31 finished_before_release=31 finished_total=32
+D5_PIPELINE async_workers=16 upload_workers=16 stores=1 repetition=0 health_before_release=true health_ms=0.022 peers_before_release=31 finished_before_release=31 finished_total=32
+D5_PIPELINE async_workers=16 upload_workers=16 stores=1 repetition=1 health_before_release=true health_ms=0.022 peers_before_release=31 finished_before_release=31 finished_total=32
+D5_PIPELINE async_workers=16 upload_workers=16 stores=1 repetition=2 health_before_release=true health_ms=0.024 peers_before_release=31 finished_before_release=31 finished_total=32
+D5_PIPELINE async_workers=2 upload_workers=16 stores=2 repetition=0 health_before_release=false health_ms=708.019 peers_before_release=0 finished_before_release=0 finished_total=32
+D5_PIPELINE async_workers=2 upload_workers=16 stores=2 repetition=1 health_before_release=false health_ms=685.506 peers_before_release=0 finished_before_release=0 finished_total=32
+D5_PIPELINE async_workers=2 upload_workers=16 stores=2 repetition=2 health_before_release=false health_ms=718.127 peers_before_release=0 finished_before_release=0 finished_total=32
+D5_PIPELINE async_workers=16 upload_workers=16 stores=2 repetition=0 health_before_release=true health_ms=0.018 peers_before_release=30 finished_before_release=30 finished_total=32
+D5_PIPELINE async_workers=16 upload_workers=16 stores=2 repetition=1 health_before_release=true health_ms=0.037 peers_before_release=30 finished_before_release=30 finished_total=32
+D5_PIPELINE async_workers=16 upload_workers=16 stores=2 repetition=2 health_before_release=true health_ms=0.025 peers_before_release=30 finished_before_release=30 finished_total=32
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4400 filtered out; finished in 35.68s
+

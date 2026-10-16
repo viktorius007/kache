@@ -1,0 +1,179 @@
+diff --git a/src/daemon/tests.rs b/src/daemon/tests.rs
+index 00523a4..56621c3 100644
+--- a/src/daemon/tests.rs
++++ b/src/daemon/tests.rs
+@@ -2,6 +2,8 @@ use super::*;
+ use std::fs;
+ use std::sync::mpsc;
+ 
++mod post_upload_gc;
++
+ #[test]
+ fn identity_publish_context_requires_both_nonempty_values() {
+     assert_eq!(identity_publish_context(None, "session", true, false), None);
+diff --git a/src/daemon/tests/post_upload_gc.rs b/src/daemon/tests/post_upload_gc.rs
+new file mode 100644
+index 0000000..1fc1e7d
+--- /dev/null
++++ b/src/daemon/tests/post_upload_gc.rs
+@@ -0,0 +1,160 @@
++use super::*;
++
++struct ProbeResult {
++    health_before_release: bool,
++    health_ms: f64,
++    upload_ms: f64,
++    gc_ms: u64,
++}
++
++fn probe_post_upload_gc(workers: usize, hold: Duration, hint: bool, entries: usize) -> ProbeResult {
++    let dir = tempfile::tempdir().unwrap();
++    let mut config = test_config(dir.path());
++    config.max_size = 100;
++    config.remote = Some(test_remote_config());
++    let key = test_cache_key("gc-responsiveness-upload");
++    seed_store_entry(&config, &key, "serde", dir.path());
++    let store = Store::open(&config).unwrap();
++    put_upload_evict_entry(&store, dir.path(), "gc_victim", 200, false);
++    for i in 1..entries {
++        put_upload_evict_entry(&store, dir.path(), &format!("gc_victim_{i}"), 200, false);
++    }
++    let daemon = daemon_on(config.clone(), &test_remote_backend());
++    daemon.with_store(|_| Ok(())).unwrap();
++    let gc_lock_path = config.store_dir().join("gc.lock");
++    assert!(!gc_lock_path.exists(), "the fixture has not run GC");
++    let writer = rusqlite::Connection::open(config.index_db_path()).unwrap();
++    if !hold.is_zero() {
++        writer.execute_batch("BEGIN IMMEDIATE").unwrap();
++    }
++    let runtime = tokio::runtime::Builder::new_multi_thread()
++        .worker_threads(workers)
++        .enable_all()
++        .build()
++        .unwrap();
++    let worker_daemon = daemon.clone();
++    let started = Instant::now();
++    let worker = runtime.spawn(async move {
++        let response = if hint {
++            worker_daemon.handle_gc_hint()
++        } else {
++            worker_daemon
++                .do_upload(&UploadJob {
++                    entry_dir: config.store_dir().join(&key).to_string_lossy().into_owned(),
++                    key,
++                    crate_name: "serde".into(),
++                    client_epoch: 0,
++                    client_version: None,
++                })
++                .await
++        };
++        (response, started.elapsed())
++    });
++    // Reading the initialized lock file never competes with GC's try-lock.
++    let deadline = Instant::now() + Duration::from_secs(5);
++    while fs::read_to_string(&gc_lock_path)
++        .unwrap_or_default()
++        .trim()
++        .is_empty()
++    {
++        if Instant::now() >= deadline {
++            if !hold.is_zero() {
++                writer.execute_batch("ROLLBACK").unwrap();
++            }
++            panic!("the upload must enter its post-upload GC sweep");
++        }
++        std::thread::sleep(Duration::from_millis(1));
++    }
++    let (health_tx, health_rx) = mpsc::channel();
++    let health_daemon = daemon.clone();
++    let health_started = Instant::now();
++    runtime.spawn(async move {
++        health_tx
++            .send((health_daemon.handle_health(), health_started.elapsed()))
++            .unwrap();
++    });
++    let early = health_rx.recv_timeout(hold);
++    std::thread::sleep(hold.saturating_sub(health_started.elapsed()));
++    // Release the real writer before any assertion, including on failure.
++    if !hold.is_zero() {
++        writer.execute_batch("ROLLBACK").unwrap();
++    }
++    let health_before_release = early.is_ok();
++    let (health, elapsed) =
++        early.unwrap_or_else(|_| health_rx.recv_timeout(Duration::from_secs(5)).unwrap());
++    assert!(health.ok && health.health.is_some());
++    let (response, upload_elapsed) = runtime.block_on(worker).unwrap();
++    assert!(response.ok, "upload must succeed: {response:?}");
++    let upload_ms = upload_elapsed.as_secs_f64() * 1000.0;
++    let deadline = Instant::now() + Duration::from_secs(5);
++    let gc_ms = loop {
++        if let Some(recorded) = crate::report::read_gc_stats(dir.path()) {
++            break recorded.duration_ms;
++        }
++        assert!(
++            Instant::now() < deadline,
++            "the sweep must record its result"
++        );
++        std::thread::sleep(Duration::from_millis(1));
++    };
++    assert!(
++        !store.contains("gc_victim"),
++        "the sweep must evict its victim"
++    );
++    ProbeResult {
++        health_before_release,
++        health_ms: elapsed.as_secs_f64() * 1000.0,
++        upload_ms,
++        gc_ms,
++    }
++}
++
++#[test]
++fn a_post_upload_gc_sweep_allows_health_requests_while_a_writer_is_busy() {
++    let result = probe_post_upload_gc(1, Duration::from_secs(1), false, 1);
++    assert!(
++        result.health_before_release,
++        "a health request must complete while the post-upload sweep waits for \
++         a SQLite writer; observed latency {:.1} ms",
++        result.health_ms
++    );
++}
++
++#[test]
++#[ignore = "controlled post-upload GC responsiveness measurement"]
++fn measure_post_upload_gc_responsiveness() {
++    for workers in [1, 2, 16] {
++        for hint in [false, true] {
++            for repetition in 0..5 {
++                let result = probe_post_upload_gc(workers, Duration::from_millis(250), hint, 1);
++                println!(
++                    "D5 workers={workers} path={} repetition={repetition} health_before_release={} health_ms={:.3} upload_ms={:.3} gc_ms={}",
++                    if hint { "hint" } else { "upload" },
++                    result.health_before_release,
++                    result.health_ms,
++                    result.upload_ms,
++                    result.gc_ms,
++                );
++            }
++        }
++    }
++}
++
++#[test]
++#[ignore = "real-store sweep without an injected writer delay"]
++fn measure_uncontended_post_upload_gc_responsiveness() {
++    for workers in [1, 2, 16] {
++        for hint in [false, true] {
++            for repetition in 0..3 {
++                let result = probe_post_upload_gc(workers, Duration::ZERO, hint, 200);
++                println!(
++                    "D5_NATURAL workers={workers} path={} repetition={repetition} health_ms={:.3} upload_ms={:.3} gc_ms={}",
++                    if hint { "hint" } else { "upload" },
++                    result.health_ms,
++                    result.upload_ms,
++                    result.gc_ms,
++                );
++            }
++        }
++    }
++}

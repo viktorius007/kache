@@ -1,0 +1,333 @@
+{
+  "profile": "debug",
+  "controlled_writer_observation_ms": 400,
+  "durable_jobs_per_sample": 32,
+  "samples": [
+    {
+      "async_workers": 1,
+      "upload_workers": 16,
+      "stores": 1,
+      "repetition": 0,
+      "health_before_release": false,
+      "health_ms": 666.62,
+      "peers_before_release": 0,
+      "finished_before_release": 0,
+      "finished_total": 32
+    },
+    {
+      "async_workers": 1,
+      "upload_workers": 16,
+      "stores": 1,
+      "repetition": 1,
+      "health_before_release": false,
+      "health_ms": 645.419,
+      "peers_before_release": 0,
+      "finished_before_release": 0,
+      "finished_total": 32
+    },
+    {
+      "async_workers": 1,
+      "upload_workers": 16,
+      "stores": 1,
+      "repetition": 2,
+      "health_before_release": false,
+      "health_ms": 638.12,
+      "peers_before_release": 0,
+      "finished_before_release": 0,
+      "finished_total": 32
+    },
+    {
+      "async_workers": 2,
+      "upload_workers": 1,
+      "stores": 1,
+      "repetition": 0,
+      "health_before_release": true,
+      "health_ms": 0.022,
+      "peers_before_release": 0,
+      "finished_before_release": 0,
+      "finished_total": 32
+    },
+    {
+      "async_workers": 2,
+      "upload_workers": 1,
+      "stores": 1,
+      "repetition": 1,
+      "health_before_release": true,
+      "health_ms": 0.034,
+      "peers_before_release": 0,
+      "finished_before_release": 0,
+      "finished_total": 32
+    },
+    {
+      "async_workers": 2,
+      "upload_workers": 1,
+      "stores": 1,
+      "repetition": 2,
+      "health_before_release": true,
+      "health_ms": 0.037,
+      "peers_before_release": 0,
+      "finished_before_release": 0,
+      "finished_total": 32
+    },
+    {
+      "async_workers": 2,
+      "upload_workers": 16,
+      "stores": 1,
+      "repetition": 0,
+      "health_before_release": true,
+      "health_ms": 0.035,
+      "peers_before_release": 31,
+      "finished_before_release": 31,
+      "finished_total": 32
+    },
+    {
+      "async_workers": 2,
+      "upload_workers": 16,
+      "stores": 1,
+      "repetition": 1,
+      "health_before_release": true,
+      "health_ms": 0.035,
+      "peers_before_release": 21,
+      "finished_before_release": 21,
+      "finished_total": 32
+    },
+    {
+      "async_workers": 2,
+      "upload_workers": 16,
+      "stores": 1,
+      "repetition": 2,
+      "health_before_release": true,
+      "health_ms": 0.033,
+      "peers_before_release": 31,
+      "finished_before_release": 31,
+      "finished_total": 32
+    },
+    {
+      "async_workers": 16,
+      "upload_workers": 16,
+      "stores": 1,
+      "repetition": 0,
+      "health_before_release": true,
+      "health_ms": 0.022,
+      "peers_before_release": 31,
+      "finished_before_release": 31,
+      "finished_total": 32
+    },
+    {
+      "async_workers": 16,
+      "upload_workers": 16,
+      "stores": 1,
+      "repetition": 1,
+      "health_before_release": true,
+      "health_ms": 0.022,
+      "peers_before_release": 31,
+      "finished_before_release": 31,
+      "finished_total": 32
+    },
+    {
+      "async_workers": 16,
+      "upload_workers": 16,
+      "stores": 1,
+      "repetition": 2,
+      "health_before_release": true,
+      "health_ms": 0.024,
+      "peers_before_release": 31,
+      "finished_before_release": 31,
+      "finished_total": 32
+    },
+    {
+      "async_workers": 2,
+      "upload_workers": 16,
+      "stores": 2,
+      "repetition": 0,
+      "health_before_release": false,
+      "health_ms": 708.019,
+      "peers_before_release": 0,
+      "finished_before_release": 0,
+      "finished_total": 32
+    },
+    {
+      "async_workers": 2,
+      "upload_workers": 16,
+      "stores": 2,
+      "repetition": 1,
+      "health_before_release": false,
+      "health_ms": 685.506,
+      "peers_before_release": 0,
+      "finished_before_release": 0,
+      "finished_total": 32
+    },
+    {
+      "async_workers": 2,
+      "upload_workers": 16,
+      "stores": 2,
+      "repetition": 2,
+      "health_before_release": false,
+      "health_ms": 718.127,
+      "peers_before_release": 0,
+      "finished_before_release": 0,
+      "finished_total": 32
+    },
+    {
+      "async_workers": 16,
+      "upload_workers": 16,
+      "stores": 2,
+      "repetition": 0,
+      "health_before_release": true,
+      "health_ms": 0.018,
+      "peers_before_release": 30,
+      "finished_before_release": 30,
+      "finished_total": 32
+    },
+    {
+      "async_workers": 16,
+      "upload_workers": 16,
+      "stores": 2,
+      "repetition": 1,
+      "health_before_release": true,
+      "health_ms": 0.037,
+      "peers_before_release": 30,
+      "finished_before_release": 30,
+      "finished_total": 32
+    },
+    {
+      "async_workers": 16,
+      "upload_workers": 16,
+      "stores": 2,
+      "repetition": 2,
+      "health_before_release": true,
+      "health_ms": 0.025,
+      "peers_before_release": 30,
+      "finished_before_release": 30,
+      "finished_total": 32
+    }
+  ],
+  "summary": [
+    {
+      "async_workers": 1,
+      "upload_workers": 16,
+      "stores": 1,
+      "samples": 3,
+      "health_before_release": 0,
+      "health_median_ms": 645.419,
+      "health_range_ms": [
+        638.12,
+        666.62
+      ],
+      "peers_before_release_range": [
+        0,
+        0
+      ],
+      "finished_total": [
+        32,
+        32,
+        32
+      ]
+    },
+    {
+      "async_workers": 2,
+      "upload_workers": 1,
+      "stores": 1,
+      "samples": 3,
+      "health_before_release": 3,
+      "health_median_ms": 0.034,
+      "health_range_ms": [
+        0.022,
+        0.037
+      ],
+      "peers_before_release_range": [
+        0,
+        0
+      ],
+      "finished_total": [
+        32,
+        32,
+        32
+      ]
+    },
+    {
+      "async_workers": 2,
+      "upload_workers": 16,
+      "stores": 1,
+      "samples": 3,
+      "health_before_release": 3,
+      "health_median_ms": 0.035,
+      "health_range_ms": [
+        0.033,
+        0.035
+      ],
+      "peers_before_release_range": [
+        21,
+        31
+      ],
+      "finished_total": [
+        32,
+        32,
+        32
+      ]
+    },
+    {
+      "async_workers": 16,
+      "upload_workers": 16,
+      "stores": 1,
+      "samples": 3,
+      "health_before_release": 3,
+      "health_median_ms": 0.022,
+      "health_range_ms": [
+        0.022,
+        0.024
+      ],
+      "peers_before_release_range": [
+        31,
+        31
+      ],
+      "finished_total": [
+        32,
+        32,
+        32
+      ]
+    },
+    {
+      "async_workers": 2,
+      "upload_workers": 16,
+      "stores": 2,
+      "samples": 3,
+      "health_before_release": 0,
+      "health_median_ms": 708.019,
+      "health_range_ms": [
+        685.506,
+        718.127
+      ],
+      "peers_before_release_range": [
+        0,
+        0
+      ],
+      "finished_total": [
+        32,
+        32,
+        32
+      ]
+    },
+    {
+      "async_workers": 16,
+      "upload_workers": 16,
+      "stores": 2,
+      "samples": 3,
+      "health_before_release": 3,
+      "health_median_ms": 0.025,
+      "health_range_ms": [
+        0.018,
+        0.037
+      ],
+      "peers_before_release_range": [
+        30,
+        30
+      ],
+      "finished_total": [
+        32,
+        32,
+        32
+      ]
+    }
+  ]
+}

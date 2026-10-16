@@ -1,0 +1,59 @@
+   Compiling kache v1.0.0 (/private/tmp/kache-d5-investigation)
+    Finished `test` profile [unoptimized] target(s) in 13.02s
+     Running unittests src/main.rs (/private/tmp/kache-d5-target/debug/deps/kache-1216026e9547a40d)
+
+running 2 tests
+D5 workers=1 path=upload repetition=0 health_before_release=false health_ms=513.311 upload_ms=523.334 gc_ms=461
+D5 workers=1 path=upload repetition=1 health_before_release=false health_ms=500.329 upload_ms=512.112 gc_ms=449
+D5 workers=1 path=upload repetition=2 health_before_release=false health_ms=479.928 upload_ms=489.376 gc_ms=434
+D5 workers=1 path=upload repetition=3 health_before_release=false health_ms=482.203 upload_ms=486.078 gc_ms=439
+D5 workers=1 path=upload repetition=4 health_before_release=false health_ms=475.024 upload_ms=479.884 gc_ms=432
+D5 workers=1 path=hint repetition=0 health_before_release=true health_ms=0.164 upload_ms=263.686 gc_ms=438
+D5 workers=1 path=hint repetition=1 health_before_release=true health_ms=0.121 upload_ms=261.338 gc_ms=439
+D5 workers=1 path=hint repetition=2 health_before_release=true health_ms=0.020 upload_ms=255.680 gc_ms=427
+D5_NATURAL workers=1 path=upload repetition=0 health_ms=478.792 upload_ms=481.751 gc_ms=453
+D5 workers=1 path=hint repetition=3 health_before_release=true health_ms=0.019 upload_ms=254.300 gc_ms=422
+D5 workers=1 path=hint repetition=4 health_before_release=true health_ms=0.072 upload_ms=256.329 gc_ms=436
+D5 workers=2 path=upload repetition=0 health_before_release=true health_ms=0.068 upload_ms=480.253 gc_ms=422
+D5 workers=2 path=upload repetition=1 health_before_release=true health_ms=0.062 upload_ms=482.585 gc_ms=425
+D5 workers=2 path=upload repetition=2 health_before_release=true health_ms=0.053 upload_ms=496.206 gc_ms=449
+D5 workers=2 path=upload repetition=3 health_before_release=true health_ms=0.049 upload_ms=512.206 gc_ms=438
+D5 workers=2 path=upload repetition=4 health_before_release=true health_ms=0.064 upload_ms=507.550 gc_ms=435
+D5 workers=2 path=hint repetition=0 health_before_release=true health_ms=0.062 upload_ms=261.101 gc_ms=457
+D5 workers=2 path=hint repetition=1 health_before_release=true health_ms=0.071 upload_ms=257.387 gc_ms=447
+D5_NATURAL workers=1 path=upload repetition=1 health_ms=509.483 upload_ms=520.361 gc_ms=481
+D5 workers=2 path=hint repetition=2 health_before_release=true health_ms=0.048 upload_ms=261.718 gc_ms=430
+D5 workers=2 path=hint repetition=3 health_before_release=true health_ms=0.025 upload_ms=262.996 gc_ms=438
+D5 workers=2 path=hint repetition=4 health_before_release=true health_ms=0.059 upload_ms=258.908 gc_ms=443
+D5 workers=16 path=upload repetition=0 health_before_release=true health_ms=0.058 upload_ms=481.533 gc_ms=441
+D5 workers=16 path=upload repetition=1 health_before_release=true health_ms=0.048 upload_ms=487.989 gc_ms=442
+D5 workers=16 path=upload repetition=2 health_before_release=true health_ms=0.060 upload_ms=479.077 gc_ms=430
+D5 workers=16 path=upload repetition=3 health_before_release=true health_ms=0.048 upload_ms=492.942 gc_ms=441
+D5 workers=16 path=upload repetition=4 health_before_release=true health_ms=0.027 upload_ms=463.176 gc_ms=433
+D5_NATURAL workers=1 path=upload repetition=2 health_ms=333.795 upload_ms=336.963 gc_ms=251
+D5 workers=16 path=hint repetition=0 health_before_release=true health_ms=0.022 upload_ms=259.351 gc_ms=466
+D5 workers=16 path=hint repetition=1 health_before_release=true health_ms=0.076 upload_ms=271.645 gc_ms=427
+D5 workers=16 path=hint repetition=2 health_before_release=true health_ms=0.170 upload_ms=265.887 gc_ms=426
+D5 workers=16 path=hint repetition=3 health_before_release=true health_ms=0.086 upload_ms=265.695 gc_ms=448
+D5 workers=16 path=hint repetition=4 health_before_release=true health_ms=1.534 upload_ms=266.269 gc_ms=450
+test daemon::tests::post_upload_gc::measure_post_upload_gc_responsiveness ... ok
+D5_NATURAL workers=1 path=hint repetition=0 health_ms=0.041 upload_ms=1.672 gc_ms=260
+D5_NATURAL workers=1 path=hint repetition=1 health_ms=0.048 upload_ms=1.720 gc_ms=254
+D5_NATURAL workers=1 path=hint repetition=2 health_ms=0.819 upload_ms=4.714 gc_ms=475
+D5_NATURAL workers=2 path=upload repetition=0 health_ms=0.105 upload_ms=489.847 gc_ms=443
+D5_NATURAL workers=2 path=upload repetition=1 health_ms=0.055 upload_ms=509.850 gc_ms=455
+D5_NATURAL workers=2 path=upload repetition=2 health_ms=4.998 upload_ms=803.323 gc_ms=658
+D5_NATURAL workers=2 path=hint repetition=0 health_ms=0.020 upload_ms=1.578 gc_ms=256
+test daemon::tests::post_upload_gc::measure_uncontended_post_upload_gc_responsiveness has been running for over 60 seconds
+D5_NATURAL workers=2 path=hint repetition=1 health_ms=0.020 upload_ms=1.599 gc_ms=246
+D5_NATURAL workers=2 path=hint repetition=2 health_ms=0.034 upload_ms=1.638 gc_ms=259
+D5_NATURAL workers=16 path=upload repetition=0 health_ms=0.022 upload_ms=296.813 gc_ms=257
+D5_NATURAL workers=16 path=upload repetition=1 health_ms=0.022 upload_ms=486.975 gc_ms=439
+D5_NATURAL workers=16 path=upload repetition=2 health_ms=0.020 upload_ms=290.933 gc_ms=253
+D5_NATURAL workers=16 path=hint repetition=0 health_ms=0.018 upload_ms=1.582 gc_ms=254
+D5_NATURAL workers=16 path=hint repetition=1 health_ms=0.025 upload_ms=1.602 gc_ms=247
+D5_NATURAL workers=16 path=hint repetition=2 health_ms=0.023 upload_ms=1.597 gc_ms=252
+test daemon::tests::post_upload_gc::measure_uncontended_post_upload_gc_responsiveness ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 91.82s
+

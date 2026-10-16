@@ -1,0 +1,24 @@
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/d5/crates/kache-fs)
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/d5/crates/kache-format)
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/d5)
+   Compiling kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-prs/d5/crates/kache-shims)
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/d5/crates/kache-store)
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/d5/crates/kache-core)
+    Finished `test` profile [unoptimized] target(s) in 1m 00s
+     Running unittests src/main.rs (/private/tmp/kache-pr-d5-target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+
+thread 'daemon::tests::post_upload_gc::a_post_upload_gc_sweep_allows_health_requests_while_a_writer_is_busy' (54666128) panicked at src/daemon/tests/post_upload_gc.rs:96:5:
+a health request must complete while the post-upload sweep waits for a SQLite writer; observed latency 1304.0 ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test daemon::tests::post_upload_gc::a_post_upload_gc_sweep_allows_health_requests_while_a_writer_is_busy ... FAILED
+
+failures:
+
+failures:
+    daemon::tests::post_upload_gc::a_post_upload_gc_sweep_allows_health_requests_while_a_writer_is_busy
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4395 filtered out; finished in 1.39s
+
+error: test failed, to rerun pass `-p kache --bin kache`

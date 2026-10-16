@@ -1,0 +1,141 @@
+[
+  {
+    "id": "D5",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T05:56:58.463065+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited",
+      "mode": "production-readiness",
+      "slice": "D5-post-upload-GC-capacity"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Successful remote PUTs execute pressure GC synchronously on async workers, delaying unrelated health work when available async capacity is exhausted.",
+    "scenario": "Remote enabled and writable; real successful PUT to absent key; main store over its pressure trigger. One async worker is starved by one sweep. Additionally, with two async workers, 16 background upload tasks and a configured volume shard, two concurrent successful jobs can hold main and shard GC locks and wait for real SQLite writers, delaying health until those writers release.",
+    "evidence": [
+      {
+        "path": "src/daemon.rs",
+        "lines": "4337-4345",
+        "point": "Successful PUT publishes key presence, retires upload intent, calls maybe_evict_after_upload synchronously, then returns upload success."
+      },
+      {
+        "path": "src/daemon.rs",
+        "lines": "6689-6725",
+        "point": "Post-upload sweep stays inline; GC hint uses spawn_blocking for the same sweep."
+      },
+      {
+        "path": "src/daemon.rs",
+        "lines": "6743-6793",
+        "point": "Each shard has an independent gc.lock; another upload skips a held main lock and can enter a shard sweep."
+      },
+      {
+        "path": "src/daemon.rs",
+        "lines": "7384-7437",
+        "point": "Production replay and buffered uploads run through next_upload_job/run_upload_job in max(s3_concurrency,1) async tasks."
+      },
+      {
+        "path": "investigation/pipeline-red.log",
+        "lines": "1-16",
+        "point": "Executed two-worker/main+shard ordering regression FAIL; health latency 707.526 ms."
+      },
+      {
+        "path": "investigation/pipeline-control.log",
+        "lines": "1-5",
+        "point": "Same two-worker pipeline with one store PASS; health and all 31 peer uploads completed before writer release in this control execution."
+      },
+      {
+        "path": "investigation/pipeline-summary.json",
+        "lines": "1-370",
+        "point": "18 samples: health blocked 3/3 with one async worker and 3/3 with two workers/two stores; progressed in every tested spare-capacity case."
+      }
+    ],
+    "trace": "rustc wrapper publication -> durable upload spool/fire-and-forget -> server upload buffer or startup replay -> bounded channel -> next_upload_job -> run_upload_job -> do_upload -> successful PUT -> inline sweep(main, shards) -> real filesystem/SQLite operations and synchronous pacing sleep -> async health task waits for a worker",
+    "authority": {
+      "source": "production responsiveness failure mode; src/daemon.rs:8685-8689; Tokio 1.53.1 spawn_blocking documentation",
+      "quote": "Offload: a GC sweep is seconds of std::fs work ... never run it on an async worker (#281)."
+    },
+    "proof": {
+      "red_test": "use super::*;\n\nstruct BusyStore {\n    config: Config,\n    store: Store,\n    writer: rusqlite::Connection,\n}\n\nstruct PipelineProbe {\n    root: tempfile::TempDir,\n    daemon: Arc<Daemon>,\n    busy: Vec<BusyStore>,\n    jobs: Vec<UploadJob>,\n}\n\nstruct PipelineResult {\n    health_before_release: bool,\n    health_ms: f64,\n    peers_before_release: usize,\n    finished_before_release: usize,\n    finished_total: usize,\n}\n\nfn busy_store(config: Config, root: &Path, victim: &str) -> BusyStore {\n    let store = Store::open(&config).unwrap();\n    put_upload_evict_entry(&store, root, victim, 200, false);\n    let writer = rusqlite::Connection::open(config.index_db_path()).unwrap();\n    BusyStore { config, store, writer }\n}\n\nfn pipeline_fixture(shards: usize, upload_workers: usize) -> PipelineProbe {\n    let root = tempfile::tempdir().unwrap();\n    let mut config = test_config(&root.path().join(\"main\"));\n    config.max_size = 100;\n    config.s3_concurrency = upload_workers as u32;\n    config.remote = Some(test_remote_config());\n    let mut busy = Vec::new();\n    for index in 0..shards {\n        let cache_dir = root.path().join(format!(\"shard{index}\"));\n        let volume = crate::config::VolumeStore {\n            volume: cache_dir.to_string_lossy().into_owned(),\n            store: cache_dir,\n            max_size: Some(100),\n        };\n        let shard_config = config.for_volume_store(&volume, |_| None);\n        busy.push(busy_store(shard_config, root.path(), &format!(\"shard_victim_{index}\")));\n        config.volume_stores.push(volume);\n    }\n    busy.insert(0, busy_store(config.clone(), root.path(), \"main_victim\"));\n    let jobs = (0..32).map(|index| {\n        let key = test_cache_key(&format!(\"pipeline-gc-{index}\"));\n        seed_store_entry(&config, &key, \"serde\", root.path());\n        persist_upload_job(&config, &UploadJob {\n            entry_dir: String::new(), key, crate_name: \"serde\".into(),\n            client_epoch: 0, client_version: None,\n        }).unwrap()\n    }).collect();\n    let daemon = daemon_on(config, &test_remote_backend());\n    daemon.with_store(|_| Ok(())).unwrap();\n    // Intent publication also takes gc.lock; clear its diagnostic before the probe.\n    fs::write(busy[0].config.store_dir().join(\"gc.lock\"), b\"\").unwrap();\n    PipelineProbe { root, daemon, busy, jobs }\n}\n\nfn begin_writers(probe: &PipelineProbe) {\n    for busy in &probe.busy {\n        busy.writer.execute_batch(\"BEGIN IMMEDIATE\").unwrap();\n    }\n}\n\nfn release_writers(probe: &PipelineProbe) {\n    for busy in &probe.busy {\n        busy.writer.execute_batch(\"ROLLBACK\").unwrap();\n    }\n}\n\nfn wait_for_sweep(probe: &PipelineProbe, index: usize) {\n    let path = probe.busy[index].config.store_dir().join(\"gc.lock\");\n    let deadline = Instant::now() + Duration::from_secs(5);\n    while fs::read_to_string(&path).unwrap_or_default().trim().is_empty() {\n        if Instant::now() >= deadline {\n            release_writers(probe);\n            panic!(\"the production upload pipeline must enter store {index}'s sweep\");\n        }\n        std::thread::sleep(Duration::from_millis(1));\n    }\n}\n\nfn launch_workers(\n    runtime: &tokio::runtime::Runtime, daemon: &Arc<Daemon>, workers: usize,\n    receiver: tokio::sync::mpsc::Receiver<UploadJob>,\n) -> (Vec<tokio::task::JoinHandle<()>>, mpsc::Receiver<(String, Response)>) {\n    let receiver = Arc::new(tokio::sync::Mutex::new(receiver));\n    let (done_tx, done_rx) = mpsc::channel();\n    let handles = (0..workers).map(|_| {\n        let receiver = receiver.clone();\n        let daemon = daemon.clone();\n        let done_tx = done_tx.clone();\n        runtime.spawn(async move {\n            while let Some(job) = next_upload_job(&receiver).await {\n                let response = run_upload_job(&daemon, &job).await;\n                done_tx.send((job.key, response)).unwrap();\n            }\n        })\n    }).collect();\n    (handles, done_rx)\n}\n\nfn finish_and_validate(\n    probe: &PipelineProbe, runtime: &tokio::runtime::Runtime,\n    handles: Vec<tokio::task::JoinHandle<()>>, done: &mpsc::Receiver<(String, Response)>,\n    responses: &mut Vec<(String, Response)>,\n) {\n    runtime.block_on(async {\n        for handle in handles { handle.await.unwrap(); }\n    });\n    responses.extend(done.try_iter());\n    assert_eq!(responses.len(), 32, \"every durable job must finish\");\n    for (key, response) in responses {\n        assert!(response.ok, \"upload {key} failed: {response:?}\");\n        assert!(!upload_spool_path(&probe.daemon.config, key).exists());\n    }\n    for (index, busy) in probe.busy.iter().enumerate() {\n        let victim = if index == 0 { \"main_victim\".into() } else { format!(\"shard_victim_{}\", index - 1) };\n        assert!(!busy.store.contains(&victim), \"GC must evict {victim}\");\n        assert!(crate::report::read_gc_stats(&busy.config.cache_dir).is_some());\n    }\n    assert!(probe.root.path().is_dir());\n}\n\nfn probe_pipeline_gc(async_workers: usize, upload_workers: usize, shards: usize) -> PipelineResult {\n    let mut probe = pipeline_fixture(shards, upload_workers);\n    let runtime = tokio::runtime::Builder::new_multi_thread()\n        .worker_threads(async_workers).enable_all().build().unwrap();\n    runtime.block_on(async {\n        let mut pending = probe.daemon.pending_uploads.write().await;\n        pending.extend(probe.jobs.iter().map(|job| job.key.clone()));\n    });\n    let (sender, receiver) = tokio::sync::mpsc::channel(upload_workers * 2);\n    let (handles, done) = launch_workers(&runtime, &probe.daemon, upload_workers, receiver);\n    let first = probe.jobs.remove(0);\n    let first_key = first.key.clone();\n    begin_writers(&probe);\n    sender.blocking_send(first).unwrap();\n    wait_for_sweep(&probe, 0);\n    // A separate thread feeds the bounded queue even while all async workers wait.\n    let jobs = std::mem::take(&mut probe.jobs);\n    let feed = std::thread::spawn(move || {\n        for job in jobs { sender.blocking_send(job).unwrap(); }\n    });\n    for index in 1..probe.busy.len() { wait_for_sweep(&probe, index); }\n    let (health_tx, health_rx) = mpsc::channel();\n    let daemon = probe.daemon.clone();\n    let start = Instant::now();\n    runtime.spawn(async move { health_tx.send((daemon.handle_health(), start.elapsed())).unwrap(); });\n    let early = health_rx.recv_timeout(Duration::from_millis(400));\n    std::thread::sleep(Duration::from_millis(400).saturating_sub(start.elapsed()));\n    let mut responses: Vec<_> = done.try_iter().collect();\n    let finished_before_release = responses.len();\n    let peers_before_release = responses.iter().filter(|(key, _)| key != &first_key).count();\n    release_writers(&probe);\n    feed.join().unwrap();\n    let health_before_release = early.is_ok();\n    let (health, elapsed) = early.unwrap_or_else(|_| health_rx.recv_timeout(Duration::from_secs(5)).unwrap());\n    assert!(health.ok && health.health.is_some());\n    finish_and_validate(&probe, &runtime, handles, &done, &mut responses);\n    PipelineResult {\n        health_before_release, health_ms: elapsed.as_secs_f64() * 1000.0,\n        peers_before_release, finished_before_release, finished_total: responses.len(),\n    }\n}\n\n#[test]\n#[ignore = \"isolated production upload-pipeline scheduling probe\"]\nfn measure_pipeline_gc_capacity() {\n    for (async_workers, upload_workers, shards) in [(1,16,0), (2,1,0), (2,16,0), (16,16,0), (2,16,1), (16,16,1)] {\n        for repetition in 0..3 {\n            let result = probe_pipeline_gc(async_workers, upload_workers, shards);\n            println!(\"D5_PIPELINE async_workers={async_workers} upload_workers={upload_workers} stores={} repetition={repetition} health_before_release={} health_ms={:.3} peers_before_release={} finished_before_release={} finished_total={}\",\n                shards + 1, result.health_before_release, result.health_ms,\n                result.peers_before_release, result.finished_before_release, result.finished_total);\n        }\n    }\n}\n\n#[test]\nfn two_async_workers_allow_health_while_main_and_shard_sweeps_wait_for_writers() {\n    let result = probe_pipeline_gc(2, 16, 1);\n    assert!(result.health_before_release,\n        \"health must progress before writers release during main+shard post-upload sweeps; latency {:.3} ms\", result.health_ms);\n}\n\n#[test]\nfn two_async_workers_allow_health_while_one_store_sweep_waits_for_a_writer() {\n    let result = probe_pipeline_gc(2, 16, 0);\n    assert!(result.health_before_release);\n    assert_eq!(result.peers_before_release, 31, \"peer uploads should skip the held GC lock and finish\");\n}\n",
+      "name": "two_async_workers_allow_health_while_main_and_shard_sweeps_wait_for_writers",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "\nrunning 1 test\ntest daemon::tests::multi_upload_gc::two_async_workers_allow_health_while_main_and_shard_sweeps_wait_for_writers ... \nthread 'daemon::tests::multi_upload_gc::two_async_workers_allow_health_while_main_and_shard_sweeps_wait_for_writers' (46011081) panicked at src/daemon/../../investigation/multi_upload_gc.rs:189:5:\nhealth must progress before writers release during main+shard post-upload sweeps; latency 707.526 ms\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\nFAILED\n\nfailures:\n\nfailures:\n    daemon::tests::multi_upload_gc::two_async_workers_allow_health_while_main_and_shard_sweeps_wait_for_writers\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4400 filtered out; finished in 1.78s\n\n",
+      "replay": "python3 investigation/replay-pipeline.py red (expected exit 101); control varies only volume-store fixture to zero shards via python3 investigation/replay-pipeline.py control (observed exit 0).",
+      "baseline_original_replay": "\nrunning 1 test\ntest daemon::tests::post_upload_gc::a_post_upload_gc_sweep_allows_health_requests_while_a_writer_is_busy ... \nthread 'daemon::tests::post_upload_gc::a_post_upload_gc_sweep_allows_health_requests_while_a_writer_is_busy' (46011267) panicked at src/daemon/tests/post_upload_gc.rs:115:5:\na health request must complete while the post-upload sweep waits for a SQLite writer; observed latency 1272.3 ms\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\nFAILED\n\nfailures:\n\nfailures:\n    daemon::tests::post_upload_gc::a_post_upload_gc_sweep_allows_health_requests_while_a_writer_is_busy\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4400 filtered out; finished in 1.32s\n\n"
+    },
+    "severity": "Operational responsiveness and background upload-slot occupancy; conditional on remote writes, pressure and insufficient spare async capacity. Main+shard case is reachable on a two-worker runtime with 16 upload tasks. No data loss, corrupted cache, whole-Cargo slowdown, or normal idle 16-worker starvation was demonstrated. One shared store serializes full sweeps; configured shards permit concurrent sweeps. Three samples per capacity case; controlled SQLite contention is not an estimate of normal contention frequency.",
+    "status": "open"
+  },
+  {
+    "id": "D5-many-worktrees-implies-many-sweeps",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:56:58.463065+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited",
+      "mode": "production-readiness",
+      "slice": "D5-post-upload-GC-capacity"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Multiple worktrees sharing one store do not by themselves create parallel full eviction sweeps.",
+    "checked": "Read per-store gc.lock acquisition/release, main Store mutex lifetime, actual production upload worker scheduling; ran 32 durable-job samples with 2/16 async workers and 16 upload tasks.",
+    "closed_by": "Tier 1: one-store/two-worker health progressed 3/3; 21-31 peer jobs completed before writer release. One-store/16-worker health progressed 3/3, all 31 peers finished early. Tier 2: src/daemon.rs:6769-6784 and store.rs:2584-2587 enforce a skip for another sweep of the same store.",
+    "reopens_if": "Different real workloads show lost responsiveness with sufficient spare async workers, or non-GC synchronous operations occupy them; configured independent shards are separately admitted in D5.",
+    "status": "dismissed"
+  },
+  {
+    "id": "D5-normal-sixteen-worker-build-slowdown",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:56:58.463065+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited",
+      "mode": "production-readiness",
+      "slice": "D5-post-upload-GC-capacity"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "The constrained-runtime test does not establish ordinary sixteen-worker Cargo throughput slowdown.",
+    "checked": "Replayed one-worker failure; tested 32-job one-store/two-store pipelines with 16 async and upload workers; inspected compiler client publication and daemon enqueue responses.",
+    "closed_by": "Tier 1: 16-worker health progressed in all six samples; one store allowed 31/31 peer completion, two stores 30/31 while two slots were occupied. Tier 2: src/daemon.rs:4045-4047,7384-7437,8832-8855 distinguish enqueue/durable intent publication from background PUT/GC completion. No Cargo makespan was measured.",
+    "reopens_if": "A controlled end-to-end realistic multi-worktree Cargo workload demonstrates a repeatable makespan or remote backlog cost caused by D5.",
+    "status": "dismissed"
+  },
+  {
+    "id": "D5-local-only-current-cause",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:56:58.463065+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited",
+      "mode": "production-readiness",
+      "slice": "D5-post-upload-GC-capacity"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "D5 is not established as a cause of the current local-only setup described by prior evidence.",
+    "checked": "Read remote-enable guard and do_upload no-remote/readonly/failed/already-present returns. Prior verification.md reports no remote configuration; this run did not inspect real user config.",
+    "closed_by": "Tier 2: src/wrapper/remote.rs:8-30 and src/daemon.rs:4124-4154 prevent this successful-PUT trigger with no remote. Prior configuration observation is retained as prior evidence, not independently refreshed.",
+    "reopens_if": "Current configuration enables remote writes and workloads generate actual successful PUTs under size pressure.",
+    "status": "dismissed"
+  },
+  {
+    "id": "D5-offloading-eliminates-all-compiler-GC-wait",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:56:58.463065+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited",
+      "mode": "production-readiness",
+      "slice": "D5-post-upload-GC-capacity"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Offloading D5 does not eliminate the separate durable-publication GC-lock wait.",
+    "checked": "Traced wrapper.rs:4952 -> wrapper/remote.rs:27 -> send_upload_job -> persist_upload_job; read cross-process acquire_gc_lock and daemon async persistence helper.",
+    "closed_by": "Tier 2: src/daemon.rs:724-778 and 8853 acquire GC lock before publication; moving the sweep to the blocking pool preserves that durability ordering.",
+    "reopens_if": "A separately approved durability mechanism permits publication without waiting for GC while still protecting payload integrity.",
+    "status": "dismissed"
+  }
+]

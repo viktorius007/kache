@@ -1,0 +1,15 @@
+
+running 1 test
+test daemon::tests::multi_upload_gc::two_async_workers_allow_health_while_main_and_shard_sweeps_wait_for_writers ... 
+thread 'daemon::tests::multi_upload_gc::two_async_workers_allow_health_while_main_and_shard_sweeps_wait_for_writers' (46011081) panicked at src/daemon/../../investigation/multi_upload_gc.rs:189:5:
+health must progress before writers release during main+shard post-upload sweeps; latency 707.526 ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    daemon::tests::multi_upload_gc::two_async_workers_allow_health_while_main_and_shard_sweeps_wait_for_writers
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4400 filtered out; finished in 1.78s
+

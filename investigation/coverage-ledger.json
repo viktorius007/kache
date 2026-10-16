@@ -1,0 +1,32 @@
+[
+  {
+    "slice": "successful-PUT to post-upload-GC",
+    "status": "reviewed",
+    "evidence": "src/daemon.rs:4124-4402; prior regression.patch/release-regression.log; pipeline fixture compiled"
+  },
+  {
+    "slice": "real upload scheduling and rustc publication",
+    "status": "reviewed",
+    "evidence": "src/daemon.rs:724-790,4014-4118,7273-7314,7384-7437,8832-8912; src/wrapper/remote.rs; src/wrapper.rs:4952"
+  },
+  {
+    "slice": "main-store and volume-store lock/trigger boundaries",
+    "status": "reviewed",
+    "evidence": "src/daemon.rs:6689-6837; src/volume_gc.rs; src/config.rs:3053-3065; crates/kache-store/src/store.rs:1336-1425,2177-2242,2584-2587,4393-4400"
+  },
+  {
+    "slice": "disk recovery and initialization",
+    "status": "reviewed",
+    "evidence": "src/disk_recovery.rs; crates/kache-store/src/store.rs:1585-1645,1890-1960; default test config disables free-space floor"
+  },
+  {
+    "slice": "actual multi-upload capacity probe",
+    "status": "reviewed",
+    "evidence": "pipeline-executions.json: measurement PASS (18 samples); two-store/two-worker red FAIL; one-store control PASS; original regression FAIL replayed"
+  },
+  {
+    "slice": "whole-Cargo performance, real remote service, crash/integrity",
+    "status": "outside-sampling",
+    "evidence": "D5 brief; owned by separate investigations or not measured"
+  }
+]

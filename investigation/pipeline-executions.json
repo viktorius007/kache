@@ -1,0 +1,51 @@
+[
+  {
+    "log": "pipeline-measurements.log",
+    "test": "measure_pipeline_gc_capacity",
+    "exit_code": 0,
+    "wall_seconds": 35.705,
+    "command": [
+      "/private/tmp/kache-d5-target/debug/deps/kache-1216026e9547a40d",
+      "measure_pipeline_gc_capacity",
+      "--nocapture",
+      "--test-threads=1",
+      "--ignored"
+    ]
+  },
+  {
+    "log": "pipeline-red.log",
+    "test": "two_async_workers_allow_health_while_main_and_shard_sweeps_wait_for_writers",
+    "exit_code": 101,
+    "wall_seconds": 1.785,
+    "command": [
+      "/private/tmp/kache-d5-target/debug/deps/kache-1216026e9547a40d",
+      "two_async_workers_allow_health_while_main_and_shard_sweeps_wait_for_writers",
+      "--nocapture",
+      "--test-threads=1"
+    ]
+  },
+  {
+    "log": "pipeline-control.log",
+    "test": "two_async_workers_allow_health_while_one_store_sweep_waits_for_a_writer",
+    "exit_code": 0,
+    "wall_seconds": 1.57,
+    "command": [
+      "/private/tmp/kache-d5-target/debug/deps/kache-1216026e9547a40d",
+      "two_async_workers_allow_health_while_one_store_sweep_waits_for_a_writer",
+      "--nocapture",
+      "--test-threads=1"
+    ]
+  },
+  {
+    "log": "baseline-red-replay.log",
+    "test": "a_post_upload_gc_sweep_allows_health_requests_while_a_writer_is_busy",
+    "exit_code": 101,
+    "wall_seconds": 1.325,
+    "command": [
+      "/private/tmp/kache-d5-target/debug/deps/kache-1216026e9547a40d",
+      "a_post_upload_gc_sweep_allows_health_requests_while_a_writer_is_busy",
+      "--nocapture",
+      "--test-threads=1"
+    ]
+  }
+]
