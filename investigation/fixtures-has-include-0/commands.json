@@ -1,0 +1,130 @@
+[
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+      "/usr/bin/clang",
+      "-c",
+      "unit.c",
+      "-o",
+      "unit.o"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": "2026-10-11T05:58:28.055833Z DEBUG kache::wrapper: cc cache key for unit.c: 6e891c2ae2be04db\n"
+  },
+  {
+    "argv": [
+      "/usr/bin/clang",
+      "unit.o",
+      "-o",
+      "app"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/fixtures-has-include-0/app"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+      "/usr/bin/clang",
+      "-c",
+      "unit.c",
+      "-o",
+      "unit.o"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": "2026-10-11T05:58:28.178772Z DEBUG kache::wrapper: cc cache key for unit.c: 6e891c2ae2be04db\n2026-10-11T05:58:28.179614Z DEBUG kache::wrapper: cc local cache hit for unit.c (6e891c2ae2be04db)\n"
+  },
+  {
+    "argv": [
+      "/usr/bin/clang",
+      "unit.o",
+      "-o",
+      "app"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/fixtures-has-include-0/app"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+      "/usr/bin/clang",
+      "-c",
+      "unit.c",
+      "-o",
+      "unit.o"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": "2026-10-11T05:58:30.332155Z DEBUG kache::wrapper: cc cache key for unit.c: 6e891c2ae2be04db\n2026-10-11T05:58:30.333000Z DEBUG kache::wrapper: cc local cache hit for unit.c (6e891c2ae2be04db)\n"
+  },
+  {
+    "argv": [
+      "/usr/bin/clang",
+      "unit.o",
+      "-o",
+      "app"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/fixtures-has-include-0/app"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/clang",
+      "-c",
+      "unit.c",
+      "-o",
+      "oracle.o",
+      "-ffile-prefix-map=/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/fixtures-has-include-0=/kache/cc-root"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/clang",
+      "oracle.o",
+      "-o",
+      "oracle-app"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/fixtures-has-include-0/oracle-app"
+    ],
+    "returncode": 2,
+    "stdout": "",
+    "stderr": ""
+  }
+]

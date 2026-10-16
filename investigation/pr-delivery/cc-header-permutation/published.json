@@ -1,0 +1,8 @@
+{
+  "id": "cc-header-permutation",
+  "url": "https://github.com/kunobi-ninja/kache/pull/1505",
+  "branch": "fix/cc-header-permutation",
+  "fix_commit": "c994eb5d6cd2a34fe16191cbe1b4e654a41e2430",
+  "state": "draft",
+  "review": "investigation/pr-delivery/reviews/cc-header-permutation.md"
+}

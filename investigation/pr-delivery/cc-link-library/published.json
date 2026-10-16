@@ -1,0 +1,8 @@
+{
+  "id": "cc-link-library",
+  "url": "https://github.com/kunobi-ninja/kache/pull/1513",
+  "branch": "fix/cc-link-library",
+  "fix_commit": "2fd65704731782ebdcda6d099ea044ad1690a5ee",
+  "state": "draft",
+  "review": "investigation/pr-delivery/reviews/cc-link-library.md"
+}

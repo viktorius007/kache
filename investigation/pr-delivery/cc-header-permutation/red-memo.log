@@ -1,0 +1,23 @@
+    Finished `test` profile [unoptimized] target(s) in 0.42s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/cc-optional-header/target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+test compiler::cc::tests::a_memo_key_from_before_the_settle_rules_is_never_todays ... FAILED
+
+failures:
+
+---- compiler::cc::tests::a_memo_key_from_before_the_settle_rules_is_never_todays stdout ----
+
+thread 'compiler::cc::tests::a_memo_key_from_before_the_settle_rules_is_never_todays' (52692228) panicked at src/compiler/cc/tests.rs:4201:5:
+assertion `left != right` failed: a memo storing a content-only digest must not answer the current read-set key
+  left: "d15f9b90b249c2c512298fa9967f6ae6a582f5246d245479af54746c6afabe2b"
+ right: "d15f9b90b249c2c512298fa9967f6ae6a582f5246d245479af54746c6afabe2b"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    compiler::cc::tests::a_memo_key_from_before_the_settle_rules_is_never_todays
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4394 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--bin kache`

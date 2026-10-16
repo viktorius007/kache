@@ -1,0 +1,9 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/cc-optional-header)
+    Finished `test` profile [unoptimized] target(s) in 1.34s
+     Running tests/integration_test.rs (target/debug/deps/integration_test-03dc587eb7b988d6)
+
+running 1 test
+test test_cc_direct_key_compiles_once_without_a_preprocess ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.85s
+

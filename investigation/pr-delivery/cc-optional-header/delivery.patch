@@ -1,0 +1,142 @@
+diff --git a/src/compiler/cc.rs b/src/compiler/cc.rs
+index f6aec62..53c1633 100644
+--- a/src/compiler/cc.rs
++++ b/src/compiler/cc.rs
+@@ -6256,6 +6256,26 @@ fn cc_direct_probe(program: &str) -> bool {
+     ok
+ }
+ 
++/// Read-set fingerprints cannot validate a header that an availability probe
++/// found absent. Refuse these units instead of publishing a memo or object
++/// whose dependencies omit that existence check.
++fn cc_check_header_availability_inputs(paths: &[PathBuf]) -> Result<()> {
++    for path in paths {
++        let bytes = fs::read(path)
++            .with_context(|| format!("reading header availability input {}", path.display()))?;
++        // Conservatively join continued identifiers, including CRLF input.
++        let text: Vec<u8> = bytes
++            .into_iter()
++            .filter(|byte| !matches!(byte, b'\\' | b'\r' | b'\n'))
++            .collect();
++        anyhow::ensure!(
++            memchr::memmem::find(&text, b"__has_include").is_none(),
++            "cc: header availability probes (__has_include) have untracked dependencies"
++        );
++    }
++    Ok(())
++}
++
+ /// The first construct in any of `paths` that could make the assembler read
+ /// a file no fingerprint covers. The classic path scans the expansion; a
+ /// compile-first key never sees one, so it scans what the compile read.
+@@ -7351,6 +7371,9 @@ impl CcCompiler {
+             );
+             (hash, read_inputs)
+         };
++        if let Some(inputs) = &read_inputs {
++            cc_check_header_availability_inputs(inputs)?;
++        }
+         hasher.update(b"preprocessed:");
+         hasher.update(pp_hash.as_bytes());
+         hasher.update(b"\n");
+diff --git a/tests/cc_passthrough_args_test.rs b/tests/cc_passthrough_args_test.rs
+index a30f2d9..12d6c6b 100644
+--- a/tests/cc_passthrough_args_test.rs
++++ b/tests/cc_passthrough_args_test.rs
+@@ -189,6 +189,74 @@ fn deferred_cc_reuses_setup_and_still_invalidates_changed_headers() {
+     }
+ }
+ 
++#[test]
++fn cc_header_availability_creation_uses_current_compiler_output() {
++    for discovery in ["0", "1"] {
++        for in_header in [false, true] {
++            let dir = tempfile::tempdir().unwrap();
++            let root = dir.path().canonicalize().unwrap();
++            fs::write(root.join("kache.toml"), "").unwrap();
++            fs::create_dir(root.join("home")).unwrap();
++            let availability = "#if __has_include(\"optional.h\")\n\
++                                #include \"optional.h\"\n\
++                                #else\n#define VALUE 11\n#endif\n";
++            let prefix = if in_header {
++                fs::write(
++                    root.join("availability.h"),
++                    availability.replace("__has_include", "__has_inc\\\r\nlude"),
++                )
++                .unwrap();
++                "#include \"availability.h\"\n"
++            } else {
++                availability
++            };
++            fs::write(
++                root.join("unit.c"),
++                format!("{prefix}int main(void) {{ return VALUE; }}\n"),
++            )
++            .unwrap();
++            for (phase, expected) in [("cold", 11), ("warm", 11), ("created", 23)] {
++                if phase == "created" {
++                    fs::write(root.join("optional.h"), "#define VALUE 23\n").unwrap();
++                }
++                let _ = fs::remove_file(root.join("unit.o"));
++                let compiled = cacheable_cc_command(&root)
++                    .args(["/usr/bin/cc", "-c", "unit.c", "-o", "unit.o"])
++                    .env("HOME", root.join("home"))
++                    .env("KACHE_DEFERRED_DISCOVERY", discovery)
++                    .env("KACHE_DAEMON_PUBLISH", "0")
++                    .env("KACHE_MIN_STORE_COMPILE_MS", "0")
++                    .output()
++                    .unwrap();
++                assert!(
++                    compiled.status.success(),
++                    "{phase}: {}",
++                    String::from_utf8_lossy(&compiled.stderr)
++                );
++                let linked = common::hermetic_command(
++                    "/usr/bin/cc",
++                    &root.join("cache"),
++                    Some(&root.join("kache.toml")),
++                )
++                .current_dir(&root)
++                .args(["unit.o", "-o", "check-value"])
++                .output()
++                .unwrap();
++                assert!(linked.status.success(), "{phase}: {linked:?}");
++                assert_eq!(
++                    Command::new(root.join("check-value"))
++                        .status()
++                        .unwrap()
++                        .code(),
++                    Some(expected),
++                    "{phase}: __has_include must observe newly created headers \
++                     (discovery={discovery}, in_header={in_header})"
++                );
++            }
++        }
++    }
++}
++
+ fn cacheable_cc_command(root: &std::path::Path) -> Command {
+     common::settle_writes(&[root]);
+     let mut command = Command::new(kache_binary());
+diff --git a/tests/integration_test.rs b/tests/integration_test.rs
+index ce69a99..d7e0500 100644
+--- a/tests/integration_test.rs
++++ b/tests/integration_test.rs
+@@ -3346,11 +3346,14 @@ fn test_cc_direct_key_compiles_once_without_a_preprocess() {
+     let project = TempDir::new().unwrap();
+     let cache_dir = TempDir::new().unwrap();
+     std::fs::write(project.path().join("value.h"), "#define VALUE 7\n").unwrap();
+-    // A system header brings the libc's macro-built asm operands into the
+-    // read set; they must not read as files the assembler opens.
++    // Macro-built asm aliases must not look like files the assembler opens.
++    // Keep this direct-mode control independent of host headers, which may
++    // contain availability probes and therefore require passthrough.
+     std::fs::write(
+         project.path().join("foo.c"),
+-        "#include <stdio.h>\n#include \"value.h\"\nint value(void) { return VALUE; }\n",
++        "#define ALIAS(name) __asm__(name)\n\
++         extern void alias(void) ALIAS(\"renamed\");\n\
++         #include \"value.h\"\nint value(void) { return VALUE; }\n",
+     )
+     .unwrap();
+     let args = ["cc", "-O0", "-g0", "-c", "foo.c", "-o", "foo.o"];

@@ -1,0 +1,206 @@
+diff --git a/src/compiler/cc.rs b/src/compiler/cc.rs
+index f6aec62..ff87141 100644
+--- a/src/compiler/cc.rs
++++ b/src/compiler/cc.rs
+@@ -4858,7 +4858,9 @@ const CC_ARTIFACT_SCHEMA: &[u8] = b"cc_artifact_schema:3\n";
+ /// single-read rules. A release that records v5 memos rewrites a memo row
+ /// in place when it records the same key again, and nothing in the row says
+ /// which release wrote it, so the two never share a key.
+-const CC_PREPROCESS_MEMO_SCHEMA: &[u8] = b"cc-preprocess-memo-v6";
++/// v7: read-set digests pair mapped input names with content hashes; a v6
++/// memo stores a content-only digest that can alias exchanged headers.
++const CC_PREPROCESS_MEMO_SCHEMA: &[u8] = b"cc-preprocess-memo-v7";
+ 
+ /// Local identity for a preprocessor invocation. The environment is included
+ /// as selected by [`cc_memo_env_is_keyed`].
+@@ -6093,35 +6095,33 @@ fn cc_system_path(path: &str) -> bool {
+         .any(|root| path.starts_with(root))
+ }
+ 
+-/// One digest standing for the read set: what the memo would otherwise hold
+-/// as the expansion hash. Hashed over the mapped content of every file read
+-/// and nothing else, as the expansion was with `-P`: where a file sits, and
+-/// whether its directory could be mapped, does not enter, so two checkouts of
+-/// the same tree agree even under an unmappable root. The source is one of
+-/// the files, so include order and every textual choice are in it.
++/// Hash each mapped input name with its content, preserving their association
++/// when headers exchange bytes. Mapped names and project content retain reuse
++/// across equivalent checkouts; physical paths and timestamps stay out.
+ fn cc_direct_inputs_digest(fingerprints: &[crate::cache_key::CcPreprocessMemoInput]) -> String {
+     // A toolchain file is the same bytes on every checkout and can spell a
+     // directory a checkout happens to be under (glibc's `P_tmpdir`); its raw
+     // hash is the portable one. A project file may spell its own checkout
+     // root, which the maps make portable.
+-    let mut contents: Vec<&str> = fingerprints
++    let mut contents: Vec<(&str, &str)> = fingerprints
+         .iter()
+         .map(|input| {
+-            if cc_system_path(input.local_path()) {
++            let content = if cc_system_path(input.local_path()) {
+                 input.content.as_str()
+             } else {
+                 input.mapped.as_str()
+-            }
++            };
++            (input.name.as_str(), content)
+         })
+         .collect();
+     contents.sort_unstable();
+     contents.dedup();
+     let mut hasher = blake3::Hasher::new();
+-    hasher.update(b"kache.cc.direct-inputs.v2\0");
++    hasher.update(b"kache.cc.direct-inputs.v3\0");
+     hasher.update(&(contents.len() as u64).to_le_bytes());
+-    for content in contents {
+-        hasher.update(content.as_bytes());
+-        hasher.update(b"\n");
++    for (name, content) in contents {
++        fold_cc_memo_field(&mut hasher, b"name", name.as_bytes());
++        fold_cc_memo_field(&mut hasher, b"content", content.as_bytes());
+     }
+     hasher.finalize().to_hex().to_string()
+ }
+diff --git a/src/compiler/cc/tests.rs b/src/compiler/cc/tests.rs
+index ee560df..48cbb37 100644
+--- a/src/compiler/cc/tests.rs
++++ b/src/compiler/cc/tests.rs
+@@ -4191,6 +4191,17 @@ fn a_memo_key_from_before_the_settle_rules_is_never_todays() {
+     )
+     .unwrap();
+     assert_ne!(today, before);
++    let content_only = cc_preprocess_memo_key_as(
++        b"cc-preprocess-memo-v6",
++        &parsed,
++        &[],
++        "test compiler version",
++    )
++    .unwrap();
++    assert_ne!(
++        today, content_only,
++        "a memo storing a content-only digest must not answer the current read-set key"
++    );
+ }
+ 
+ #[test]
+@@ -7476,13 +7487,14 @@ fn direct_inputs_digest_follows_names_and_content_only() {
+     };
+     let base = cc_direct_inputs_digest(&[input("a.c", "1"), input("b.h", "2")]);
+     assert_eq!(base.len(), 64);
+-    let mut moved = input("/elsewhere/a.c", "1");
++    let mut moved = input("a.c", "1");
++    moved.fingerprint.path = "/elsewhere/a.c".to_string();
+     moved.fingerprint.mtime_ns = 99;
+     moved.content = "raw bytes that spell this checkout's root".to_string();
+     assert_eq!(
+         cc_direct_inputs_digest(&[moved, input("b.h", "2")]),
+         base,
+-        "where and when a file sits, its name, and its unmapped bytes do not change the digest"
++        "local paths, timestamps and unmapped project bytes do not change the digest"
+     );
+     assert_eq!(
+         cc_direct_inputs_digest(&[input("b.h", "2"), input("a.c", "1")]),
+@@ -7493,7 +7505,22 @@ fn direct_inputs_digest_follows_names_and_content_only() {
+         cc_direct_inputs_digest(&[input("a.c", "1"), input("b.h", "3")]),
+         base
+     );
++    assert_eq!(
++        cc_direct_inputs_digest(&[input("a.c", "1"), input("b.h", "2"), input("a.c", "1")]),
++        base,
++        "repeated identical dependencies do not change the read set"
++    );
+     assert_ne!(cc_direct_inputs_digest(&[input("a.c", "1")]), base);
++    assert_ne!(
++        cc_direct_inputs_digest(&[input("a.c", "2"), input("b.h", "1")]),
++        base,
++        "exchanging contents between mapped names changes the read set"
++    );
++    assert_ne!(
++        cc_direct_inputs_digest(&[input("renamed.c", "1"), input("b.h", "2")]),
++        base,
++        "a changed mapped name is a different input"
++    );
+     // A toolchain header counts by its raw bytes: a checkout root that
+     // happens to appear in its text is not this checkout's business.
+     let mut system = input("/usr/include/stdio.h", "mapped-under-tmp-root");
+diff --git a/tests/cc_passthrough_args_test.rs b/tests/cc_passthrough_args_test.rs
+index a30f2d9..6c6f175 100644
+--- a/tests/cc_passthrough_args_test.rs
++++ b/tests/cc_passthrough_args_test.rs
+@@ -189,6 +189,77 @@ fn deferred_cc_reuses_setup_and_still_invalidates_changed_headers() {
+     }
+ }
+ 
++#[test]
++fn exchanged_header_contents_compile_current_output_and_keep_checkout_hits() {
++    for discovery in ["0", "1"] {
++        let dir = tempfile::tempdir().unwrap();
++        let root = dir.path().canonicalize().unwrap();
++        let cache = root.join("cache");
++        fs::create_dir(root.join("home")).unwrap();
++        let header = |value| format!("#undef VALUE\n#define VALUE {value}\n");
++        for copy in ["a", "b"] {
++            let clone = root.join(copy);
++            fs::create_dir(&clone).unwrap();
++            fs::write(clone.join("kache.toml"), "").unwrap();
++            fs::write(clone.join("a.h"), header(11)).unwrap();
++            fs::write(clone.join("b.h"), header(23)).unwrap();
++            fs::write(
++                clone.join("unit.c"),
++                "#include \"a.h\"\n#include \"b.h\"\nint main(void) { return VALUE; }\n",
++            )
++            .unwrap();
++        }
++        for (phase, copy, expected, result) in [
++            ("cold", "a", 23, "miss"),
++            ("warm", "a", 23, "local_hit"),
++            ("relocated", "b", 23, "local_hit"),
++            ("exchanged", "a", 11, "miss"),
++            ("exchanged-warm", "a", 11, "local_hit"),
++            ("restored", "a", 23, "local_hit"),
++        ] {
++            let clone = root.join(copy);
++            if phase == "exchanged" || phase == "restored" {
++                let first = if phase == "exchanged" { 23 } else { 11 };
++                fs::write(clone.join("a.h"), header(first)).unwrap();
++                fs::write(clone.join("b.h"), header(expected)).unwrap();
++            }
++            let _ = fs::remove_file(clone.join("unit.o"));
++            let compiled = cacheable_cc_command(&clone)
++                .args(["cc", "-c", "unit.c", "-o", "unit.o"])
++                .env("HOME", root.join("home"))
++                .env("KACHE_CACHE_DIR", &cache)
++                .env("KACHE_RUNTIME_DIR", &cache)
++                .env("KACHE_DEFERRED_DISCOVERY", discovery)
++                .env("KACHE_DAEMON_PUBLISH", "0")
++                .env("KACHE_MIN_STORE_COMPILE_MS", "0")
++                .env_remove("RUSTC_WRAPPER")
++                .output()
++                .unwrap();
++            assert!(compiled.status.success(), "{phase}: {compiled:?}");
++            let linked = common::hermetic_command("cc", &cache, None)
++                .current_dir(&clone)
++                .env("HOME", root.join("home"))
++                .args(["unit.o", "-o", "check-value"])
++                .output()
++                .unwrap();
++            assert!(linked.status.success(), "{phase}: {linked:?}");
++            assert_eq!(
++                Command::new(clone.join("check-value"))
++                    .status()
++                    .unwrap()
++                    .code(),
++                Some(expected),
++                "{phase}: exchanging header contents must compile their current meaning \
++                 (discovery={discovery})"
++            );
++            let events = fs::read_to_string(cache.join("events.jsonl")).unwrap();
++            let event: serde_json::Value =
++                serde_json::from_str(events.lines().last().unwrap()).unwrap();
++            assert_eq!(event["result"], result, "{phase}: {event}");
++        }
++    }
++}
++
+ fn cacheable_cc_command(root: &std::path::Path) -> Command {
+     common::settle_writes(&[root]);
+     let mut command = Command::new(kache_binary());

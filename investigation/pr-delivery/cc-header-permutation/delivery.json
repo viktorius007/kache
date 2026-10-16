@@ -1,0 +1,20 @@
+{
+  "id": "cc-header-permutation",
+  "branch": "fix/cc-header-permutation",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/cc-header-permutation",
+  "test_commit": "a49206976d68e107743dc7d665ac4eed8653aff7",
+  "fix_commit": "c994eb5d6cd2a34fe16191cbe1b4e654a41e2430",
+  "title": "Avoid stale C objects when headers exchange contents",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/pr-delivery/cc-header-permutation/pr-body.md",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "gate_command": "CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/cc-optional-header/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py just check",
+  "gate_exit": 0,
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/pr-delivery/cc-header-permutation/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/pr-delivery/cc-header-permutation/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/pr-delivery/cc-header-permutation/gate.log",
+  "changed_files": [
+    "src/compiler/cc.rs",
+    "src/compiler/cc/tests.rs",
+    "tests/cc_passthrough_args_test.rs"
+  ]
+}

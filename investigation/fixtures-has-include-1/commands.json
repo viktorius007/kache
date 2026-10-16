@@ -1,0 +1,130 @@
+[
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+      "/usr/bin/clang",
+      "-c",
+      "unit.c",
+      "-o",
+      "unit.o"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": "2026-10-11T06:59:31.015104Z DEBUG kache::wrapper: no read-set memo for unit.c; compiling before keying\n2026-10-11T06:59:31.049640Z DEBUG kache::wrapper: cc cache key for unit.c: 6e891c2ae2be04db\n"
+  },
+  {
+    "argv": [
+      "/usr/bin/clang",
+      "unit.o",
+      "-o",
+      "app"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/fixtures-has-include-1/app"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+      "/usr/bin/clang",
+      "-c",
+      "unit.c",
+      "-o",
+      "unit.o"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": "2026-10-11T06:59:31.156814Z DEBUG kache::wrapper: cc cache key for unit.c: 6e891c2ae2be04db\n2026-10-11T06:59:31.158040Z DEBUG kache::wrapper: cc local cache hit for unit.c (6e891c2ae2be04db)\n"
+  },
+  {
+    "argv": [
+      "/usr/bin/clang",
+      "unit.o",
+      "-o",
+      "app"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/fixtures-has-include-1/app"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+      "/usr/bin/clang",
+      "-c",
+      "unit.c",
+      "-o",
+      "unit.o"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": "2026-10-11T06:59:33.330916Z DEBUG kache::wrapper: cc cache key for unit.c: 6e891c2ae2be04db\n2026-10-11T06:59:33.331867Z DEBUG kache::wrapper: cc local cache hit for unit.c (6e891c2ae2be04db)\n"
+  },
+  {
+    "argv": [
+      "/usr/bin/clang",
+      "unit.o",
+      "-o",
+      "app"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/fixtures-has-include-1/app"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/clang",
+      "-c",
+      "unit.c",
+      "-o",
+      "oracle.o",
+      "-ffile-prefix-map=/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/fixtures-has-include-1=/kache/cc-root"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/clang",
+      "oracle.o",
+      "-o",
+      "oracle-app"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/fixtures-has-include-1/oracle-app"
+    ],
+    "returncode": 2,
+    "stdout": "",
+    "stderr": ""
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "cache_key": "f904a39c1215b032e6f07956a02681ad86897d3ee8c05cbf81648b0dd25e3648",
+  "key_schema": 32,
+  "crate_name": "unknown",
+  "crate_types": [],
+  "files": [
+    {
+      "name": "app",
+      "size": 16880,
+      "hash": "676b46693199ebd836c69c30617909cb9154cafb642bf42ecd515b7f0bec97ac",
+      "executable": false
+    }
+  ],
+  "stdout": "",
+  "stderr": "",
+  "features": [],
+  "target": "aarch64",
+  "profile": "",
+  "compile_time_ms": 30,
+  "emit_kinds": [
+    "link"
+  ]
+}

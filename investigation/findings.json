@@ -1,0 +1,239 @@
+[
+  {
+    "id": "cc-header-permutation",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:10:04.646724+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "Codex",
+      "mode": "production-readiness",
+      "slice": "cc-cuda-adapters"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "C compile keys lose the association between header paths and header contents, restoring obsolete objects after contents are exchanged.",
+    "scenario": "unit.c includes a.h then b.h; both undefine VALUE and define it as 1 and 2 respectively. Swapping those complete header contents leaves the source and included filenames unchanged. Kache returns a local cache hit whose program exits 2; current direct Clang exits 1.",
+    "evidence": [
+      {
+        "path": "src/compiler/cc.rs",
+        "lines": "6102-6130",
+        "point": "cc_direct_inputs_digest sorts and deduplicates content hashes without hashing their associated header names."
+      },
+      {
+        "path": "src/compiler/cc.rs",
+        "lines": "7248-7260,7325-7335",
+        "point": "Both compile-first discovery and full preprocessing use that content-set digest; the preprocessor expansion hash is discarded when dependency fingerprints exist."
+      },
+      {
+        "path": "investigation/header-swap-1.log",
+        "lines": "1-11",
+        "point": "CACHE_INTEGRITY_FAILURE: header-swap: cached 2, direct compiler expected 1; result=local_hit"
+      }
+    ],
+    "trace": "wrapper::run_cc -> run_cc_with_store -> CcCompiler::cache_key_under -> memo invalidation/full preprocess -> cc_direct_inputs_digest equal to old content set -> unchanged include-name digest -> local lookup -> restore old unit.o -> successful wrapper exit; real linked program runs obsolete code.",
+    "authority": {
+      "source": "failure-mode; docs/getting-started/c-cpp.mdx:117",
+      "quote": "The key includes the content of the source and of every header the compile reads, the compiler identity, modeled code-generation options, and normalized paths. Header changes therefore invalidate the entry."
+    },
+    "proof": {
+      "red_test": "#!/usr/bin/env python3\n\"\"\"Real Apple-Clang black-box cache integrity probes against an unchanged baseline CLI.\"\"\"\nimport argparse\nimport json\nimport os\nimport pathlib\nimport shutil\nimport subprocess\nimport time\n\nROOT = pathlib.Path(__file__).resolve().parent\nKACHE = '/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache'\nCLANG = '/usr/bin/clang'\nparser = argparse.ArgumentParser()\nparser.add_argument('case', choices=['epoch', 'has-include', 'header-swap', 'link-library'])\nparser.add_argument('--discovery', default='1', choices=['0', '1'])\nparser.add_argument('--control', action='store_true')\nargs = parser.parse_args()\nfixture = ROOT / ('fixtures-' + args.case + '-' + args.discovery + ('-control' if args.control else ''))\nshutil.rmtree(fixture, ignore_errors=True)\nfixture.mkdir()\n(fixture / 'config.toml').write_text('[cache]\\ndaemon_publish = false\\n')\nenv = {k: v for k, v in os.environ.items() if not k.startswith('KACHE_') and k not in ['OUT_DIR', 'RUSTC_WRAPPER', 'SOURCE_DATE_EPOCH']}\nenv.update(HOME=str(fixture / 'home'), KACHE_CACHE_DIR=str(fixture / 'cache'), KACHE_RUNTIME_DIR=str(fixture / 'cache'), KACHE_CONFIG=str(fixture / 'config.toml'), KACHE_HOST_CONFIG=str(fixture / 'no-host.toml'), KACHE_LOCAL_ONLY='1', KACHE_DAEMON_PUBLISH='0', KACHE_MIN_STORE_COMPILE_MS='0', KACHE_DEFERRED_DISCOVERY=args.discovery, KACHE_LOG='kache::wrapper=debug')\n(fixture / 'home').mkdir()\ncommands = []\n\ndef command(argv, phase_env=env, check=True):\n    result = subprocess.run(argv, cwd=fixture, env=phase_env, capture_output=True, text=True, timeout=30)\n    commands.append(dict(argv=argv, returncode=result.returncode, stdout=result.stdout, stderr=result.stderr))\n    (fixture / 'commands.json').write_text(json.dumps(commands, indent=2) + '\\n')\n    if check:\n        assert result.returncode == 0, result.stderr\n    return result\n\ndef header(value):\n    return '#undef VALUE\\n#define VALUE ' + str(value) + '\\n'\n\ndef library(value):\n    (fixture / 'value.c').write_text('int value(void) { return ' + str(value) + '; }\\n')\n    command([CLANG, '-c', 'value.c', '-o', 'value.o'])\n    (fixture / 'libvalue.a').unlink(missing_ok=True)\n    command(['/usr/bin/ar', 'rcs', 'libvalue.a', 'value.o'])\n\nif args.case == 'epoch':\n    source = '#include <stdio.h>\\nint main(void) { puts(__DATE__ \" \" __TIME__); return 0; }\\n'\nelif args.case == 'has-include':\n    source = '#if __has_include(\"optional.h\")\\n#include \"optional.h\"\\n#else\\n#define VALUE 1\\n#endif\\nint main(void) { return VALUE; }\\n'\n    if args.control:\n        (fixture / 'optional.h').write_text('#define VALUE 1\\n')\nelif args.case == 'header-swap':\n    source = '#include \"a.h\"\\n#include \"b.h\"\\nint main(void) { return VALUE; }\\n'\n    (fixture / 'a.h').write_text(header(1))\n    (fixture / 'b.h').write_text(header(2))\nelse:\n    source = 'int value(void);\\nint main(void) { return value(); }\\n'\n    env['KACHE_CACHE_CC_LINKS'] = '1'\n(fixture / 'unit.c').write_text(source)\nif args.case == 'link-library':\n    command([CLANG, '-c', 'unit.c', '-o', 'main.o'])\n    library(1)\ntime.sleep(2.1)\nrows = []\nfor phase in ['cold', 'warm', 'changed']:\n    phase_env = env.copy()\n    if args.case == 'epoch':\n        phase_env['SOURCE_DATE_EPOCH'] = '946684800' if phase == 'changed' else '0'\n    if phase == 'changed':\n        if args.case == 'has-include':\n            (fixture / 'optional.h').write_text('#define VALUE 2\\n')\n        elif args.case == 'header-swap':\n            (fixture / 'a.h').write_text(header(2))\n            (fixture / 'b.h').write_text(header(1 if not args.control else 3))\n        elif args.case == 'link-library':\n            library(2)\n        time.sleep(2.1)\n    if args.case == 'link-library':\n        (fixture / 'app').unlink(missing_ok=True)\n        argv = [KACHE, CLANG, 'main.o'] + (['libvalue.a'] if args.control else ['-L.', '-lvalue']) + ['-o', 'app']\n    else:\n        (fixture / 'unit.o').unlink(missing_ok=True)\n        argv = [KACHE, CLANG, '-c', 'unit.c', '-o', 'unit.o']\n    process = command(argv, phase_env)\n    (fixture / (phase + '.stderr')).write_text(process.stderr)\n    if args.case != 'link-library':\n        command([CLANG, 'unit.o', '-o', 'app'], phase_env)\n    run = command([str(fixture / 'app')], phase_env, check=False)\n    events = [json.loads(line) for line in (fixture / 'cache/events.jsonl').read_text().splitlines()]\n    actual = run.stdout.strip() if args.case == 'epoch' else run.returncode\n    event = events[-1]\n    row = dict(phase=phase, result=event.get('result'), key=event.get('cache_key'), actual=actual, compiler_runs=event.get('compiler_runs'))\n    rows.append(row)\n    print(json.dumps(row), flush=True)\nif args.case == 'link-library':\n    command([CLANG, 'main.o'] + (['libvalue.a'] if args.control else ['-L.', '-lvalue']) + ['-o', 'oracle-app'], phase_env)\nelse:\n    command([CLANG, '-c', 'unit.c', '-o', 'oracle.o', f'-ffile-prefix-map={fixture}=/kache/cc-root'], phase_env)\n    command([CLANG, 'oracle.o', '-o', 'oracle-app'], phase_env)\noracle = command([str(fixture / 'oracle-app')], phase_env, check=False)\nexpected = oracle.stdout.strip() if args.case == 'epoch' else oracle.returncode\nprint('DIRECT_ORACLE ' + str(expected), flush=True)\n(fixture / 'observations.json').write_text(json.dumps(dict(baseline='4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9', driver=CLANG, rows=rows, expected=expected), indent=2) + '\\n')\nassert rows[0]['result'] == 'miss', 'cold cache control did not miss'\nassert rows[1]['result'] == 'local_hit', 'unchanged warm cache control did not hit'\nassert rows[0]['actual'] == rows[1]['actual'], 'warm control changed output'\nassert rows[-1]['actual'] == expected, f'CACHE_INTEGRITY_FAILURE: {args.case}: cached {rows[-1][\"actual\"]!r}, direct compiler expected {expected!r}; result={rows[-1][\"result\"]}'\nprint('PASS: cache result agrees with direct compiler')\n",
+      "name": "header-swap",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "{\"phase\": \"cold\", \"result\": \"miss\", \"key\": \"911aa2bec8a861e15c267e3efa022acf49939181663b85a9ba125ebcb64f9f65\", \"actual\": 2, \"compiler_runs\": 1}\n{\"phase\": \"warm\", \"result\": \"local_hit\", \"key\": \"911aa2bec8a861e15c267e3efa022acf49939181663b85a9ba125ebcb64f9f65\", \"actual\": 2, \"compiler_runs\": 0}\n{\"phase\": \"changed\", \"result\": \"local_hit\", \"key\": \"911aa2bec8a861e15c267e3efa022acf49939181663b85a9ba125ebcb64f9f65\", \"actual\": 2, \"compiler_runs\": 0}\nDIRECT_ORACLE 1\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/cc-integrity-probes.py\", line 106, in <module>\n    assert rows[-1]['actual'] == expected, f'CACHE_INTEGRITY_FAILURE: {args.case}: cached {rows[-1][\"actual\"]!r}, direct compiler expected {expected!r}; result={rows[-1][\"result\"]}'\nAssertionError: CACHE_INTEGRITY_FAILURE: header-swap: cached 2, direct compiler expected 1; result=local_hit\n",
+      "replay_case": "investigation/cc-header-permutation.replay.json"
+    },
+    "severity": "Default enabled C/C++ compile caching can silently return code inconsistent with the current headers. Header permutations preserve the digest even after dependency stamps detect changes and trigger fresh preprocessing. Proven for real Apple Clang with deferred discovery both enabled and disabled. Concrete trigger requires preserving the header-content set; this does not establish a collision for arbitrary edits.",
+    "priority": "P1",
+    "status": "open"
+  },
+  {
+    "id": "cc-optional-header",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:10:04.646724+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "Codex",
+      "mode": "production-readiness",
+      "slice": "cc-cuda-adapters"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "C read-set reuse misses a newly created header tested through __has_include and restores an obsolete object.",
+    "scenario": "unit.c tests __has_include(\"optional.h\"), uses VALUE=1 while absent, and includes the header if present. After a cold miss and warm hit, create optional.h defining VALUE=2. Kache still restores the old object and its program exits 1; direct Clang exits 2.",
+    "evidence": [
+      {
+        "path": "src/compiler/cc.rs",
+        "lines": "5490-5525",
+        "point": "cc_shadowing_names derives candidate filenames solely from files the earlier compile actually read; an absent optional.h is not among them."
+      },
+      {
+        "path": "src/compiler/cc.rs",
+        "lines": "7279-7297,7389-7412",
+        "point": "A valid read-set memo supplies its stored digest and old read inputs; include shadowing resolves only names obtained from that read set."
+      },
+      {
+        "path": "investigation/has-include-1.log",
+        "lines": "1-11",
+        "point": "CACHE_INTEGRITY_FAILURE: has-include: cached 1, direct compiler expected 2; result=local_hit"
+      }
+    ],
+    "trace": "wrapper::run_cc -> run_cc_with_store -> CcCompiler::cache_key_under -> previous read inputs unchanged -> preprocess memo hit -> optional.h absent from cc_shadowing_names -> old key -> local restore of unit.o -> successful wrapper exit with outdated executable behavior.",
+    "authority": {
+      "source": "failure-mode; docs/getting-started/c-cpp.mdx:117",
+      "quote": "The key includes the content of the source and of every header the compile reads, the compiler identity, modeled code-generation options, and normalized paths. Header changes therefore invalidate the entry."
+    },
+    "proof": {
+      "red_test": "#!/usr/bin/env python3\n\"\"\"Real Apple-Clang black-box cache integrity probes against an unchanged baseline CLI.\"\"\"\nimport argparse\nimport json\nimport os\nimport pathlib\nimport shutil\nimport subprocess\nimport time\n\nROOT = pathlib.Path(__file__).resolve().parent\nKACHE = '/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache'\nCLANG = '/usr/bin/clang'\nparser = argparse.ArgumentParser()\nparser.add_argument('case', choices=['epoch', 'has-include', 'header-swap', 'link-library'])\nparser.add_argument('--discovery', default='1', choices=['0', '1'])\nparser.add_argument('--control', action='store_true')\nargs = parser.parse_args()\nfixture = ROOT / ('fixtures-' + args.case + '-' + args.discovery + ('-control' if args.control else ''))\nshutil.rmtree(fixture, ignore_errors=True)\nfixture.mkdir()\n(fixture / 'config.toml').write_text('[cache]\\ndaemon_publish = false\\n')\nenv = {k: v for k, v in os.environ.items() if not k.startswith('KACHE_') and k not in ['OUT_DIR', 'RUSTC_WRAPPER', 'SOURCE_DATE_EPOCH']}\nenv.update(HOME=str(fixture / 'home'), KACHE_CACHE_DIR=str(fixture / 'cache'), KACHE_RUNTIME_DIR=str(fixture / 'cache'), KACHE_CONFIG=str(fixture / 'config.toml'), KACHE_HOST_CONFIG=str(fixture / 'no-host.toml'), KACHE_LOCAL_ONLY='1', KACHE_DAEMON_PUBLISH='0', KACHE_MIN_STORE_COMPILE_MS='0', KACHE_DEFERRED_DISCOVERY=args.discovery, KACHE_LOG='kache::wrapper=debug')\n(fixture / 'home').mkdir()\ncommands = []\n\ndef command(argv, phase_env=env, check=True):\n    result = subprocess.run(argv, cwd=fixture, env=phase_env, capture_output=True, text=True, timeout=30)\n    commands.append(dict(argv=argv, returncode=result.returncode, stdout=result.stdout, stderr=result.stderr))\n    (fixture / 'commands.json').write_text(json.dumps(commands, indent=2) + '\\n')\n    if check:\n        assert result.returncode == 0, result.stderr\n    return result\n\ndef header(value):\n    return '#undef VALUE\\n#define VALUE ' + str(value) + '\\n'\n\ndef library(value):\n    (fixture / 'value.c').write_text('int value(void) { return ' + str(value) + '; }\\n')\n    command([CLANG, '-c', 'value.c', '-o', 'value.o'])\n    (fixture / 'libvalue.a').unlink(missing_ok=True)\n    command(['/usr/bin/ar', 'rcs', 'libvalue.a', 'value.o'])\n\nif args.case == 'epoch':\n    source = '#include <stdio.h>\\nint main(void) { puts(__DATE__ \" \" __TIME__); return 0; }\\n'\nelif args.case == 'has-include':\n    source = '#if __has_include(\"optional.h\")\\n#include \"optional.h\"\\n#else\\n#define VALUE 1\\n#endif\\nint main(void) { return VALUE; }\\n'\n    if args.control:\n        (fixture / 'optional.h').write_text('#define VALUE 1\\n')\nelif args.case == 'header-swap':\n    source = '#include \"a.h\"\\n#include \"b.h\"\\nint main(void) { return VALUE; }\\n'\n    (fixture / 'a.h').write_text(header(1))\n    (fixture / 'b.h').write_text(header(2))\nelse:\n    source = 'int value(void);\\nint main(void) { return value(); }\\n'\n    env['KACHE_CACHE_CC_LINKS'] = '1'\n(fixture / 'unit.c').write_text(source)\nif args.case == 'link-library':\n    command([CLANG, '-c', 'unit.c', '-o', 'main.o'])\n    library(1)\ntime.sleep(2.1)\nrows = []\nfor phase in ['cold', 'warm', 'changed']:\n    phase_env = env.copy()\n    if args.case == 'epoch':\n        phase_env['SOURCE_DATE_EPOCH'] = '946684800' if phase == 'changed' else '0'\n    if phase == 'changed':\n        if args.case == 'has-include':\n            (fixture / 'optional.h').write_text('#define VALUE 2\\n')\n        elif args.case == 'header-swap':\n            (fixture / 'a.h').write_text(header(2))\n            (fixture / 'b.h').write_text(header(1 if not args.control else 3))\n        elif args.case == 'link-library':\n            library(2)\n        time.sleep(2.1)\n    if args.case == 'link-library':\n        (fixture / 'app').unlink(missing_ok=True)\n        argv = [KACHE, CLANG, 'main.o'] + (['libvalue.a'] if args.control else ['-L.', '-lvalue']) + ['-o', 'app']\n    else:\n        (fixture / 'unit.o').unlink(missing_ok=True)\n        argv = [KACHE, CLANG, '-c', 'unit.c', '-o', 'unit.o']\n    process = command(argv, phase_env)\n    (fixture / (phase + '.stderr')).write_text(process.stderr)\n    if args.case != 'link-library':\n        command([CLANG, 'unit.o', '-o', 'app'], phase_env)\n    run = command([str(fixture / 'app')], phase_env, check=False)\n    events = [json.loads(line) for line in (fixture / 'cache/events.jsonl').read_text().splitlines()]\n    actual = run.stdout.strip() if args.case == 'epoch' else run.returncode\n    event = events[-1]\n    row = dict(phase=phase, result=event.get('result'), key=event.get('cache_key'), actual=actual, compiler_runs=event.get('compiler_runs'))\n    rows.append(row)\n    print(json.dumps(row), flush=True)\nif args.case == 'link-library':\n    command([CLANG, 'main.o'] + (['libvalue.a'] if args.control else ['-L.', '-lvalue']) + ['-o', 'oracle-app'], phase_env)\nelse:\n    command([CLANG, '-c', 'unit.c', '-o', 'oracle.o', f'-ffile-prefix-map={fixture}=/kache/cc-root'], phase_env)\n    command([CLANG, 'oracle.o', '-o', 'oracle-app'], phase_env)\noracle = command([str(fixture / 'oracle-app')], phase_env, check=False)\nexpected = oracle.stdout.strip() if args.case == 'epoch' else oracle.returncode\nprint('DIRECT_ORACLE ' + str(expected), flush=True)\n(fixture / 'observations.json').write_text(json.dumps(dict(baseline='4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9', driver=CLANG, rows=rows, expected=expected), indent=2) + '\\n')\nassert rows[0]['result'] == 'miss', 'cold cache control did not miss'\nassert rows[1]['result'] == 'local_hit', 'unchanged warm cache control did not hit'\nassert rows[0]['actual'] == rows[1]['actual'], 'warm control changed output'\nassert rows[-1]['actual'] == expected, f'CACHE_INTEGRITY_FAILURE: {args.case}: cached {rows[-1][\"actual\"]!r}, direct compiler expected {expected!r}; result={rows[-1][\"result\"]}'\nprint('PASS: cache result agrees with direct compiler')\n",
+      "name": "has-include",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "{\"phase\": \"cold\", \"result\": \"miss\", \"key\": \"6e891c2ae2be04db916871df4cf64b48d47be468687ae0048cfbf632897da265\", \"actual\": 1, \"compiler_runs\": 1}\n{\"phase\": \"warm\", \"result\": \"local_hit\", \"key\": \"6e891c2ae2be04db916871df4cf64b48d47be468687ae0048cfbf632897da265\", \"actual\": 1, \"compiler_runs\": 0}\n{\"phase\": \"changed\", \"result\": \"local_hit\", \"key\": \"6e891c2ae2be04db916871df4cf64b48d47be468687ae0048cfbf632897da265\", \"actual\": 1, \"compiler_runs\": 0}\nDIRECT_ORACLE 2\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/cc-integrity-probes.py\", line 106, in <module>\n    assert rows[-1]['actual'] == expected, f'CACHE_INTEGRITY_FAILURE: {args.case}: cached {rows[-1][\"actual\"]!r}, direct compiler expected {expected!r}; result={rows[-1][\"result\"]}'\nAssertionError: CACHE_INTEGRITY_FAILURE: has-include: cached 1, direct compiler expected 2; result=local_hit\n",
+      "replay_case": "investigation/cc-optional-header.replay.json"
+    },
+    "severity": "Default enabled compile caching can silently omit a newly enabled feature or generated configuration header. __has_include is a normal C/C++ availability probe. Proven with actual Apple Clang and both deferred-discovery settings. Existing included-header edits invalidate correctly; the failure concerns previously absent inputs.",
+    "priority": "P1",
+    "status": "open"
+  },
+  {
+    "id": "cc-link-library",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:10:04.646724+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "Codex",
+      "mode": "production-readiness",
+      "slice": "cc-cuda-adapters"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Opt-in C/C++ link keys do not hash libraries selected with -l, restoring obsolete executables after a library changes.",
+    "scenario": "Enable KACHE_CACHE_CC_LINKS=1. Cache clang main.o -L. -lvalue -o app with libvalue.a implementing value()=1. Replace the archive with value()=2 while main.o and arguments stay unchanged. Kache returns local_hit and app exits 1; direct Clang link exits 2.",
+    "evidence": [
+      {
+        "path": "src/compiler/cc.rs",
+        "lines": "6414-6480",
+        "point": "cache_key_for_link hashes argv and explicit source/positional file inputs; it hashes the compiler version but does not resolve and hash -l libraries."
+      },
+      {
+        "path": "src/compiler/cc.rs",
+        "lines": "7727-7752",
+        "point": "cc_link_file_inputs skips arguments beginning with a dash, so -lvalue and -L. contribute no selected library content."
+      },
+      {
+        "path": "investigation/link-library-1.log",
+        "lines": "1-11",
+        "point": "CACHE_INTEGRITY_FAILURE: link-library: cached 1, direct compiler expected 2; result=local_hit"
+      }
+    ],
+    "trace": "KACHE_CACHE_CC_LINKS -> CcCompiler::refuse_reasons removes link-mode refusal -> cache_key_under link branch -> cache_key_for_link -> main.o hashed, -lvalue only argv-spelling keyed -> library update leaves key unchanged -> run_cc_with_store restores cached app -> successful exit, obsolete behavior.",
+    "authority": {
+      "source": "failure-mode; docs/getting-started/c-cpp.mdx:117",
+      "quote": "The key includes the content of the source and of every header the compile reads, the compiler identity, modeled code-generation options, and normalized paths. Header changes therefore invalidate the entry."
+    },
+    "proof": {
+      "red_test": "#!/usr/bin/env python3\n\"\"\"Real Apple-Clang black-box cache integrity probes against an unchanged baseline CLI.\"\"\"\nimport argparse\nimport json\nimport os\nimport pathlib\nimport shutil\nimport subprocess\nimport time\n\nROOT = pathlib.Path(__file__).resolve().parent\nKACHE = '/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache'\nCLANG = '/usr/bin/clang'\nparser = argparse.ArgumentParser()\nparser.add_argument('case', choices=['epoch', 'has-include', 'header-swap', 'link-library'])\nparser.add_argument('--discovery', default='1', choices=['0', '1'])\nparser.add_argument('--control', action='store_true')\nargs = parser.parse_args()\nfixture = ROOT / ('fixtures-' + args.case + '-' + args.discovery + ('-control' if args.control else ''))\nshutil.rmtree(fixture, ignore_errors=True)\nfixture.mkdir()\n(fixture / 'config.toml').write_text('[cache]\\ndaemon_publish = false\\n')\nenv = {k: v for k, v in os.environ.items() if not k.startswith('KACHE_') and k not in ['OUT_DIR', 'RUSTC_WRAPPER', 'SOURCE_DATE_EPOCH']}\nenv.update(HOME=str(fixture / 'home'), KACHE_CACHE_DIR=str(fixture / 'cache'), KACHE_RUNTIME_DIR=str(fixture / 'cache'), KACHE_CONFIG=str(fixture / 'config.toml'), KACHE_HOST_CONFIG=str(fixture / 'no-host.toml'), KACHE_LOCAL_ONLY='1', KACHE_DAEMON_PUBLISH='0', KACHE_MIN_STORE_COMPILE_MS='0', KACHE_DEFERRED_DISCOVERY=args.discovery, KACHE_LOG='kache::wrapper=debug')\n(fixture / 'home').mkdir()\ncommands = []\n\ndef command(argv, phase_env=env, check=True):\n    result = subprocess.run(argv, cwd=fixture, env=phase_env, capture_output=True, text=True, timeout=30)\n    commands.append(dict(argv=argv, returncode=result.returncode, stdout=result.stdout, stderr=result.stderr))\n    (fixture / 'commands.json').write_text(json.dumps(commands, indent=2) + '\\n')\n    if check:\n        assert result.returncode == 0, result.stderr\n    return result\n\ndef header(value):\n    return '#undef VALUE\\n#define VALUE ' + str(value) + '\\n'\n\ndef library(value):\n    (fixture / 'value.c').write_text('int value(void) { return ' + str(value) + '; }\\n')\n    command([CLANG, '-c', 'value.c', '-o', 'value.o'])\n    (fixture / 'libvalue.a').unlink(missing_ok=True)\n    command(['/usr/bin/ar', 'rcs', 'libvalue.a', 'value.o'])\n\nif args.case == 'epoch':\n    source = '#include <stdio.h>\\nint main(void) { puts(__DATE__ \" \" __TIME__); return 0; }\\n'\nelif args.case == 'has-include':\n    source = '#if __has_include(\"optional.h\")\\n#include \"optional.h\"\\n#else\\n#define VALUE 1\\n#endif\\nint main(void) { return VALUE; }\\n'\n    if args.control:\n        (fixture / 'optional.h').write_text('#define VALUE 1\\n')\nelif args.case == 'header-swap':\n    source = '#include \"a.h\"\\n#include \"b.h\"\\nint main(void) { return VALUE; }\\n'\n    (fixture / 'a.h').write_text(header(1))\n    (fixture / 'b.h').write_text(header(2))\nelse:\n    source = 'int value(void);\\nint main(void) { return value(); }\\n'\n    env['KACHE_CACHE_CC_LINKS'] = '1'\n(fixture / 'unit.c').write_text(source)\nif args.case == 'link-library':\n    command([CLANG, '-c', 'unit.c', '-o', 'main.o'])\n    library(1)\ntime.sleep(2.1)\nrows = []\nfor phase in ['cold', 'warm', 'changed']:\n    phase_env = env.copy()\n    if args.case == 'epoch':\n        phase_env['SOURCE_DATE_EPOCH'] = '946684800' if phase == 'changed' else '0'\n    if phase == 'changed':\n        if args.case == 'has-include':\n            (fixture / 'optional.h').write_text('#define VALUE 2\\n')\n        elif args.case == 'header-swap':\n            (fixture / 'a.h').write_text(header(2))\n            (fixture / 'b.h').write_text(header(1 if not args.control else 3))\n        elif args.case == 'link-library':\n            library(2)\n        time.sleep(2.1)\n    if args.case == 'link-library':\n        (fixture / 'app').unlink(missing_ok=True)\n        argv = [KACHE, CLANG, 'main.o'] + (['libvalue.a'] if args.control else ['-L.', '-lvalue']) + ['-o', 'app']\n    else:\n        (fixture / 'unit.o').unlink(missing_ok=True)\n        argv = [KACHE, CLANG, '-c', 'unit.c', '-o', 'unit.o']\n    process = command(argv, phase_env)\n    (fixture / (phase + '.stderr')).write_text(process.stderr)\n    if args.case != 'link-library':\n        command([CLANG, 'unit.o', '-o', 'app'], phase_env)\n    run = command([str(fixture / 'app')], phase_env, check=False)\n    events = [json.loads(line) for line in (fixture / 'cache/events.jsonl').read_text().splitlines()]\n    actual = run.stdout.strip() if args.case == 'epoch' else run.returncode\n    event = events[-1]\n    row = dict(phase=phase, result=event.get('result'), key=event.get('cache_key'), actual=actual, compiler_runs=event.get('compiler_runs'))\n    rows.append(row)\n    print(json.dumps(row), flush=True)\nif args.case == 'link-library':\n    command([CLANG, 'main.o'] + (['libvalue.a'] if args.control else ['-L.', '-lvalue']) + ['-o', 'oracle-app'], phase_env)\nelse:\n    command([CLANG, '-c', 'unit.c', '-o', 'oracle.o', f'-ffile-prefix-map={fixture}=/kache/cc-root'], phase_env)\n    command([CLANG, 'oracle.o', '-o', 'oracle-app'], phase_env)\noracle = command([str(fixture / 'oracle-app')], phase_env, check=False)\nexpected = oracle.stdout.strip() if args.case == 'epoch' else oracle.returncode\nprint('DIRECT_ORACLE ' + str(expected), flush=True)\n(fixture / 'observations.json').write_text(json.dumps(dict(baseline='4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9', driver=CLANG, rows=rows, expected=expected), indent=2) + '\\n')\nassert rows[0]['result'] == 'miss', 'cold cache control did not miss'\nassert rows[1]['result'] == 'local_hit', 'unchanged warm cache control did not hit'\nassert rows[0]['actual'] == rows[1]['actual'], 'warm control changed output'\nassert rows[-1]['actual'] == expected, f'CACHE_INTEGRITY_FAILURE: {args.case}: cached {rows[-1][\"actual\"]!r}, direct compiler expected {expected!r}; result={rows[-1][\"result\"]}'\nprint('PASS: cache result agrees with direct compiler')\n",
+      "name": "link-library",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "{\"phase\": \"cold\", \"result\": \"miss\", \"key\": \"7afa62f88d6ae9c3b0ecdeef91db3195d73f8451884e5bcd506361146bcdc552\", \"actual\": 1, \"compiler_runs\": 1}\n{\"phase\": \"warm\", \"result\": \"local_hit\", \"key\": \"7afa62f88d6ae9c3b0ecdeef91db3195d73f8451884e5bcd506361146bcdc552\", \"actual\": 1, \"compiler_runs\": 0}\n{\"phase\": \"changed\", \"result\": \"local_hit\", \"key\": \"7afa62f88d6ae9c3b0ecdeef91db3195d73f8451884e5bcd506361146bcdc552\", \"actual\": 1, \"compiler_runs\": 0}\nDIRECT_ORACLE 2\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/cc-integrity-probes.py\", line 106, in <module>\n    assert rows[-1]['actual'] == expected, f'CACHE_INTEGRITY_FAILURE: {args.case}: cached {rows[-1][\"actual\"]!r}, direct compiler expected {expected!r}; result={rows[-1][\"result\"]}'\nAssertionError: CACHE_INTEGRITY_FAILURE: link-library: cached 1, direct compiler expected 2; result=local_hit\n",
+      "replay_case": "investigation/cc-link-library.replay.json"
+    },
+    "severity": "A changed dependency produces an obsolete executable without a compiler error. Reachable only when the user enables experimental/opt-in cache_cc_links; default links pass through. Proven for a local static archive selected by -l with real Apple Clang. Explicit positional libvalue.a updates miss correctly. Dynamic libraries, Linux and Windows remain unexecuted.",
+    "priority": "P2",
+    "status": "open"
+  },
+  {
+    "id": "cc-dismiss-epoch",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:10:04.646724+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "Codex",
+      "mode": "production-readiness",
+      "slice": "cc-cuda-adapters"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Bounded integrity candidate dismissed: Changing SOURCE_DATE_EPOCH from 0 to 946684800 with unchanged source using __DATE__/__TIME__. Suspected direct-input digest might discard the change.",
+    "checked": "Changing SOURCE_DATE_EPOCH from 0 to 946684800 with unchanged source using __DATE__/__TIME__. Suspected direct-input digest might discard the change.",
+    "closed_by": "Executed black-box real-Clang oracle: initial miss and warm hit print Jan 1 1970; epoch change misses with a different key and prints Jan 1 2000, equal to direct compiler. investigation/epoch-1.log and fixtures-epoch-1/observations.json.",
+    "reopens_if": "A supported compiler which omits the effective epoch from resolved invocation produces a stale result, or resolved-token hashing changes.",
+    "evidence": [
+      {
+        "path": "investigation/epoch-1.log",
+        "point": "Executed cache miss/hit result and independently linked program oracle."
+      }
+    ],
+    "status": "dismissed"
+  },
+  {
+    "id": "cc-dismiss-has-include-control",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:10:04.646724+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "Codex",
+      "mode": "production-readiness",
+      "slice": "cc-cuda-adapters"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Bounded integrity candidate dismissed: Changing a header that was already present and included on the cold build.",
+    "checked": "Changing a header that was already present and included on the cold build.",
+    "closed_by": "Executed black-box real-Clang control: changed included header yields miss with a new key and output 2, agreeing with direct compilation. investigation/has-include-1-control.log.",
+    "reopens_if": "Ordinary included-header edits stop invalidating, or negative dependencies are newly modeled and optional-header defect should be retested.",
+    "evidence": [
+      {
+        "path": "investigation/has-include-1-control.log",
+        "point": "Executed cache miss/hit result and independently linked program oracle."
+      }
+    ],
+    "status": "dismissed"
+  },
+  {
+    "id": "cc-dismiss-header-swap-control",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:10:04.646724+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "Codex",
+      "mode": "production-readiness",
+      "slice": "cc-cuda-adapters"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Bounded integrity candidate dismissed: Replacing the read-set content multiset with a genuinely new header value, instead of only permuting existing contents.",
+    "checked": "Replacing the read-set content multiset with a genuinely new header value, instead of only permuting existing contents.",
+    "closed_by": "Executed real-Clang control: changing b.h to VALUE=3 produces a new key, miss, output 3 equal to direct compiler. investigation/header-swap-1-control.log.",
+    "reopens_if": "Read-set hash representation changes, or source-to-path associations become keyed and the permutation defect should be retested.",
+    "evidence": [
+      {
+        "path": "investigation/header-swap-1-control.log",
+        "point": "Executed cache miss/hit result and independently linked program oracle."
+      }
+    ],
+    "status": "dismissed"
+  },
+  {
+    "id": "cc-dismiss-link-library-control",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:10:04.646724+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "Codex",
+      "mode": "production-readiness",
+      "slice": "cc-cuda-adapters"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Bounded integrity candidate dismissed: Replacing a static archive passed as an explicit positional link input.",
+    "checked": "Replacing a static archive passed as an explicit positional link input.",
+    "closed_by": "Executed real-Clang control: clang main.o libvalue.a -o app misses after library mutation and runs value()=2, equal to direct link. investigation/link-library-1-control.log; src/compiler/cc.rs:7727-7752 recognizes .a positional inputs.",
+    "reopens_if": "Library input discovery changes or named-library resolution is implemented; reexecute the -l failure and positional control together.",
+    "evidence": [
+      {
+        "path": "investigation/link-library-1-control.log",
+        "point": "Executed cache miss/hit result and independently linked program oracle."
+      }
+    ],
+    "status": "dismissed"
+  }
+]

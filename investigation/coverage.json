@@ -1,0 +1,580 @@
+[
+  {
+    "path": "docs/getting-started/c-cpp.mdx",
+    "state": "reviewed",
+    "evidence": "Full documented contract/setup/eligibility/deferred discovery/epoch/path normalization read. Header invalidation claim compared against executed failures.",
+    "reviewed_ranges": [
+      [
+        1,
+        185
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": false,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "docs/getting-started/cuda.mdx",
+    "state": "reviewed",
+    "evidence": "Full CUDA contract read, including deliberately unkeyed SOURCE_DATE_EPOCH disclosure. Real CUDA implications not established by a simulated nvcc.",
+    "reviewed_ranges": [
+      [
+        1,
+        77
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": false,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/compiler/cc.rs",
+    "state": "reviewed",
+    "evidence": "Full production read: argument parser/classification, eligibility gates, prefix maps, epoch, preprocess/deferred discovery, memo revalidation, include shadowing, compile/link keys and execution/artifact discovery. Three executed integrity findings; compile controls pass.",
+    "reviewed_ranges": [
+      [
+        1,
+        7856
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": true,
+    "production_end_line": null,
+    "runtime": "focused real Apple Clang black-box probes",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/compiler/cc/tests.rs",
+    "state": "sampled",
+    "evidence": "Samples target parsing, flags, memo/epoch, direct digest and shadowing invariants. Sampling does not establish absence of all regressions; actual baseline CLI probes supply finding oracles.",
+    "reviewed_ranges": [
+      [
+        1,
+        640
+      ],
+      [
+        6588,
+        7170
+      ],
+      [
+        7463,
+        7600
+      ]
+    ],
+    "omitted_ranges": [
+      [
+        641,
+        6587
+      ],
+      [
+        7171,
+        7462
+      ],
+      [
+        7601,
+        8602
+      ]
+    ],
+    "production_fully_read": false,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/compiler/flags.rs",
+    "state": "reviewed",
+    "evidence": "Full flag table and capability classification; unsupported/preprocess/assembly/modules/PCH exclusions reviewed against C parser. No generic unsupported-flag admission claim without compiler execution.",
+    "reviewed_ranges": [
+      [
+        1,
+        647
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": true,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/compiler/mod.rs",
+    "state": "sampled",
+    "evidence": "All production adapter interface, tool-family recognition, generic dispatch, diagnostic/artifact structure, argument/environment keying reviewed. Large inline test body sampled explicitly.",
+    "reviewed_ranges": [
+      [
+        1,
+        1400
+      ]
+    ],
+    "omitted_ranges": [
+      [
+        1401,
+        2631
+      ]
+    ],
+    "production_fully_read": true,
+    "production_end_line": 995,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/compiler/nvcc.rs",
+    "state": "sampled",
+    "evidence": "All production NVCC parsing, eligibility, dependency discovery, host/toolkit identity probe, prefix mapping, key, epoch execution, dependency rewriting, artifact collection read. No real toolkit installed/executed. Inline tests sampled.",
+    "reviewed_ranges": [
+      [
+        1,
+        1400
+      ]
+    ],
+    "omitted_ranges": [
+      [
+        1401,
+        2726
+      ]
+    ],
+    "production_fully_read": true,
+    "production_end_line": 1333,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/compiler/platform.rs",
+    "state": "sampled",
+    "evidence": "All production macOS codesign and debug bundle handling read: signature repair, deterministic tar packing, regular-file admission, safe extraction bounds and name checks. Linux/Windows branches and bundle runtime unexecuted; inline tests sampled.",
+    "reviewed_ranges": [
+      [
+        1,
+        670
+      ]
+    ],
+    "omitted_ranges": [
+      [
+        671,
+        1121
+      ]
+    ],
+    "production_fully_read": true,
+    "production_end_line": 500,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/probe/cache.rs",
+    "state": "reviewed",
+    "evidence": "Full probe identity and cache persistence/fault fallback read: executable stat, argv/environment fingerprint, version reuse, atomic publication. CUDA host executable invalidation remains unexecuted.",
+    "reviewed_ranges": [
+      [
+        1,
+        554
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": true,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/probe/mod.rs",
+    "state": "sampled",
+    "evidence": "All production Cc/NVCC probing, --version/-### handling, LC_ALL normalization, flag/env validation, and memo fallback read; inline tests sampled.",
+    "reviewed_ranges": [
+      [
+        1,
+        950
+      ]
+    ],
+    "omitted_ranges": [
+      [
+        951,
+        1739
+      ]
+    ],
+    "production_fully_read": true,
+    "production_end_line": 786,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/probe/resolve.rs",
+    "state": "reviewed",
+    "evidence": "Entire parser and inline tests read: Clang/GCC/Windows quoting, command splitting, selected compile stage, path/volatile token replacement, stable resolution. Fixture text reviewed. Actual runtime only Apple Clang.",
+    "reviewed_ranges": [
+      [
+        1,
+        1141
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": true,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/probe/testdata/clang_cl_windows.txt",
+    "state": "reviewed",
+    "evidence": "All literal driver-output fixture lines read; compared with resolve parser/token normalization and its inline tests. Fixture snapshots do not prove current GCC/Windows execution.",
+    "reviewed_ranges": [
+      [
+        1,
+        6
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": false,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/probe/testdata/clang_o2.txt",
+    "state": "reviewed",
+    "evidence": "All literal driver-output fixture lines read; compared with resolve parser/token normalization and its inline tests. Fixture snapshots do not prove current GCC/Windows execution.",
+    "reviewed_ranges": [
+      [
+        1,
+        5
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": false,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/probe/testdata/clang_o2_gdwarf2.txt",
+    "state": "reviewed",
+    "evidence": "All literal driver-output fixture lines read; compared with resolve parser/token normalization and its inline tests. Fixture snapshots do not prove current GCC/Windows execution.",
+    "reviewed_ranges": [
+      [
+        1,
+        5
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": false,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/probe/testdata/clang_o2_gdwarf4.txt",
+    "state": "reviewed",
+    "evidence": "All literal driver-output fixture lines read; compared with resolve parser/token normalization and its inline tests. Fixture snapshots do not prove current GCC/Windows execution.",
+    "reviewed_ranges": [
+      [
+        1,
+        5
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": false,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/probe/testdata/clang_o2_march_native.txt",
+    "state": "reviewed",
+    "evidence": "All literal driver-output fixture lines read; compared with resolve parser/token normalization and its inline tests. Fixture snapshots do not prove current GCC/Windows execution.",
+    "reviewed_ranges": [
+      [
+        1,
+        5
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": false,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/probe/testdata/clang_ubsan_strip_path.txt",
+    "state": "reviewed",
+    "evidence": "All literal driver-output fixture lines read; compared with resolve parser/token normalization and its inline tests. Fixture snapshots do not prove current GCC/Windows execution.",
+    "reviewed_ranges": [
+      [
+        1,
+        5
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": false,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/probe/testdata/gcc_o2.txt",
+    "state": "reviewed",
+    "evidence": "All literal driver-output fixture lines read; compared with resolve parser/token normalization and its inline tests. Fixture snapshots do not prove current GCC/Windows execution.",
+    "reviewed_ranges": [
+      [
+        1,
+        14
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": false,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/probe/testdata/gcc_o2_march_native.txt",
+    "state": "reviewed",
+    "evidence": "All literal driver-output fixture lines read; compared with resolve parser/token normalization and its inline tests. Fixture snapshots do not prove current GCC/Windows execution.",
+    "reviewed_ranges": [
+      [
+        1,
+        14
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": false,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/probe/testdata/gcc_wrapv_param.txt",
+    "state": "reviewed",
+    "evidence": "All literal driver-output fixture lines read; compared with resolve parser/token normalization and its inline tests. Fixture snapshots do not prove current GCC/Windows execution.",
+    "reviewed_ranges": [
+      [
+        1,
+        14
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": false,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/probe_memo.rs",
+    "state": "reviewed",
+    "evidence": "Entire isolated memo-key and read/write implementation read, including executable replacement fingerprints and retry semantics.",
+    "reviewed_ranges": [
+      [
+        1,
+        181
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": true,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "tests/cc_family_probe_test.rs",
+    "state": "reviewed",
+    "evidence": "Full integration test text read; assertions, compiler discovery/skip conditions, isolated caches and diagnostic/exit-code oracles inspected. Committed integration suite not executed; focused baseline real-Clang probes executed separately.",
+    "reviewed_ranges": [
+      [
+        1,
+        115
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": true,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "tests/cc_passthrough_args_test.rs",
+    "state": "reviewed",
+    "evidence": "Full integration test text read; assertions, compiler discovery/skip conditions, isolated caches and diagnostic/exit-code oracles inspected. Committed integration suite not executed; focused baseline real-Clang probes executed separately.",
+    "reviewed_ranges": [
+      [
+        1,
+        643
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": true,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "tests/cc_release_regression_test.rs",
+    "state": "reviewed",
+    "evidence": "Full integration test text read; assertions, compiler discovery/skip conditions, isolated caches and diagnostic/exit-code oracles inspected. Committed integration suite not executed; focused baseline real-Clang probes executed separately.",
+    "reviewed_ranges": [
+      [
+        1,
+        64
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": true,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "tests/fixtures/cc_release_regressions.sh",
+    "state": "reviewed",
+    "evidence": "Full fixture text read; role checked against integration regression, passthrough or mock-compiler callers. Existing fixture not separately executed in this audit.",
+    "reviewed_ranges": [
+      [
+        1,
+        113
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": false,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "tests/fixtures/mock_cc_constant_output.sh",
+    "state": "reviewed",
+    "evidence": "Full fixture text read; role checked against integration regression, passthrough or mock-compiler callers. Existing fixture not separately executed in this audit.",
+    "reviewed_ranges": [
+      [
+        1,
+        7
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": false,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "tests/fixtures/mock_cc_diagnostics.sh",
+    "state": "reviewed",
+    "evidence": "Full fixture text read; role checked against integration regression, passthrough or mock-compiler callers. Existing fixture not separately executed in this audit.",
+    "reviewed_ranges": [
+      [
+        1,
+        18
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": false,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "tests/fixtures/mock_cc_lc_all.sh",
+    "state": "reviewed",
+    "evidence": "Full fixture text read; role checked against integration regression, passthrough or mock-compiler callers. Existing fixture not separately executed in this audit.",
+    "reviewed_ranges": [
+      [
+        1,
+        18
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": false,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "tests/fixtures/mock_cc_static.sh",
+    "state": "reviewed",
+    "evidence": "Full fixture text read; role checked against integration regression, passthrough or mock-compiler callers. Existing fixture not separately executed in this audit.",
+    "reviewed_ranges": [
+      [
+        1,
+        13
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": false,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "tests/fixtures/native_archive_fuzz/truncated-member",
+    "state": "reviewed",
+    "evidence": "Full fixture text read; role checked against integration regression, passthrough or mock-compiler callers. Existing fixture not separately executed in this audit.",
+    "reviewed_ranges": [
+      [
+        1,
+        2
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": false,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "tests/nvcc_cuda_toolchain_test.rs",
+    "state": "reviewed",
+    "evidence": "Full integration test text read; assertions, compiler discovery/skip conditions, isolated caches and diagnostic/exit-code oracles inspected. Committed integration suite not executed; focused baseline real-Clang probes executed separately.",
+    "reviewed_ranges": [
+      [
+        1,
+        446
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": true,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "tests/unknown_compiler_probe_test.rs",
+    "state": "reviewed",
+    "evidence": "Full integration test text read; assertions, compiler discovery/skip conditions, isolated caches and diagnostic/exit-code oracles inspected. Committed integration suite not executed; focused baseline real-Clang probes executed separately.",
+    "reviewed_ranges": [
+      [
+        1,
+        112
+      ]
+    ],
+    "omitted_ranges": [],
+    "production_fully_read": true,
+    "production_end_line": null,
+    "runtime": "source review; runtime limits in report",
+    "reopen_conditions": "Reopen on changes to this file or affected dispatch/key/probe/restore seams; expand omitted tests and execute supported toolchains before asserting whole-suite or cross-platform correctness."
+  },
+  {
+    "path": "src/wrapper.rs",
+    "state": "collateral",
+    "evidence": "Consulted public CC/NVCC dispatch, key/store/restore guards; primary ownership belongs to rust-wrapper agent. Runtime reproduction reaches normal public wrapper dispatch.",
+    "reviewed_ranges": [
+      [
+        1190,
+        1515
+      ],
+      [
+        1882,
+        2015
+      ],
+      [
+        2030,
+        2240
+      ],
+      [
+        2360,
+        2435
+      ]
+    ],
+    "omitted_ranges": "All remaining wrapper lines are outside this slice; no claim of full wrapper review.",
+    "reopen_conditions": "Reopen if CC/NVCC dispatch, restore or store gate changes; real CUDA concurrency needed to assess unlocked NVCC publication lead."
+  }
+]

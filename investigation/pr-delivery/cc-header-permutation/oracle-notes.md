@@ -1,0 +1,13 @@
+# Header-permutation delivery evidence notes
+
+Owned scope: mapped header names must remain associated with their contents; identical normalized trees retain cache hits. No production API or helper is added.
+
+Oracle reasoning: real cc compiles unit.c including a.h followed by b.h; each header undefines VALUE then defines a test-owned literal. The executable must return 23 before swapping and 11 after swapping. Exchanging only contents preserves the baseline set of content hashes, so the baseline restores a stale object returning 23. Removing unit.o before every invocation requires reconstruction. Cold/warm, relocated checkout, swapped warm and restored-state controls assert exact event results to forbid solving correctness by disabling caching. Discovery values 0 and 1 exercise preprocessing-first and compile-first memo discovery. The executable value assertion runs before telemetry assertions.
+
+Nearest existing tests: src/compiler/cc/tests.rs:7463 direct_inputs_digest_follows_names_and_content_only checks content edits/list order/raw roots but explicitly ignores names; tests/cc_passthrough_args_test.rs:89 deferred_cc_reuses_setup_and_still_invalidates_changed_headers changes a single already included header without preserving the content set; tests/integration_test.rs:1930 tests identical clones with a shared forced-include path. None exchanges two read headers’ contents while preserving source text and the content multiset.
+
+Executed suite text search: rg -n 'header.*(swap|permut)|cross.checkout|converge.*clon|contents.*path' tests/cc_passthrough_args_test.rs tests/integration_test.rs. Code graph search: search_graph name-pattern '(fold_cc_memo_field|cc_direct_inputs_digest|cc_mapped_path)', file-pattern src/compiler/cc.rs, limit 10 returned 3 symbols. Reuse fold_cc_memo_field and existing input.name (already prefix-mapped by fingerprint capture). Index is baseline4ee0f9e, Rust semantic_partial; this is bounded reuse/gap evidence, not a repository-wide absence claim.
+
+Existing direct-input unit test strengthened: changing physical fingerprint path/time/raw project hash remains irrelevant; swapping content assignments or mapped names changes digest. Listing order remains irrelevant. Existing toolchain raw-content control remains. Existing memo-version test gains v6 discriminator: a prior content-only memo cannot answer a current key.
+
+Fixture isolation: owned temporary sources, config/cache/runtime/HOME; no production cache writes, no fake compiler. Compiler selection cc comes from configured fixture PATH; actual driver/runtime boundary remains real. No global environment mutation. All builds use assigned private target through build-slot wrapper. CI mutation testing is pending and owned by CI, no local sweep.

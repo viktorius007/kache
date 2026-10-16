@@ -1,0 +1,22 @@
+[
+  {
+    "id": "cuda-runtime-inputs",
+    "status": "unresolved",
+    "paths": [
+      "src/compiler/nvcc.rs",
+      "src/probe/cache.rs",
+      "src/probe/mod.rs"
+    ],
+    "evidence": "Source inspection: NVCC honors effective epoch only at execute; documentation says it is absent from key. Probe memo tracks NVCC executable stat while host executable version is discovered by a cached invocation. No actual toolkit installed; no simulated proof admitted.",
+    "next": "Run real nvcc on supported Linux/Windows toolkit, varying SOURCE_DATE_EPOCH and replacing host executable at identical path after cache warmup; compare actual artifacts/diagnostics. Distinguish documented behavior from defect."
+  },
+  {
+    "id": "cuda-unlocked-publication",
+    "status": "unresolved",
+    "paths": [
+      "src/wrapper.rs:1404-1515"
+    ],
+    "evidence": "Consultation from wrapper owner confirmed by source read: claim_build contention/error can reach clean NVCC compile/store without _build_lock Some. No executed concurrency consequence; redundant publishers alone do not prove integrity failure.",
+    "next": "Use real CUDA compiler and controlled contention/input schedules to determine externally observable correctness consequence, consulting store/scheduler owners."
+  }
+]

@@ -1,0 +1,26 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/cc-link-library)
+    Finished `test` profile [unoptimized] target(s) in 10.42s
+     Running tests/cc_passthrough_args_test.rs (/Users/viktor/Developer/github/kache-prs/cc-optional-header/target/debug/deps/cc_passthrough_args_test-36590001524819ec)
+
+running 1 test
+test changed_link_archives_use_current_code_and_explicit_files_keep_cache_hits ... FAILED
+
+failures:
+
+---- changed_link_archives_use_current_code_and_explicit_files_keep_cache_hits stdout ----
+
+thread 'changed_link_archives_use_current_code_and_explicit_files_keep_cache_hits' (54433759) panicked at tests/cc_passthrough_args_test.rs:282:13:
+assertion `left == right` failed: wl-rsp/cold: explicit archives retain reuse and untracked selections pass through
+  left: String("miss")
+ right: "passthrough"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    changed_link_archives_use_current_code_and_explicit_files_keep_cache_hits
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.32s
+
+error: test failed, to rerun pass `--test cc_passthrough_args_test`

@@ -1,0 +1,8 @@
+{
+  "schema_version": 5,
+  "prober": "cc",
+  "compiler_name": "clang",
+  "version_line": "Apple clang version 17.0.0 (clang-1700.6.4.2)",
+  "resolved_tokens": null,
+  "host_version_line": null
+}

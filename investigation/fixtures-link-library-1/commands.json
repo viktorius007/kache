@@ -1,0 +1,147 @@
+[
+  {
+    "argv": [
+      "/usr/bin/clang",
+      "-c",
+      "unit.c",
+      "-o",
+      "main.o"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/clang",
+      "-c",
+      "value.c",
+      "-o",
+      "value.o"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/ar",
+      "rcs",
+      "libvalue.a",
+      "value.o"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+      "/usr/bin/clang",
+      "main.o",
+      "-L.",
+      "-lvalue",
+      "-o",
+      "app"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": "2026-10-11T06:59:40.815871Z DEBUG kache::wrapper: cc cache key for unknown: 7afa62f88d6ae9c3\n"
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/fixtures-link-library-1/app"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+      "/usr/bin/clang",
+      "main.o",
+      "-L.",
+      "-lvalue",
+      "-o",
+      "app"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": "2026-10-11T06:59:40.900384Z DEBUG kache::wrapper: cc cache key for unknown: 7afa62f88d6ae9c3\n2026-10-11T06:59:40.901643Z DEBUG kache::wrapper: cc local cache hit for unknown (7afa62f88d6ae9c3)\n"
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/fixtures-link-library-1/app"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/clang",
+      "-c",
+      "value.c",
+      "-o",
+      "value.o"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/ar",
+      "rcs",
+      "libvalue.a",
+      "value.o"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+      "/usr/bin/clang",
+      "main.o",
+      "-L.",
+      "-lvalue",
+      "-o",
+      "app"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": "2026-10-11T06:59:43.058979Z DEBUG kache::wrapper: cc cache key for unknown: 7afa62f88d6ae9c3\n2026-10-11T06:59:43.060628Z DEBUG kache::wrapper: cc local cache hit for unknown (7afa62f88d6ae9c3)\n"
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/fixtures-link-library-1/app"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/clang",
+      "main.o",
+      "-L.",
+      "-lvalue",
+      "-o",
+      "oracle-app"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/fixtures-link-library-1/oracle-app"
+    ],
+    "returncode": 2,
+    "stdout": "",
+    "stderr": ""
+  }
+]

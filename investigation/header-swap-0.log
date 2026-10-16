@@ -1,0 +1,8 @@
+{"phase": "cold", "result": "miss", "key": "911aa2bec8a861e15c267e3efa022acf49939181663b85a9ba125ebcb64f9f65", "actual": 2, "compiler_runs": 1}
+{"phase": "warm", "result": "local_hit", "key": "911aa2bec8a861e15c267e3efa022acf49939181663b85a9ba125ebcb64f9f65", "actual": 2, "compiler_runs": 0}
+{"phase": "changed", "result": "local_hit", "key": "911aa2bec8a861e15c267e3efa022acf49939181663b85a9ba125ebcb64f9f65", "actual": 2, "compiler_runs": 0}
+DIRECT_ORACLE 1
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/cc-integrity-probes.py", line 106, in <module>
+    assert rows[-1]['actual'] == expected, f'CACHE_INTEGRITY_FAILURE: {args.case}: cached {rows[-1]["actual"]!r}, direct compiler expected {expected!r}; result={rows[-1]["result"]}'
+AssertionError: CACHE_INTEGRITY_FAILURE: header-swap: cached 2, direct compiler expected 1; result=local_hit

@@ -1,0 +1,2 @@
+2026-10-11T05:59:17.423271Z DEBUG kache::wrapper: no read-set memo for unit.c; compiling before keying
+2026-10-11T05:59:17.444417Z DEBUG kache::wrapper: cc cache key for unit.c: feda9a987ffa454b

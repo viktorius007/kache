@@ -1,0 +1,18 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/cc-optional-header)
+    Finished `test` profile [unoptimized] target(s) in 8.42s
+     Running tests/cc_passthrough_args_test.rs (target/debug/deps/cc_passthrough_args_test-36590001524819ec)
+
+running 10 tests
+test cc_admission_reports_a_skip_reason_and_recompiles_until_admitted ... ok
+test deferred_cc_does_not_publish_inputs_changed_during_the_compile ... ok
+test deferred_cc_records_its_memo_when_the_entry_already_exists ... ok
+test deferred_cc_reuses_setup_and_still_invalidates_changed_headers ... ok
+test identical_sources_at_different_paths_get_their_own_entries ... ok
+test cc_header_availability_creation_uses_current_compiler_output ... ok
+test key_first_cc_caches_a_header_stamped_ahead_of_the_clock ... ok
+test key_first_cc_does_not_store_a_header_saved_while_it_was_keyed ... ok
+test key_first_cc_does_not_store_an_input_changed_before_the_compile_read_it ... ok
+test refused_double_dash_invocation_is_exact_passthrough ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.70s
+

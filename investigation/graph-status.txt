@@ -1,0 +1,68 @@
+project: Users-viktor-Developer-github-kache-investigations-coordinator
+nodes: 26827
+edges: 149258
+status: ready
+root_path: /Users/viktor/Developer/github/kache-investigations/coordinator
+indexed_at: 2026-10-11T05:36:35Z
+semantic_coverage:
+  rust:
+    status: semantic_partial
+    reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    note: "Rust CALLS, expanded calls, IMPLEMENTS, and OVERRIDE facts may be omitted according to the listed semantic gaps."
+unresolved_sites:
+  lookup: complete
+  calls: 127041
+  references: 193239
+  files: 20  (cols: path kind total)
+    build.rs call 50
+    build.rs reference 6
+    build.rs type 23
+    crates/kache-core/src/lib.rs call 514
+    crates/kache-core/src/lib.rs member 20
+    crates/kache-core/src/lib.rs reference 752
+    crates/kache-core/src/lib.rs type 174
+    crates/kache-core/src/timeline.rs call 61
+    crates/kache-core/src/timeline.rs member 25
+    crates/kache-core/src/timeline.rs reference 339
+    crates/kache-core/src/timeline.rs type 31
+    crates/kache-e2e/src/assertions.rs call 191
+    crates/kache-e2e/src/assertions.rs member 27
+    crates/kache-e2e/src/assertions.rs reference 311
+    crates/kache-e2e/src/assertions.rs type 37
+    crates/kache-e2e/src/bench_host.rs call 301
+    crates/kache-e2e/src/bench_host.rs member 35
+    crates/kache-e2e/src/bench_host.rs reference 308
+    crates/kache-e2e/src/bench_host.rs type 93
+    crates/kache-e2e/src/bench_otlp.rs call 373
+  file_kind_groups_total: 1076
+  files_truncated: true
+  scope: project
+  recording: available
+  listing_tool: trace_path
+  listing_arguments: "Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests."
+  note: "Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences."
+parse_partial:
+  files: 0
+  count: 9
+  truncated: true
+  omitted: 9
+parse_unusable:
+  files: 0
+  count: 0
+  truncated: false
+skipped:
+  files: 0
+  count: 0
+  truncated: false
+not_indexed:
+  dirs: 0
+  dirs_count: 1
+  files: 0
+  files_count: 17
+  truncated: true
+  dirs_omitted: 1
+  files_omitted: 17
+

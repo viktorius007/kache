@@ -1,0 +1,24 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/cc-header-permutation)
+    Finished `test` profile [unoptimized] target(s) in 48.36s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/cc-optional-header/target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+test compiler::cc::tests::direct_inputs_digest_follows_names_and_content_only ... FAILED
+
+failures:
+
+---- compiler::cc::tests::direct_inputs_digest_follows_names_and_content_only stdout ----
+
+thread 'compiler::cc::tests::direct_inputs_digest_follows_names_and_content_only' (52690693) panicked at src/compiler/cc/tests.rs:7514:5:
+assertion `left != right` failed: exchanging contents between mapped names changes the read set
+  left: "1d91725d42f1914c56d2f0d0baced47337e8e46a6234856f290a0acff72657af"
+ right: "1d91725d42f1914c56d2f0d0baced47337e8e46a6234856f290a0acff72657af"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    compiler::cc::tests::direct_inputs_digest_follows_names_and_content_only
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4394 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--bin kache`

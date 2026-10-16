@@ -1,0 +1,21 @@
+    Finished `test` profile [unoptimized] target(s) in 0.55s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/cc-optional-header/target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+test compiler::cc::tests::opt_in_link_response_files_are_refused_without_compiler_parsing ... FAILED
+
+failures:
+
+---- compiler::cc::tests::opt_in_link_response_files_are_refused_without_compiler_parsing stdout ----
+
+thread 'compiler::cc::tests::opt_in_link_response_files_are_refused_without_compiler_parsing' (53748979) panicked at src/compiler/cc/tests.rs:2734:5:
+response files can hide quoted library options from the whitespace key parser
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    compiler::cc::tests::opt_in_link_response_files_are_refused_without_compiler_parsing
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--bin kache`

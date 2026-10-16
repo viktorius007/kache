@@ -1,0 +1,5 @@
+{"phase": "cold", "result": "miss", "key": "5114bc58d8bc10f071d4e7bbb7991abec8fce7059a4a246d84d516110f5e2bd9", "actual": "Jan  1 1970 00:00:00", "compiler_runs": 1}
+{"phase": "warm", "result": "local_hit", "key": "5114bc58d8bc10f071d4e7bbb7991abec8fce7059a4a246d84d516110f5e2bd9", "actual": "Jan  1 1970 00:00:00", "compiler_runs": 0}
+{"phase": "changed", "result": "miss", "key": "3eab66852b6bbbd99467c4676c5ed5190ea9a93a95e9021448e1fb37bb02eaaf", "actual": "Jan  1 2000 00:00:00", "compiler_runs": 1}
+DIRECT_ORACLE Jan  1 2000 00:00:00
+PASS: cache result agrees with direct compiler

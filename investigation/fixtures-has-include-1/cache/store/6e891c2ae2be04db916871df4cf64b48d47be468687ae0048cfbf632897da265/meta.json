@@ -1,0 +1,23 @@
+{
+  "cache_key": "6e891c2ae2be04db916871df4cf64b48d47be468687ae0048cfbf632897da265",
+  "key_schema": 32,
+  "crate_name": "unit.c",
+  "crate_types": [],
+  "files": [
+    {
+      "name": "__kache_cc_object.o",
+      "size": 528,
+      "hash": "a1b98266136541eff63f0515465e1874756e83a5fe9ac473de1a999bd300d99d",
+      "executable": false
+    }
+  ],
+  "stdout": "",
+  "stderr": "",
+  "features": [],
+  "target": "aarch64",
+  "profile": "",
+  "compile_time_ms": 30,
+  "emit_kinds": [
+    "obj"
+  ]
+}

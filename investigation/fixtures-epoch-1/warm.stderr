@@ -1,0 +1,2 @@
+2026-10-11T05:59:02.916017Z DEBUG kache::wrapper: cc cache key for unit.c: 5114bc58d8bc10f0
+2026-10-11T05:59:02.916809Z DEBUG kache::wrapper: cc local cache hit for unit.c (5114bc58d8bc10f0)

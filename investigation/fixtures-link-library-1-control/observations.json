@@ -1,0 +1,28 @@
+{
+  "baseline": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "driver": "/usr/bin/clang",
+  "rows": [
+    {
+      "phase": "cold",
+      "result": "miss",
+      "key": "52b11341cc95d4b89ec243bc94c34e259516cc3733cdfd580005540b4148b8a9",
+      "actual": 1,
+      "compiler_runs": 1
+    },
+    {
+      "phase": "warm",
+      "result": "local_hit",
+      "key": "52b11341cc95d4b89ec243bc94c34e259516cc3733cdfd580005540b4148b8a9",
+      "actual": 1,
+      "compiler_runs": 0
+    },
+    {
+      "phase": "changed",
+      "result": "miss",
+      "key": "f904a39c1215b032e6f07956a02681ad86897d3ee8c05cbf81648b0dd25e3648",
+      "actual": 2,
+      "compiler_runs": 1
+    }
+  ],
+  "expected": 2
+}

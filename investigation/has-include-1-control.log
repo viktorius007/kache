@@ -1,0 +1,5 @@
+{"phase": "cold", "result": "miss", "key": "feda9a987ffa454bcab8a7859b26c1d50f37ffad8cdaaf7ceb5928af1430a353", "actual": 1, "compiler_runs": 1}
+{"phase": "warm", "result": "local_hit", "key": "feda9a987ffa454bcab8a7859b26c1d50f37ffad8cdaaf7ceb5928af1430a353", "actual": 1, "compiler_runs": 0}
+{"phase": "changed", "result": "miss", "key": "a1a747272132e725234e318b72761f45772c066c2689076f2059860fa34e7bc1", "actual": 2, "compiler_runs": 1}
+DIRECT_ORACLE 2
+PASS: cache result agrees with direct compiler

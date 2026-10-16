@@ -1,0 +1,29 @@
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/cc-header-permutation/crates/kache-fs)
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/cc-header-permutation/crates/kache-format)
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/cc-header-permutation)
+   Compiling kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-prs/cc-header-permutation/crates/kache-shims)
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/cc-header-permutation/crates/kache-store)
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/cc-header-permutation/crates/kache-core)
+    Finished `test` profile [unoptimized] target(s) in 36.24s
+     Running tests/cc_passthrough_args_test.rs (/Users/viktor/Developer/github/kache-prs/cc-optional-header/target/debug/deps/cc_passthrough_args_test-36590001524819ec)
+
+running 1 test
+test exchanged_header_contents_compile_current_output_and_keep_checkout_hits ... FAILED
+
+failures:
+
+---- exchanged_header_contents_compile_current_output_and_keep_checkout_hits stdout ----
+
+thread 'exchanged_header_contents_compile_current_output_and_keep_checkout_hits' (52484176) panicked at tests/cc_passthrough_args_test.rs:246:13:
+assertion `left == right` failed: exchanged: exchanging header contents must compile their current meaning (discovery=0)
+  left: Some(23)
+ right: Some(11)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    exchanged_header_contents_compile_current_output_and_keep_checkout_hits
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.50s
+
+error: test failed, to rerun pass `--test cc_passthrough_args_test`
