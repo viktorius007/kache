@@ -1,0 +1,46 @@
+[
+  {
+    "name": "remote_backend::download_memory::tests",
+    "command": [
+      "/Users/viktor/Developer/github/kache-investigations/remote-permits/investigation/target/debug/deps/permit_probe-fdb3884d9cb50b57",
+      "remote_backend::download_memory::tests",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "exit_code": 0,
+    "output": "\nrunning 5 tests\ntest remote_backend::download_memory::tests::a_closed_budget_reports_the_waiting_stage ... ok\ntest remote_backend::download_memory::tests::body_clones_and_slices_hold_the_reservation_until_last_drop ... ok\ntest remote_backend::download_memory::tests::cancelling_a_waiter_does_not_leak_its_reservation ... ok\ntest remote_backend::download_memory::tests::reservations_include_copy_space_and_are_released_on_drop ... ok\ntest remote_backend::download_memory::tests::unknown_and_oversized_requests_reserve_the_entire_budget ... ok\n\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 4394 filtered out; finished in 0.00s\n\n"
+  },
+  {
+    "name": "remote_backend::tests::streaming_downloads_do_not_wait_for_buffered_memory",
+    "command": [
+      "/Users/viktor/Developer/github/kache-investigations/remote-permits/investigation/target/debug/deps/permit_probe-fdb3884d9cb50b57",
+      "remote_backend::tests::streaming_downloads_do_not_wait_for_buffered_memory",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "exit_code": 0,
+    "output": "\nrunning 1 test\ntest remote_backend::tests::streaming_downloads_do_not_wait_for_buffered_memory ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4398 filtered out; finished in 0.00s\n\n"
+  },
+  {
+    "name": "daemon::tests::test_prefetch_concurrency_cap_reserves_interactive_permits",
+    "command": [
+      "/Users/viktor/Developer/github/kache-investigations/remote-permits/investigation/target/debug/deps/permit_probe-fdb3884d9cb50b57",
+      "daemon::tests::test_prefetch_concurrency_cap_reserves_interactive_permits",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "exit_code": 0,
+    "output": "\nrunning 1 test\ntest daemon::tests::test_prefetch_concurrency_cap_reserves_interactive_permits ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4398 filtered out; finished in 0.00s\n\n"
+  },
+  {
+    "name": "daemon::tests::planner_selected_fallback_uses_reserve_while_lookahead_is_saturated",
+    "command": [
+      "/Users/viktor/Developer/github/kache-investigations/remote-permits/investigation/target/debug/deps/permit_probe-fdb3884d9cb50b57",
+      "daemon::tests::planner_selected_fallback_uses_reserve_while_lookahead_is_saturated",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "exit_code": 0,
+    "output": "\nrunning 1 test\ntest daemon::tests::planner_selected_fallback_uses_reserve_while_lookahead_is_saturated ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4398 filtered out; finished in 0.00s\n\n"
+  }
+]

@@ -1,0 +1,17 @@
+
+running 1 test
+test remote_permits_probe::remote_permits_probe_default_budget ... FIXTURE slow_packs=16 compressed_bytes=536916528 artifact_mib=32
+MEASURE pool=16 occupied=16 artifact_mib=32 tiny_budget_ms=3000 active=16 head_ms=0 tiny_found=Some(true) tiny_ms=2256 tiny_wire_gets=1
+
+thread 'remote_permits_probe::remote_permits_probe_default_budget' (46231398) panicked at source/../remote_permits_probe.rs:173:5:
+full pool must demonstrate substantial queue delay
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    remote_permits_probe::remote_permits_probe_default_budget
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4398 filtered out; finished in 12.54s
+

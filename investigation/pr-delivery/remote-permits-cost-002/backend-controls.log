@@ -1,0 +1,63 @@
+    Blocking waiting for file lock on package cache
+    Finished `test` profile [unoptimized] target(s) in 0.35s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+test daemon::tests::test_get_failure_classes_drive_retries_and_skip_negative_cache ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4395 filtered out; finished in 0.02s
+
+    Finished `test` profile [unoptimized] target(s) in 0.29s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 39 tests
+test remote_resilience::tests::abandoned_half_open_probe_reopens_for_the_full_cooldown ... ok
+test remote_resilience::tests::abandoned_probe_cannot_overwrite_a_newer_epoch_or_non_half_open_mode ... ok
+test remote_resilience::tests::auth_config_integrity_and_local_errors_do_not_open_breaker ... ok
+test remote_resilience::tests::backoff_grows_exponentially_and_caps ... ok
+test remote_resilience::tests::breaker_admits_exactly_one_half_open_probe ... ok
+test remote_resilience::tests::breaker_degraded_and_recovery_truth_tables_are_exact ... ok
+test remote_resilience::tests::breaker_is_direction_specific_and_recovers_with_one_probe ... ok
+test remote_resilience::tests::bounded_singleflight_publishes_one_leader_result ... ok
+test remote_resilience::tests::classification_is_typed_and_only_availability_failures_poison ... ok
+test remote_resilience::tests::classify_entry_not_found_as_miss_even_when_wrapped ... ok
+test remote_resilience::tests::classify_io_kinds_without_collapsing_distinct_policies ... ok
+test remote_resilience::tests::classify_io_timed_out_as_timeout ... ok
+test remote_resilience::tests::classify_opendal_kinds_without_collapsing_distinct_policies ... ok
+test remote_resilience::tests::classify_opendal_not_found_as_miss ... ok
+test remote_resilience::tests::classify_timeout_message_without_typed_cause_as_timeout ... ok
+test remote_resilience::tests::client_and_daemon_deadlines_choose_the_stricter_budget ... ok
+test remote_resilience::tests::current_positive_observation_applies_and_clears_the_miss ... ok
+test remote_resilience::tests::deadline_constructors_distinguish_disabled_and_positive_budgets ... ok
+test remote_resilience::tests::deadline_error_display_names_the_failed_stage ... ok
+test remote_resilience::tests::every_remote_operation_has_the_expected_direction_and_label ... ok
+test remote_resilience::tests::extreme_deadlines_do_not_panic_and_overflow_is_effectively_unbounded ... ok
+test remote_resilience::tests::jitter_stays_within_half_the_delay ... ok
+test remote_resilience::tests::local_network_privacy_hint_is_narrow_and_qualified ... ok
+test remote_resilience::tests::macos_launch_agent_errno_65_gets_local_network_privacy_hint ... ok
+test remote_resilience::tests::macos_launch_agent_no_route_failure_gets_local_network_privacy_hint ... ok
+test remote_resilience::tests::negative_cache_disabled_when_ttl_is_zero ... ok
+test remote_resilience::tests::negative_cache_evicts_oldest_at_capacity ... ok
+test remote_resilience::tests::negative_cache_hits_within_ttl_and_expires_after ... ok
+test remote_resilience::tests::negative_cache_listing_coherence_drops_present_keys ... ok
+test remote_resilience::tests::negative_cache_listing_epoch_tracks_observation_order ... ok
+test remote_resilience::tests::negative_cache_prunes_only_expired_entries ... ok
+test remote_resilience::tests::negative_cache_rejects_invalid_keys_and_bounds_epoch_tombstones ... ok
+test remote_resilience::tests::negative_cache_upload_invalidation_removes_the_entry ... ok
+test remote_resilience::tests::classify_elapsed_deadline_as_timeout ... ok
+test remote_resilience::tests::reqwest_status_and_transport_truth_tables_are_exact ... ok
+test remote_resilience::tests::one_deadline_bounds_queue_waits ... ok
+test remote_resilience::tests::singleflight_leader_drop_before_wait_never_loses_the_wakeup ... ok
+test remote_resilience::tests::stale_prefetch_presence_cannot_erase_a_newer_miss ... ok
+test remote_resilience::tests::retry_transient_retries_only_transient_failures ... ok
+
+test result: ok. 39 passed; 0 failed; 0 ignored; 0 measured; 4357 filtered out; finished in 0.01s
+
+    Finished `test` profile [unoptimized] target(s) in 0.28s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+test daemon::tests::test_restore_deadline_returns_miss_instead_of_hanging ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4395 filtered out; finished in 1.01s
+

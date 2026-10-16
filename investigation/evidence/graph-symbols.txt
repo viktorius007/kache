@@ -1,0 +1,26 @@
+results_refs: 5  (cols: id prefix)
+  0 Users-viktor-Developer-github-kache-investigations-coordinator.src.cache_remote.
+  1 Users-viktor-Developer-github-kache-investigations-coordinator.src.remote_layout.
+  2 Users-viktor-Developer-github-kache-investigations-coordinator.src.daemon.
+  3 src/cache_remote.rs
+  4 src/remote_layout.rs
+results_ref_rule: @N+suffix=prefix+suffix
+results: 13  (cols: qn label file lines in out)
+  @0+CacheRemote.download_entry Method @3+ 24-31 1 1
+  @0+V3Remote.download_entry[CacheRemote] Method @3+ 122-133 2 3
+  @1+tests.download_entry_extracts_a_stored_pack Function @4+ 1849-1873 0 13
+  @0+tests.download_entry_keeps_the_entry_not_found_chain Function @3+ 442-456 0 6
+  @1+RemoteLayout.download_entry_observed Method @4+ 147-234 8 35
+  @0+CacheRemote.download_entry_observed Method @3+ 33-41 1 2
+  @0+V3Remote.download_entry_observed[CacheRemote] Method @3+ 135-154 0 4
+  @1+RemoteLayout.download_entry_until Method @4+ 135-145 6 2
+  @2+prefetch_concurrency_cap Function src/daemon.rs 2238-2242 5 0
+  Users-viktor-Developer-github-kache-investigations-coordinator.src.remote_backend.OpenDalBackend.read_into Method src/remote_backend.rs 406-506 2 11
+  @2+remote_check_budget_ms Function src/daemon.rs 53-67 4 1
+  @2+tests.test_prefetch_concurrency_cap_reserves_interactive_permits Function src/daemon/tests.rs 6639-6653 0 3
+  @0+tests.upload_then_download_entry_round_trips_through_v3 Function @3+ 409-439 0 12
+total: 13
+returned: 13
+has_more: false
+truncated: false
+

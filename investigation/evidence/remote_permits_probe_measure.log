@@ -1,0 +1,14 @@
+
+running 1 test
+test remote_permits_probe::remote_permits_probe_measure ... FIXTURE slow_packs=3 compressed_bytes=3152049 artifact_mib=1
+MEASURE pool=4 occupied=3 artifact_mib=1 tiny_budget_ms=1000 active=3 head_ms=1 tiny_found=Some(true) tiny_ms=766 tiny_wire_gets=1
+FIXTURE slow_packs=4 compressed_bytes=4202732 artifact_mib=1
+MEASURE pool=4 occupied=4 artifact_mib=1 tiny_budget_ms=1000 active=4 head_ms=0 tiny_found=Some(false) tiny_ms=1002 tiny_wire_gets=0
+FIXTURE slow_packs=15 compressed_bytes=503359245 artifact_mib=32
+MEASURE pool=16 occupied=15 artifact_mib=32 tiny_budget_ms=1000 active=15 head_ms=0 tiny_found=Some(true) tiny_ms=789 tiny_wire_gets=1
+FIXTURE slow_packs=16 compressed_bytes=536916528 artifact_mib=32
+MEASURE pool=16 occupied=16 artifact_mib=32 tiny_budget_ms=1000 active=16 head_ms=0 tiny_found=Some(false) tiny_ms=1000 tiny_wire_gets=0
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4398 filtered out; finished in 28.01s
+

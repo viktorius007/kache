@@ -1,0 +1,22 @@
+{
+  "id": "remote-permits-cost-002",
+  "branch": "fix/remote-permits-cost-002",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/remote-permits-cost-002",
+  "test_commit": "59aecbbd9647ad34a2a85fce5145bf39df3fcac3",
+  "fix_commit": "21381a061bba7f7d864a11d46f6d05885046fd30",
+  "title": "Keep local demand queue timeouts from opening the read breaker",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/remote-permits/investigation/pr-delivery/remote-permits-cost-002/pr-body.md",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "gate_command": "env -u KACHE_RUNTIME_DIR CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/remote-permits-cost-002/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py just check",
+  "gate_exit": 0,
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/remote-permits/investigation/pr-delivery/remote-permits-cost-002/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/remote-permits/investigation/pr-delivery/remote-permits-cost-002/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/remote-permits/investigation/pr-delivery/remote-permits-cost-002/gate.log",
+  "changed_files": [
+    "src/daemon.rs",
+    "src/daemon/tests.rs"
+  ],
+  "controls_log": "/Users/viktor/Developer/github/kache-investigations/remote-permits/investigation/pr-delivery/remote-permits-cost-002/backend-controls.log",
+  "red_exit": 101,
+  "green_exit": 0
+}

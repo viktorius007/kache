@@ -1,0 +1,35 @@
+function: Users-viktor-Developer-github-kache-investigations-coordinator.src.daemon.Daemon.handle_remote_check_leader
+direction: outbound
+callees_total: 40
+callees_total_relation: gte
+callees: 15  (rows: name hop; qn = group prefix empty ? name : prefix + "." + name; "" marks empty prefix)
+Users-viktor-Developer-github-kache-investigations-coordinator.src.daemon:
+  key_cache_miss_is_authoritative 1
+  remote_check_cache_dir 1
+  remote_check_entry_dir 1
+Users-viktor-Developer-github-kache-investigations-coordinator.src.remote_resilience.BreakerPermit:
+  failure 1
+  success 1
+Users-viktor-Developer-github-kache-investigations-coordinator.src.remote_resilience.NegativeKeyCache:
+  begin_observation 1
+  check 1
+  record_miss 1
+  record_present 1
+Users-viktor-Developer-github-kache-investigations-coordinator.src.remote_resilience.RemoteBreaker:
+  try_acquire 1
+Users-viktor-Developer-github-kache-investigations-coordinator.src.remote_resilience.RemoteDeadline:
+  at 1
+  check 1
+  run 1
+Users-viktor-Developer-github-kache-investigations-coordinator.src.remote_resilience.RemoteErrorClass:
+  poisons_breaker 1
+Users-viktor-Developer-github-kache-investigations-coordinator.src.remote_resilience:
+  classify_remote_error 1
+truncated: true
+has_more: true
+truncation_reason: page_limit
+next: c1.o.u839d99d7fa0752fbg2.5b2fb2534f331082.1.17839
+hint: "more rows exist — re-call with cursor set to 'next' and ALL other arguments identical (no duplicates), or narrow with depth/edge_types"
+semantic_note: "Rust semantic coverage is partial or unknown; omitted facts may change rows or cells, and positive affected fact counts are lower bounds."
+unresolved_sites: "{\"lookup\":\"complete\",\"calls\":80,\"references\":124,\"files\":[{\"path\":\"src/daemon.rs\",\"kind\":\"call\",\"total\":80},{\"path\":\"src/daemon.rs\",\"kind\":\"member\",\"total\":28},{\"path\":\"src/daemon.rs\",\"kind\":\"reference\",\"total\":64},{\"path\":\"src/daemon.rs\",\"kind\":\"type\",\"total\":32}],\"file_kind_groups_total\":4,\"files_truncated\":false,\"scope\":\"enclosing_item\",\"caller\":\"Users-viktor-Developer-github-kache-investigations-coordinator.src.daemon.Daemon.handle_remote_check_leader\",\"recording\":\"available\",\"listing_tool\":\"trace_path\",\"listing_arguments\":\"Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests.\",\"note\":\"Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences.\"}"
+

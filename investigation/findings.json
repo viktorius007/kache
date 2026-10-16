@@ -1,0 +1,146 @@
+[
+  {
+    "id": "remote-permits-cost-001",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:07:53.705230+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex",
+      "mode": "production-readiness",
+      "slice": "remote-request-and-memory-admission-issue-327"
+    },
+    "category": "polish",
+    "domain": "code",
+    "classification": "measured-cost",
+    "summary": "A full request pool delays valid small demand restores and can exhaust a stricter client deadline without issuing their GET.",
+    "scenario": "Cold daemon, s3_concurrency=16, sixteen real S3 GET bodies for valid ~32 MiB cache packs held after their first KiB; a distinct tiny pack request with deadline_ms=1000 returns found=false with zero wire GETs. With fifteen occupied slots the same kind of pack hits. Uniform 3000 ms caller hits after 2255 ms in the corrected control.",
+    "evidence": [
+      {
+        "path": "src/daemon.rs",
+        "lines": "4752-4819",
+        "point": "Each demand request acquires one pool permit; acquisition is bounded by the demand deadline and failures return a miss."
+      },
+      {
+        "path": "src/remote_layout.rs",
+        "lines": "176-182",
+        "point": "Entry packs call get_into, not buffered get."
+      },
+      {
+        "path": "src/remote_backend.rs",
+        "lines": "521-550",
+        "point": "Only buffered get acquires DownloadMemory; get_into streams through read_into without that reservation."
+      },
+      {
+        "path": "investigation/evidence/remote_permits_probe_measure.log",
+        "lines": "3-10",
+        "point": "3/4 and 15/16 occupied controls hit; 4/4 and 16/16 occupied cases miss at 1000-1002 ms without GET."
+      },
+      {
+        "path": "investigation/evidence/remote_permits_probe_default_budget.log",
+        "lines": "3-6",
+        "point": "Default-budget caller hits with one wire GET after 2255 ms."
+      }
+    ],
+    "trace": "Rust wrapper send_remote_check -> socket RemoteCheck dispatch -> handle_remote_check_started_at -> handle_remote_check_leader -> demand GET queue -> V3Remote.download_entry -> RemoteLayout.get_into -> OpenDalBackend.read_into -> temporary disk file -> verified extraction/import, or deadline miss before GET.",
+    "authority": {
+      "source": "Issue #327 measurement request and production resource/backpressure failure mode",
+      "quote": "Measure that before building weighted permits."
+    },
+    "severity": "Cache reuse and compile latency under concurrent cold remote demand; no data loss, integrity failure, OOM or indefinite starvation demonstrated. A 1 s client/30 s daemon budget mismatch is supported production input, while uniform default clients had a successful delayed hit.",
+    "status": "no-action",
+    "limits": "Feature/scheduling measurement, not an admitted correctness defect. Endpoint holds tails deliberately; exact timings include an unsignalled 750 ms warming grace and overlap with another agent thin-LTO link."
+  },
+  {
+    "id": "remote-permits-cost-002",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:07:53.705230+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex",
+      "mode": "production-readiness",
+      "slice": "remote-request-and-memory-admission-issue-327"
+    },
+    "category": "polish",
+    "domain": "code",
+    "classification": "measured-cost",
+    "summary": "Three queue-only demand timeouts open the shared read breaker and suppress new valid reads after every occupied request permit has been released.",
+    "scenario": "Pool=4, four valid ~1 MiB demand bodies are held. Three distinct valid tiny callers with 1 s budgets time out without wire GETs. Abort all held demands, await cancellation, and query public stats: total=4, used=0. A direct endpoint HEAD succeeds, but a new fourth valid tiny demand returns false after its warming grace with zero GETs. One-free-slot control serves all three callers and the recovery caller.",
+    "evidence": [
+      {
+        "path": "src/daemon.rs",
+        "lines": "4765-4782",
+        "point": "An error while waiting for the local semaphore calls breaker_permit.failure(classify_remote_error(error))."
+      },
+      {
+        "path": "src/remote_resilience.rs",
+        "lines": "360-364",
+        "point": "Default read breaker threshold is 3; cooldown is 45 seconds."
+      },
+      {
+        "path": "src/remote_resilience.rs",
+        "lines": "628-633",
+        "point": "Third classified failure opens the direction breaker until its cooldown deadline."
+      },
+      {
+        "path": "src/daemon.rs",
+        "lines": "4752-4761",
+        "point": "An open demand read breaker suppresses the request and returns a miss."
+      },
+      {
+        "path": "investigation/evidence/remote_permits_probe_recovery_after_queue_timeout.log",
+        "lines": "3-20",
+        "point": "Matching green control, three overload misses, CAPACITY total=4 used=0, and recovery false with zero wire GETs; desired recovery assertion fails."
+      }
+    ],
+    "trace": "Full local semaphore -> three typed deadline errors in demand GET queue -> shared read-direction failure count reaches 3 -> breaker Open(45 s) -> held requests cancelled and permits released -> later valid request rejected before backend dispatch.",
+    "authority": {
+      "source": "Production resource-saturation measurement requested in issue #327",
+      "quote": "whether that budget leaves a real saturation case"
+    },
+    "severity": "A transient local saturation episode can suppress cache reuse across distinct subsequent read keys for the default 45 s cooldown. Execution proves immediate post-release suppression; 45 s duration is a pinned source constant, not an elapsed-time experiment. Writes have an independent breaker.",
+    "status": "no-action",
+    "limits": "This is explicit timeout/breaker policy and a measured scheduling amplification. No binding current promise forbids it, so it is not admitted as defect/gap. Changing that policy or giving small work priority is a feature/design decision."
+  },
+  {
+    "id": "remote-permits-dismissal-001",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:07:53.705230+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex",
+      "mode": "production-readiness",
+      "slice": "remote-request-and-memory-admission-issue-327"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Do not infer unbounded memory growth, indefinite starvation, or a currently violated weighted-permit contract from issue #327.",
+    "checked": "Pinned source demand budgets, request admission, streaming versus buffered paths, default prefetch reservation, existing memory/cancellation tests, one-free-slot controls, uniform default caller, and current issue body/comment.",
+    "closed_by": {
+      "tier": "1 executed behavior + 2 production source + 4 issue scope",
+      "citation": "investigation/evidence/baseline-controls.json; src/daemon.rs:43-67,2231-2242; src/remote_backend/download_memory.rs:34-48; issue #327 remains a measured-feature request. Default caller hit rather than starving indefinitely; memory tests prove accounting release within their tested seam."
+    },
+    "reopens_if": "A workload demonstrates a leak/unbounded allocation, a caller waiting beyond its enforced deadline, speculation exceeding its gate, or an approved fairness/SLO contract is supplied. Pool=1 has no speculative reserve by explicit source policy and was not load-tested here.",
+    "status": "no-action"
+  },
+  {
+    "id": "remote-permits-dismissal-002",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:07:53.705230+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex",
+      "mode": "production-readiness",
+      "slice": "remote-request-and-memory-admission-issue-327"
+    },
+    "category": "defect",
+    "domain": "test",
+    "summary": "Reject the initial default-client >=2500 ms experimental timing oracle.",
+    "checked": "Initial probe measured a successful valid default-budget hit in 2256 ms but failed its drafted >=2500 ms assertion. Source shows 750 ms warming grace is consumed before initial bodies and later tiny requests; timing expectation was too strict. Corrected probe asserts observable default hit plus exactly one tiny wire GET and passes.",
+    "closed_by": {
+      "tier": "1 executed behavior + 2 source",
+      "citation": "investigation/evidence/remote_permits_probe_default_budget_initial.log; investigation/evidence/remote_permits_probe_default_budget.log; src/daemon.rs:43,3258-3266,4552-4558"
+    },
+    "reopens_if": "A supported default-budget small caller actually loses its valid cache hit under a reproducible workload and a binding contract makes that result wrongful.",
+    "status": "no-action"
+  }
+]

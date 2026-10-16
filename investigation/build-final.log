@@ -1,0 +1,3 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-investigations/remote-permits/investigation)
+    Finished `test` profile [unoptimized] target(s) in 14.87s
+  Executable unittests source/main.rs (investigation/target/debug/deps/permit_probe-fdb3884d9cb50b57)

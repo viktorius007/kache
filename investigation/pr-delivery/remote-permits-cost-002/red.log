@@ -1,0 +1,27 @@
+    Blocking waiting for file lock on package cache
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/remote-permits-cost-002/crates/kache-fs)
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/remote-permits-cost-002/crates/kache-format)
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/remote-permits-cost-002)
+   Compiling kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-prs/remote-permits-cost-002/crates/kache-shims)
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/remote-permits-cost-002/crates/kache-store)
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/remote-permits-cost-002/crates/kache-core)
+    Finished `test` profile [unoptimized] target(s) in 54.84s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+
+thread 'daemon::tests::demand_queue_timeouts_do_not_suppress_recovery_after_permits_are_released' (54033036) panicked at src/daemon/tests.rs:11095:5:
+assertion `left == right` failed: three local queue timeouts must not suppress a valid hit after capacity returns
+  left: Some(false)
+ right: Some(true)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test daemon::tests::demand_queue_timeouts_do_not_suppress_recovery_after_permits_are_released ... FAILED
+
+failures:
+
+failures:
+    daemon::tests::demand_queue_timeouts_do_not_suppress_recovery_after_permits_are_released
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4395 filtered out; finished in 0.30s
+
+error: test failed, to rerun pass `--bin kache`

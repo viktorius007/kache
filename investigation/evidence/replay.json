@@ -1,0 +1,54 @@
+[
+  {
+    "name": "remote_permits_probe_measure",
+    "command": [
+      "/Users/viktor/Developer/github/kache-investigations/remote-permits/investigation/target/debug/deps/permit_probe-fdb3884d9cb50b57",
+      "remote_permits_probe::remote_permits_probe_measure",
+      "--exact",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "exit_code": 0,
+    "seconds": 28.024,
+    "output": "\nrunning 1 test\ntest remote_permits_probe::remote_permits_probe_measure ... FIXTURE slow_packs=3 compressed_bytes=3152049 artifact_mib=1\nMEASURE pool=4 occupied=3 artifact_mib=1 tiny_budget_ms=1000 active=3 head_ms=1 tiny_found=Some(true) tiny_ms=766 tiny_wire_gets=1\nFIXTURE slow_packs=4 compressed_bytes=4202732 artifact_mib=1\nMEASURE pool=4 occupied=4 artifact_mib=1 tiny_budget_ms=1000 active=4 head_ms=0 tiny_found=Some(false) tiny_ms=1002 tiny_wire_gets=0\nFIXTURE slow_packs=15 compressed_bytes=503359245 artifact_mib=32\nMEASURE pool=16 occupied=15 artifact_mib=32 tiny_budget_ms=1000 active=15 head_ms=0 tiny_found=Some(true) tiny_ms=789 tiny_wire_gets=1\nFIXTURE slow_packs=16 compressed_bytes=536916528 artifact_mib=32\nMEASURE pool=16 occupied=16 artifact_mib=32 tiny_budget_ms=1000 active=16 head_ms=0 tiny_found=Some(false) tiny_ms=1000 tiny_wire_gets=0\nok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4398 filtered out; finished in 28.01s\n\n"
+  },
+  {
+    "name": "remote_permits_probe_small_hit_survives_large_demand",
+    "command": [
+      "/Users/viktor/Developer/github/kache-investigations/remote-permits/investigation/target/debug/deps/permit_probe-fdb3884d9cb50b57",
+      "remote_permits_probe::remote_permits_probe_small_hit_survives_large_demand",
+      "--exact",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "exit_code": 101,
+    "seconds": 11.019,
+    "output": "\nrunning 1 test\ntest remote_permits_probe::remote_permits_probe_small_hit_survives_large_demand ... FIXTURE slow_packs=16 compressed_bytes=536916528 artifact_mib=32\nMEASURE pool=16 occupied=16 artifact_mib=32 tiny_budget_ms=1000 active=16 head_ms=0 tiny_found=Some(false) tiny_ms=1001 tiny_wire_gets=0\n\nthread 'remote_permits_probe::remote_permits_probe_small_hit_survives_large_demand' (46234461) panicked at source/../remote_permits_probe.rs:167:5:\na tiny valid remote hit was lost behind sixteen large demand restores\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\nFAILED\n\nfailures:\n\nfailures:\n    remote_permits_probe::remote_permits_probe_small_hit_survives_large_demand\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4398 filtered out; finished in 11.01s\n\n"
+  },
+  {
+    "name": "remote_permits_probe_recovery_after_queue_timeout",
+    "command": [
+      "/Users/viktor/Developer/github/kache-investigations/remote-permits/investigation/target/debug/deps/permit_probe-fdb3884d9cb50b57",
+      "remote_permits_probe::remote_permits_probe_recovery_after_queue_timeout",
+      "--exact",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "exit_code": 101,
+    "seconds": 5.385,
+    "output": "\nrunning 1 test\ntest remote_permits_probe::remote_permits_probe_recovery_after_queue_timeout ... FIXTURE slow_packs=3 compressed_bytes=3152049 artifact_mib=1\nVICTIM found=Some(true)\nVICTIM found=Some(true)\nVICTIM found=Some(true)\nCAPACITY total=4 used=0 suppressed=0\nRECOVERY after_capacity_release=true found=Some(true) elapsed_ms=754 tiny_wire_gets=4\nMEASURE pool=4 occupied=3 artifact_mib=1 tiny_budget_ms=1000 active=3 head_ms=0 tiny_found=Some(true) tiny_ms=1534 tiny_wire_gets=4\nFIXTURE slow_packs=4 compressed_bytes=4202732 artifact_mib=1\nVICTIM found=Some(false)\nVICTIM found=Some(false)\nVICTIM found=Some(false)\nCAPACITY total=4 used=0 suppressed=0\nRECOVERY after_capacity_release=true found=Some(false) elapsed_ms=752 tiny_wire_gets=0\nMEASURE pool=4 occupied=4 artifact_mib=1 tiny_budget_ms=1000 active=4 head_ms=0 tiny_found=Some(false) tiny_ms=1758 tiny_wire_gets=0\n\nthread 'remote_permits_probe::remote_permits_probe_recovery_after_queue_timeout' (46235612) panicked at source/../remote_permits_probe.rs:181:5:\nthree local queue timeouts suppressed a healthy remote after all capacity was released\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\nFAILED\n\nfailures:\n\nfailures:\n    remote_permits_probe::remote_permits_probe_recovery_after_queue_timeout\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4398 filtered out; finished in 5.38s\n\n"
+  },
+  {
+    "name": "remote_permits_probe_default_budget",
+    "command": [
+      "/Users/viktor/Developer/github/kache-investigations/remote-permits/investigation/target/debug/deps/permit_probe-fdb3884d9cb50b57",
+      "remote_permits_probe::remote_permits_probe_default_budget",
+      "--exact",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "exit_code": 0,
+    "seconds": 11.235,
+    "output": "\nrunning 1 test\ntest remote_permits_probe::remote_permits_probe_default_budget ... FIXTURE slow_packs=16 compressed_bytes=536916528 artifact_mib=32\nMEASURE pool=16 occupied=16 artifact_mib=32 tiny_budget_ms=3000 active=16 head_ms=0 tiny_found=Some(true) tiny_ms=2255 tiny_wire_gets=1\nok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4398 filtered out; finished in 11.22s\n\n"
+  }
+]

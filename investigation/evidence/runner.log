@@ -1,0 +1,4 @@
+{"name": "remote_permits_probe_measure", "exit_code": 0, "seconds": 28.024}
+{"name": "remote_permits_probe_default_budget", "exit_code": 101, "seconds": 12.547}
+{"name": "remote_permits_probe_small_hit_survives_large_demand", "exit_code": 101, "seconds": 11.019}
+{"name": "remote_permits_probe_recovery_after_queue_timeout", "exit_code": 101, "seconds": 5.385}

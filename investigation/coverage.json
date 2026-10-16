@@ -1,0 +1,33 @@
+{
+  "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "project": "Users-viktor-Developer-github-kache-investigations-coordinator",
+  "graph_coverage": "semantic_partial; source corroboration required",
+  "reviewed_symbols": [
+    "Daemon.new_with_provenance",
+    "Daemon.handle_remote_check_started_at",
+    "Daemon.handle_remote_check_leader",
+    "Daemon.download_planner_shard",
+    "Daemon.packed_prefetch_get",
+    "Daemon.packed_prefetch_list",
+    "prefetch_concurrency_cap",
+    "remote_check_budget_ms",
+    "Daemon.wait_for_warming",
+    "V3Remote.download_entry",
+    "V3Remote.download_entry_observed",
+    "RemoteLayout.download_entry_observed",
+    "OpenDalBackend.get",
+    "OpenDalBackend.get_versioned",
+    "OpenDalBackend.get_into",
+    "OpenDalBackend.read_into",
+    "DownloadMemory.acquire",
+    "RemoteDeadline.run",
+    "RemoteBreaker.try_acquire",
+    "BreakerPermit.finish"
+  ],
+  "sampling_limits": [
+    "No whole-file clean verdict for daemon.rs or remote_backend.rs",
+    "Outbound graph trace limited to 15 of at least 40 candidate callees",
+    "No OCI/GCS or total remote-throughput audit",
+    "No real AWS latency/rate-limit benchmark"
+  ]
+}

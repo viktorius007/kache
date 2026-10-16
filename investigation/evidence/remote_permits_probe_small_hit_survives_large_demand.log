@@ -1,0 +1,17 @@
+
+running 1 test
+test remote_permits_probe::remote_permits_probe_small_hit_survives_large_demand ... FIXTURE slow_packs=16 compressed_bytes=536916528 artifact_mib=32
+MEASURE pool=16 occupied=16 artifact_mib=32 tiny_budget_ms=1000 active=16 head_ms=0 tiny_found=Some(false) tiny_ms=1001 tiny_wire_gets=0
+
+thread 'remote_permits_probe::remote_permits_probe_small_hit_survives_large_demand' (46234461) panicked at source/../remote_permits_probe.rs:167:5:
+a tiny valid remote hit was lost behind sixteen large demand restores
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    remote_permits_probe::remote_permits_probe_small_hit_survives_large_demand
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4398 filtered out; finished in 11.01s
+
