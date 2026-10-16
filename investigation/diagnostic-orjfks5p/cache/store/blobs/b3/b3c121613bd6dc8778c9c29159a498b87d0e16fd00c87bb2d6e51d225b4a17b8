@@ -1,0 +1,7 @@
+__kache_root__/diagnostic-orjfks5p/out/format_probe.d: lib.rs
+
+__kache_root__/diagnostic-orjfks5p/out/libformat_probe.rlib: lib.rs
+
+__kache_root__/diagnostic-orjfks5p/out/libformat_probe.rmeta: lib.rs
+
+lib.rs:

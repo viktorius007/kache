@@ -1,0 +1,14 @@
+{
+  "id": "rust-wrapper-003",
+  "argv": [
+    "/usr/bin/env",
+    "AUDIT_RUSTDOC_TOOLCHAIN=1.98.1",
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/probes/rustdoc_inputs.py",
+    "nested"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper",
+  "timeout_seconds": 100,
+  "expected_failure_regex": "AssertionError: RUSTDOC_STALE_INPUT_nested: warm cache returned docs predating changed compiler input",
+  "assertion_regex": "RUSTDOC_STALE_INPUT_nested: warm cache returned docs predating changed compiler input"
+}

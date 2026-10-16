@@ -1,0 +1,12 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-004)
+    Finished `test` profile [unoptimized] target(s) in 9.72s
+     Running tests/rustdoc_outer_include_test.rs (/Users/viktor/Developer/github/kache-prs/rust-wrapper-001/target/debug/deps/rustdoc_outer_include_test-6252a1aae7c5177e)
+
+running 1 test
+test outer_doc_include_edits_refresh_cached_rustdoc_and_keep_warm_reuse ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
+

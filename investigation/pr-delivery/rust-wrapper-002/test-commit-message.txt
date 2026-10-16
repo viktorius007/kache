@@ -1,0 +1,14 @@
+test: require explicit Rust emit destinations to be materialized
+
+A warm metadata request for a new destination currently restores only the
+producer filename. Assert the requested file exists, the old filename is
+absent, and an output outside --out-dir works. Keep direct-rustc and ordinary
+metadata cold/hit controls and cover both emit spellings at admission.
+
+Baseline production fails at cached emit omitted requested destination.
+This intentionally red test-only commit is explicitly requested.
+
+Reuse search: codebase-memory search_graph for artifact_target_path,
+explicit emit and parse_emit returned four hits. Strengthen the existing
+refusal test. The integration compile helper fixes its emit argv, so the
+local invocation closure observes the explicit output boundary directly.

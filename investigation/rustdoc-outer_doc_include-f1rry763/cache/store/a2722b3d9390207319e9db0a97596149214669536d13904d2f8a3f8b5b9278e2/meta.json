@@ -1,0 +1,23 @@
+{
+  "cache_key": "a2722b3d9390207319e9db0a97596149214669536d13904d2f8a3f8b5b9278e2",
+  "key_schema": 32,
+  "crate_name": "docprobe",
+  "crate_types": [
+    "doc"
+  ],
+  "files": [
+    {
+      "name": "docs.tar",
+      "size": 19456,
+      "hash": "d8880c573c079d5236c596887d76043c7aa56f77a453bf2868981bd0464a79ad",
+      "executable": false
+    }
+  ],
+  "stdout": "",
+  "stderr": "",
+  "features": [],
+  "target": "",
+  "profile": "",
+  "compile_time_ms": 0,
+  "emit_kinds": []
+}

@@ -1,0 +1,10 @@
+fix: key cached diagnostics by their requested presentation
+
+Cache hits replay stderr along with artifact bytes. Keep diagnostic format,
+JSON options, color and width in the key so each request receives the
+presentation rustc would produce. Canonicalize separated spelling and
+preserve occurrence order for repeated options.
+
+Always fold the diagnostic version tag to invalidate older entries that
+ignored these options, including requests using the implicit default.
+The metadata suite and input-prediction pre-pass control pass.

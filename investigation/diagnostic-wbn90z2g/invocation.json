@@ -1,0 +1,7 @@
+{
+  "case": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/diagnostic-wbn90z2g",
+  "rustc": "/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/rustc",
+  "cache_entries": [
+    "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/diagnostic-wbn90z2g/cache/store/61e920f22008784e0c495a19d600828c812294008d4c814278b02c3066b2bf89/meta.json"
+  ]
+}

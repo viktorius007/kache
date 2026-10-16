@@ -1,0 +1,22 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-001)
+    Finished `test` profile [unoptimized] target(s) in 10.14s
+     Running tests/metadata_streaming_test.rs (target/debug/deps/metadata_streaming_test-a2f6d4baacdb8a18)
+
+running 1 test
+test changing_diagnostic_format_preserves_requested_output_and_reuse ... FAILED
+
+failures:
+
+---- changing_diagnostic_format_preserves_requested_output_and_reuse stdout ----
+
+thread 'changing_diagnostic_format_preserves_requested_output_and_reuse' (52297614) panicked at tests/metadata_streaming_test.rs:171:44:
+JSON request replayed human diagnostics: Error("expected value", line: 1, column: 1)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    changing_diagnostic_format_preserves_requested_output_and_reuse
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.31s
+
+error: test failed, to rerun pass `--test metadata_streaming_test`

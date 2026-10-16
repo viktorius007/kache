@@ -1,0 +1,14 @@
+test: require rustdoc to refresh environment-derived documentation
+
+Changing DOC_TEXT while source bytes remain unchanged currently restores
+OLD_MARKER HTML. The real rustdoc regression fails at cached rustdoc omitted
+the env macro change on baseline production. Direct rustdoc and repeated
+current output remain controls; ordinary docs retain warm reuse across the
+same unrelated env change. Scanner cases distinguish environment macros
+from comments, strings, functions and inequality expressions.
+
+This deliberately red test-only commit is explicitly requested.
+Reuse search: rustdoc env/hash_file_bytes/rust_tokens graph query returned
+three hits; broader env-source/macro/name search returned 25 hits across two
+pages. Existing hermetic CLI helpers are reused. Existing rustdoc tests use
+fake providers, so the real expansion boundary needs its own fixture.

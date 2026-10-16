@@ -1,0 +1,8 @@
+{
+  "case": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/emit-destination-dj7kn4el",
+  "rustc": "/Users/viktor/.rustup/toolchains/1.99.0-aarch64-apple-darwin/bin/rustc",
+  "warm_files": [
+    "first.rmeta"
+  ],
+  "warm_destination_exists": false
+}

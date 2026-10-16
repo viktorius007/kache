@@ -1,0 +1,15 @@
+fix: pass Rust environment macros through to rustdoc
+
+The source collector has no compiler-reported environment dependencies, so
+file bytes cannot validate documentation derived from env! or option_env!.
+Decline such sources before skipping outer attributes and run real rustdoc.
+This prevents legacy entries from replaying stale docs without introducing
+partial variable-name discovery. Ordinary sources retain cache reuse.
+
+Real environment-change/direct-output and ordinary warm-reuse controls pass,
+along with all 39 rustdoc unit tests.
+Reuse search: rustdoc env/hash_file_bytes/rust_tokens graph query returned
+three hits; broader env-source/macro/name query returned 25 hits across two
+pages. Reuse rust_tokens and punct_at. source_env_dep_use classifies a
+supplied name rather than discovering dependencies, and its name decoder
+cannot establish complete admission; use a concrete invocation predicate.

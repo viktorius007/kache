@@ -1,0 +1,364 @@
+[
+  {
+    "path": "docs/getting-started/rustdoc.mdx",
+    "state": "reviewed",
+    "evidence": [
+      "Full-text contract and failure-path review; exact source baseline remains unchanged."
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 60
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "Real baseline rustc/rustdoc probes only; no complete cargo test suite or C/C++/CUDA toolchain execution claimed.",
+    "reopen_conditions": "Fix changes this path; additional platform/toolchain access or a concrete cache integrity/concurrency workload exposes an unexecuted branch."
+  },
+  {
+    "path": "src/args.rs",
+    "state": "reviewed",
+    "evidence": [
+      "Full production and inline tests: argument partitioning, outcome flags, response transport, emit/path classification. Diagnostic format ignored from key confirmed by real probe."
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 2802
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "Real baseline rustc/rustdoc probes only; no complete cargo test suite or C/C++/CUDA toolchain execution claimed.",
+    "reopen_conditions": "Fix changes this path; additional platform/toolchain access or a concrete cache integrity/concurrency workload exposes an unexecuted branch."
+  },
+  {
+    "path": "src/compile.rs",
+    "state": "reviewed",
+    "evidence": [
+      "Full production and inline tests: pipe draining, process exit/reaping, output discovery and immutable preclean paths."
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 1847
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "Real baseline rustc/rustdoc probes only; no complete cargo test suite or C/C++/CUDA toolchain execution claimed.",
+    "reopen_conditions": "Fix changes this path; additional platform/toolchain access or a concrete cache integrity/concurrency workload exposes an unexecuted branch."
+  },
+  {
+    "path": "src/compiler/rustc.rs",
+    "state": "reviewed",
+    "evidence": [
+      "Full production and inline tests: detection/refusals, cache vs passthrough/adaptive compile flags, artifact kinds, macOS link/debug behavior and key seam."
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 1779
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "Real baseline rustc/rustdoc probes only; no complete cargo test suite or C/C++/CUDA toolchain execution claimed.",
+    "reopen_conditions": "Fix changes this path; additional platform/toolchain access or a concrete cache integrity/concurrency workload exposes an unexecuted branch."
+  },
+  {
+    "path": "src/compiler/rustdoc.rs",
+    "state": "reviewed",
+    "evidence": [
+      "Full production and inline tests: parser/refusal, source scanner, source/env key derivation, archive restore/path rewrite and hit return. Nested-file and env output defects confirmed."
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 3371
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "Real baseline rustc/rustdoc probes only; no complete cargo test suite or C/C++/CUDA toolchain execution claimed.",
+    "reopen_conditions": "Fix changes this path; additional platform/toolchain access or a concrete cache integrity/concurrency workload exposes an unexecuted branch."
+  },
+  {
+    "path": "src/verify_compare.rs",
+    "state": "reviewed",
+    "evidence": [
+      "Full production and inline tests: staging retarget, artifact matching/path-debug classification and fail-open diagnostic qualification."
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 933
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "Real baseline rustc/rustdoc probes only; no complete cargo test suite or C/C++/CUDA toolchain execution claimed.",
+    "reopen_conditions": "Fix changes this path; additional platform/toolchain access or a concrete cache integrity/concurrency workload exposes an unexecuted branch."
+  },
+  {
+    "path": "src/wrapper.rs",
+    "state": "reviewed",
+    "evidence": [
+      "Full production: Rust key/discovery/prediction/compile/store/hit/fallback and C/C++/CUDA dispatch, admission, input guards, locks and artifact replay."
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 9255
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "Real baseline rustc/rustdoc probes only; no complete cargo test suite or C/C++/CUDA toolchain execution claimed.",
+    "reopen_conditions": "Fix changes this path; additional platform/toolchain access or a concrete cache integrity/concurrency workload exposes an unexecuted branch."
+  },
+  {
+    "path": "src/wrapper/hit.rs",
+    "state": "reviewed",
+    "evidence": [
+      "Full-text contract and failure-path review; exact source baseline remains unchanged."
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 44
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "Real baseline rustc/rustdoc probes only; no complete cargo test suite or C/C++/CUDA toolchain execution claimed.",
+    "reopen_conditions": "Fix changes this path; additional platform/toolchain access or a concrete cache integrity/concurrency workload exposes an unexecuted branch."
+  },
+  {
+    "path": "src/wrapper/remote.rs",
+    "state": "reviewed",
+    "evidence": [
+      "Full-text contract and failure-path review; exact source baseline remains unchanged."
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 81
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "Real baseline rustc/rustdoc probes only; no complete cargo test suite or C/C++/CUDA toolchain execution claimed.",
+    "reopen_conditions": "Fix changes this path; additional platform/toolchain access or a concrete cache integrity/concurrency workload exposes an unexecuted branch."
+  },
+  {
+    "path": "src/wrapper/rustc_hit.rs",
+    "state": "reviewed",
+    "evidence": [
+      "Full-text contract and failure-path review; exact source baseline remains unchanged."
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 68
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "Real baseline rustc/rustdoc probes only; no complete cargo test suite or C/C++/CUDA toolchain execution claimed.",
+    "reopen_conditions": "Fix changes this path; additional platform/toolchain access or a concrete cache integrity/concurrency workload exposes an unexecuted branch."
+  },
+  {
+    "path": "src/wrapper/tests.rs",
+    "state": "sampled",
+    "evidence": [
+      "Sampled exact ranges below: prediction state, deferred exit, diagnostic replay, NVCC hits/mutation/failure/qualification, requested emit/unsafe artifact/staging, durability/CC publication and declared-input guards. Function-name inventory elsewhere was navigation only."
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 220
+      },
+      {
+        "start_line": 1820,
+        "end_line": 1884
+      },
+      {
+        "start_line": 2689,
+        "end_line": 2752
+      },
+      {
+        "start_line": 6826,
+        "end_line": 7051
+      },
+      {
+        "start_line": 7329,
+        "end_line": 7670
+      },
+      {
+        "start_line": 8313,
+        "end_line": 8368
+      },
+      {
+        "start_line": 9094,
+        "end_line": 9157
+      },
+      {
+        "start_line": 9270,
+        "end_line": 9512
+      },
+      {
+        "start_line": 10244,
+        "end_line": 10448
+      },
+      {
+        "start_line": 10620,
+        "end_line": 11006
+      }
+    ],
+    "omitted_ranges": [
+      {
+        "start_line": 221,
+        "end_line": 1819
+      },
+      {
+        "start_line": 1885,
+        "end_line": 2688
+      },
+      {
+        "start_line": 2753,
+        "end_line": 6825
+      },
+      {
+        "start_line": 7052,
+        "end_line": 7328
+      },
+      {
+        "start_line": 7671,
+        "end_line": 8312
+      },
+      {
+        "start_line": 8369,
+        "end_line": 9093
+      },
+      {
+        "start_line": 9158,
+        "end_line": 9269
+      },
+      {
+        "start_line": 9513,
+        "end_line": 10243
+      },
+      {
+        "start_line": 10449,
+        "end_line": 10619
+      },
+      {
+        "start_line": 11007,
+        "end_line": 11617
+      }
+    ],
+    "runtime": "Real baseline rustc/rustdoc probes only; no complete cargo test suite or C/C++/CUDA toolchain execution claimed.",
+    "reopen_conditions": "Fix changes this path; additional platform/toolchain access or a concrete cache integrity/concurrency workload exposes an unexecuted branch."
+  },
+  {
+    "path": "src/wrapper/tests/hit.rs",
+    "state": "reviewed",
+    "evidence": [
+      "Full-text contract and failure-path review; exact source baseline remains unchanged."
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 213
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "Real baseline rustc/rustdoc probes only; no complete cargo test suite or C/C++/CUDA toolchain execution claimed.",
+    "reopen_conditions": "Fix changes this path; additional platform/toolchain access or a concrete cache integrity/concurrency workload exposes an unexecuted branch."
+  },
+  {
+    "path": "src/wrapper/tests/rustc_hit.rs",
+    "state": "reviewed",
+    "evidence": [
+      "Full-text contract and failure-path review; exact source baseline remains unchanged."
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 452
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "Real baseline rustc/rustdoc probes only; no complete cargo test suite or C/C++/CUDA toolchain execution claimed.",
+    "reopen_conditions": "Fix changes this path; additional platform/toolchain access or a concrete cache integrity/concurrency workload exposes an unexecuted branch."
+  },
+  {
+    "path": "tests/cached_units_regression_test.rs",
+    "state": "sampled",
+    "evidence": [
+      "Sampled fixture helpers, concurrent Cargo jobs, compile-first emitted-depinfo reuse/module edit, re-exported proc-macro directory input, Clippy diagnostics/lint argument invalidation. Dedicated build-script/native archive suites omitted as below."
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 489
+      },
+      {
+        "start_line": 969,
+        "end_line": 1053
+      }
+    ],
+    "omitted_ranges": [
+      {
+        "start_line": 490,
+        "end_line": 968
+      },
+      {
+        "start_line": 1054,
+        "end_line": 1796
+      }
+    ],
+    "runtime": "Real baseline rustc/rustdoc probes only; no complete cargo test suite or C/C++/CUDA toolchain execution claimed.",
+    "reopen_conditions": "Fix changes this path; additional platform/toolchain access or a concrete cache integrity/concurrency workload exposes an unexecuted branch."
+  },
+  {
+    "path": "tests/macos_adaptive_debug_info_test.rs",
+    "state": "reviewed",
+    "evidence": [
+      "Full-text read: real backtrace/debug-output adaptive macOS regression fixture; execution omitted."
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 282
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "Real baseline rustc/rustdoc probes only; no complete cargo test suite or C/C++/CUDA toolchain execution claimed.",
+    "reopen_conditions": "Fix changes this path; additional platform/toolchain access or a concrete cache integrity/concurrency workload exposes an unexecuted branch."
+  },
+  {
+    "path": "tests/metadata_streaming_test.rs",
+    "state": "reviewed",
+    "evidence": [
+      "Full-text read: real rustc metadata stream timing/Cargo completion fixture; execution omitted."
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 106
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "Real baseline rustc/rustdoc probes only; no complete cargo test suite or C/C++/CUDA toolchain execution claimed.",
+    "reopen_conditions": "Fix changes this path; additional platform/toolchain access or a concrete cache integrity/concurrency workload exposes an unexecuted branch."
+  },
+  {
+    "path": "tests/stale_artifact_test.rs",
+    "state": "reviewed",
+    "evidence": [
+      "Full-text read: source/module/feature/flags/profile/env/coverage changes, missing blobs, concurrent builds, unrestorable-entry fallback and transitive native archive changes."
+    ],
+    "reviewed_ranges": [
+      {
+        "start_line": 1,
+        "end_line": 796
+      }
+    ],
+    "omitted_ranges": [],
+    "runtime": "Real baseline rustc/rustdoc probes only; no complete cargo test suite or C/C++/CUDA toolchain execution claimed.",
+    "reopen_conditions": "Fix changes this path; additional platform/toolchain access or a concrete cache integrity/concurrency workload exposes an unexecuted branch."
+  }
+]

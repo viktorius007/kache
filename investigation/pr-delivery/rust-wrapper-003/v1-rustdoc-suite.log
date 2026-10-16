@@ -1,0 +1,61 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-003)
+    Finished `test` profile [unoptimized] target(s) in 19.05s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/rust-wrapper-001/target/debug/deps/kache-1216026e9547a40d)
+
+running 40 tests
+test compiler::rustdoc::tests::a_crate_directory_without_a_name_is_not_rewritten ... ok
+test compiler::rustdoc::tests::a_backslash_prefix_is_rewritten_from_either_side ... ok
+test compiler::rustdoc::tests::a_directory_dep_info_is_not_stored ... ok
+test compiler::rustdoc::tests::a_directory_is_not_a_source_file ... ok
+test compiler::rustdoc::tests::a_looping_symlink_is_not_a_missing_file ... ok
+test compiler::rustdoc::tests::a_directory_named_like_a_module_file_is_not_the_source ... ok
+test compiler::rustdoc::tests::a_missing_include_is_skipped ... ok
+test compiler::rustdoc::tests::a_raw_byte_string_is_one_literal ... ok
+fail-stdout
+fail-stderr
+doc-stdout
+doc-stderr
+version
+test compiler::rustdoc::tests::a_refused_run_returns_rustdoc_status_and_records_the_event ... ok
+test compiler::rustdoc::tests::a_source_outside_the_crate_walks_up_to_eight_levels ... ok
+test compiler::rustdoc::tests::an_empty_file_list_is_not_reusable ... ok
+test compiler::rustdoc::tests::an_unreadable_module_is_not_cached ... ok
+test compiler::rustdoc::tests::archive_round_trip_restores_into_the_current_directories ... ok
+test compiler::rustdoc::tests::attributes_keep_only_an_outer_path ... ok
+test compiler::rustdoc::tests::classify_marks_the_archive_as_rustdoc_output ... ok
+test compiler::rustdoc::tests::comments_and_literals_do_not_invent_modules ... ok
+doc-stdout
+doc-stderr
+test compiler::rustdoc::tests::crate_pages_are_stored_whole_and_finalize_stays_at_the_top ... ok
+test compiler::rustdoc::tests::decode_sources_drops_a_blank_side ... ok
+doc-stdout
+doc-stderr
+test compiler::rustdoc::tests::execute_returns_the_compiler_status ... ok
+test compiler::rustdoc::tests::finalize_is_cacheable_only_with_parts_and_an_output ... ok
+doc-stdout
+doc-stderr
+test compiler::rustdoc::tests::finalize_key_ignores_the_search_index_and_sees_parts ... ok
+test compiler::rustdoc::tests::flag_names_enter_the_key ... ok
+test compiler::rustdoc::tests::flags_keep_their_values_and_do_not_swallow_sources ... ok
+test compiler::rustdoc::tests::key_env_vars_are_folded_before_the_salt ... ok
+test compiler::rustdoc::tests::merge_none_is_cacheable_only_with_its_inputs ... ok
+test compiler::rustdoc::tests::mod_rs_children_remain_in_the_parent_directory ... ok
+doc-stdout
+doc-stderr
+test compiler::rustdoc::tests::a_second_invocation_does_not_run_rustdoc_again ... ok
+test compiler::rustdoc::tests::non_mod_rs_modules_resolve_children_below_their_stem ... ok
+test compiler::rustdoc::tests::modules_and_includes_enter_the_key_and_dep_info_does_not ... ok
+test compiler::rustdoc::tests::parent_segments_fold_out_of_the_path ... ok
+test compiler::rustdoc::tests::output_paths_and_library_directories_stay_out_of_the_key ... ok
+test compiler::rustdoc::tests::recognizes_rustdoc_and_not_rustc ... ok
+test compiler::rustdoc::tests::remap_from_paths_do_not_change_the_key ... ok
+test compiler::rustdoc::tests::replay_writes_stdout_and_stderr ... ok
+test compiler::rustdoc::tests::rewrite_bytes_replaces_one_path_and_keeps_the_suffix ... ok
+test compiler::rustdoc::tests::rewrites_child_paths_by_relative_directory ... ok
+test compiler::rustdoc::tests::shared_merge_tests_and_unknown_flags_are_not_cached ... ok
+test compiler::rustdoc::tests::strip_root_rejects_a_parent_segment ... ok
+test compiler::rustdoc::tests::unsafe_archive_paths_are_rejected ... ok
+test compiler::rustdoc::tests::pass_store_returns_the_compiler_status ... ok
+
+test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 4357 filtered out; finished in 0.25s
+

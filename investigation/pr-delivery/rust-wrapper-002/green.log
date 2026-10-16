@@ -1,0 +1,11 @@
+    Blocking waiting for file lock on package cache
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-002)
+    Finished `test` profile [unoptimized] target(s) in 6.22s
+     Running tests/metadata_streaming_test.rs (/Users/viktor/Developer/github/kache-prs/rust-wrapper-001/target/debug/deps/metadata_streaming_test-a2f6d4baacdb8a18)
+
+running 2 tests
+test miss_and_verified_hit_emit_metadata_once_and_preserve_large_diagnostics ... ok
+test explicit_metadata_destinations_are_materialized_without_cache_replay ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+

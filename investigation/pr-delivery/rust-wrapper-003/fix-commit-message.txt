@@ -1,0 +1,9 @@
+fix: include nested module sources in rustdoc cache keys
+
+Distinguish out-of-line module files from crate roots and includes when
+collecting source dependencies. Implicit children of foo.rs live below
+foo/. Explicit-path modules retain parent-directory resolution for their
+children; mod.rs and includes retain their existing resolution. Their bytes now invalidate cached documentation.
+
+The real-rustdoc nested-edit and warm-reuse regression passes, together
+with all 41 rustdoc unit controls.

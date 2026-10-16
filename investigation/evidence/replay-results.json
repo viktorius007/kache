@@ -1,0 +1,37 @@
+[
+  {
+    "id": "rust-wrapper-001",
+    "manifest": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/replay-cases/diagnostic-format.json",
+    "exit_code": 1,
+    "expected_failure_matched": true,
+    "assertion_matched": true
+  },
+  {
+    "id": "rust-wrapper-002",
+    "manifest": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/replay-cases/emit-destination.json",
+    "exit_code": 1,
+    "expected_failure_matched": true,
+    "assertion_matched": true
+  },
+  {
+    "id": "rust-wrapper-005",
+    "manifest": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/replay-cases/rustdoc-env.json",
+    "exit_code": 1,
+    "expected_failure_matched": true,
+    "assertion_matched": true
+  },
+  {
+    "id": "rust-wrapper-003",
+    "manifest": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/replay-cases/rustdoc-nested.json",
+    "exit_code": 1,
+    "expected_failure_matched": true,
+    "assertion_matched": true
+  },
+  {
+    "id": "rust-wrapper-004",
+    "manifest": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/replay-cases/rustdoc-outer-include.json",
+    "exit_code": 1,
+    "expected_failure_matched": true,
+    "assertion_matched": true
+  }
+]

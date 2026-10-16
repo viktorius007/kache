@@ -1,0 +1,53 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-001)
+    Finished `test` profile [unoptimized] target(s) in 9.91s
+     Running tests/input_prediction_test.rs (target/debug/deps/input_prediction_test-1e6eccd46c7cbc50)
+
+running 37 tests
+test a_cache_inside_the_workspace_keeps_the_record_guarded_under_a_trust_domain ... ok
+test a_cache_inside_the_workspace_keeps_the_record_guarded ... ok
+test a_cargo_home_inside_the_workspace_keeps_the_record_guarded ... ok
+test a_file_added_where_a_re_exported_macro_lists_misses ... ok
+test a_generated_file_naming_the_checkout_keeps_the_record_local ... ok
+test a_file_removed_while_the_unit_builds_leaves_no_guarded_record ... ok
+test a_generated_file_naming_the_target_keeps_the_record_local ... ok
+test a_macro_on_the_shared_out_dir_predicts_in_another_target ... ok
+test a_macro_expanding_a_macro_on_the_shared_out_dir_predicts_in_another_target ... ok
+test a_proc_macro_member_reading_outside_the_workspace_keeps_the_pre_pass ... ok
+test a_new_file_anywhere_in_the_workspace_refuses_the_record ... ok
+test a_re_derived_record_keeps_the_tree_guard ... ok
+test a_re_exported_macro_finds_the_first_file_of_an_empty_or_new_directory ... ok
+test a_registry_unit_predicts_in_another_target ... ok
+test a_registry_unit_reading_past_its_package_keeps_the_record_local ... ok
+test a_registry_unit_reading_its_readme_predicts_in_another_target ... ok
+test a_registry_unit_that_links_an_rlib_takes_no_tree_guard ... ok
+test a_registry_unit_with_a_macro_predicts_in_its_own_target ... ok
+test a_registry_unit_without_a_macro_predicts_in_another_target ... ok
+test a_relocated_record_needs_the_same_out_dir ... ok
+test a_rejected_record_keys_from_the_running_compile ... ok
+test a_source_saved_while_rustc_ran_is_not_restored_for_its_new_content ... ok
+test a_shared_row_is_refused_once_a_listed_file_is_added ... ok
+test a_stale_record_is_re_derived_from_the_running_compile ... ok
+test a_standalone_package_predicts_with_external_targets ... ok
+test a_too_new_input_leaves_a_compile_first_result_unstored ... ok
+test a_workspace_unit_predicts_in_another_checkout ... ok
+test a_workspace_unit_reading_outside_the_workspace_keeps_the_record_local ... ok
+test a_workspace_unit_with_a_proc_macro_predicts_in_its_own_checkout ... ok
+test a_workspace_unit_with_a_proc_macro_predicts_in_another_checkout ... ok
+test an_unreadable_directory_in_the_workspace_keeps_predictions ... ok
+test kaches_own_directories_apart_inside_the_workspace_keep_the_record_guarded ... ok
+test external_target_predictions_reject_changed_generated_inputs ... ok
+test predictions_sibling_shadow_fails_closed ... ok
+test predictions_cold_warm_off_and_stale_closure ... ok
+test verified_predictions_agree_with_the_pre_pass_and_count_it ... ok
+test workspace_predictions_relocate_between_external_targets ... ok
+
+test result: ok. 37 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.34s
+
+     Running tests/metadata_streaming_test.rs (target/debug/deps/metadata_streaming_test-a2f6d4baacdb8a18)
+
+running 2 tests
+test miss_and_verified_hit_emit_metadata_once_and_preserve_large_diagnostics ... ok
+test changing_diagnostic_format_preserves_requested_output_and_reuse ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+

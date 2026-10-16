@@ -1,0 +1,10 @@
+{
+  "id": "rust-wrapper-002",
+  "status": "ready",
+  "branch": "fix/rust-wrapper-002",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/rust-wrapper-002",
+  "test_commit": "3ababeb85177cdb50b0b6e7045bf8a65c7274d9b",
+  "fix_commit": "50ec03ca1462a3316a8ba4fa61c15e4989dc7aff",
+  "delivery": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/pr-delivery/rust-wrapper-002/delivery.json",
+  "gate_exit": 0
+}

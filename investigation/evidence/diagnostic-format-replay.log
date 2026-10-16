@@ -1,0 +1,8 @@
+human_cold exit= 0 stderr= 'warning: unused variable: `unused`\n --> lib.rs:1:30\n  |\n1 | pub fn answer() -> u32 { let unused = 1; 42 }\n  |                              ^^^^^^ help: if this is intentional, pref'
+json_warm exit= 0 stderr= 'warning: unused variable: `unused`\n --> lib.rs:1:30\n  |\n1 | pub fn answer() -> u32 { let unused = 1; 42 }\n  |                              ^^^^^^ help: if this is intentional, pref'
+json_direct exit= 0 stderr= '{"$message_type":"diagnostic","message":"unused variable: `unused`","code":{"code":"unused_variables","explanation":null},"level":"warning","spans":[{"file_name":"lib.rs","byte_sta'
+CASE /Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/diagnostic-orjfks5p
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/probes/diagnostic_format.py", line 25, in <module>
+    assert cached.stderr.lstrip().startswith('{'), 'CACHE_DIAGNOSTIC_FORMAT: --error-format=json replayed human diagnostics'
+AssertionError: CACHE_DIAGNOSTIC_FORMAT: --error-format=json replayed human diagnostics

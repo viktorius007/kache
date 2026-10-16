@@ -1,0 +1,31 @@
+{
+  "fixture": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/rustdoc-doc_include-gvpj0yqu",
+  "events": [
+    {
+      "result": "miss",
+      "cache_key": "6f302abade576077a6891bfca42d66e387e15c80cfd866e07bbc698d2a77f1d3",
+      "compiler_runs": 0,
+      "dep_info_runs": 0
+    },
+    {
+      "result": "miss",
+      "cache_key": "b1b23146d07830ed42cd23e1187b4b02093af500cc25a72db574d9252608ae98",
+      "compiler_runs": 0,
+      "dep_info_runs": 0
+    }
+  ],
+  "markers": {
+    "cold": {
+      "old": true,
+      "new": false
+    },
+    "warm": {
+      "old": false,
+      "new": true
+    },
+    "direct": {
+      "old": false,
+      "new": true
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "fixture": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/rustdoc-outer_doc_include-fhdrvd59",
+  "events": [
+    {
+      "result": "miss",
+      "cache_key": "62f24f16af25660234b39d2fce9c14775ec2b76cae43da123354ac3039906cf9",
+      "compiler_runs": 0,
+      "dep_info_runs": 0
+    },
+    {
+      "result": "local_hit",
+      "cache_key": "62f24f16af25660234b39d2fce9c14775ec2b76cae43da123354ac3039906cf9",
+      "compiler_runs": 0,
+      "dep_info_runs": 0
+    }
+  ],
+  "markers": {
+    "cold": {
+      "old": true,
+      "new": false
+    },
+    "warm": {
+      "old": true,
+      "new": false
+    },
+    "direct": {
+      "old": false,
+      "new": true
+    }
+  }
+}

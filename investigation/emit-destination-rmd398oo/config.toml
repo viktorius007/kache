@@ -1,0 +1,3 @@
+[cache]
+auto_gc = false
+daemon_publish = false

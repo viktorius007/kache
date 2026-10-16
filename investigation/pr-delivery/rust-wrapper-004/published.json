@@ -1,0 +1,8 @@
+{
+  "id": "rust-wrapper-004",
+  "url": "https://github.com/kunobi-ninja/kache/pull/1522",
+  "branch": "fix/rust-wrapper-004",
+  "fix_commit": "c8285860ce1c002b0e11fa1f3f8d91c4d9954387",
+  "state": "draft",
+  "review": "investigation/pr-delivery/reviews/rust-wrapper-004.md"
+}

@@ -1,0 +1,10 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-005)
+    Finished `test` profile [unoptimized] target(s) in 5.86s
+     Running tests/rustdoc_environment_test.rs (/Users/viktor/Developer/github/kache-prs/rust-wrapper-001/target/debug/deps/rustdoc_environment_test-76a0b5c5420a46d1)
+
+running 2 tests
+test documentation_without_env_macros_keeps_warm_reuse_across_env_changes ... ok
+test environment_documentation_refreshes_without_replaying_cached_output ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
+

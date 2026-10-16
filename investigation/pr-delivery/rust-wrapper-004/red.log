@@ -1,0 +1,29 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-004/crates/kache-fs)
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-004/crates/kache-format)
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-004)
+   Compiling kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-004/crates/kache-shims)
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-004/crates/kache-store)
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-004/crates/kache-core)
+    Finished `test` profile [unoptimized] target(s) in 29.65s
+     Running tests/rustdoc_outer_include_test.rs (/Users/viktor/Developer/github/kache-prs/rust-wrapper-001/target/debug/deps/rustdoc_outer_include_test-6252a1aae7c5177e)
+
+running 1 test
+test outer_doc_include_edits_refresh_cached_rustdoc_and_keep_warm_reuse ... FAILED
+
+failures:
+
+---- outer_doc_include_edits_refresh_cached_rustdoc_and_keep_warm_reuse stdout ----
+
+thread 'outer_doc_include_edits_refresh_cached_rustdoc_and_keep_warm_reuse' (56922494) panicked at tests/rustdoc_outer_include_test.rs:88:5:
+cached rustdoc omitted the outer doc include edit
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    outer_doc_include_edits_refresh_cached_rustdoc_and_keep_warm_reuse
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.14s
+
+error: test failed, to rerun pass `--test rustdoc_outer_include_test`

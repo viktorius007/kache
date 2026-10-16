@@ -1,0 +1,314 @@
+[
+  {
+    "id": "rust-wrapper-001",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:02:25.546836+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex subagent",
+      "mode": "production-readiness",
+      "slice": "rust-wrapper"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Changing --error-format to JSON replays cached human diagnostics.",
+    "scenario": "Cold cache an rlib with an unused-variable warning using --error-format=human; delete outputs and request --error-format=json. Kache returns success and human stderr from a local hit while direct rustc emits JSON.",
+    "evidence": [
+      {
+        "path": "src/args.rs",
+        "lines": "16-33",
+        "point": "Diagnostic format, JSON notification, color and width flags are excluded from parsed key inputs."
+      },
+      {
+        "path": "src/args.rs",
+        "lines": "653-660",
+        "point": "Both separated and attached diagnostic-format flags are skipped before residual key arguments."
+      },
+      {
+        "path": "src/wrapper.rs",
+        "lines": "7063-7082",
+        "point": "Hit diagnostics write saved stdout/stderr verbatim."
+      },
+      {
+        "path": "src/wrapper/hit.rs",
+        "lines": "20-43",
+        "point": "A successful cache restoration reports the hit and replays the cached diagnostics."
+      },
+      {
+        "path": "investigation/evidence/diagnostic-format-red.log",
+        "lines": "full",
+        "point": "CACHE_DIAGNOSTIC_FORMAT: --error-format=json replayed human diagnostics"
+      },
+      {
+        "path": "investigation/diagnostic-j73zrskb/cache/events.jsonl",
+        "lines": "1-2",
+        "point": "Miss then local_hit with identical cache_key after the changed input."
+      }
+    ],
+    "trace": "CLI rustc dispatch \u2192 RustcArgs skips diagnostic flags \u2192 key unchanged \u2192 restore hit \u2192 replay cached stderr verbatim \u2192 JSON consumer receives human text.",
+    "authority": {
+      "source": "failure-mode; investigation/worklist.json obligations; independent real compiler execution",
+      "quote": "preserve compiler exit status and diagnostic/artifact behavior."
+    },
+    "proof": {
+      "red_test": "import os, pathlib, subprocess, tempfile, json, shutil\nroot = pathlib.Path(__file__).resolve().parent.parent\ncase = pathlib.Path(tempfile.mkdtemp(prefix='diagnostic-', dir=root))\nkache = '/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache'\nrustc = subprocess.check_output(['rustup','which','rustc'], text=True).strip()\n(case/'config.toml').write_text('[cache]\\nauto_gc = false\\ndaemon_publish = false\\n')\n(case/'home').mkdir(); (case/'out').mkdir()\n(case/'lib.rs').write_text('pub fn answer() -> u32 { let unused = 1; 42 }\\n')\nenv = {k:v for k,v in os.environ.items() if not k.startswith(('KACHE_', 'CARGO_', 'RUSTC_'))}\nenv.update(HOME=str(case/'home'), XDG_CONFIG_HOME=str(case/'home'), KACHE_CONFIG=str(case/'config.toml'), KACHE_HOST_CONFIG=str(case/'absent-host.toml'), KACHE_CACHE_DIR=str(case/'cache'), KACHE_PROGRESS='off', KACHE_AUTO_GC='0', KACHE_DAEMON_PUBLISH='0', KACHE_DEFERRED_DISCOVERY='0', RUSTC_WRAPPER='')\nargs=[rustc, '--crate-name','format_probe','--crate-type','rlib','--emit=link,metadata,dep-info','lib.rs','--out-dir',str(case/'out')]\ndef run(label, argv):\n p=subprocess.run(argv, cwd=case, env=env, capture_output=True, text=True,timeout=30)\n (case/(label+'.stdout')).write_text(p.stdout); (case/(label+'.stderr')).write_text(p.stderr)\n print(label, 'exit=',p.returncode,'stderr=',repr(p.stderr[:180]))\n assert p.returncode == 0\n return p\nrun('human_cold',[kache]+args+['--error-format=human'])\nfor p in (case/'out').iterdir(): p.unlink()\ncached=run('json_warm',[kache]+args+['--error-format=json'])\nfresh=run('json_direct',args+['--error-format=json'])\n(case/'invocation.json').write_text(json.dumps({'case':str(case),'rustc':rustc,'cache_entries':[str(p) for p in (case/'cache').rglob('meta.json')]},indent=2))\nprint('CASE',case)\nassert fresh.stderr.lstrip().startswith('{'), 'control rustc did not emit JSON'\nassert cached.stderr.lstrip().startswith('{'), 'CACHE_DIAGNOSTIC_FORMAT: --error-format=json replayed human diagnostics'\n",
+      "name": "diagnostic_format.py ; replay /Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/replay-cases/diagnostic-format.json",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "human_cold exit= 0 stderr= 'warning: unused variable: `unused`\\n --> lib.rs:1:30\\n  |\\n1 | pub fn answer() -> u32 { let unused = 1; 42 }\\n  |                              ^^^^^^ help: if this is intentional, pref'\njson_warm exit= 0 stderr= 'warning: unused variable: `unused`\\n --> lib.rs:1:30\\n  |\\n1 | pub fn answer() -> u32 { let unused = 1; 42 }\\n  |                              ^^^^^^ help: if this is intentional, pref'\njson_direct exit= 0 stderr= '{\"$message_type\":\"diagnostic\",\"message\":\"unused variable: `unused`\",\"code\":{\"code\":\"unused_variables\",\"explanation\":null},\"level\":\"warning\",\"spans\":[{\"file_name\":\"lib.rs\",\"byte_sta'\nCASE /Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/diagnostic-j73zrskb\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/probes/diagnostic_format.py\", line 25, in <module>\n    assert cached.stderr.lstrip().startswith('{'), 'CACHE_DIAGNOSTIC_FORMAT: --error-format=json replayed human diagnostics'\nAssertionError: CACHE_DIAGNOSTIC_FORMAT: --error-format=json replayed human diagnostics\n"
+    },
+    "severity": "Reached by changing valid diagnostic formatting on warning-producing Rust builds. Artifact bytes may be valid, but Cargo/IDE/custom JSON diagnostic consumers receive the wrong protocol. Both wrapped calls and the direct control succeeded; compiler_runs dropped from 1 to 0. Color/width/notification variants were source-reviewed, not independently proved.",
+    "status": "open"
+  },
+  {
+    "id": "rust-wrapper-002",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:02:25.546836+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex subagent",
+      "mode": "production-readiness",
+      "slice": "rust-wrapper"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "A rustc hit for an explicit emit destination restores the producer filename and omits the requested output.",
+    "scenario": "Cold cache --emit=metadata=out/first.rmeta with JSON artifact notifications; remove outputs and request out/second.rmeta. The hit exits 0 and restores only first.rmeta; direct rustc creates second.rmeta.",
+    "evidence": [
+      {
+        "path": "src/args.rs",
+        "lines": "324-331",
+        "point": "Emit kinds are retained, but only dep-info gets its explicit output destination retained."
+      },
+      {
+        "path": "src/wrapper.rs",
+        "lines": "5433-5441",
+        "point": "Restore uses cached filename under output_dir unless the name matches explicit -o."
+      },
+      {
+        "path": "src/wrapper.rs",
+        "lines": "7504-7519",
+        "point": "Each cached output is materialized using artifact_target_path."
+      },
+      {
+        "path": "investigation/evidence/emit-destination-red.log",
+        "lines": "full",
+        "point": "CACHE_EMIT_DESTINATION: hit failed to materialize requested --emit=metadata path"
+      },
+      {
+        "path": "investigation/emit-destination-jexm3fcz/cache/events.jsonl",
+        "lines": "1-2",
+        "point": "Miss then local_hit with identical cache_key after the changed input."
+      }
+    ],
+    "trace": "CLI RustcArgs parses --emit \u2192 metadata destination omitted \u2192 key unchanged \u2192 hit qualifies by metadata kind \u2192 cached first.rmeta restored under its old name \u2192 requested second.rmeta absent despite success.",
+    "authority": {
+      "source": "failure-mode; investigation/worklist.json obligations; independent real compiler execution",
+      "quote": "preserve compiler exit status and diagnostic/artifact behavior."
+    },
+    "proof": {
+      "red_test": "import os, pathlib, subprocess, tempfile, json\nroot = pathlib.Path(__file__).resolve().parent.parent\ncase = pathlib.Path(tempfile.mkdtemp(prefix='emit-destination-', dir=root))\nkache = '/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache'\nrustc = subprocess.check_output(['rustup','which','rustc'], text=True).strip()\n(case/'config.toml').write_text('[cache]\\nauto_gc = false\\ndaemon_publish = false\\n')\n(case/'home').mkdir(); (case/'out').mkdir()\n(case/'lib.rs').write_text('pub fn answer() -> u32 { 42 }\\n')\nenv = {k:v for k,v in os.environ.items() if not k.startswith(('KACHE_', 'CARGO_', 'RUSTC_'))}\nenv.update(HOME=str(case/'home'), XDG_CONFIG_HOME=str(case/'home'), KACHE_CONFIG=str(case/'config.toml'), KACHE_HOST_CONFIG=str(case/'absent-host.toml'), KACHE_CACHE_DIR=str(case/'cache'), KACHE_PROGRESS='off', KACHE_AUTO_GC='0', KACHE_DAEMON_PUBLISH='0', KACHE_DEFERRED_DISCOVERY='0', RUSTC_WRAPPER='')\nbase=[rustc, '--crate-name','emit_probe','--crate-type','rlib','lib.rs','--out-dir',str(case/'out'),'--error-format=json','--json=artifacts']\ndef run(label, wrapped, destination):\n argv=([kache] if wrapped else [])+base+['--emit=metadata='+str(destination)]\n p=subprocess.run(argv, cwd=case, env=env, capture_output=True, text=True,timeout=30)\n (case/(label+'.stdout')).write_text(p.stdout); (case/(label+'.stderr')).write_text(p.stderr)\n print(label, 'exit=',p.returncode,'destination_exists=',destination.exists())\n assert p.returncode == 0, p.stderr\n return destination.exists()\nfirst=case/'out/first.rmeta'; second=case/'out/second.rmeta'\nassert run('cold',True,first), 'cold control missing output'\nfor p in (case/'out').iterdir(): p.unlink()\nwarm_exists=run('warm',True,second)\nwarm_files=[p.name for p in (case/'out').iterdir()]\nfor p in (case/'out').iterdir(): p.unlink()\nassert run('direct',False,second), 'direct control missing requested destination'\n(case/'invocation.json').write_text(json.dumps({'case':str(case),'rustc':rustc,'warm_files':warm_files,'warm_destination_exists':warm_exists},indent=2))\nprint('CASE',case,'warm_files=',warm_files)\nassert warm_exists, 'CACHE_EMIT_DESTINATION: hit failed to materialize requested --emit=metadata path'\n",
+      "name": "emit_destination.py ; replay /Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/replay-cases/emit-destination.json",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "cold exit= 0 destination_exists= True\nwarm exit= 0 destination_exists= False\ndirect exit= 0 destination_exists= True\nCASE /Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/emit-destination-jexm3fcz warm_files= ['first.rmeta']\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/probes/emit_destination.py\", line 28, in <module>\n    assert warm_exists, 'CACHE_EMIT_DESTINATION: hit failed to materialize requested --emit=metadata path'\nAssertionError: CACHE_EMIT_DESTINATION: hit failed to materialize requested --emit=metadata path\n"
+    },
+    "severity": "Direct rustc/custom build systems using explicit per-emit filenames receive a successful compiler result with the promised metadata artifact missing. Downstream consumers can fail or consume a stale pre-existing second file. Only metadata was executed; other explicit emission kinds need their own controls.",
+    "status": "open"
+  },
+  {
+    "id": "rust-wrapper-003",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:02:25.546836+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex subagent",
+      "mode": "production-readiness",
+      "slice": "rust-wrapper"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Rustdoc cache keys omit nested module files below a non-mod.rs module.",
+    "scenario": "Eligible per-crate rustdoc invocation documents lib.rs \u2192 foo.rs \u2192 foo/child.rs. Cold child docs say OLD_MARKER. Edit only child.rs to NEW_MARKER and remove outputs. Kache hits the unchanged key and restores OLD_MARKER; direct rustdoc emits NEW_MARKER.",
+    "evidence": [
+      {
+        "path": "src/compiler/rustdoc.rs",
+        "lines": "198-208",
+        "point": "The key hashes only paths returned by source_records."
+      },
+      {
+        "path": "src/compiler/rustdoc.rs",
+        "lines": "343-351",
+        "point": "Each module child resolves against the current file parent, losing the implicit foo/ directory of foo.rs."
+      },
+      {
+        "path": "src/compiler/rustdoc.rs",
+        "lines": "359-372",
+        "point": "Missing candidate child.rs/child/mod.rs paths are skipped."
+      },
+      {
+        "path": "src/compiler/rustdoc.rs",
+        "lines": "1513-1531",
+        "point": "Reusable entries restore and return successful local hits without running rustdoc."
+      },
+      {
+        "path": "investigation/evidence/rustdoc-nested-1.98-red.log",
+        "lines": "full",
+        "point": "RUSTDOC_STALE_INPUT_nested: warm cache returned docs predating changed compiler input"
+      },
+      {
+        "path": "investigation/rustdoc-nested-f8vldfxl/cache/events.jsonl",
+        "lines": "1-2",
+        "point": "Miss then local_hit with identical cache_key after the changed input."
+      }
+    ],
+    "trace": "Rustdoc dispatch \u2192 cached --merge=none crate mode \u2192 source_records(foo.rs) resolves child at crate root \u2192 foo/child.rs omitted \u2192 unchanged key after real input edit \u2192 hit returns stale HTML.",
+    "authority": {
+      "source": "failure-mode; investigation/worklist.json obligations; independent real compiler execution",
+      "quote": "preserve compiler exit status and diagnostic/artifact behavior."
+    },
+    "proof": {
+      "red_test": "import os,pathlib,subprocess,tempfile,shutil,json,sys\nroot=pathlib.Path(__file__).resolve().parent.parent\ncase=pathlib.Path(tempfile.mkdtemp(prefix='rustdoc-'+sys.argv[1]+'-',dir=root))\nkache='/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache'\ntoolchain=os.environ.get('AUDIT_RUSTDOC_TOOLCHAIN')\nlookup=['rustup','which','rustdoc']+(['--toolchain',toolchain] if toolchain else [])\nrustdoc=subprocess.check_output(lookup,text=True).strip()\n(case/'config.toml').write_text('[cache]\\nauto_gc = false\\ndaemon_publish = false\\n')\n(case/'home').mkdir(); (case/'foo').mkdir()\nmode=sys.argv[1]\nif mode=='nested':\n (case/'lib.rs').write_text('pub mod foo;\\n')\n (case/'foo.rs').write_text('pub mod child;\\n')\n watched=case/'foo/child.rs'; watched.write_text('/// OLD_MARKER\\npub fn thing() {}\\n')\nelif mode=='doc_include':\n (case/'lib.rs').write_text('#![doc = include_str!(\"README.md\")]\\npub fn thing() {}\\n')\n watched=case/'README.md';watched.write_text('OLD_MARKER\\n')\nelif mode=='outer_doc_include':\n (case/'lib.rs').write_text('#[doc = include_str!(\"README.md\")]\\npub fn thing() {}\\n')\n watched=case/'README.md';watched.write_text('OLD_MARKER\\n')\nelif mode=='env':\n (case/'lib.rs').write_text('#![doc = env!(\"DOC_TEXT\")]\\npub fn thing() {}\\n')\nenv={k:v for k,v in os.environ.items() if not k.startswith(('KACHE_','CARGO_','RUSTC_'))}\nenv.update(HOME=str(case/'home'),XDG_CONFIG_HOME=str(case/'home'),KACHE_CONFIG=str(case/'config.toml'),KACHE_HOST_CONFIG=str(case/'absent.toml'),KACHE_CACHE_DIR=str(case/'cache'),KACHE_AUTO_GC='0',KACHE_DAEMON_PUBLISH='0',KACHE_PROGRESS='off',RUSTC_BOOTSTRAP='1',RUSTC_WRAPPER='',DOC_TEXT='OLD_MARKER')\nargs=[rustdoc,'lib.rs','--crate-name','docprobe','--crate-type','rlib','--edition','2021','-Z','unstable-options','--merge=none','--parts-out-dir',str(case/'parts'),'-o',str(case/'out')]\ndef run(label,wrapped):\n p=subprocess.run(([kache] if wrapped else [])+args,cwd=case,env=env,capture_output=True,text=True,timeout=30)\n (case/(label+'.stderr')).write_text(p.stderr); print(label,'exit',p.returncode,repr(p.stderr[:180]));assert p.returncode==0\n text=''.join(p.read_text(errors='replace') for p in (case/'out/docprobe').rglob('*.html'))\n (case/(label+'.markers.json')).write_text(json.dumps({'old': 'OLD_MARKER' in text, 'new':'NEW_MARKER' in text}))\n return text\ncold=run('cold',True); assert 'OLD_MARKER' in cold\nshutil.rmtree(case/'out');shutil.rmtree(case/'parts')\nif mode=='env': env['DOC_TEXT']='NEW_MARKER'\nelse: watched.write_text(watched.read_text().replace('OLD_MARKER','NEW_MARKER'))\nwarm=run('warm',True)\nshutil.rmtree(case/'out');shutil.rmtree(case/'parts')\nfresh=run('direct',False)\nprint('CASE',case,'warm_old=', 'OLD_MARKER' in warm,'warm_new=', 'NEW_MARKER' in warm,'direct_new=', 'NEW_MARKER' in fresh)\nassert 'NEW_MARKER' in fresh, 'direct control failed'\nassert 'NEW_MARKER' in warm, 'RUSTDOC_STALE_INPUT_'+mode+': warm cache returned docs predating changed compiler input'\n",
+      "name": "rustdoc_inputs.py nested; replay /Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/replay-cases/rustdoc-nested.json",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "cold exit 0 ''\nwarm exit 0 ''\ndirect exit 0 ''\nCASE /Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/rustdoc-nested-f8vldfxl warm_old= True warm_new= False direct_new= True\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/probes/rustdoc_inputs.py\", line 41, in <module>\n    assert 'NEW_MARKER' in warm, 'RUSTDOC_STALE_INPUT_'+mode+': warm cache returned docs predating changed compiler input'\nAssertionError: RUSTDOC_STALE_INPUT_nested: warm cache returned docs predating changed compiler input\n"
+    },
+    "severity": "Routine Rust module layout in an enabled compatible rustdoc caching workload produces silently outdated API documentation after a source edit. Confirmed with installed rustdoc1.98.1 and 1.99 direct cached-mode invocations. Ordinary cargo doc and Cargo1.99 new meta flags pass through and are outside this trigger.",
+    "status": "open"
+  },
+  {
+    "id": "rust-wrapper-004",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:02:25.546836+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex subagent",
+      "mode": "production-readiness",
+      "slice": "rust-wrapper"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Rustdoc cache keys omit files included by an outer documentation attribute.",
+    "scenario": "lib.rs has #[doc = include_str!(\"README.md\")] on a public function. Cold README contains OLD_MARKER; edit README to NEW_MARKER, delete output/parts, and rerun the same eligible rustdoc command. Kache restores OLD_MARKER; direct rustdoc emits NEW_MARKER.",
+    "evidence": [
+      {
+        "path": "src/compiler/rustdoc.rs",
+        "lines": "198-208",
+        "point": "Only scanner-selected source records enter the content key."
+      },
+      {
+        "path": "src/compiler/rustdoc.rs",
+        "lines": "478-491",
+        "point": "Outer attributes are skipped as a whole after optional path-attribute handling, so include_str! inside #[doc=...] is not visited."
+      },
+      {
+        "path": "src/compiler/rustdoc.rs",
+        "lines": "1513-1531",
+        "point": "Same-key cache hits restore the archive and return success."
+      },
+      {
+        "path": "investigation/evidence/rustdoc-outer-include-1.98-red.log",
+        "lines": "full",
+        "point": "RUSTDOC_STALE_INPUT_outer_doc_include: warm cache returned docs predating changed compiler input"
+      },
+      {
+        "path": "investigation/rustdoc-outer_doc_include-fhdrvd59/cache/events.jsonl",
+        "lines": "1-2",
+        "point": "Miss then local_hit with identical cache_key after the changed input."
+      }
+    ],
+    "trace": "Rustdoc cached crate mode \u2192 scan_rust skips outer #[doc=include_str!(...)] \u2192 included README absent from source_records \u2192 README edit does not re-key \u2192 old docs restored.",
+    "authority": {
+      "source": "failure-mode; investigation/worklist.json obligations; independent real compiler execution",
+      "quote": "preserve compiler exit status and diagnostic/artifact behavior."
+    },
+    "proof": {
+      "red_test": "import os,pathlib,subprocess,tempfile,shutil,json,sys\nroot=pathlib.Path(__file__).resolve().parent.parent\ncase=pathlib.Path(tempfile.mkdtemp(prefix='rustdoc-'+sys.argv[1]+'-',dir=root))\nkache='/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache'\ntoolchain=os.environ.get('AUDIT_RUSTDOC_TOOLCHAIN')\nlookup=['rustup','which','rustdoc']+(['--toolchain',toolchain] if toolchain else [])\nrustdoc=subprocess.check_output(lookup,text=True).strip()\n(case/'config.toml').write_text('[cache]\\nauto_gc = false\\ndaemon_publish = false\\n')\n(case/'home').mkdir(); (case/'foo').mkdir()\nmode=sys.argv[1]\nif mode=='nested':\n (case/'lib.rs').write_text('pub mod foo;\\n')\n (case/'foo.rs').write_text('pub mod child;\\n')\n watched=case/'foo/child.rs'; watched.write_text('/// OLD_MARKER\\npub fn thing() {}\\n')\nelif mode=='doc_include':\n (case/'lib.rs').write_text('#![doc = include_str!(\"README.md\")]\\npub fn thing() {}\\n')\n watched=case/'README.md';watched.write_text('OLD_MARKER\\n')\nelif mode=='outer_doc_include':\n (case/'lib.rs').write_text('#[doc = include_str!(\"README.md\")]\\npub fn thing() {}\\n')\n watched=case/'README.md';watched.write_text('OLD_MARKER\\n')\nelif mode=='env':\n (case/'lib.rs').write_text('#![doc = env!(\"DOC_TEXT\")]\\npub fn thing() {}\\n')\nenv={k:v for k,v in os.environ.items() if not k.startswith(('KACHE_','CARGO_','RUSTC_'))}\nenv.update(HOME=str(case/'home'),XDG_CONFIG_HOME=str(case/'home'),KACHE_CONFIG=str(case/'config.toml'),KACHE_HOST_CONFIG=str(case/'absent.toml'),KACHE_CACHE_DIR=str(case/'cache'),KACHE_AUTO_GC='0',KACHE_DAEMON_PUBLISH='0',KACHE_PROGRESS='off',RUSTC_BOOTSTRAP='1',RUSTC_WRAPPER='',DOC_TEXT='OLD_MARKER')\nargs=[rustdoc,'lib.rs','--crate-name','docprobe','--crate-type','rlib','--edition','2021','-Z','unstable-options','--merge=none','--parts-out-dir',str(case/'parts'),'-o',str(case/'out')]\ndef run(label,wrapped):\n p=subprocess.run(([kache] if wrapped else [])+args,cwd=case,env=env,capture_output=True,text=True,timeout=30)\n (case/(label+'.stderr')).write_text(p.stderr); print(label,'exit',p.returncode,repr(p.stderr[:180]));assert p.returncode==0\n text=''.join(p.read_text(errors='replace') for p in (case/'out/docprobe').rglob('*.html'))\n (case/(label+'.markers.json')).write_text(json.dumps({'old': 'OLD_MARKER' in text, 'new':'NEW_MARKER' in text}))\n return text\ncold=run('cold',True); assert 'OLD_MARKER' in cold\nshutil.rmtree(case/'out');shutil.rmtree(case/'parts')\nif mode=='env': env['DOC_TEXT']='NEW_MARKER'\nelse: watched.write_text(watched.read_text().replace('OLD_MARKER','NEW_MARKER'))\nwarm=run('warm',True)\nshutil.rmtree(case/'out');shutil.rmtree(case/'parts')\nfresh=run('direct',False)\nprint('CASE',case,'warm_old=', 'OLD_MARKER' in warm,'warm_new=', 'NEW_MARKER' in warm,'direct_new=', 'NEW_MARKER' in fresh)\nassert 'NEW_MARKER' in fresh, 'direct control failed'\nassert 'NEW_MARKER' in warm, 'RUSTDOC_STALE_INPUT_'+mode+': warm cache returned docs predating changed compiler input'\n",
+      "name": "rustdoc_inputs.py outer_doc_include; replay /Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/replay-cases/rustdoc-outer-include.json",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "cold exit 0 ''\nwarm exit 0 ''\ndirect exit 0 ''\nCASE /Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/rustdoc-outer_doc_include-fhdrvd59 warm_old= True warm_new= False direct_new= True\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/probes/rustdoc_inputs.py\", line 41, in <module>\n    assert 'NEW_MARKER' in warm, 'RUSTDOC_STALE_INPUT_'+mode+': warm cache returned docs predating changed compiler input'\nAssertionError: RUSTDOC_STALE_INPUT_outer_doc_include: warm cache returned docs predating changed compiler input\n"
+    },
+    "severity": "External documentation files on public items are routine valid Rust inputs. In supported caching mode, changing their text gives a successful hit with obsolete documentation. Inner #![doc=include_str!(...)] invalidates correctly in the separate green control; this outer-attribute finding is distinct from nested-module resolution.",
+    "status": "open"
+  },
+  {
+    "id": "rust-wrapper-005",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:02:25.546836+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex subagent",
+      "mode": "production-readiness",
+      "slice": "rust-wrapper"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Rustdoc cache keys omit environment dependencies read by env! in documentation.",
+    "scenario": "lib.rs has #![doc = env!(\"DOC_TEXT\")]. Cold DOC_TEXT=OLD_MARKER; remove output/parts and rerun with DOC_TEXT=NEW_MARKER. With no custom key_env_vars declaration, Kache hits the identical key and restores OLD_MARKER; direct rustdoc emits NEW_MARKER.",
+    "evidence": [
+      {
+        "path": "src/compiler/rustdoc.rs",
+        "lines": "198-230",
+        "point": "Base key hashes selected files/options/externs/html inputs without compiler-reported env dependencies."
+      },
+      {
+        "path": "src/compiler/rustdoc.rs",
+        "lines": "253-262",
+        "point": "Environment folding uses only explicitly configured key_env_vars."
+      },
+      {
+        "path": "src/compiler/rustdoc.rs",
+        "lines": "273-280",
+        "point": "Source discovery explicitly does not read compiler dep-info."
+      },
+      {
+        "path": "src/compiler/rustdoc.rs",
+        "lines": "1484-1492",
+        "point": "Public run passes config.key_env_vars and no discovered build/extra input digest."
+      },
+      {
+        "path": "investigation/evidence/rustdoc-env-1.98-red.log",
+        "lines": "full",
+        "point": "RUSTDOC_STALE_INPUT_env: warm cache returned docs predating changed compiler input"
+      },
+      {
+        "path": "investigation/rustdoc-env-elv8ztz4/cache/events.jsonl",
+        "lines": "1-2",
+        "point": "Miss then local_hit with identical cache_key after the changed input."
+      }
+    ],
+    "trace": "Rustdoc cached crate mode \u2192 file scanner sees unchanged source \u2192 only configured env names folded \u2192 DOC_TEXT value absent from key \u2192 same-key hit restores outdated HTML.",
+    "authority": {
+      "source": "failure-mode; investigation/worklist.json obligations; independent real compiler execution",
+      "quote": "preserve compiler exit status and diagnostic/artifact behavior."
+    },
+    "proof": {
+      "red_test": "import os,pathlib,subprocess,tempfile,shutil,json,sys\nroot=pathlib.Path(__file__).resolve().parent.parent\ncase=pathlib.Path(tempfile.mkdtemp(prefix='rustdoc-'+sys.argv[1]+'-',dir=root))\nkache='/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache'\ntoolchain=os.environ.get('AUDIT_RUSTDOC_TOOLCHAIN')\nlookup=['rustup','which','rustdoc']+(['--toolchain',toolchain] if toolchain else [])\nrustdoc=subprocess.check_output(lookup,text=True).strip()\n(case/'config.toml').write_text('[cache]\\nauto_gc = false\\ndaemon_publish = false\\n')\n(case/'home').mkdir(); (case/'foo').mkdir()\nmode=sys.argv[1]\nif mode=='nested':\n (case/'lib.rs').write_text('pub mod foo;\\n')\n (case/'foo.rs').write_text('pub mod child;\\n')\n watched=case/'foo/child.rs'; watched.write_text('/// OLD_MARKER\\npub fn thing() {}\\n')\nelif mode=='doc_include':\n (case/'lib.rs').write_text('#![doc = include_str!(\"README.md\")]\\npub fn thing() {}\\n')\n watched=case/'README.md';watched.write_text('OLD_MARKER\\n')\nelif mode=='outer_doc_include':\n (case/'lib.rs').write_text('#[doc = include_str!(\"README.md\")]\\npub fn thing() {}\\n')\n watched=case/'README.md';watched.write_text('OLD_MARKER\\n')\nelif mode=='env':\n (case/'lib.rs').write_text('#![doc = env!(\"DOC_TEXT\")]\\npub fn thing() {}\\n')\nenv={k:v for k,v in os.environ.items() if not k.startswith(('KACHE_','CARGO_','RUSTC_'))}\nenv.update(HOME=str(case/'home'),XDG_CONFIG_HOME=str(case/'home'),KACHE_CONFIG=str(case/'config.toml'),KACHE_HOST_CONFIG=str(case/'absent.toml'),KACHE_CACHE_DIR=str(case/'cache'),KACHE_AUTO_GC='0',KACHE_DAEMON_PUBLISH='0',KACHE_PROGRESS='off',RUSTC_BOOTSTRAP='1',RUSTC_WRAPPER='',DOC_TEXT='OLD_MARKER')\nargs=[rustdoc,'lib.rs','--crate-name','docprobe','--crate-type','rlib','--edition','2021','-Z','unstable-options','--merge=none','--parts-out-dir',str(case/'parts'),'-o',str(case/'out')]\ndef run(label,wrapped):\n p=subprocess.run(([kache] if wrapped else [])+args,cwd=case,env=env,capture_output=True,text=True,timeout=30)\n (case/(label+'.stderr')).write_text(p.stderr); print(label,'exit',p.returncode,repr(p.stderr[:180]));assert p.returncode==0\n text=''.join(p.read_text(errors='replace') for p in (case/'out/docprobe').rglob('*.html'))\n (case/(label+'.markers.json')).write_text(json.dumps({'old': 'OLD_MARKER' in text, 'new':'NEW_MARKER' in text}))\n return text\ncold=run('cold',True); assert 'OLD_MARKER' in cold\nshutil.rmtree(case/'out');shutil.rmtree(case/'parts')\nif mode=='env': env['DOC_TEXT']='NEW_MARKER'\nelse: watched.write_text(watched.read_text().replace('OLD_MARKER','NEW_MARKER'))\nwarm=run('warm',True)\nshutil.rmtree(case/'out');shutil.rmtree(case/'parts')\nfresh=run('direct',False)\nprint('CASE',case,'warm_old=', 'OLD_MARKER' in warm,'warm_new=', 'NEW_MARKER' in warm,'direct_new=', 'NEW_MARKER' in fresh)\nassert 'NEW_MARKER' in fresh, 'direct control failed'\nassert 'NEW_MARKER' in warm, 'RUSTDOC_STALE_INPUT_'+mode+': warm cache returned docs predating changed compiler input'\n",
+      "name": "rustdoc_inputs.py env; replay /Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/replay-cases/rustdoc-env.json",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "cold exit 0 ''\nwarm exit 0 ''\ndirect exit 0 ''\nCASE /Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/rustdoc-env-elv8ztz4 warm_old= True warm_new= False direct_new= True\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/probes/rustdoc_inputs.py\", line 41, in <module>\n    assert 'NEW_MARKER' in warm, 'RUSTDOC_STALE_INPUT_'+mode+': warm cache returned docs predating changed compiler input'\nAssertionError: RUSTDOC_STALE_INPUT_env: warm cache returned docs predating changed compiler input\n"
+    },
+    "severity": "Documentation derived from build environment, version strings or release labels can be wrong while all compiler calls succeed. Real env! expansion is proved on1.98.1 and 1.99. Manually configuring key_env_vars may work around a known variable, but automatic env dependency completeness is absent; unrelated proc-macro hidden inputs are not claimed.",
+    "status": "open"
+  },
+  {
+    "id": "rust-wrapper-control-001",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:02:25.546836+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex subagent",
+      "mode": "production-readiness",
+      "slice": "rust-wrapper"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Inner crate documentation include_str! invalidates correctly in the sampled case.",
+    "checked": "Cold #![doc = include_str!(\"README.md\")] with OLD_MARKER, then edit README to NEW_MARKER and remove output/parts. Wrapped warm invocation misses under a different key and emits NEW_MARKER, matching direct rustdoc. Executed untouched baseline using rustdoc1.99.",
+    "closed_by": {
+      "tier": "executed compiler control",
+      "citation": "investigation/rustdoc-doc_include-gvpj0yqu/cold.markers.json, warm.markers.json, direct.markers.json and cache/events.jsonl; investigation/evidence/rustdoc-inner-include-control-observations.json",
+      "result": "Wrapped changed-input output matches direct compiler; cache key differs."
+    },
+    "reopens_if": "Change include syntax/attribute placement, path literal, toolchain or dependency shape. Outer item attributes are separately confirmed defective.",
+    "status": "dismissed"
+  }
+]

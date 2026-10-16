@@ -1,0 +1,10 @@
+fix: pass explicit Rust emit destinations through to rustc
+
+Cached outputs retain producer filenames and do not model arbitrary per-emit
+destinations. Preserve explicit destination presence during parsing and
+extend the existing dep-info passthrough policy to all emit kinds. Empty
+explicit destinations also reach rustc for its own diagnostics.
+
+Add a Rust-only key tag so old entries with arbitrary explicit filenames
+cannot satisfy ordinary metadata requests. Implicit destinations keep cache
+reuse; compiler refusal and real-rustc metadata controls pass.

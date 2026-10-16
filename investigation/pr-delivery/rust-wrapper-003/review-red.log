@@ -1,0 +1,22 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-003)
+    Finished `test` profile [unoptimized] target(s) in 8.25s
+     Running tests/rustdoc_nested_module_test.rs (/Users/viktor/Developer/github/kache-prs/rust-wrapper-001/target/debug/deps/rustdoc_nested_module_test-5c47237f0fb79d93)
+
+running 1 test
+test explicit_path_module_child_edits_refresh_docs_and_keep_warm_reuse ... FAILED
+
+failures:
+
+---- explicit_path_module_child_edits_refresh_docs_and_keep_warm_reuse stdout ----
+
+thread 'explicit_path_module_child_edits_refresh_docs_and_keep_warm_reuse' (57704369) panicked at tests/rustdoc_nested_module_test.rs:98:5:
+cached rustdoc omitted the nested module edit
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    explicit_path_module_child_edits_refresh_docs_and_keep_warm_reuse
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 1.31s
+
+error: test failed, to rerun pass `--test rustdoc_nested_module_test`

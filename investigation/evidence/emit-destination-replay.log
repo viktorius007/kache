@@ -1,0 +1,8 @@
+cold exit= 0 destination_exists= True
+warm exit= 0 destination_exists= False
+direct exit= 0 destination_exists= True
+CASE /Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/emit-destination-rmd398oo warm_files= ['first.rmeta']
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/probes/emit_destination.py", line 28, in <module>
+    assert warm_exists, 'CACHE_EMIT_DESTINATION: hit failed to materialize requested --emit=metadata path'
+AssertionError: CACHE_EMIT_DESTINATION: hit failed to materialize requested --emit=metadata path

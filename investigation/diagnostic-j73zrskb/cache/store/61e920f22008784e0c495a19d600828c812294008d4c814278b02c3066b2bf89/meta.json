@@ -1,0 +1,39 @@
+{
+  "cache_key": "61e920f22008784e0c495a19d600828c812294008d4c814278b02c3066b2bf89",
+  "key_schema": 32,
+  "crate_name": "format_probe",
+  "crate_types": [
+    "rlib"
+  ],
+  "files": [
+    {
+      "name": "libformat_probe.rlib",
+      "size": 7064,
+      "hash": "c8b4390489fd62af5b38c6b35f1a2373d2de71828bab4d6848457952938c0a3b",
+      "executable": false
+    },
+    {
+      "name": "libformat_probe.rmeta",
+      "size": 2106,
+      "hash": "600a6d6949db6bc03b9ccacef5bc56685fd0942cdf1082bda79184c25cb2c704",
+      "executable": false
+    },
+    {
+      "name": "format_probe.d",
+      "size": 210,
+      "hash": "5f23cc43872205eac76db51070970e5997e1f50d94d764a3129b843d30c317e1",
+      "executable": false
+    }
+  ],
+  "stdout": "",
+  "stderr": "warning: unused variable: `unused`\n --> lib.rs:1:30\n  |\n1 | pub fn answer() -> u32 { let unused = 1; 42 }\n  |                              ^^^^^^ help: if this is intentional, prefix it with an underscore: `_unused`\n  |\n  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default\n\nwarning: 1 warning emitted\n\n",
+  "features": [],
+  "target": "host",
+  "profile": "dev",
+  "compile_time_ms": 30,
+  "emit_kinds": [
+    "dep-info",
+    "link",
+    "metadata"
+  ]
+}

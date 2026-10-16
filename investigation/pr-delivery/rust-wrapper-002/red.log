@@ -1,0 +1,27 @@
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-002/crates/kache-fs)
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-002/crates/kache-format)
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-002)
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-002/crates/kache-store)
+   Compiling kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-002/crates/kache-shims)
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-002/crates/kache-core)
+    Finished `test` profile [unoptimized] target(s) in 29.52s
+     Running tests/metadata_streaming_test.rs (/Users/viktor/Developer/github/kache-prs/rust-wrapper-001/target/debug/deps/metadata_streaming_test-a2f6d4baacdb8a18)
+
+running 1 test
+test explicit_metadata_destinations_are_materialized_without_cache_replay ... FAILED
+
+failures:
+
+---- explicit_metadata_destinations_are_materialized_without_cache_replay stdout ----
+
+thread 'explicit_metadata_destinations_are_materialized_without_cache_replay' (55161083) panicked at tests/metadata_streaming_test.rs:167:5:
+cached emit omitted requested destination
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    explicit_metadata_destinations_are_materialized_without_cache_replay
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.45s
+
+error: test failed, to rerun pass `--test metadata_streaming_test`

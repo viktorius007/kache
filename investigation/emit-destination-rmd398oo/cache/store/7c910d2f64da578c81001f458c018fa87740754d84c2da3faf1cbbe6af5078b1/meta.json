@@ -1,0 +1,25 @@
+{
+  "cache_key": "7c910d2f64da578c81001f458c018fa87740754d84c2da3faf1cbbe6af5078b1",
+  "key_schema": 32,
+  "crate_name": "emit_probe",
+  "crate_types": [
+    "rlib"
+  ],
+  "files": [
+    {
+      "name": "first.rmeta",
+      "size": 2095,
+      "hash": "fc92acd110efd6303a975f41b90cff743557ef5fa9e27683112318eb4794f49f",
+      "executable": false
+    }
+  ],
+  "stdout": "",
+  "stderr": "{\"$message_type\":\"artifact\",\"artifact\":\"/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/emit-destination-rmd398oo/out/first.rmeta\",\"emit\":\"metadata\"}\n",
+  "features": [],
+  "target": "host",
+  "profile": "dev",
+  "compile_time_ms": 17,
+  "emit_kinds": [
+    "metadata"
+  ]
+}

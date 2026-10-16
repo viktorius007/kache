@@ -1,0 +1,455 @@
+{
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "slice": "rust-wrapper",
+  "title": "Rust/rustdoc wrapper, discovery, compilation, hits and diagnostics",
+  "primary_paths": [
+    {
+      "path": "docs/getting-started/rustdoc.mdx",
+      "primary_slice": "rust-wrapper",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "bd0410778b7e78ef4c6ad09fa3ec950a9b814baf",
+      "bytes": 2513,
+      "text_lines": 60,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 60,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/args.rs",
+      "primary_slice": "rust-wrapper",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "35aecf25b17294c31b10aff499fe17ab324c90c5",
+      "bytes": 110060,
+      "text_lines": 2802,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 2802,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/compile.rs",
+      "primary_slice": "rust-wrapper",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "621614a9996170d6d7f62c38caa77288955325ff",
+      "bytes": 69397,
+      "text_lines": 1847,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1847,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/compiler/rustc.rs",
+      "primary_slice": "rust-wrapper",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "c52c34e6ff06b5584a2794b92e1315087835355b",
+      "bytes": 67524,
+      "text_lines": 1779,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1779,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/compiler/rustdoc.rs",
+      "primary_slice": "rust-wrapper",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "5a99ee24849a248cf24e3dd0dd041017814204ac",
+      "bytes": 115915,
+      "text_lines": 3371,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 3371,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/verify_compare.rs",
+      "primary_slice": "rust-wrapper",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "e4a8b2fc5884311e3e71d7a3799a688e117d7811",
+      "bytes": 33984,
+      "text_lines": 933,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 933,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/wrapper.rs",
+      "primary_slice": "rust-wrapper",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "d4b67bc21161e82ce4c22d77fc72bbb1b49c7d9a",
+      "bytes": 363755,
+      "text_lines": 9255,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 6000,
+          "state": "queued"
+        },
+        {
+          "start_line": 6001,
+          "end_line": 9255,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/wrapper/hit.rs",
+      "primary_slice": "rust-wrapper",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "4e468192961226af0b7cca4e43c8615db50fc2b0",
+      "bytes": 1757,
+      "text_lines": 44,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 44,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/wrapper/remote.rs",
+      "primary_slice": "rust-wrapper",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "236596bb4ce970877c97e9d63a9eff54ebca6237",
+      "bytes": 2628,
+      "text_lines": 81,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 81,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/wrapper/rustc_hit.rs",
+      "primary_slice": "rust-wrapper",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "d51faa05a7f9e6dcd1aeb73f3e6520328c1ef690",
+      "bytes": 2253,
+      "text_lines": 68,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 68,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/wrapper/tests.rs",
+      "primary_slice": "rust-wrapper",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "93a46bfe19df49e3851fad65e0b0b4fcaf060b7c",
+      "bytes": 415598,
+      "text_lines": 11617,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 6000,
+          "state": "queued"
+        },
+        {
+          "start_line": 6001,
+          "end_line": 11617,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/wrapper/tests/hit.rs",
+      "primary_slice": "rust-wrapper",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "5acfb51422be0bb616864a0fc31bf524c691034b",
+      "bytes": 7497,
+      "text_lines": 213,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 213,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/wrapper/tests/rustc_hit.rs",
+      "primary_slice": "rust-wrapper",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "f8c4c930459f3d26862ea300ef906ae18bee5bb8",
+      "bytes": 14777,
+      "text_lines": 452,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 452,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/cached_units_regression_test.rs",
+      "primary_slice": "rust-wrapper",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "0fd07491a5d65b517cebf9f30821f63629246f7b",
+      "bytes": 63586,
+      "text_lines": 1796,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1796,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/macos_adaptive_debug_info_test.rs",
+      "primary_slice": "rust-wrapper",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "6d5cd9c216d0ff8b0f50d4c4074c5b5b2b58d0ad",
+      "bytes": 10935,
+      "text_lines": 282,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 282,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/metadata_streaming_test.rs",
+      "primary_slice": "rust-wrapper",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "3ec070bff0b8933a362cc8abdfcab502ae1e5a18",
+      "bytes": 3697,
+      "text_lines": 106,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 106,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/stale_artifact_test.rs",
+      "primary_slice": "rust-wrapper",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "ad71ea031f76162f22de05ff51209a1db853a5a1",
+      "bytes": 24486,
+      "text_lines": 796,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 796,
+          "state": "queued"
+        }
+      ]
+    }
+  ],
+  "reading_batches": [
+    {
+      "id": "compiler-adapters-probes-and-eligibility",
+      "paths": [
+        "docs/getting-started/rustdoc.mdx",
+        "src/args.rs",
+        "src/compiler/rustc.rs",
+        "src/compiler/rustdoc.rs",
+        "tests/cached_units_regression_test.rs",
+        "tests/macos_adaptive_debug_info_test.rs",
+        "tests/metadata_streaming_test.rs",
+        "tests/stale_artifact_test.rs"
+      ],
+      "text_lines": 10992,
+      "review_state": "queued"
+    },
+    {
+      "id": "wrapper-execution",
+      "paths": [
+        "src/compile.rs",
+        "src/verify_compare.rs",
+        "src/wrapper.rs",
+        "src/wrapper/hit.rs",
+        "src/wrapper/remote.rs",
+        "src/wrapper/rustc_hit.rs",
+        "src/wrapper/tests.rs",
+        "src/wrapper/tests/hit.rs",
+        "src/wrapper/tests/rustc_hit.rs"
+      ],
+      "text_lines": 24510,
+      "review_state": "queued"
+    }
+  ],
+  "obligations": [
+    "Trace Rust, rustdoc, C/C++ and CUDA entry paths from compiler detection through eligibility, dependency discovery, key derivation, compile/passthrough and restore; preserve compiler exit status and diagnostic/artifact behavior.",
+    "Account for every compiler-observable input, mutation between discovery/compile/publication, prediction validity, native linking, target specs, proc macros, diagnostic flags and path normalization; compare same-input reuse across worktrees and changed-input invalidation.",
+    "Review inline tests and regression fixtures fully; vary real observable compiler output or exit status for candidate proofs. Public degree-zero methods are not evidence of dead code.",
+    "Restrict primary statements to this exact sub-scope path list; inspect declared neighboring seams as consultation, with no double primary ownership."
+  ],
+  "contracts": [],
+  "owned_interactions": [
+    {
+      "id": "compiler-store-hit",
+      "primary_slice": "rust-wrapper",
+      "consult_slice": "store-core",
+      "contract": "wrapper/hit/compile \u2192 kache-store/compile preclean; output completeness, diagnostics, mtimes, carrier isolation"
+    },
+    {
+      "id": "rust-cc-dispatch",
+      "primary_slice": "rust-wrapper",
+      "consult_slice": "cc-cuda-adapters",
+      "contract": "wrapper.run_cc/run_nvcc dispatch and generic adapter interface \u2194 concrete compiler execution and restore"
+    }
+  ],
+  "consult_interactions": [
+    {
+      "id": "dispatch-compiler",
+      "primary_slice": "cli-config",
+      "consult_slice": "rust-wrapper",
+      "contract": "src/main.rs dispatch \u2192 compiler detection/wrapper.run; disabled/reentrant/direct invocation and exit propagation"
+    },
+    {
+      "id": "compiler-build-inputs",
+      "primary_slice": "cargo-build",
+      "consult_slice": "rust-wrapper",
+      "contract": "build_script_inputs/extra_inputs/incremental_policy \u2192 Rust key/prediction decisions; declarations and mutation validation"
+    },
+    {
+      "id": "compiler-flight-permits",
+      "primary_slice": "planner-service",
+      "consult_slice": "rust-wrapper",
+      "contract": "scheduler/demand/machine \u2192 wrapper compile/discovery flights; permit and per-key lock lifetimes"
+    },
+    {
+      "id": "compile-daemon-handoff",
+      "primary_slice": "remote-daemon",
+      "consult_slice": "rust-wrapper",
+      "contract": "wrapper/remote \u2192 daemon/daemon_publish; failed handoff, cancellation, child ownership and spooled artifacts"
+    },
+    {
+      "id": "guardrail-domain-oracles",
+      "primary_slice": "guardrails",
+      "consult_slice": "all",
+      "contract": "kache-e2e/scripts/CI/scenario oracles \u2194 each domain-specific test; real compiler/process/remote observations and meaningful failure discrimination"
+    },
+    {
+      "id": "rust-key-inputs",
+      "primary_slice": "key-native-inputs",
+      "consult_slice": "rust-wrapper",
+      "contract": "Rust wrapper discovery/eligibility/compilation \u2194 cache key and native dependency closure; predicted and actual inputs, stable reuse, mutation guard"
+    }
+  ],
+  "sampling_needs": [
+    "macOS host: Linux/Windows linking, filesystem and compiler-specific behavior require source review plus declared execution limits.",
+    "Rust focus does not permit silently skipping C/C++/CUDA/rustdoc; name every unexecuted toolchain branch.",
+    "Read every assigned production path in full. Large dedicated test suites may be sampled only with named ranges/cases and exact omissions in the report."
+  ],
+  "expected_coverage_report": "Record every path as fully read, sampled with bounds, or pending. Mapped is not reviewed. Fully read production/framework/configuration paths and explicitly record runtime sampling."
+}

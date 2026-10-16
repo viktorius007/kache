@@ -1,0 +1,12 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-002)
+    Finished `test` profile [unoptimized] target(s) in 45.05s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/rust-wrapper-001/target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+test compiler::rustc::tests::refuse_reasons_refuses_explicit_emit_destinations_but_allows_defaults ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4394 filtered out; finished in 0.00s
+

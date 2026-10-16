@@ -1,0 +1,27 @@
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-003/crates/kache-fs)
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-003/crates/kache-format)
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-003)
+   Compiling kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-003/crates/kache-shims)
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-003/crates/kache-store)
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-003/crates/kache-core)
+    Finished `test` profile [unoptimized] target(s) in 25.88s
+     Running tests/rustdoc_nested_module_test.rs (/Users/viktor/Developer/github/kache-prs/rust-wrapper-001/target/debug/deps/rustdoc_nested_module_test-5c47237f0fb79d93)
+
+running 1 test
+test nested_module_edits_refresh_cached_rustdoc_and_keep_warm_reuse ... FAILED
+
+failures:
+
+---- nested_module_edits_refresh_cached_rustdoc_and_keep_warm_reuse stdout ----
+
+thread 'nested_module_edits_refresh_cached_rustdoc_and_keep_warm_reuse' (56008096) panicked at tests/rustdoc_nested_module_test.rs:88:5:
+cached rustdoc omitted the nested module edit
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    nested_module_edits_refresh_cached_rustdoc_and_keep_warm_reuse
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+
+error: test failed, to rerun pass `--test rustdoc_nested_module_test`

@@ -1,0 +1,28 @@
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-005/crates/kache-fs)
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-005/crates/kache-format)
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-005)
+   Compiling kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-005/crates/kache-shims)
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-005/crates/kache-store)
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/rust-wrapper-005/crates/kache-core)
+    Finished `test` profile [unoptimized] target(s) in 22.90s
+     Running tests/rustdoc_environment_test.rs (/Users/viktor/Developer/github/kache-prs/rust-wrapper-001/target/debug/deps/rustdoc_environment_test-76a0b5c5420a46d1)
+
+running 2 tests
+test environment_documentation_refreshes_without_replaying_cached_output ... FAILED
+test documentation_without_env_macros_keeps_warm_reuse_across_env_changes ... ok
+
+failures:
+
+---- environment_documentation_refreshes_without_replaying_cached_output stdout ----
+
+thread 'environment_documentation_refreshes_without_replaying_cached_output' (58418145) panicked at tests/rustdoc_environment_test.rs:95:5:
+cached rustdoc omitted the env macro change
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    environment_documentation_refreshes_without_replaying_cached_output
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
+
+error: test failed, to rerun pass `--test rustdoc_environment_test`

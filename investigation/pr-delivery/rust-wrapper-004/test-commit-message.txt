@@ -1,0 +1,14 @@
+test: require external item documentation edits to refresh rustdoc
+
+Outer documentation attributes skip literal includes during source
+collection, allowing a README edit to restore obsolete item HTML. The real
+rustdoc test fails at cached rustdoc omitted the outer doc include edit on
+baseline production; direct rustdoc and repeated warm requests remain
+controls. Scanner checks retain inner attributes, nested macros, literal
+forms, false include spellings and fake module tokens.
+
+This deliberately red test-only commit is explicitly requested.
+Reuse search: codebase-memory search_graph scan_rust/is_include/
+path_attribute/include.*literal returned three untruncated hits. Existing
+scanner test helpers and hermetic CLI invocation helpers are reused; fake
+rustdoc unit providers cannot observe real generated HTML.

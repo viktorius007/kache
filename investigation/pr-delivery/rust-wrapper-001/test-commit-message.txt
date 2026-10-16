@@ -1,0 +1,14 @@
+test: require cached diagnostics to match the requested format
+
+A warning cached in human format currently serves a JSON request as human
+text. Exercise that compiler boundary and retain repeated-format hit reuse.
+Correct the key tests that licensed ignoring diagnostic presentation.
+
+The regression failed on baseline production with JSON request replayed
+human diagnostics. This deliberately red test commit is requested separately
+from the fix.
+
+Reuse search: codebase-memory search_graph diagnostic format cache key
+returned five ranked hits (partial/saturated graph). Existing key helpers
+are reused; the existing integration compile helper filters JSON and cannot
+observe the human stream.

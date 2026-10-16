@@ -1,0 +1,31 @@
+{
+  "fixture": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/rustdoc-nested-f8vldfxl",
+  "events": [
+    {
+      "result": "miss",
+      "cache_key": "8e55b777b2ce8f8895476893ce026bb7106d3a2dfc26e3fb86e932d4a3d3bd47",
+      "compiler_runs": 0,
+      "dep_info_runs": 0
+    },
+    {
+      "result": "local_hit",
+      "cache_key": "8e55b777b2ce8f8895476893ce026bb7106d3a2dfc26e3fb86e932d4a3d3bd47",
+      "compiler_runs": 0,
+      "dep_info_runs": 0
+    }
+  ],
+  "markers": {
+    "cold": {
+      "old": true,
+      "new": false
+    },
+    "warm": {
+      "old": true,
+      "new": false
+    },
+    "direct": {
+      "old": false,
+      "new": true
+    }
+  }
+}

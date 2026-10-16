@@ -1,0 +1,13 @@
+fix: collect literal includes inside rustdoc item attributes
+
+Outer attributes must retain included files in the source closure without
+interpreting arbitrary attribute tokens as module items. Scan attribute
+payloads for literal includes and keep module/path handling intact. Share
+the existing include recognizer with ordinary body scanning so both contexts
+retain the same refusal rule for nonliteral paths.
+
+The real README-edit/direct/warm regression and 39 rustdoc controls pass.
+Reuse search: codebase-memory search_graph scan_rust/is_include/
+path_attribute/include.*literal returned three untruncated hits. is_include
+is reused; the inline literal recognizer is extracted once for two
+production consumers, attribute payloads and ordinary source tokens.

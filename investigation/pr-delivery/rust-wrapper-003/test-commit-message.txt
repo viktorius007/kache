@@ -1,0 +1,18 @@
+test: require nested Rust module edits to refresh cached docs
+
+A non-mod.rs module owns a directory for its implicit child modules. The
+current collector instead visits the module file's parent, omitting the
+compiler's real child and restoring stale documentation after its edit.
+
+The real-rustdoc regression fails at cached rustdoc omitted the nested
+module edit on baseline production. It retains ordinary warm reuse and a
+direct rustdoc control. The bounded source-record test covers a custom crate
+root, two module levels, an unused sibling, includes and explicit paths.
+A real explicit-path child-edit/direct/warm control preserves rustc's
+parent-directory resolution, alongside root and mod.rs inventories.
+This deliberately red test-only commit is explicitly requested.
+
+Reuse search: codebase-memory search_graph source_records/collect_source/
+scan_rust returned three complete, untruncated hits. Existing source_records
+and shared hermetic CLI helpers are reused; inline rustdoc tests use a fake
+provider and cannot observe real generated documentation.

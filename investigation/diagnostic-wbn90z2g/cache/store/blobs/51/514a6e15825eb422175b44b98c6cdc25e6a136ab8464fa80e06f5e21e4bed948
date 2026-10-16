@@ -1,0 +1,7 @@
+__kache_root__/diagnostic-wbn90z2g/out/format_probe.d: lib.rs
+
+__kache_root__/diagnostic-wbn90z2g/out/libformat_probe.rlib: lib.rs
+
+__kache_root__/diagnostic-wbn90z2g/out/libformat_probe.rmeta: lib.rs
+
+lib.rs:
