@@ -1,0 +1,5 @@
+-rw-------  1 viktor  staff  12 Oct 11 15:50 /Users/viktor/Developer/github/kache-investigations/audit-store-link/investigation/fixtures/acl-case/compiler.o
+-rw-------  1 viktor  staff  13 Oct 11 15:50 /Users/viktor/Developer/github/kache-investigations/audit-store-link/investigation/fixtures/acl-case/restored.o
+-rw-------+ 1 viktor  staff  13 Oct 11 15:50 /Users/viktor/Developer/github/kache-investigations/audit-store-link/investigation/fixtures/acl-case/source.o
+ 0: user:nobody allow read
+

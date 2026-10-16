@@ -1,0 +1,102 @@
+[
+  {
+    "id": "store-link-acl-control",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:11:45.876499+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited-parent",
+      "mode": "production-readiness",
+      "slice": "store-link"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Source-specific ACL retention was not reproduced by the writable restore control.",
+    "checked": "On macOS, source.o had an explicit user:nobody allow read ACL; prepare_writable_target_from_file(...).publish() produced restored.o without that entry under umask 077.",
+    "evidence": [
+      {
+        "path": "crates/kache-store/src/link.rs",
+        "lines": "1033-1043,1156-1233",
+        "point": "Writable staging is created beside the final output, then clone permissions are taken from the stage."
+      },
+      {
+        "path": "investigation/evidence/acl-probe.log",
+        "point": "Only source.o carries user:nobody allow read; restored.o and compiler.o are mode 0600 without the source ACL."
+      },
+      {
+        "path": "investigation/acl-probe.rs",
+        "point": "Executed public baseline API; assertion rejects a restored target that retains source ACL."
+      }
+    ],
+    "trace": "wrapper::prepare_cc_cached_artifact -> link::prepare_writable_target_from_file -> publish -> restored compiler output",
+    "authority": {
+      "source": "crates/kache-store/src/link.rs:1033-1043",
+      "quote": "The staging file is created in the target directory with the same requested mode as a compiler output (`0666`)."
+    },
+    "closed_by": "Executed baseline behavioral control, macOS host only.",
+    "reopens_if": "A source/default ACL, platform or clone/copy route outside the tested fixture yields wrong target access permissions.",
+    "status": "no-action"
+  },
+  {
+    "id": "store-link-unexecuted-sentinel",
+    "kind": "ambiguity",
+    "run": {
+      "ts": "2026-10-11T06:11:45.876499+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited-parent",
+      "mode": "production-readiness",
+      "slice": "store-link"
+    },
+    "category": "ambiguity",
+    "domain": "code",
+    "summary": "Literal dep-info sentinel/path collision remains an unexecuted lead.",
+    "scenario": "Investigate whether an ordinary literal input path beginning with a reserved rewrite sentinel could be expanded as an encoded absolute path and affect Cargo freshness. No observed stale build exists in this review.",
+    "evidence": [
+      {
+        "path": "crates/kache-store/src/link.rs",
+        "lines": "1635-1638,1692-1788,1994-2057",
+        "point": "Source review only: sentinel rewrite rules; no behavioral admission."
+      },
+      {
+        "path": "investigation/sentinel-replay.py",
+        "point": "Prepared but never executed; retained as provenance, not a reproducer."
+      }
+    ],
+    "trace": "prepare_rustc_store_files -> dep-info normalization -> restore validation/materialize_cached_artifact -> dep-info expansion; production consequence unproved",
+    "authority": {
+      "source": "Investigation admission contract",
+      "quote": "Only baseline behavioral assertion failures admit defects."
+    },
+    "severity": "Unknown; no behavioral proof, affected workload or demonstrated consequence.",
+    "status": "no-action"
+  },
+  {
+    "id": "store-link-unexecuted-readonly",
+    "kind": "ambiguity",
+    "run": {
+      "ts": "2026-10-11T06:11:45.876499+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited-parent",
+      "mode": "production-readiness",
+      "slice": "store-link"
+    },
+    "category": "ambiguity",
+    "domain": "code",
+    "summary": "Shared-inode readonly-state interactions remain an unexecuted cross-scope lead.",
+    "scenario": "Coordinator identified a possible stage/discard interaction with an existing shared blob; actual eligible non-CoW filesystem behavior and externally observable corruption were not tested here.",
+    "evidence": [
+      {
+        "path": "crates/kache-store/src/link.rs",
+        "lines": "453-676",
+        "point": "Reviewed exclusive/shared Unix hardlink policy and copy fallback; this does not execute the separate blob-stage/discard lead."
+      }
+    ],
+    "trace": "Store staging/discard behavior belongs to audit_store_core; link.rs may consume affected blobs. No executed failing trace.",
+    "authority": {
+      "source": "Investigation admission contract",
+      "quote": "Only baseline behavioral assertion failures admit defects."
+    },
+    "severity": "Unknown; dependent on actual sharing and filesystem route.",
+    "status": "no-action"
+  }
+]

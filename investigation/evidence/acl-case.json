@@ -1,0 +1,19 @@
+{
+  "kind": "green-control",
+  "name": "source-acl-is-not-propagated-to-writable-output",
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "source": "investigation/acl-probe.rs",
+  "log": "investigation/evidence/acl-probe.log",
+  "platform": "macOS",
+  "umask": "077",
+  "expected": "restored.o does not contain user:nobody ACL; compiler.o ordinary creation is mode 0600.",
+  "observed": "source.o alone contains user:nobody allow read; compiler.o and restored.o are mode 0600 without that entry.",
+  "exit_code": 0,
+  "limits": [
+    "No assertion of the actual clone/copy mechanism; no opcounts recorded.",
+    "No default-ACL directory, Linux, Windows or non-CoW execution."
+  ],
+  "compile": "RUSTC_WRAPPER= rustc --edition=2024 investigation/acl-probe.rs --extern kache_store=/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/deps/libkache_store-54d968e8d585cf0d.rlib -L dependency=/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/deps -o investigation/fixtures/acl-probe",
+  "replay": "mkdir -p investigation/fixtures/acl-replay-fresh && (umask 077; investigation/fixtures/acl-probe \"$PWD/investigation/fixtures/acl-replay-fresh\")",
+  "note": "Use a fresh fixture directory for each replay because publication is create-only."
+}

@@ -1,0 +1,171 @@
+{
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "primary_scope": [
+    "crates/kache-store/src/link.rs"
+  ],
+  "graph": {
+    "project": "Users-viktor-Developer-github-kache-investigations-coordinator",
+    "root": "/Users/viktor/Developer/github/kache-investigations/coordinator",
+    "coverage": "Baseline graph checked previously for relevant paths; metadata matched and no recorded file parse/stale issue.",
+    "limits": [
+      "Rust semantic_partial: expanded calls, binding oracle and impl relationships unavailable.",
+      "link.rs unresolved_calls=1967 and unresolved_references=3028; graph trace is not exhaustive caller coverage.",
+      "Source searches corroborated inspected production consumers; code outside listed ranges is not claimed reviewed."
+    ]
+  },
+  "paths": [
+    {
+      "path": "crates/kache-store/src/link.rs",
+      "state": "reviewed",
+      "reviewed_ranges": [
+        [
+          1,
+          5015
+        ]
+      ],
+      "evidence": [
+        "Full production and test source read; graph callsites corroborated with source.",
+        "Test bodies reviewed as existing controls; not executed during this delegated review.",
+        "Public writable restore ACL fixture executed using untouched baseline rlib."
+      ],
+      "execution": "One macOS ACL restore control; no red test."
+    },
+    {
+      "path": "crates/kache-fs/src/copy.rs",
+      "state": "collateral",
+      "reviewed_ranges": [
+        [
+          1,
+          330
+        ]
+      ],
+      "evidence": [
+        "Native reflink/extent-clone and copy/cleanup source reviewed for link.rs dependency behavior."
+      ],
+      "execution": "Not independently executed."
+    },
+    {
+      "path": "crates/kache-fs/src/staging.rs",
+      "state": "collateral",
+      "reviewed_ranges": [
+        [
+          1,
+          185
+        ]
+      ],
+      "evidence": [
+        "Exclusive staged creation and no-clobber/replace publication implementation and selected tests inspected."
+      ],
+      "execution": "Indirectly exercised by ACL control."
+    },
+    {
+      "path": "src/wrapper.rs",
+      "state": "collateral",
+      "reviewed_ranges": [
+        [
+          2963,
+          3015
+        ],
+        [
+          5165,
+          5315
+        ],
+        [
+          5568,
+          5766
+        ],
+        [
+          7282,
+          7520
+        ]
+      ],
+      "evidence": [
+        "C/C++ and Rust store preparation, materialization, dep-info validation and restore consumers inspected."
+      ],
+      "execution": "No end-to-end compiler wrapper replay executed."
+    },
+    {
+      "path": "src/prestage.rs",
+      "state": "collateral",
+      "reviewed_ranges": [
+        [
+          400,
+          438
+        ]
+      ],
+      "evidence": [
+        "Copy-strategy materialization, blob hash check and publication consumer."
+      ],
+      "execution": "Source only."
+    },
+    {
+      "path": "src/build_script.rs",
+      "state": "collateral",
+      "reviewed_ranges": [
+        [
+          1390,
+          1455
+        ]
+      ],
+      "evidence": [
+        "Private writable staging and publish_replacing consumer."
+      ],
+      "execution": "Source only."
+    },
+    {
+      "path": "src/build_script/outside.rs",
+      "state": "collateral",
+      "reviewed_ranges": [
+        [
+          170,
+          217
+        ]
+      ],
+      "evidence": [
+        "Outside-output private writable staging consumer."
+      ],
+      "execution": "Source only."
+    },
+    {
+      "path": "src/compiler/mod.rs",
+      "state": "collateral",
+      "reviewed_ranges": [
+        [
+          520,
+          565
+        ]
+      ],
+      "evidence": [
+        "ExpandDepInfoPaths in-memory transform and post-restore private writable contract."
+      ],
+      "execution": "Source only."
+    },
+    {
+      "path": "src/config.rs",
+      "state": "sampled",
+      "reviewed_ranges": [
+        [
+          2701,
+          2712
+        ]
+      ],
+      "evidence": [
+        "Shared hardlink restore opt-in default inspected via source/graph snippet."
+      ],
+      "execution": "Source only."
+    }
+  ],
+  "unexecuted_leads": [
+    "store-link-unexecuted-sentinel",
+    "store-link-unexecuted-readonly"
+  ],
+  "excluded": [
+    "Other store-core modules retained by audit_store_core.",
+    "Linux/Windows filesystem behavior, crash recovery and broad stress testing."
+  ],
+  "execution_limits": [
+    "Only macOS ACL restore control executed.",
+    "Sentinel/path and readonly-state experiments were not executed or extended after coordinator stop instruction.",
+    "No full suite or local mutation run."
+  ]
+}

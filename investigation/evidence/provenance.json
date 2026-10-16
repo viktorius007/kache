@@ -1,0 +1,14 @@
+{
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "production_diff": "empty",
+  "link_source_sha256": "17769651ce39f22ff3b5a4006ae306b6313134a06484ef3d25a1a40f6e9f8a8f",
+  "coordinator_link_source_sha256": "17769651ce39f22ff3b5a4006ae306b6313134a06484ef3d25a1a40f6e9f8a8f",
+  "baseline_rlib": "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/deps/libkache_store-54d968e8d585cf0d.rlib",
+  "baseline_rlib_sha256": "2a5323637f695f37d3fa456a9960faaebb18facf10d7fbb394fc3e6ef70cf011",
+  "ts": "2026-10-11T06:11:45.876499+00:00",
+  "probe_execution": "ACL control exited 0 before the quiet hold; compiled against the read-only baseline dependency artifacts.",
+  "unexecuted_scripts": [
+    "sentinel-replay.py",
+    "behavior-probe.rs"
+  ]
+}
