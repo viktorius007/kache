@@ -1,0 +1,46 @@
+{
+  "workdir": "/Users/viktor/Developer/github/kache-prs/store-publication-rollback-001",
+  "env": {
+    "CARGO_TARGET_DIR": "/Users/viktor/Developer/github/kache-prs/store-publication-rollback-001/tmp/pr-target",
+    "HOME": "/Users/viktor/Developer/github/kache-prs/store-publication-rollback-001/tmp/pr-build-fixtures/home",
+    "RUSTUP_HOME": "/Users/viktor/.rustup",
+    "CARGO_HOME": "/Users/viktor/.cargo",
+    "RUSTC_WRAPPER": "",
+    "KACHE_CONFIG": "/Users/viktor/Developer/github/kache-prs/store-publication-rollback-001/tmp/pr-build-fixtures/config.toml",
+    "KACHE_CACHE_DIR": "/Users/viktor/Developer/github/kache-prs/store-publication-rollback-001/tmp/pr-build-fixtures/cache",
+    "KACHE_RUNTIME_DIR": "/Users/viktor/Developer/github/kache-prs/store-publication-rollback-001/tmp/pr-build-fixtures/runtime",
+    "TMPDIR": "/Users/viktor/Developer/github/kache-prs/store-publication-rollback-001/tmp/pr-build-fixtures/tmp"
+  },
+  "runner": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py"
+  ],
+  "red": [
+    "cargo",
+    "test",
+    "-p",
+    "kache-store",
+    "republication",
+    "--",
+    "--nocapture"
+  ],
+  "green": [
+    "cargo",
+    "test",
+    "-p",
+    "kache-store",
+    "republication",
+    "--",
+    "--nocapture"
+  ],
+  "gate": [
+    "just",
+    "check"
+  ],
+  "target_seed": [
+    "cp",
+    "-cR",
+    "/Users/viktor/Developer/github/kache-investigations/coordinator/target",
+    "/Users/viktor/Developer/github/kache-prs/store-publication-rollback-001/tmp/pr-target"
+  ]
+}

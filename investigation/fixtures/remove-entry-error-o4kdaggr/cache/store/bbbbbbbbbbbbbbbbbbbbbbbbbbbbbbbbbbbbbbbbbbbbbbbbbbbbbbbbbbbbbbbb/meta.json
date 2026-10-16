@@ -1,0 +1,25 @@
+{
+  "cache_key": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "key_schema": 32,
+  "crate_name": "fixture",
+  "crate_types": [
+    "rlib"
+  ],
+  "files": [
+    {
+      "name": "fixture.rlib",
+      "size": 13,
+      "hash": "b4d36e7d57da9ab5998659e2c52f0adfc17aa71556dfb7c9703b410c6c535f13",
+      "executable": false
+    }
+  ],
+  "stdout": "",
+  "stderr": "",
+  "features": [],
+  "target": "",
+  "profile": "dev",
+  "compile_time_ms": 1,
+  "emit_kinds": [
+    "link"
+  ]
+}

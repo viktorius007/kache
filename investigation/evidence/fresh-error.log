@@ -1,0 +1,23 @@
+{
+  "argv": [
+    "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/bin/transaction_probe",
+    "fresh-error"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+  "fixture": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/fresh-error-qegq_d_b",
+  "env": {
+    "HOME": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/fresh-error-qegq_d_b/home",
+    "KACHE_CONFIG": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/fresh-error-qegq_d_b/config.toml",
+    "KACHE_CACHE_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/fresh-error-qegq_d_b/cache",
+    "KACHE_RUNTIME_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/fresh-error-qegq_d_b/runtime",
+    "CARGO_HOME": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/fresh-error-qegq_d_b/cargo-home",
+    "TMPDIR": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/fresh-error-qegq_d_b/tmp",
+    "TMP": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/fresh-error-qegq_d_b/tmp",
+    "TEMP": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/fresh-error-qegq_d_b/tmp"
+  }
+}
+ASSERTED fixture root=/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/fresh-error-qegq_d_b config=/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/fresh-error-qegq_d_b/config.toml store=/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/fresh-error-qegq_d_b/cache/store
+ASSERTED production build claim acquired after cache miss
+EXPECTED publication SQLite error: recoverable publication failure: Error code 1811: constraint failed
+STATE indexed=None filesystem=b4d36e7d57da9ab5998659e2c52f0adfc17aa71556dfb7c9703b410c6c535f13 peer=b4d36e7d57da9ab5998659e2c52f0adfc17aa71556dfb7c9703b410c6c535f13 peer_refcount=1
+PASS first-publication rollback leaves no committed entry and preserves peer

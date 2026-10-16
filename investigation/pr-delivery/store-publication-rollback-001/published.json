@@ -1,0 +1,8 @@
+{
+  "id": "store-publication-rollback-001",
+  "url": "https://github.com/kunobi-ninja/kache/pull/1508",
+  "branch": "fix/store-publication-rollback-001",
+  "fix_commit": "d46894130adb5033ba91c2a8fd69b0748c6f75ee",
+  "state": "draft",
+  "review": "investigation/pr-delivery/reviews/store-publication-rollback-001.md"
+}

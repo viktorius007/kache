@@ -1,0 +1,21 @@
+{
+  "argv": [
+    "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/bin/transaction_probe",
+    "remove-blob-error"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+  "fixture": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-blob-error-x6knled7",
+  "env": {
+    "HOME": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-blob-error-x6knled7/home",
+    "KACHE_CONFIG": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-blob-error-x6knled7/config.toml",
+    "KACHE_CACHE_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-blob-error-x6knled7/cache",
+    "KACHE_RUNTIME_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-blob-error-x6knled7/runtime",
+    "CARGO_HOME": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-blob-error-x6knled7/cargo-home",
+    "TMPDIR": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-blob-error-x6knled7/tmp",
+    "TMP": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-blob-error-x6knled7/tmp",
+    "TEMP": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-blob-error-x6knled7/tmp"
+  }
+}
+ASSERTED fixture root=/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-blob-error-x6knled7 config=/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-blob-error-x6knled7/config.toml store=/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-blob-error-x6knled7/cache/store
+EXPECTED removal SQLite error: recoverable removal failure: Error code 1811: constraint failed
+PASS removal rollback preserves old metadata, both hits, and blob references

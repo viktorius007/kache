@@ -1,0 +1,62 @@
+[
+  {
+    "id": "healthy-claim",
+    "argv": [
+      "python3",
+      "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/run_probe.py",
+      "healthy-claim"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+    "timeout_seconds": 45,
+    "expected_exit_code": 0,
+    "raw_log": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/evidence/healthy-claim.log"
+  },
+  {
+    "id": "replacement-control",
+    "argv": [
+      "python3",
+      "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/run_probe.py",
+      "replacement-control"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+    "timeout_seconds": 45,
+    "expected_exit_code": 0,
+    "raw_log": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/evidence/replacement-control.log"
+  },
+  {
+    "id": "fresh-error",
+    "argv": [
+      "python3",
+      "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/run_probe.py",
+      "fresh-error"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+    "timeout_seconds": 45,
+    "expected_exit_code": 0,
+    "raw_log": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/evidence/fresh-error.log"
+  },
+  {
+    "id": "remove-entry-error",
+    "argv": [
+      "python3",
+      "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/run_probe.py",
+      "remove-entry-error"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+    "timeout_seconds": 45,
+    "expected_exit_code": 0,
+    "raw_log": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/evidence/remove-entry-error.log"
+  },
+  {
+    "id": "remove-blob-error",
+    "argv": [
+      "python3",
+      "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/run_probe.py",
+      "remove-blob-error"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+    "timeout_seconds": 45,
+    "expected_exit_code": 0,
+    "raw_log": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/evidence/remove-blob-error.log"
+  }
+]

@@ -1,0 +1,15 @@
+   Compiling float-cmp v0.10.0
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/store-publication-rollback-001/crates/kache-store)
+   Compiling predicates v3.1.4
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/store-publication-rollback-001/crates/kache-core)
+   Compiling proptest v1.11.0
+   Compiling assert_cmd v2.2.2
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/store-publication-rollback-001)
+    Finished `test` profile [unoptimized] target(s) in 36.09s
+     Running tests/codegen_backend_test.rs (tmp/pr-target/debug/deps/codegen_backend_test-195cb20deac5e9e8)
+
+running 1 test
+test untrusted_codegen_backend_runs_rustc_directly_every_time ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
+

@@ -1,0 +1,21 @@
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/store-publication-rollback-001/crates/kache-store)
+    Finished `test` profile [unoptimized] target(s) in 1.60s
+     Running unittests src/lib.rs (tmp/pr-target/debug/deps/kache_store-0579b58586fb6f8d)
+
+running 3 tests
+
+thread 'store::tests::failed_republication_preserves_metadata_and_peer' (52162417) panicked at crates/kache-store/src/store/tests.rs:3007:9:
+failed republication must not let removal reclaim a peer entry's only blob
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test store::tests::failed_republication_preserves_metadata_and_peer ... FAILED
+test store::tests::successful_stranded_republication_preserves_shared_peer ... ok
+test store::tests::republication_during_removal_cleanup_is_never_stranded ... ok
+
+failures:
+
+failures:
+    store::tests::failed_republication_preserves_metadata_and_peer
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 569 filtered out; finished in 1.60s
+
+error: test failed, to rerun pass `-p kache-store --lib`

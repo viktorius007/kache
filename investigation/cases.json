@@ -1,0 +1,36 @@
+[
+  {
+    "id": "store-rollback-replacement-error",
+    "argv": [
+      "python3",
+      "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/run_probe.py",
+      "replacement-error"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+    "timeout_seconds": 45,
+    "expected_failure_regex": "failed republication must not let removal reclaim a peer entry's only blob",
+    "assertion_regex": "OBSERVED peer_blob_exists=false peer_hit=false peer_refcount=-1",
+    "expected_exit_code": 101,
+    "raw_log": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/evidence/replacement-error.log",
+    "fixture_precondition": "Generated committed entry A has its meta.json explicitly removed; a normal claim_build then returns Acquired.",
+    "failure_injection": "Generated SQLite BEFORE INSERT entries trigger uses RAISE(ABORT), yielding error code 1811 after meta.json replacement.",
+    "reachability_limit": "This proves rollback behavior from a source-supported stranded state; natural production origin of missing metadata was not reproduced."
+  },
+  {
+    "id": "store-rollback-replacement-hit-error",
+    "argv": [
+      "python3",
+      "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/run_probe.py",
+      "replacement-hit-error"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+    "timeout_seconds": 45,
+    "expected_failure_regex": "failed replacement of stranded entry must not publish a new cache hit under old committed row",
+    "assertion_regex": "OBSERVED failed replacement produces cache hit=true",
+    "expected_exit_code": 101,
+    "raw_log": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/evidence/replacement-hit-error.log",
+    "fixture_precondition": "Generated committed entry A has its meta.json explicitly removed; a normal claim_build then returns Acquired.",
+    "failure_injection": "Generated SQLite BEFORE INSERT entries trigger uses RAISE(ABORT), yielding error code 1811 after meta.json replacement.",
+    "reachability_limit": "This proves rollback behavior from a source-supported stranded state; natural production origin of missing metadata was not reproduced."
+  }
+]

@@ -1,0 +1,29 @@
+{
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py",
+    "cargo",
+    "test",
+    "-p",
+    "kache",
+    "--test",
+    "codegen_backend_test"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-prs/store-publication-rollback-001",
+  "fixture": "/tmp/ksr-us2_42ld",
+  "runtime_isolation": "default runtime follows generated cache or per-test cache override",
+  "env": {
+    "HOME": "/tmp/ksr-us2_42ld/h",
+    "KACHE_CONFIG": "/tmp/ksr-us2_42ld/config.toml",
+    "KACHE_CACHE_DIR": "/tmp/ksr-us2_42ld/c",
+    "KACHE_RUNTIME_DIR": null,
+    "TMPDIR": "/tmp/ksr-us2_42ld/t",
+    "TMP": "/tmp/ksr-us2_42ld/t",
+    "TEMP": "/tmp/ksr-us2_42ld/t",
+    "RUSTUP_HOME": "/Users/viktor/.rustup",
+    "CARGO_HOME": "/Users/viktor/.cargo",
+    "CARGO_TARGET_DIR": "/Users/viktor/Developer/github/kache-prs/store-publication-rollback-001/tmp/pr-target",
+    "RUSTC_WRAPPER": ""
+  },
+  "exit_code": 0
+}

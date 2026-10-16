@@ -1,0 +1,24 @@
+{
+  "argv": [
+    "/Users/viktor/.cargo/bin/rustc",
+    "--edition=2024",
+    "investigation/transaction_probe.rs",
+    "-o",
+    "investigation/bin/transaction_probe",
+    "-L",
+    "dependency=/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/deps",
+    "--extern",
+    "kache_store=/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/deps/libkache_store-54d968e8d585cf0d.rlib",
+    "--extern",
+    "rusqlite=/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/deps/librusqlite-6a7f9d3fcf3a5a05.rlib"
+  ],
+  "env": {
+    "HOME": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/build/home",
+    "KACHE_CONFIG": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/build/config.toml",
+    "KACHE_CACHE_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/build/cache",
+    "KACHE_RUNTIME_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/build/runtime",
+    "CARGO_HOME": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/build/cargo",
+    "TMPDIR": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/build/tmp",
+    "RUSTUP_HOME": "/Users/viktor/.rustup"
+  }
+}

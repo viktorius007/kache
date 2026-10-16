@@ -1,0 +1,27 @@
+{
+  "argv": [
+    "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/bin/transaction_probe",
+    "replacement-hit-error"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+  "fixture": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-hit-error-ix10l2dw",
+  "env": {
+    "HOME": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-hit-error-ix10l2dw/home",
+    "KACHE_CONFIG": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-hit-error-ix10l2dw/config.toml",
+    "KACHE_CACHE_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-hit-error-ix10l2dw/cache",
+    "KACHE_RUNTIME_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-hit-error-ix10l2dw/runtime",
+    "CARGO_HOME": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-hit-error-ix10l2dw/cargo-home",
+    "TMPDIR": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-hit-error-ix10l2dw/tmp",
+    "TMP": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-hit-error-ix10l2dw/tmp",
+    "TEMP": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-hit-error-ix10l2dw/tmp"
+  }
+}
+ASSERTED fixture root=/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-hit-error-ix10l2dw config=/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-hit-error-ix10l2dw/config.toml store=/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-hit-error-ix10l2dw/cache/store
+ASSERTED production build claim acquired after cache miss
+EXPECTED publication SQLite error: recoverable publication failure: Error code 1811: constraint failed
+STATE indexed=Some("c6f11d4408bf6e7f7ae6b9dc34c6da5fb28ecf7a1d3cdf4e19bc2b82588a5a0e") filesystem=b4d36e7d57da9ab5998659e2c52f0adfc17aa71556dfb7c9703b410c6c535f13 peer=b4d36e7d57da9ab5998659e2c52f0adfc17aa71556dfb7c9703b410c6c535f13 peer_refcount=1
+OBSERVED failed replacement produces cache hit=true
+
+thread 'main' (48119563) panicked at investigation/transaction_probe.rs:84:9:
+failed replacement of stranded entry must not publish a new cache hit under old committed row
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

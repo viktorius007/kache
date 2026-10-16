@@ -1,0 +1,39 @@
+function: put_with_compile_time_independent
+direction: inbound
+callers_total: 34
+callers_total_relation: gte
+callers: 20  (rows: name hop strategy confidence; qn = group prefix empty ? name : prefix + "." + name; "" marks empty prefix)
+Users-viktor-Developer-github-kache-investigations-coordinator.src.build_script.Run:
+  record 2 lsp 0.95
+  record_run 2 lsp 0.95
+  record_with_tools 1 lsp 0.95
+Users-viktor-Developer-github-kache-investigations-coordinator.src.build_script.tests:
+  a_link_under_a_restored_link_is_refused 1 lsp 0.95
+  a_manifest_version_outside_the_known_range_is_refused 2 lsp 0.95
+  a_run_recorded_without_its_outside_files_is_not_found 2 lsp 0.95
+  a_version_one_manifest_restores_without_outside_fields_or_a_target_directory 2 lsp 0.95
+  an_outside_path_in_a_cargo_directory_or_above_the_target_is_not_restored 2 lsp 0.95
+  put_manifest 1 lsp 0.95
+  retargeted_tool_links_and_ancestor_links_invalidate_recording_even_with_identical_bytes 2 lsp 0.95
+  tool_keys_use_the_execution_snapshot_and_refuse_edits_before_recording 2 lsp 0.95
+Users-viktor-Developer-github-kache-investigations-coordinator.src.compiler.rustdoc:
+  compile_and_store 2 lsp 0.95
+  store_bundle 1 lsp 0.95
+Users-viktor-Developer-github-kache-investigations-coordinator.src.daemon_publish:
+  publish_one 1 lsp 0.95
+  run_publish_worker 2 lsp 0.95
+Users-viktor-Developer-github-kache-investigations-coordinator.src.remote_layout.tests:
+  cc_object_pack_round_trips_through_v3 2 lsp 0.95
+  populated_cc_entry 1 lsp 0.95
+Users-viktor-Developer-github-kache-investigations-coordinator.src.wrapper:
+  cc_compile_before_key 2 lsp 0.95
+  run_cc_inner 2 lsp 0.95
+  run_cc_with_store 1 lsp 0.95
+truncated: true
+has_more: true
+truncation_reason: page_limit
+next: c1.i.u839d99d7fa0752fbg2.f1d8fcd62225cac6.2.25788
+hint: "more rows exist — re-call with cursor set to 'next' and ALL other arguments identical (no duplicates), or narrow with depth/edge_types"
+semantic_note: "Rust semantic coverage is partial or unknown; omitted facts may change rows or cells, and positive affected fact counts are lower bounds."
+unresolved_sites: "{\"lookup\":\"complete\",\"calls\":127041,\"references\":193239,\"files\":[{\"path\":\"build.rs\",\"kind\":\"call\",\"total\":50},{\"path\":\"build.rs\",\"kind\":\"reference\",\"total\":6},{\"path\":\"build.rs\",\"kind\":\"type\",\"total\":23},{\"path\":\"crates/kache-core/src/lib.rs\",\"kind\":\"call\",\"total\":514},{\"path\":\"crates/kache-core/src/lib.rs\",\"kind\":\"member\",\"total\":20},{\"path\":\"crates/kache-core/src/lib.rs\",\"kind\":\"reference\",\"total\":752},{\"path\":\"crates/kache-core/src/lib.rs\",\"kind\":\"type\",\"total\":174},{\"path\":\"crates/kache-core/src/timeline.rs\",\"kind\":\"call\",\"total\":61},{\"path\":\"crates/kache-core/src/timeline.rs\",\"kind\":\"member\",\"total\":25},{\"path\":\"crates/kache-core/src/timeline.rs\",\"kind\":\"reference\",\"total\":339},{\"path\":\"crates/kache-core/src/timeline.rs\",\"kind\":\"type\",\"total\":31},{\"path\":\"crates/kache-e2e/src/assertions.rs\",\"kind\":\"call\",\"total\":191},{\"path\":\"crates/kache-e2e/src/assertions.rs\",\"kind\":\"member\",\"total\":27},{\"path\":\"crates/kache-e2e/src/assertions.rs\",\"kind\":\"reference\",\"total\":311},{\"path\":\"crates/kache-e2e/src/assertions.rs\",\"kind\":\"type\",\"total\":37},{\"path\":\"crates/kache-e2e/src/bench_host.rs\",\"kind\":\"call\",\"total\":301},{\"path\":\"crates/kache-e2e/src/bench_host.rs\",\"kind\":\"member\",\"total\":35},{\"path\":\"crates/kache-e2e/src/bench_host.rs\",\"kind\":\"reference\",\"total\":308},{\"path\":\"crates/kache-e2e/src/bench_host.rs\",\"kind\":\"type\",\"total\":93},{\"path\":\"crates/kache-e2e/src/bench_otlp.rs\",\"kind\":\"call\",\"total\":373}],\"file_kind_groups_total\":1076,\"files_truncated\":true,\"scope\":\"project\",\"recording\":\"available\",\"listing_tool\":\"trace_path\",\"listing_arguments\":\"Set unresolved_only=true; use unresolved_caller or unresolved_file for exact scope, and unresolved_offset/limit for paging. Listings include tests.\",\"note\":\"Inbound unknown targets cannot be attributed to a callee: project counts are conservative. Outbound single-item counts cover that enclosing item, including tests. Counts include filtered source candidates and opaque macro tokens; those do not prove expanded semantic occurrences.\"}"
+

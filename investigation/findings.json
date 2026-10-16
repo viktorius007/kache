@@ -1,0 +1,239 @@
+[
+  {
+    "id": "store-publication-rollback-001",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T07:00:27.322783Z",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex agent",
+      "mode": "production-readiness",
+      "slice": "store-publication-rollback"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "An aborted republication of a stranded committed key leaves filesystem metadata ahead of SQL; removing the key can reclaim a different committed entry’s only blob.",
+    "scenario": "Generated store contains committed A with old content and committed B with peer content. The fixture removes A/meta.json, verifies a cache miss, and obtains BuildClaim::Acquired through the production API. Republishing A with bytes shared by B reaches a generated SQLite insertion trigger that returns error 1811 after metadata replacement. SQL rolls back to A→old and B→peer with peer refcount 1, while A/meta.json lists peer. Removing A decrements peer to zero, unlinks it, and B becomes a miss. A separate executed case observes that get(A) becomes a hit immediately after the failed replacement.",
+    "evidence": [
+      {
+        "path": "crates/kache-store/src/store.rs",
+        "lines": "2418-2434",
+        "point": "contains returns false when meta.json is absent even if a committed SQL row remains."
+      },
+      {
+        "path": "crates/kache-store/src/store.rs",
+        "lines": "2565-2578",
+        "point": "claim_build takes the key lock and returns Acquired on get(None)."
+      },
+      {
+        "path": "crates/kache-store/src/store.rs",
+        "lines": "2860-2933",
+        "point": "Replacement releases and records blob refs in a SQL transaction, atomically replaces meta.json, then inserts/replaces entries and commits. A SQL error rolls back DB changes but not metadata replacement."
+      },
+      {
+        "path": "crates/kache-store/src/store.rs",
+        "lines": "5856-5890",
+        "point": "Removal reads hash list from filesystem metadata."
+      },
+      {
+        "path": "crates/kache-store/src/store.rs",
+        "lines": "6069-6129",
+        "point": "After its metadata-content race guard, removal deletes the SQL mapping and decrements metadata hashes; consistency with the mapping is not required."
+      },
+      {
+        "path": "investigation/evidence/replacement-error.log",
+        "lines": "1-end",
+        "point": "Expected error 1811; old indexed hash, new filesystem hash; peer_blob_exists=false peer_hit=false; peer survival assertion exits 101."
+      },
+      {
+        "path": "investigation/evidence/replacement-hit-error.log",
+        "lines": "1-end",
+        "point": "Expected error 1811; failed replacement produces cache hit=true; no-hit assertion exits 101."
+      }
+    ],
+    "trace": "wrapper run_rustc -> claim_build -> get(None) on missing-meta stranded row -> BuildClaim::Acquired -> put_with_compile_time -> put_with_compile_time_policy -> atomic metadata replacement -> entries insertion failure -> implicit SQL rollback -> remove_entry -> remove_entry_attempt -> metadata-based decrement -> peer blob unlink -> get(peer) miss. This connects production APIs at source tier; a full compiler invocation was not executed.",
+    "authority": {
+      "source": "crates/kache-store/src/store.rs:2857-2862",
+      "quote": "Either the whole entry (with correct refcounts) becomes visible, or none of it does — no refcount drift, no half-written row."
+    },
+    "proof": {
+      "red_test": "use kache_store::{ArtifactPolicy, ArtifactStore, BuildClaim};\nuse kache_store::config::Config;\nuse rusqlite::Connection;\nuse std::{fs, path::{Path, PathBuf}};\nstruct Policy;\nimpl ArtifactPolicy for Policy {\n    fn allow_hardlink(_: &str) -> bool { false }\n    fn allow_empty(_: &str, _: &[String]) -> bool { false }\n    fn emit_kind(_: &str) -> Option<&'static str> { Some(\"link\") }\n    fn stable_after_store(_: &str) -> bool { false }\n}\nfn refs(db: &Connection, hash: &str) -> i64 {\n    db.query_row(\"SELECT refcount FROM blobs WHERE hash=?1\", [hash], |r| r.get(0)).unwrap_or(-1)\n}\nfn main() {\n    let mode = std::env::args().nth(1).unwrap();\n    let root = PathBuf::from(std::env::var_os(\"FIXTURE_ROOT\").unwrap()).canonicalize().unwrap();\n    for key in [\"HOME\", \"KACHE_CONFIG\", \"KACHE_CACHE_DIR\", \"KACHE_RUNTIME_DIR\", \"CARGO_HOME\", \"TMPDIR\", \"TMP\", \"TEMP\"] {\n        let path = PathBuf::from(std::env::var_os(key).unwrap());\n        assert!(path.starts_with(&root), \"fixture escape in {key}: {}\", path.display());\n    }\n    let cache = PathBuf::from(std::env::var_os(\"KACHE_CACHE_DIR\").unwrap());\n    let config = Config { cache_dir: cache.clone(), max_size: 1<<20, gc_evict_shared: true, upload_spool_max_jobs: 128, deferred_durability: false };\n    assert!(config.index_db_path().starts_with(&root));\n    assert!(config.store_dir().starts_with(&root));\n    println!(\"ASSERTED fixture root={} config={} store={}\",root.display(), std::env::var(\"KACHE_CONFIG\").unwrap(),config.store_dir().display());\n    let store = ArtifactStore::<Policy>::open(config.clone()).unwrap();\n    let old = root.join(\"old.rlib\"); let peer = root.join(\"peer.rlib\");\n    fs::write(&old,b\"old artifact\").unwrap(); fs::write(&peer,b\"peer artifact\").unwrap();\n    let a=\"a\".repeat(64); let b=\"b\".repeat(64);\n    let put=|key: &str, source: &Path| store.put_with_compile_time_independent(key,\"fixture\", &[\"rlib\".into()], &[],\"\",\"dev\", &[(source.to_path_buf(), \"fixture.rlib\".into())], \"\",\"\",1);\n    put(&b,&peer).unwrap();\n    if mode != \"fresh-error\" { put(&a,&old).unwrap(); }\n    let old_meta=store.stored_meta(&a);\n    let peer_meta=store.stored_meta(&b).unwrap();\n    let peer_hash=&peer_meta.files[0].hash;\n    let db=Connection::open(config.index_db_path()).unwrap();\n    if mode==\"healthy-claim\" {\n        assert!(matches!(store.claim_build(&a).unwrap(), BuildClaim::Committed(_)), \"healthy key must bypass publication\");\n        println!(\"PASS healthy committed claim bypasses publication\"); return;\n    }\n    if mode.starts_with(\"remove-\") {\n        let table = if mode==\"remove-entry-error\" {\"entries\"} else {\"blobs\"};\n        let op = if table==\"entries\" {\"DELETE\"} else {\"UPDATE\"};\n        db.execute_batch(&format!(\"CREATE TRIGGER fail_remove BEFORE {op} ON {table} BEGIN SELECT RAISE(ABORT, 'recoverable removal failure'); END;\")).unwrap();\n        let error=store.remove_entry(&a).unwrap_err();\n        assert!(format!(\"{error:#}\").contains(\"recoverable removal failure\"));\n        println!(\"EXPECTED removal SQLite error: {error:#}\");\n        assert!(store.contains(&a));\n        assert_eq!(store.stored_meta(&a).unwrap().files[0].hash,old_meta.unwrap().files[0].hash);\n        assert!(store.get(&a).unwrap().is_some());\n        assert!(store.get(&b).unwrap().is_some());\n        println!(\"PASS removal rollback preserves old metadata, both hits, and blob references\"); return;\n    }\n    if mode!=\"fresh-error\" {\n        fs::remove_file(store.entry_dir(&a).join(\"meta.json\")).unwrap();\n        assert!(store.get(&a).unwrap().is_none());\n    }\n    let lock=match store.claim_build(&a).unwrap() { BuildClaim::Acquired(lock)=>lock, _=>panic!(\"stranded or fresh key must reach publication through a production build claim\") };\n    println!(\"ASSERTED production build claim acquired after cache miss\");\n    if mode!=\"replacement-control\" {\n        db.execute_batch(\"CREATE TRIGGER fail_publication BEFORE INSERT ON entries WHEN NEW.cache_key='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' BEGIN SELECT RAISE(ABORT, 'recoverable publication failure'); END;\").unwrap();\n        let error=put(&a,&peer).unwrap_err();\n        assert!(format!(\"{error:#}\").contains(\"recoverable publication failure\"));\n        println!(\"EXPECTED publication SQLite error: {error:#}\");\n    } else { put(&a,&peer).unwrap(); }\n    drop(lock);\n    let indexed: Option<String>=db.query_row(\"SELECT hash FROM entry_blobs WHERE cache_key=?1\",[&a],|r|r.get(0)).ok();\n    let persisted=store.stored_meta(&a).unwrap().files[0].hash.clone();\n    println!(\"STATE indexed={indexed:?} filesystem={persisted} peer={peer_hash} peer_refcount={}\",refs(&db,peer_hash));\n    if mode==\"fresh-error\" {\n        assert!(!store.contains(&a)); assert!(store.get(&a).unwrap().is_none());\n        store.remove_entry(&a).unwrap();\n        assert!(store.get(&b).unwrap().is_some()); assert_eq!(refs(&db,peer_hash),1);\n        println!(\"PASS first-publication rollback leaves no committed entry and preserves peer\"); return;\n    }\n    if mode!=\"replacement-control\" {\n        assert_eq!(indexed.as_deref(),Some(old_meta.unwrap().files[0].hash.as_str()),\"SQL references should roll back\");\n        assert_eq!(refs(&db,peer_hash),1);\n    }\n    if mode==\"replacement-hit-error\" {\n        let hit=store.get(&a).unwrap().is_some();\n        println!(\"OBSERVED failed replacement produces cache hit={hit}\");\n        assert!(!hit,\"failed replacement of stranded entry must not publish a new cache hit under old committed row\"); return;\n    }\n    store.remove_entry(&a).unwrap();\n    let blob_exists=store.blob_path(peer_hash).exists();\n    let peer_hit=store.get(&b).unwrap().is_some();\n    println!(\"OBSERVED peer_blob_exists={blob_exists} peer_hit={peer_hit} peer_refcount={}\",refs(&db,peer_hash));\n    assert!(peer_hit,\"failed republication must not let removal reclaim a peer entry's only blob\");\n    assert_eq!(refs(&db,peer_hash),1);\n    println!(\"PASS replacement and removal preserve peer\");\n}\n",
+      "name": "failed_republication_must_preserve_peer",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "OBSERVED peer_blob_exists=false peer_hit=false peer_refcount=-1\nfailed republication must not let removal reclaim a peer entry's only blob",
+      "cases": [
+        {
+          "id": "store-rollback-replacement-error",
+          "argv": [
+            "python3",
+            "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/run_probe.py",
+            "replacement-error"
+          ],
+          "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+          "timeout_seconds": 45,
+          "expected_failure_regex": "failed republication must not let removal reclaim a peer entry's only blob",
+          "assertion_regex": "OBSERVED peer_blob_exists=false peer_hit=false peer_refcount=-1",
+          "expected_exit_code": 101,
+          "raw_log": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/evidence/replacement-error.log",
+          "fixture_precondition": "Generated committed entry A has its meta.json explicitly removed; a normal claim_build then returns Acquired.",
+          "failure_injection": "Generated SQLite BEFORE INSERT entries trigger uses RAISE(ABORT), yielding error code 1811 after meta.json replacement.",
+          "reachability_limit": "This proves rollback behavior from a source-supported stranded state; natural production origin of missing metadata was not reproduced."
+        },
+        {
+          "id": "store-rollback-replacement-hit-error",
+          "argv": [
+            "python3",
+            "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/run_probe.py",
+            "replacement-hit-error"
+          ],
+          "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+          "timeout_seconds": 45,
+          "expected_failure_regex": "failed replacement of stranded entry must not publish a new cache hit under old committed row",
+          "assertion_regex": "OBSERVED failed replacement produces cache hit=true",
+          "expected_exit_code": 101,
+          "raw_log": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/evidence/replacement-hit-error.log",
+          "fixture_precondition": "Generated committed entry A has its meta.json explicitly removed; a normal claim_build then returns Acquired.",
+          "failure_injection": "Generated SQLite BEFORE INSERT entries trigger uses RAISE(ABORT), yielding error code 1811 after meta.json replacement.",
+          "reachability_limit": "This proves rollback behavior from a source-supported stranded state; natural production origin of missing metadata was not reproduced."
+        }
+      ],
+      "controls": [
+        {
+          "id": "healthy-claim",
+          "argv": [
+            "python3",
+            "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/run_probe.py",
+            "healthy-claim"
+          ],
+          "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+          "timeout_seconds": 45,
+          "expected_exit_code": 0,
+          "raw_log": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/evidence/healthy-claim.log"
+        },
+        {
+          "id": "replacement-control",
+          "argv": [
+            "python3",
+            "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/run_probe.py",
+            "replacement-control"
+          ],
+          "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+          "timeout_seconds": 45,
+          "expected_exit_code": 0,
+          "raw_log": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/evidence/replacement-control.log"
+        },
+        {
+          "id": "fresh-error",
+          "argv": [
+            "python3",
+            "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/run_probe.py",
+            "fresh-error"
+          ],
+          "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+          "timeout_seconds": 45,
+          "expected_exit_code": 0,
+          "raw_log": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/evidence/fresh-error.log"
+        },
+        {
+          "id": "remove-entry-error",
+          "argv": [
+            "python3",
+            "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/run_probe.py",
+            "remove-entry-error"
+          ],
+          "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+          "timeout_seconds": 45,
+          "expected_exit_code": 0,
+          "raw_log": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/evidence/remove-entry-error.log"
+        },
+        {
+          "id": "remove-blob-error",
+          "argv": [
+            "python3",
+            "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/run_probe.py",
+            "remove-blob-error"
+          ],
+          "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+          "timeout_seconds": 45,
+          "expected_exit_code": 0,
+          "raw_log": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/evidence/remove-blob-error.log"
+        }
+      ]
+    },
+    "severity": "Cache-integrity failure affects a different committed entry sharing replacement bytes; peer reuse is lost and old references leak. No source input/user artifact loss or compiler miscompilation was demonstrated. This requires a stranded committed row, replacement content differing from the old generation, and a SQL failure after metadata replacement. Production frequency and natural stranded-state provenance were not established.",
+    "status": "open",
+    "reachability_limit": "Fixture explicitly deleted generated metadata. Source comments describe committed-but-stranded rows as a replacement case, but that testimony does not establish a normal production origin. Treat as a confirmed conditional integrity result, not an unconditional admission of a naturally occurring production defect.",
+    "admission": "conditional-behavior-confirmed; natural-production-precondition-provenance-unresolved"
+  },
+  {
+    "id": "store-healthy-republication-lead",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T07:00:27.322783Z",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex agent",
+      "mode": "production-readiness",
+      "slice": "store-publication-rollback"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Unconditional replacement of a healthy committed key is not reachable through the normal build claim.",
+    "checked": "Generated healthy entry; claim_build returns Committed, so the caller must restore/bypass publication. Original prior probe directly invoked put without this discriminator.",
+    "closed_by": "Tier 1: evidence/healthy-claim.log exits 0; tier 2: claim_build source 2565-2578 and wrapper claim handling 4450 onward.",
+    "reopens_if": "A production caller bypasses claim_build or republishes an entry whose hit was otherwise rejected.",
+    "status": "dismissed"
+  },
+  {
+    "id": "store-first-publication-rollback",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T07:00:27.322783Z",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex agent",
+      "mode": "production-readiness",
+      "slice": "store-publication-rollback"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "A first-publication SQL insertion failure did not create a committed hit or damage the peer.",
+    "checked": "Generated B committed, A fresh; insertion ABORT after meta write; contains(A)=false, get(A)=None, remove(A) releases no references, B remains a hit and peer refcount stays 1.",
+    "closed_by": "Tier 1: evidence/fresh-error.log exits 0.",
+    "reopens_if": "A row exists for A before failure, or another fault cut point changes that rollback outcome.",
+    "status": "dismissed"
+  },
+  {
+    "id": "store-removal-rollback",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T07:00:27.322783Z",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex agent",
+      "mode": "production-readiness",
+      "slice": "store-publication-rollback"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "The two sampled logical-removal SQL errors preserved both committed entries.",
+    "checked": "Generated A/B entries; BEFORE DELETE entries and BEFORE UPDATE blobs aborts independently; removal reports exact injected error; both get calls succeed and old metadata hash remains.",
+    "closed_by": "Tier 1: evidence/remove-entry-error.log and remove-blob-error.log exit 0; tier 2: removal commits logical changes before physical cleanup.",
+    "reopens_if": "Commit-level I/O failure, later cleanup failure, different triggers, or concurrent fault timing changes the outcome.",
+    "status": "dismissed"
+  },
+  {
+    "id": "store-successful-stranded-replacement",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T07:00:27.322783Z",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex agent",
+      "mode": "production-readiness",
+      "slice": "store-publication-rollback"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Successful replacement and later removal preserved the peer.",
+    "checked": "Same missing-meta stranded state, replacement peer content, no publication trigger; peer refcount becomes 2, removal returns it to 1 and peer remains a hit.",
+    "closed_by": "Tier 1: evidence/replacement-control.log exits 0.",
+    "reopens_if": "The insertion/commit path errors after filesystem metadata replacement.",
+    "status": "dismissed"
+  }
+]

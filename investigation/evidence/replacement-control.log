@@ -1,0 +1,23 @@
+{
+  "argv": [
+    "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/bin/transaction_probe",
+    "replacement-control"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+  "fixture": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-control-r759lsrp",
+  "env": {
+    "HOME": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-control-r759lsrp/home",
+    "KACHE_CONFIG": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-control-r759lsrp/config.toml",
+    "KACHE_CACHE_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-control-r759lsrp/cache",
+    "KACHE_RUNTIME_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-control-r759lsrp/runtime",
+    "CARGO_HOME": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-control-r759lsrp/cargo-home",
+    "TMPDIR": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-control-r759lsrp/tmp",
+    "TMP": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-control-r759lsrp/tmp",
+    "TEMP": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-control-r759lsrp/tmp"
+  }
+}
+ASSERTED fixture root=/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-control-r759lsrp config=/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-control-r759lsrp/config.toml store=/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/replacement-control-r759lsrp/cache/store
+ASSERTED production build claim acquired after cache miss
+STATE indexed=Some("b4d36e7d57da9ab5998659e2c52f0adfc17aa71556dfb7c9703b410c6c535f13") filesystem=b4d36e7d57da9ab5998659e2c52f0adfc17aa71556dfb7c9703b410c6c535f13 peer=b4d36e7d57da9ab5998659e2c52f0adfc17aa71556dfb7c9703b410c6c535f13 peer_refcount=2
+OBSERVED peer_blob_exists=true peer_hit=true peer_refcount=1
+PASS replacement and removal preserve peer

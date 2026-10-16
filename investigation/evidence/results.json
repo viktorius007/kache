@@ -1,0 +1,65 @@
+[
+  {
+    "argv": [
+      "python3",
+      "investigation/run_probe.py",
+      "healthy-claim"
+    ],
+    "case": "healthy-claim",
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "python3",
+      "investigation/run_probe.py",
+      "replacement-control"
+    ],
+    "case": "replacement-control",
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "python3",
+      "investigation/run_probe.py",
+      "fresh-error"
+    ],
+    "case": "fresh-error",
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "python3",
+      "investigation/run_probe.py",
+      "remove-entry-error"
+    ],
+    "case": "remove-entry-error",
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "python3",
+      "investigation/run_probe.py",
+      "remove-blob-error"
+    ],
+    "case": "remove-blob-error",
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "python3",
+      "investigation/run_probe.py",
+      "replacement-error"
+    ],
+    "case": "replacement-error",
+    "exit_code": 101
+  },
+  {
+    "argv": [
+      "python3",
+      "investigation/run_probe.py",
+      "replacement-hit-error"
+    ],
+    "case": "replacement-hit-error",
+    "exit_code": 101
+  }
+]

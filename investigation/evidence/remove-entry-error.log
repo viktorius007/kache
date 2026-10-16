@@ -1,0 +1,21 @@
+{
+  "argv": [
+    "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/bin/transaction_probe",
+    "remove-entry-error"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+  "fixture": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-entry-error-o4kdaggr",
+  "env": {
+    "HOME": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-entry-error-o4kdaggr/home",
+    "KACHE_CONFIG": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-entry-error-o4kdaggr/config.toml",
+    "KACHE_CACHE_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-entry-error-o4kdaggr/cache",
+    "KACHE_RUNTIME_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-entry-error-o4kdaggr/runtime",
+    "CARGO_HOME": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-entry-error-o4kdaggr/cargo-home",
+    "TMPDIR": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-entry-error-o4kdaggr/tmp",
+    "TMP": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-entry-error-o4kdaggr/tmp",
+    "TEMP": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-entry-error-o4kdaggr/tmp"
+  }
+}
+ASSERTED fixture root=/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-entry-error-o4kdaggr config=/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-entry-error-o4kdaggr/config.toml store=/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/fixtures/remove-entry-error-o4kdaggr/cache/store
+EXPECTED removal SQLite error: recoverable removal failure: Error code 1811: constraint failed
+PASS removal rollback preserves old metadata, both hits, and blob references

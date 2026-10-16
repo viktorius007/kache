@@ -1,0 +1,25 @@
+{
+  "id": "store-publication-rollback-001",
+  "branch": "fix/store-publication-rollback-001",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/store-publication-rollback-001",
+  "test_commit": "f60f84a6b06b5c8665c3b4e8e19c6787033170a8",
+  "fix_commit": "d46894130adb5033ba91c2a8fd69b0748c6f75ee",
+  "title": "Preserve metadata when store publication SQL fails",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/pr-delivery/store-publication-rollback-001/pr-body.md",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "gate_command": "python3 /Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/pr-delivery/store-publication-rollback-001/run-gate.py",
+  "gate_exit": 0,
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/pr-delivery/store-publication-rollback-001/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/pr-delivery/store-publication-rollback-001/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/pr-delivery/store-publication-rollback-001/gate.log",
+  "changed_files": [
+    "crates/kache-store/src/store.rs",
+    "crates/kache-store/src/store/tests.rs"
+  ],
+  "gate_command_record": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/pr-delivery/store-publication-rollback-001/gate-command.json",
+  "environment_validation_log": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/pr-delivery/store-publication-rollback-001/environment-validation.log",
+  "report": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/pr-delivery/store-publication-rollback-001/report.md",
+  "unproven_outside_scope_leads": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/pr-delivery/store-publication-rollback-001/outside-scope-leads.md",
+  "scope": "SQL statement failure before commit; no general crash or commit-I/O recovery claim",
+  "red_source_note": "Red-first evidence precedes a nonbehavioral removal of two needless borrows in test setup; behavioral assertions and fault trigger are unchanged."
+}

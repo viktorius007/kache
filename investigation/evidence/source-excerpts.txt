@@ -1,0 +1,652 @@
+
+crates/kache-store/src/store.rs:1835-1905
+1835: /// the refcounts: no entry owns them and no eviction can reach them.
+1836: ///
+1837: /// Call it before taking the new generation's references. A mapping can
+1838: /// name a blob that has no row (nothing was ever counted for it); released
+1839: /// afterwards, that mapping would consume the reference just taken and
+1840: /// delete the new generation's row.
+1841: fn release_entry_blob_refs(conn: &rusqlite::Connection, cache_key: &str) -> rusqlite::Result<()> {
+1842:     floor_blob_refs_at_mappings(conn, cache_key)?;
+1843:     conn.execute(
+1844:         "UPDATE blobs
+1845:          SET refcount = MAX(0, refcount - COALESCE((
+1846:              SELECT refs FROM entry_blobs
+1847:              WHERE cache_key = ?1 AND hash = blobs.hash
+1848:          ), 0))
+1849:          WHERE hash IN (
+1850:              SELECT hash FROM entry_blobs WHERE cache_key = ?1
+1851:          )",
+1852:         params![cache_key],
+1853:     )?;
+1854:     conn.execute(
+1855:         "DELETE FROM blobs
+1856:          WHERE refcount <= 0 AND hash IN (
+1857:              SELECT hash FROM entry_blobs WHERE cache_key = ?1
+1858:          )",
+1859:         params![cache_key],
+1860:     )?;
+1861:     conn.execute(
+1862:         "DELETE FROM entry_blobs WHERE cache_key = ?1",
+1863:         params![cache_key],
+1864:     )?;
+1865:     Ok(())
+1866: }
+1867: 
+1868: /// Whether any file `meta` lists still sits in the entry directory rather
+1869: /// than in the blob store.
+1870: fn has_unmigrated_artifacts(entry_dir: &Path, meta: &EntryMeta) -> bool {
+1871:     meta.files.iter().any(|f| entry_dir.join(&f.name).exists())
+1872: }
+1873: 
+1874: /// Replace `cache_key`'s rows in `entry_blobs` with one row per unique hash
+1875: /// in `files`, `refs` counting per-file references (kunobi-ninja/kache#608).
+1876: /// Must run inside the caller's registration transaction so the mapping
+1877: /// commits atomically with the entry row and the blob refcounts it mirrors.
+1878: ///
+1879: /// A publisher that may be replacing a generation calls
+1880: /// [`release_entry_blob_refs`] first, before it takes its own references.
+1881: fn record_entry_blobs(
+1882:     conn: &rusqlite::Connection,
+1883:     cache_key: &str,
+1884:     files: &[CachedFile],
+1885: ) -> rusqlite::Result<()> {
+1886:     conn.execute(
+1887:         "DELETE FROM entry_blobs WHERE cache_key = ?1",
+1888:         params![cache_key],
+1889:     )?;
+1890:     for file in files {
+1891:         conn.execute(
+1892:             "INSERT INTO entry_blobs (cache_key, hash, refs) VALUES (?1, ?2, 1)
+1893:              ON CONFLICT(cache_key, hash) DO UPDATE SET refs = refs + 1",
+1894:             params![cache_key, file.hash],
+1895:         )?;
+1896:     }
+1897:     Ok(())
+1898: }
+1899: 
+1900: pub fn open_index_db(db_path: &Path) -> Result<Connection> {
+1901:     open_index_db_reporting_recovery(db_path).map(|(db, _)| db)
+1902: }
+1903: 
+1904: /// Like [`open_index_db`], but also reports whether the index had to be
+1905: /// recreated from scratch.
+
+crates/kache-store/src/store.rs:2418-2578
+2418:     pub fn contains(&self, cache_key: &str) -> bool {
+2419:         let entry_dir = self.entry_dir(cache_key);
+2420:         let meta_path = entry_dir.join("meta.json");
+2421: 
+2422:         if !meta_path.exists() {
+2423:             return false;
+2424:         }
+2425: 
+2426:         // Check if it's committed in the database
+2427:         self.db
+2428:             .query_row(
+2429:                 "SELECT committed FROM entries WHERE cache_key = ?1",
+2430:                 params![cache_key],
+2431:                 |row| row.get::<_, bool>(0),
+2432:             )
+2433:             .unwrap_or(false)
+2434:     }
+2435: 
+2436:     /// An entry's `meta.json` as written, with none of [`Store::get`]'s work:
+2437:     /// no blob verification, hit accounting or eviction. For a caller that
+2438:     /// just stored the entry and wants its file list.
+2439:     pub fn stored_meta(&self, cache_key: &str) -> Option<EntryMeta> {
+2440:         let content = fs::read(self.entry_dir(cache_key).join("meta.json")).ok()?;
+2441:         serde_json::from_slice(&content).ok()
+2442:     }
+2443: 
+2444:     /// Load metadata for a cached entry and record a hit.
+2445:     pub fn get(&self, cache_key: &str) -> Result<Option<EntryMeta>> {
+2446:         if self.read_only {
+2447:             return self.get_read_only(cache_key);
+2448:         }
+2449:         if !self.contains(cache_key) {
+2450:             // If we previously evicted this key, this miss is the demand
+2451:             // signal an eviction policy needs and a live-store snapshot can
+2452:             // never show (kunobi-ninja/kache#594). Read-only unless a
+2453:             // not-yet-demanded tombstone actually matches.
+2454:             self.note_tombstone_demand(cache_key);
+2455:             return Ok(None);
+2456:         }
+2457: 
+2458:         let entry_dir = self.entry_dir(cache_key);
+2459:         let meta_path = entry_dir.join("meta.json");
+2460:         let content = fs::read_to_string(&meta_path).context("reading entry meta.json")?;
+2461:         let meta: EntryMeta = serde_json::from_str(&content).context("parsing entry meta.json")?;
+2462: 
+2463:         // Lazy migration: if legacy artifacts still live in the entry dir, migrate them
+2464:         let needs_migration = meta.files.iter().any(|f| entry_dir.join(&f.name).exists());
+2465:         if needs_migration && let Err(e) = self.migrate_entry_to_blobs(&meta) {
+2466:             tracing::warn!(
+2467:                 "lazy migration failed for {}: {e}",
+2468:                 &cache_key[..16.min(cache_key.len())]
+2469:             );
+2470:         }
+2471: 
+2472:         // Decide once per hit whether to content-verify, so all of an entry's
+2473:         // blobs are checked together (or none) and `Sampled` advances its
+2474:         // counter once per hit, not once per blob (kunobi-ninja/kache#332).
+2475:         // An entry stored without an fsync (deferred durability) is verified
+2476:         // byte for byte until the flush lands: a crash between the two could
+2477:         // have left a blob whose size is right and whose bytes are not.
+2478:         let pending_durability = !self.entry_is_durable(cache_key);
+2479:         let verify_content =
+2480:             pending_durability || should_verify_this_restore(verify_restores_mode());
+2481: 
+2482:         // Verify all cached blobs still exist on disk and match expected size
+2483:         for cached_file in &meta.files {
+2484:             let blob = self.blob_path(&cached_file.hash);
+2485:             if let Err(error) = validate_blob_metadata(&blob, cached_file.size) {
+2486:                 tracing::warn!(
+2487:                     "cache entry {} file {} has invalid blob metadata ({error:#}), evicting",
+2488:                     cache_key.get(..16).unwrap_or(cache_key),
+2489:                     cached_file.name,
+2490:                 );
+2491:                 let _ = self.remove_entry(cache_key);
+2492:                 return Ok(None);
+2493:             }
+2494: 
+2495:             // Content verification (KACHE_VERIFY_RESTORES=off|sampled|always):
+2496:             // re-hash the blob against its content address to catch silent
+2497:             // corruption / bit rot before it reaches the compiler. A mismatch is
+2498:             // routed through the same evict-and-miss path as a missing blob, so
+2499:             // the build recompiles rather than consuming a poisoned artifact.
+2500:             // `sampled` amortizes the extra read across ~1/16 of hits; `always`
+2501:             // checks every hit; `off` (default) relies on the size check above
+2502:             // (kunobi-ninja/kache#332).
+2503:             if verify_content {
+2504:                 match crate::file_hash::hash_file(&blob) {
+2505:                     Ok(actual) if actual == cached_file.hash => {}
+2506:                     Ok(actual) => {
+2507:                         tracing::warn!(
+2508:                             "cache entry {} file {} content mismatch (expected {}, got {}), evicting",
+2509:                             cache_key.get(..16).unwrap_or(cache_key),
+2510:                             cached_file.name,
+2511:                             &cached_file.hash[..16.min(cached_file.hash.len())],
+2512:                             &actual[..16.min(actual.len())],
+2513:                         );
+2514:                         let _ = self.remove_entry(cache_key);
+2515:                         return Ok(None);
+2516:                     }
+2517:                     Err(e) => {
+2518:                         tracing::warn!(
+2519:                             "cache entry {} file {} unreadable for verification ({e}), evicting",
+2520:                             cache_key.get(..16).unwrap_or(cache_key),
+2521:                             cached_file.name,
+2522:                         );
+2523:                         let _ = self.remove_entry(cache_key);
+2524:                         return Ok(None);
+2525:                     }
+2526:                 }
+2527:             }
+2528:         }
+2529: 
+2530:         // Update access time and hit count. The stamp pins the entry against
+2531:         // eviction for [`EVICTION_IDLE_GRACE`]; one that is already fresh
+2532:         // needs no write, and in a contended cell every hit's write would
+2533:         // queue behind the misses' store transactions. Hit counts therefore
+2534:         // count at most one hit per entry per [`HIT_STAMP_INTERVAL`].
+2535:         let age_seconds: Option<i64> = self
+2536:             .db
+2537:             .query_row(
+2538:                 "SELECT strftime('%s', 'now') - strftime('%s', last_accessed) FROM entries \
+2539:                  WHERE cache_key = ?1",
+2540:                 params![cache_key],
+2541:                 |row| row.get(0),
+2542:             )
+2543:             .optional()?;
+2544:         if age_seconds.is_none_or(|age| age >= HIT_STAMP_INTERVAL.as_secs() as i64) {
+2545:             self.db.execute(
+2546:                 "UPDATE entries SET last_accessed = datetime('now'), hit_count = hit_count + 1 \
+2547:                  WHERE cache_key = ?1",
+2548:                 params![cache_key],
+2549:             )?;
+2550:         }
+2551: 
+2552:         Ok(Some(meta))
+2553:     }
+2554: 
+2555:     /// Acquire a build lock for a cache key. Returns None if another process holds it.
+2556:     pub fn try_lock(&self, cache_key: &str) -> Result<Option<KeyLock>> {
+2557:         self.refuse_write("acquire a build lock")?;
+2558:         StoreLock::try_acquire(&self.entry_dir(cache_key).with_extension("lock"))
+2559:     }
+2560: 
+2561:     /// Claim a cache miss, re-checking the store after acquiring the key lock.
+2562:     ///
+2563:     /// The re-check closes the window where a peer can commit and release its
+2564:     /// lock between this process's cache lookup and lock acquisition.
+2565:     pub fn claim_build(&self, cache_key: &str) -> Result<BuildClaim> {
+2566:         let Some(lock) = self.try_lock(cache_key)? else {
+2567:             return Ok(BuildClaim::Contended);
+2568:         };
+2569:         match self.get(cache_key)? {
+2570:             Some(meta) if meta.files.is_empty() => {
+2571:                 tracing::warn!("cache entry {cache_key} has no files, evicting before build");
+2572:                 self.remove_entry(cache_key)?;
+2573:                 Ok(BuildClaim::Acquired(lock))
+2574:             }
+2575:             Some(meta) => Ok(BuildClaim::Committed(Box::new(meta))),
+2576:             None => Ok(BuildClaim::Acquired(lock)),
+2577:         }
+2578:     }
+
+crates/kache-store/src/store.rs:2850-2950
+2850:             emit_kinds,
+2851:         };
+2852:         let meta_json =
+2853:             serde_json::to_string_pretty(&meta).context("serializing entry metadata")?;
+2854:         let meta_path = entry_dir.join("meta.json");
+2855: 
+2856:         // Phase 2: register the entry and all of its blob references in a single
+2857:         // transaction, flipping `committed = 1` only once every blob is durable
+2858:         // on disk. Either the whole entry (with correct refcounts) becomes
+2859:         // visible, or none of it does — no refcount drift, no half-written row.
+2860:         //
+2861:         // `meta.json` is written INSIDE this transaction (#670), after the
+2862:         // write lock is held, so its appearance on disk is serialized against
+2863:         // `remove_entry_guarded`'s locked cleanup pass. Written before the
+2864:         // lock, a fresh meta could land between a racing removal's committed
+2865:         // row delete and its cleanup pass — whose republication check sees no
+2866:         // row for this key yet and deletes the directory, fresh meta included
+2867:         // — stranding this put's committed row with no artifacts and leaking
+2868:         // its refcounts until doctor or an index rebuild.
+2869:         let crate_type_str = crate_types.join(",");
+2870:         let num_features = features.len() as i64;
+2871:         let tx = self.db.unchecked_transaction()?;
+2872:         // A prior generation of this cache_key may still hold blob
+2873:         // references, most commonly a stranded row whose removal was
+2874:         // refused (#276) and that this put is about to overwrite via
+2875:         // INSERT OR REPLACE. Release them in this same transaction, before
+2876:         // this generation's increments and whatever the row's `committed`
+2877:         // state: a committed-but-stranded row is exactly the shape that
+2878:         // funnels back into put. Pre-#608 rows whose mapping the GC
+2879:         // backfill hasn't materialized yet still slip through (there is
+2880:         // nothing to decrement by); those remain `doctor --repair` /
+2881:         // reconcile territory.
+2882:         release_entry_blob_refs(&tx, cache_key)?;
+2883:         for (file, (source, use_source_hardlink)) in meta.files.iter().zip(sources.iter()) {
+2884:             let inserted = tx.execute(
+2885:                 "INSERT OR IGNORE INTO blobs (hash, size, refcount) VALUES (?1, ?2, 1)",
+2886:                 params![file.hash, file.size as i64],
+2887:             )?;
+2888:             if inserted == 0 {
+2889:                 tx.execute(
+2890:                     "UPDATE blobs SET refcount = refcount + 1 WHERE hash = ?1",
+2891:                     params![file.hash],
+2892:                 )?;
+2893:             }
+2894:             // Race guard: the INSERT/UPDATE above holds the write lock, and
+2895:             // `remove_entry` only unlinks a blob while holding that same lock,
+2896:             // so a concurrent reclaim cannot interleave here. If a remove
+2897:             // unlinked this blob between Phase 1 and now, re-materialize it
+2898:             // before we commit a reference to it — and verify the digest,
+2899:             // since the re-ingest reads the LIVE source (review finding #3).
+2900:             self.rematerialize_and_verify(source, &file.hash, &file.name, *use_source_hardlink)?;
+2901:         }
+2902:         record_entry_blobs(&tx, cache_key, &meta.files)?;
+2903:         // The write lock is held from the statements above (record_entry_blobs
+2904:         // always issues at least the DELETE). Materialize meta.json under it:
+2905:         // a concurrent removal's cleanup pass takes the same lock before it
+2906:         // deletes anything, so it runs either entirely before this write (this
+2907:         // put then re-creates the directory) or entirely after this
+2908:         // transaction commits (its republication check then sees this row and
+2909:         // leaves the directory alone). The staged write + atomic rename means
+2910:         // no reader — locked or not — can ever observe a truncated or
+2911:         // partially written meta.json, and the rename's parent-directory
+2912:         // fsync makes the new name durable alongside the contents.
+2913:         fs::create_dir_all(&entry_dir).context("creating entry directory")?;
+2914:         let durable = self.durable_writes();
+2915:         crate::atomic::atomic_replace_deferrable(&meta_path, meta_json.as_bytes(), durable)
+2916:             .context("writing entry metadata")?;
+2917:         tx.execute(
+2918:             "INSERT OR REPLACE INTO entries (cache_key, crate_name, crate_type, profile, num_features, size, content_hash, compile_time_ms, key_schema, committed, durable) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1, ?10)",
+2919:             params![cache_key, crate_name, crate_type_str, profile, num_features, total_size as i64, content_hash, compile_time_ms as i64, kache_format::CACHE_KEY_VERSION, durable],
+2920:         )?;
+2921:         tx.commit()?;
+2922: 
+2923:         // Both ingest phases may hardlink a compiler output to the immutable
+2924:         // blob and mark the shared inode read-only, changing ctime. Seed only
+2925:         // after the transaction's final rematerialization. Independent (C/C++)
+2926:         // puts use disposable staging paths and deliberately do not seed them.
+2927:         if allow_source_hardlinks {
+2928:             for (file, (source, _)) in meta.files.iter().zip(&sources) {
+2929:                 // The Rust wrapper expands dep-info back to absolute paths
+2930:                 // immediately after `put`, so it is not stable here.
+2931:                 if P::stable_after_store(&file.name) {
+2932:                     self.record_known_file_hash(source, &file.hash);
+2933:                 }
+2934:             }
+2935:         }
+2936: 
+2937:         Ok(put_result)
+2938:     }
+2939: 
+2940:     /// Import a remotely downloaded entry into the database.
+2941:     ///
+2942:     /// Downloaded entries arrive as tar archives extracted into the entry
+2943:     /// directory (old format: artifact files alongside meta.json). This
+2944:     /// method moves the artifact files into the content-addressed blob
+2945:     /// store and records them in the `blobs` table, leaving only
+2946:     /// `meta.json` in the entry directory.
+2947:     pub fn import_downloaded_entry(&self, cache_key: &str) -> Result<()> {
+2948:         self.refuse_write("import an entry")?;
+2949:         let entry_dir = self.entry_dir(cache_key);
+2950:         let meta_path = entry_dir.join("meta.json");
+
+crates/kache-store/src/store.rs:5856-5890
+5856:                 }
+5857:                 RemovalAttempt::Done(None) => return Ok(GuardedRemoval::Skipped),
+5858:                 RemovalAttempt::Unreclaimable => return Ok(GuardedRemoval::Unreclaimable),
+5859:                 // A republication landed while this attempt waited out a
+5860:                 // concurrent removal: the row belongs to a fresh generation
+5861:                 // whose meta is back. The caller asked to remove whatever is
+5862:                 // currently published, so run again against the new
+5863:                 // generation. Each pass requires another full republication
+5864:                 // inside the window, so this cannot spin on its own.
+5865:                 RemovalAttempt::Republished => {}
+5866:             }
+5867:         }
+5868:     }
+5869: 
+5870:     fn remove_entry_attempt(
+5871:         &self,
+5872:         cache_key: &str,
+5873:         skip_if_idle_lt: Option<Duration>,
+5874:         after_meta_read: Option<Box<dyn FnOnce() + '_>>,
+5875:         before_dir_cleanup: Option<Box<dyn FnOnce() + '_>>,
+5876:     ) -> Result<RemovalAttempt> {
+5877:         let entry_dir = self.entry_dir(cache_key);
+5878:         let meta_path = entry_dir.join("meta.json");
+5879: 
+5880:         // Load the blob hashes this entry references. If `meta.json` exists but
+5881:         // can't be read or parsed, we CANNOT know which blobs to decrement —
+5882:         // deleting the entry row anyway permanently orphans those refcounts (the
+5883:         // blobs keep their DB row and evade size-based eviction forever). Refuse
+5884:         // the removal so a corrupt entry never silently leaks (#276); callers
+5885:         // (GC / purge / `doctor --repair`) log and move on, and the entry stays
+5886:         // accounted-for until a fresh `put` (INSERT OR REPLACE) overwrites it.
+5887:         let meta_content: String;
+5888:         let hashes: Vec<String> = match fs::read_to_string(&meta_path) {
+5889:             Ok(content) => {
+5890:                 let meta: EntryMeta = serde_json::from_str(&content).with_context(|| {
+
+crates/kache-store/src/store.rs:6050-6227
+6050:         }
+6051: 
+6052:         // Delete the entry row first. If rows_affected is 0, another remover
+6053:         // already released this entry's references; we skip the decrements so
+6054:         // two removers can never double-decrement a shared blob's refcount
+6055:         // and unlink a blob a live entry still points at (#510). This gate —
+6056:         // not `gc.lock` — is what makes concurrent removal safe; the lock is
+6057:         // defence in depth for bulk sweeps.
+6058:         let rows_affected = tx.execute(
+6059:             "DELETE FROM entries WHERE cache_key = ?1",
+6060:             params![cache_key],
+6061:         )?;
+6062: 
+6063:         // A remover that deleted no row releases nothing and must not touch
+6064:         // the directory either (#670): a fresh `meta.json` there may belong
+6065:         // to a publisher whose registration has not committed yet. Reporting
+6066:         // `None` also keeps callers (eviction stats, tombstones) from
+6067:         // double-counting one entry as two removals (#510).
+6068:         if rows_affected == 0 {
+6069:             return Ok(RemovalAttempt::Done(None));
+6070:         }
+6071: 
+6072:         // Republication guard (#670): the row just deleted may belong to a
+6073:         // NEWER publication than the meta.json this removal read its hash
+6074:         // list from — decrementing the old hashes against the new row's
+6075:         // refcounts corrupts the store. `put` materializes meta.json inside
+6076:         // its own registration transaction, so under the write lock this
+6077:         // transaction holds the pairing cannot move: any difference means a
+6078:         // republication won, and the removal rolls back untouched. A
+6079:         // meta.json that vanished or went corrupt in the window takes the
+6080:         // same rollback; the NEXT removal attempt reports it properly
+6081:         // through the #276 guards above.
+6082:         let still_ours = matches!(fs::read_to_string(&meta_path), Ok(now) if now == meta_content);
+6083:         if !still_ours {
+6084:             return Ok(RemovalAttempt::Done(None));
+6085:         }
+6086:         // A mapping nobody counted must not spend another entry's reference
+6087:         // and unlink a blob that entry still serves from.
+6088:         floor_blob_refs_at_mappings(&tx, cache_key)?;
+6089:         tx.execute(
+6090:             "DELETE FROM entry_blobs WHERE cache_key = ?1",
+6091:             params![cache_key],
+6092:         )?;
+6093:         // Decrement in the DB but defer every physical unlink to the cleanup
+6094:         // pass after commit: while this transaction can still roll back, the
+6095:         // blob files its refcounts describe must remain on disk.
+6096:         let mut reclaim = RemovalReclaim::default();
+6097:         let mut unlink = Vec::new();
+6098:         for hash in &hashes {
+6099:             tx.execute(
+6100:                 "UPDATE blobs SET refcount = refcount - 1 WHERE hash = ?1",
+6101:                 params![hash],
+6102:             )?;
+6103:             let row: Option<(i64, i64)> = tx
+6104:                 .query_row(
+6105:                     "SELECT refcount, size FROM blobs WHERE hash = ?1",
+6106:                     params![hash],
+6107:                     |row| Ok((row.get(0)?, row.get(1)?)),
+6108:                 )
+6109:                 .ok();
+6110:             if let Some((rc, size)) = row
+6111:                 && rc <= 0
+6112:             {
+6113:                 tx.execute("DELETE FROM blobs WHERE hash = ?1", params![hash])?;
+6114:                 unlink.push((hash.clone(), size));
+6115:             }
+6116:         }
+6117: 
+6118:         // Commit the LOGICAL removal before touching the filesystem (#670).
+6119:         // SQLite can roll back SQL; it cannot restore a deleted meta.json or
+6120:         // an unlinked blob — so any structure that deletes files inside this
+6121:         // transaction turns a crash or commit failure after the deletions
+6122:         // into a committed row whose artifacts are gone, the exact phantom
+6123:         // this function exists to prevent. Committing first inverts every
+6124:         // crash window into the recoverable direction: a crash from here on
+6125:         // leaves at worst an unindexed directory (a later put or index
+6126:         // rebuild reclaims it) or orphaned blob files (the orphan sweep
+6127:         // reclaims those), never a live row without its files.
+6128:         tx.commit()?;
+6129: 
+6130:         // Cleanup pass: a second short transaction whose only purpose is the
+6131:         // write lock. Serializing the filesystem deletions against same-key
+6132:         // writers is what closes the original #670 window — an unlocked
+6133:         // cleanup could delete a meta.json that a publisher materialized
+6134:         // (inside its own registration transaction) between our commit above
+6135:         // and this pass.
+6136:         let cleanup_tx = self.db.unchecked_transaction()?;
+6137:         cleanup_tx.execute("UPDATE entries SET cache_key = cache_key WHERE 1 = 0", [])?;
+6138: 
+6139:         if let Some(hook) = before_dir_cleanup {
+6140:             hook();
+6141:         }
+6142: 
+6143:         // A publisher may have republished this key between the commit above
+6144:         // and this lock. The directory then belongs to the new generation:
+6145:         // leave it untouched. Its blob adoption also re-inserted any of our
+6146:         // zero-ref rows it needed, which the per-blob guard below observes.
+6147:         let republished: i64 = cleanup_tx.query_row(
+6148:             "SELECT EXISTS(SELECT 1 FROM entries WHERE cache_key = ?1)",
+6149:             params![cache_key],
+6150:             |row| row.get(0),
+6151:         )?;
+6152: 
+6153:         if republished == 0 {
+6154:             // Remove the entry directory (just meta.json in new format, may
+6155:             // have artifacts in legacy entries). Windows can surface external
+6156:             // interference as delete-pending errors (sharing violations from
+6157:             // readers mid-hardlink), so on any error re-check whether the
+6158:             // directory is actually gone, with a brief bounded retry (worst
+6159:             // case 50ms of extra lock hold). A directory that persists past
+6160:             // the retries is a real failure (permissions, open handles): it
+6161:             // propagates (#510). The logical removal is already committed, so
+6162:             // the failure leaves only an unindexed directory — recoverable —
+6163:             // never a live row whose files are gone.
+6164:             if let Ok(entries) = fs::read_dir(&entry_dir) {
+6165:                 for entry in entries.flatten() {
+6166:                     let path = entry.path();
+6167:                     if let Ok(meta) = fs::metadata(&path) {
+6168:                         let mut perms = meta.permissions();
+6169:                         perms.set_readonly(false);
+6170:                         let _ = fs::set_permissions(&path, perms);
+6171:                     }
+6172:                 }
+6173:             }
+6174:             let mut result = Ok(());
+6175:             for _ in 0..5 {
+6176:                 result = match fs::remove_dir_all(&entry_dir) {
+6177:                     Ok(()) => Ok(()),
+6178:                     Err(e) => {
+6179:                         // Benign exactly when the directory is gone: NotFound
+6180:                         // is the Unix shape of losing the race, and Windows
+6181:                         // surfaces a competitor's in-flight delete as
+6182:                         // delete-pending errors instead.
+6183:                         if !entry_dir.exists() { Ok(()) } else { Err(e) }
+6184:                     }
+6185:                 };
+6186:                 if result.is_ok() {
+6187:                     break;
+6188:                 }
+6189:                 std::thread::sleep(Duration::from_millis(10));
+6190:             }
+6191:             result.with_context(|| format!("entry {cache_key}: removing entry directory"))?;
+6192:         }
+6193: 
+6194:         // Unlink dead blobs under the write lock so a concurrent adopter
+6195:         // can't commit a reference to a file we're deleting — re-checked
+6196:         // per blob, because a publisher that won the lock between our two
+6197:         // transactions may have re-inserted some of the rows the first
+6198:         // transaction deleted. Only bytes whose last reference went away are
+6199:         // physically freed — that, not the entry's logical size, is what
+6200:         // eviction budgets on (#608).
+6201:         for (hash, size) in unlink {
+6202:             let readopted: i64 = cleanup_tx.query_row(
+6203:                 "SELECT EXISTS(SELECT 1 FROM blobs WHERE hash = ?1)",
+6204:                 params![hash],
+6205:                 |row| row.get(0),
+6206:             )?;
+6207:             if readopted == 0 {
+6208:                 let blob = self.blob_path(&hash);
+6209:                 let disk =
+6210:                     crate::filesystem::blob_reclaimable_bytes(&blob).unwrap_or(size.max(0) as u64);
+6211:                 unlink_blob(&blob);
+6212:                 reclaim.freed_bytes += size.max(0) as u64;
+6213:                 reclaim.disk_bytes_reclaimed += disk;
+6214:                 reclaim.blobs_unlinked += 1;
+6215:             }
+6216:         }
+6217:         cleanup_tx.commit()?;
+6218:         Ok(RemovalAttempt::Done(Some(reclaim)))
+6219:     }
+6220: 
+6221:     /// Test-only: insert a bare committed entry row, for tests that stage a
+6222:     /// synthetic `meta.json` and need removal to own the directory (#670
+6223:     /// made directory cleanup conditional on owning the row).
+6224:     #[cfg(any(test, feature = "test-support"))]
+6225:     #[doc(hidden)]
+6226:     pub fn insert_entry_row_for_test(&self, cache_key: &str) {
+6227:         self.db
+
+src/wrapper.rs:4445-4470
+4445:         cache_entry_has_files,
+4446:     );
+4447:     let (lock, committed) = if let Some(meta) = scheduled_hit {
+4448:         (None, Some(meta))
+4449:     } else {
+4450:         match store.claim_build(&cache_key) {
+4451:             Ok(BuildClaim::Acquired(lock)) => (Some(lock), None),
+4452:             Ok(BuildClaim::Committed(meta)) => (None, Some(*meta)),
+4453:             Err(e) => {
+4454:                 tracing::warn!(
+4455:                     "claiming build for {} failed: {} — recompiling",
+4456:                     crate_name,
+4457:                     e
+4458:                 );
+4459:                 (None, None)
+4460:             }
+4461:             Ok(BuildClaim::Contended) => {
+4462:                 // Another process is building this key — wait for it
+4463:                 tracing::debug!("waiting for {} to be built by another process", crate_name);
+4464:                 let committed = store
+4465:                     .wait_for_committed(&cache_key)
+4466:                     .unwrap_or(false)
+4467:                     .then(|| store.get(&cache_key).ok().flatten())
+4468:                     .flatten();
+4469:                 (None, committed)
+4470:             }
+
+src/wrapper.rs:4890-4955
+4890:         print_progress(crate_name, EventResult::Skipped, elapsed, 0);
+4891:         clean_incremental_dir(config, args);
+4892:         return Ok(result.exit_code);
+4893:     };
+4894: 
+4895:     let store_start = std::time::Instant::now();
+4896:     let trace_store = crate::phase_trace::phase("store");
+4897:     let mut store_put = StorePutResult::default();
+4898:     let mut store_error = String::new();
+4899:     let put = store.put_with_compile_time(
+4900:         &cache_key,
+4901:         crate_name,
+4902:         &args.crate_types,
+4903:         &args.features,
+4904:         target,
+4905:         profile,
+4906:         &prepared_store.files,
+4907:         &result.stdout,
+4908:         &result.stderr,
+4909:         compile_time_ms,
+4910:     );
+4911:     // A stored entry grew the store: throttled size check and a detached
+4912:     // background GC if over budget (kunobi-ninja/kache#497). A put refused for
+4913:     // lack of space asks for recovery. Neither blocks the compile.
+4914:     after_store(config, &store, put.as_ref().err());
+4915:     match put {
+4916:         Ok(result) => {
+4917:             store_put = result;
+4918:             if let Some(unit) = args.get_codegen_opt("metadata")
+4919:                 && let Err(e) = store.record_entry_unit(&cache_key, unit)
+4920:             {
+4921:                 tracing::debug!("recording the unit of {crate_name}'s entry failed: {e}");
+4922:             }
+4923:             // A large executable just stored is the next build's restore.
+4924:             if stores_prestage_candidate(&prepared_store.files)
+4925:                 && let Some(output_dir) = rustc_output_dir(args)
+4926:                 && let Some(meta) = store.stored_meta(&cache_key)
+4927:             {
+4928:                 let shared =
+4929:                     shared_inode_loadable(args, platform::current().may_share_restored_loadables());
+4930:                 remember_prestaged_executables(config, compiler, args, &output_dir, shared, &meta);
+4931:             }
+4932:             flush_or_hand_off_durability(config, &store, &cache_key);
+4933:         }
+4934:         // Name the crate, as the cc path already does: a failed store leaves that
+4935:         // unit re-compiling on every build while the aggregate hit rate barely
+4936:         // moves, and the crate name is the only thread back to it (#624). The
+4937:         // reason also rides the event, so `report` / `why-miss` can say the miss
+4938:         // is permanent rather than cold (#629).
+4939:         Err(e) => {
+4940:             store_error = store_error_for_event(&e);
+4941:             tracing::warn!(
+4942:                 "failed to store cache entry for {}: {}",
+4943:                 crate_name,
+4944:                 store_error
+4945:             );
+4946:         }
+4947:     }
+4948:     drop(trace_store);
+4949:     let store_ms = store_start.elapsed().as_millis() as u64;
+4950: 
+4951:     // 6. Queue remote publication through the shared durable upload path.
+4952:     maybe_enqueue_upload(config, &store, &cache_key, crate_name, true);
+4953: 
+4954:     record_input_prediction(config, Some(&store), args, record_closure, &key_outputs);
+4955: 
