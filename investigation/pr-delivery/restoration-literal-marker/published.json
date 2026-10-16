@@ -1,0 +1,8 @@
+{
+  "id": "restoration-literal-marker",
+  "url": "https://github.com/kunobi-ninja/kache/pull/1502",
+  "branch": "fix/restoration-literal-marker",
+  "fix_commit": "27525c27865026aa5943a36cb7e32d4dfd1b664b",
+  "state": "draft",
+  "review": "investigation/pr-delivery/reviews/restoration-literal-marker.md"
+}

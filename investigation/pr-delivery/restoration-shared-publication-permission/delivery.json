@@ -1,0 +1,19 @@
+{
+  "id": "restoration-shared-publication-permission",
+  "branch": "fix/restoration-shared-publication-permission",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/restoration-shared-publication-permission",
+  "test_commit": "f4d568385c7a429afe570073a30864418ed300bc",
+  "fix_commit": "8a819c9787a8306ec83d5fa2369d78bd693a8ddc",
+  "title": "Keep published shared blobs read-only during duplicate publication",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/pr-delivery/restoration-shared-publication-permission/pr-body.md",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "gate_command": "env CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/restoration-literal-marker/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py just check",
+  "gate_exit": 0,
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/pr-delivery/restoration-shared-publication-permission/logs/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/pr-delivery/restoration-shared-publication-permission/logs/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/pr-delivery/restoration-shared-publication-permission/logs/gate.log",
+  "changed_files": [
+    "crates/kache-store/src/store.rs",
+    "crates/kache-store/src/store/tests.rs"
+  ]
+}

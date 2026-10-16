@@ -1,0 +1,1 @@
+main.o: main.cpp __kache_root__/value.h

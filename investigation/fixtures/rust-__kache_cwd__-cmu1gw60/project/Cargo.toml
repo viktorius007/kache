@@ -1,0 +1,7 @@
+[package]
+name="restoration_probe"
+version="0.1.0"
+edition="2024"
+[[bin]]
+name="restoration_probe"
+path="__kache_cwd__/main.rs"

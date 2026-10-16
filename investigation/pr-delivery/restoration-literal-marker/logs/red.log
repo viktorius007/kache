@@ -1,0 +1,90 @@
+   Compiling libc v0.2.189
+   Compiling cfg-if v1.0.4
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.24
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.12
+   Compiling cc v1.4.5
+   Compiling getrandom v0.3.4
+   Compiling serde_core v1.0.229
+   Compiling bitflags v2.13.1
+   Compiling getrandom v0.4.3
+   Compiling vcpkg v0.2.15
+   Compiling pkg-config v0.3.34
+   Compiling zerocopy v0.8.57
+   Compiling rustix v1.1.4
+   Compiling once_cell v1.21.4
+   Compiling libsqlite3-sys v0.38.2
+   Compiling rand_core v0.9.5
+   Compiling syn v3.0.5
+   Compiling errno v0.3.14
+   Compiling serde v1.0.229
+   Compiling autocfg v1.5.1
+   Compiling foldhash v0.2.0
+   Compiling zmij v1.0.23
+   Compiling num-traits v0.2.19
+   Compiling hashbrown v0.17.1
+   Compiling serde_derive v1.0.229
+   Compiling blake3 v1.8.7
+   Compiling syn v2.0.119
+   Compiling anyhow v1.0.104
+   Compiling fastrand v2.5.0
+   Compiling serde_json v1.0.151
+   Compiling tempfile v3.27.0
+   Compiling ppv-lite86 v0.2.21
+   Compiling tracing-attributes v0.1.31
+   Compiling hashlink v0.12.2
+   Compiling tracing-core v0.1.36
+   Compiling smallvec v1.15.2
+   Compiling fallible-streaming-iterator v0.1.9
+   Compiling fallible-iterator v0.3.0
+   Compiling pin-project-lite v0.2.17
+   Compiling constant_time_eq v0.4.2
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling arrayvec v0.7.8
+   Compiling rusqlite v0.40.2
+   Compiling tracing v0.1.44
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/restoration-literal-marker/crates/kache-format)
+   Compiling rand_chacha v0.9.0
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/restoration-literal-marker/crates/kache-fs)
+   Compiling rand_xorshift v0.4.0
+   Compiling rand v0.9.5
+   Compiling filetime v0.2.29
+   Compiling regex-syntax v0.8.11
+   Compiling unarray v0.1.4
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/restoration-literal-marker/crates/kache-store)
+   Compiling proptest v1.11.0
+    Finished `test` profile [unoptimized] target(s) in 15.96s
+     Running unittests src/lib.rs (target/debug/deps/kache_store-0579b58586fb6f8d)
+
+running 2 tests
+test link::tests::depinfo_rewrite_preserves_literal_marker_dependencies ... FAILED
+test link::tests::rustc_depinfo_rewrite_preserves_literal_marker_dependencies ... FAILED
+
+failures:
+
+---- link::tests::depinfo_rewrite_preserves_literal_marker_dependencies stdout ----
+
+thread 'link::tests::depinfo_rewrite_preserves_literal_marker_dependencies' (51139675) panicked at crates/kache-store/src/link.rs:3445:9:
+assertion `left == right` failed: literal dependency names must survive cache relocation
+  left: "/consumer/demo.o: /consumer/value.h normal.h /consumer/generated.h\n"
+ right: "/consumer/demo.o: __kache_root__/value.h normal.h /consumer/generated.h\n"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- link::tests::rustc_depinfo_rewrite_preserves_literal_marker_dependencies stdout ----
+
+thread 'link::tests::rustc_depinfo_rewrite_preserves_literal_marker_dependencies' (51139676) panicked at crates/kache-store/src/link.rs:3476:9:
+assertion `left == right` failed: literal source names and environment values must survive cache relocation
+  left: "/consumer/target/demo.d: __kache_root__/root.rs /consumer/main.rs /consumer/shared.rs /consumer/target/generated.rs /new-external/external.h normal.rs /consumer/src/lib.rs /new-external/real.h\n# env-dep:ASSET=/consumer/literal.txt\n"
+ right: "/consumer/target/demo.d: __kache_root__/root.rs __kache_cwd__/main.rs __kache_workspace__/shared.rs __kache_target_rule__/generated.rs __kache_base_dir_0__/external.h normal.rs /consumer/src/lib.rs /new-external/real.h\n# env-dep:ASSET=__kache_cwd__/literal.txt\n"
+
+
+failures:
+    link::tests::depinfo_rewrite_preserves_literal_marker_dependencies
+    link::tests::rustc_depinfo_rewrite_preserves_literal_marker_dependencies
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 570 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p kache-store --lib`

@@ -1,0 +1,24 @@
+{
+  "project": "Users-viktor-Developer-github-kache-investigations-coordinator",
+  "baseline": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "graph": "ready, semantic_partial: binding_oracle_unavailable, expanded_calls_unavailable, impl_relationships_unavailable; unresolved Rust CALLS; evidence/graph-status.log",
+  "source_scope": [
+    "link.rs marker rewriting, link_to_target, copy/permission helpers, prepare_writable_target_from_file, write_restored",
+    "store.rs stage/publish/discard and put paths",
+    "wrapper.rs Rust/C++ store preparation and cached artifact restore",
+    "compiler_store.rs immutable artifact hardlink policy"
+  ],
+  "executed": [
+    "Rust 4 literal marker cases and ordinary control",
+    "C++ literal root marker and ordinary control",
+    "HFS+ baseline public store duplicate publication red",
+    "APFS/HFS+ public materialization controls and independent publication controls"
+  ],
+  "limits": [
+    "No Linux or Windows runtime tests, concurrency or crash testing",
+    "HFS+ Cargo cold/restore exploratory attempt yielded no blobs; not admitted as a cache-hit control",
+    "No end-to-end Cargo reproduction of duplicate existing-source inode submission; store public API boundary proved",
+    "Root stopped new experiments after reporting agent-runtime content-flag error; final checkpoint uses only completed evidence",
+    "No production modifications; no full suite/mutations; no broad defect-free claim"
+  ]
+}

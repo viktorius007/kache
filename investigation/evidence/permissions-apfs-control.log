@@ -1,0 +1,15 @@
+ARGV ["/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/permission-probe", "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t", "independent"]
+CWD /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t
+ENV {"HOME": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/home", "RUSTUP_HOME": "/Users/viktor/.rustup", "CARGO_HOME": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/cargo-home", "KACHE_CONFIG": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/config.toml", "KACHE_CACHE_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/volume/cache", "KACHE_RUNTIME_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/runtime", "TMPDIR": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/tmp", "RUSTC_WRAPPER": ""}
+EXIT 0
+RESTORE Hardlink source_mode=444 output_mode=644 shared=false
+RESTORE Copy source_mode=444 output_mode=755 shared=false
+RESTORE ExecutableHardlink source_mode=444 output_mode=755 shared=false
+RESTORE Hardlink source_mode=555 output_mode=755 shared=false
+RESTORE Copy source_mode=555 output_mode=755 shared=false
+RESTORE ExecutableHardlink source_mode=555 output_mode=755 shared=false
+RESTORE_CONTROLS_GREEN
+PUBLISHED mode=444 inode=1917901256 source_inode=1917901254 nlink=1
+AFTER_DUPLICATE mode=444 inode=1917901256 nlink=1
+SOURCE_WRITE Ok(()); BLOB_CHANGED false
+INDEPENDENT_BLOB_PROTECTED

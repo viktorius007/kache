@@ -1,0 +1,15 @@
+[
+  {
+    "binary": "proven baseline",
+    "exit": 0,
+    "stdout": "\nrunning 1 test\ntest sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.25s\n\n",
+    "stderr": ""
+  },
+  {
+    "binary": "restored final",
+    "sha256": "ca423a7af9cd8771d429e22dd3fb538bf9b5c3169e7f26d3f7889bede7850791",
+    "exit": 0,
+    "stdout": "\nrunning 1 test\ntest sandbox_preflight_bypasses_denied_server_but_keeps_allowed_server ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.24s\n\n",
+    "stderr": ""
+  }
+]

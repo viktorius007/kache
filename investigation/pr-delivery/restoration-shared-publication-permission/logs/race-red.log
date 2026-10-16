@@ -1,0 +1,22 @@
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/restoration-shared-publication-permission/crates/kache-store)
+    Finished `test` profile [unoptimized] target(s) in 2.38s
+     Running unittests src/lib.rs (/Users/viktor/Developer/github/kache-prs/restoration-literal-marker/target/debug/deps/kache_store-0579b58586fb6f8d)
+
+running 1 test
+test store::tests::losing_shared_publication_preserves_blob_readonly ... FAILED
+
+failures:
+
+---- store::tests::losing_shared_publication_preserves_blob_readonly stdout ----
+
+thread 'store::tests::losing_shared_publication_preserves_blob_readonly' (52728148) panicked at crates/kache-store/src/store/tests.rs:1371:9:
+losing shared publication cleared the winner's read-only protection: winner_already_exists=false
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    store::tests::losing_shared_publication_preserves_blob_readonly
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 571 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p kache-store --lib`

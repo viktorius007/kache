@@ -1,0 +1,25 @@
+{
+  "case": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/cpp-marker-cw92fmq9",
+  "steps": [
+    {
+      "label": "cold",
+      "value": "1",
+      "dep_info": "main.o: main.cpp normal/value.h\n",
+      "make_output": "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache clang++ -MMD -MF main.d -c main.cpp -o main.o\nclang++ main.o -o probe\n2026-10-11T07:03:31.502478Z DEBUG kache::compiler::cc: [cc:main.cpp] flag classify: 0 modeled / 0 raw-keyed / 0 probe / 0 preprocessor / 6 no-effect / 1 parser-handled / 0 user-allowed / 0 unmodeled\n2026-10-11T07:03:31.602557Z DEBUG kache::wrapper: cc cache key for main.cpp: 5691990c04c7e5ab\n2026-10-11T07:03:31.602661Z DEBUG kache::scheduler: scheduler resource snapshot; resource-aware admission is future work available=16 ancestor_limits_complete=false current_memory_events_known=false current_memory_low=0 current_memory_high=0 current_memory_max=0 current_memory_oom=0 current_memory_oom_kill=0 current_memory_oom_group_kill=0\n"
+    },
+    {
+      "label": "restore",
+      "value": "1",
+      "dep_info": "main.o: main.cpp normal/value.h\n",
+      "make_output": "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache clang++ -MMD -MF main.d -c main.cpp -o main.o\nclang++ main.o -o probe\n2026-10-11T07:03:31.760704Z DEBUG kache::compiler::cc: [cc:main.cpp] flag classify: 0 modeled / 0 raw-keyed / 0 probe / 0 preprocessor / 6 no-effect / 1 parser-handled / 0 user-allowed / 0 unmodeled\n2026-10-11T07:03:31.764086Z DEBUG kache::wrapper: cc cache key for main.cpp: 5691990c04c7e5ab\n2026-10-11T07:03:31.765044Z DEBUG kache_store::link: reflinked /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/cpp-marker-cw92fmq9/store/store/blobs/56/56f45f0b9d3b6558c12766975c24fe5e0690ac67425e4b8acc5d7a4848647925 -> main.o\n2026-10-11T07:03:31.765287Z DEBUG kache::wrapper: cc local cache hit for main.cpp (5691990c04c7e5ab)\n"
+    },
+    {
+      "label": "after-header-change",
+      "value": "2",
+      "dep_info": "main.o: main.cpp normal/value.h\n",
+      "make_output": "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache clang++ -MMD -MF main.d -c main.cpp -o main.o\nclang++ main.o -o probe\n2026-10-11T07:03:32.927028Z DEBUG kache::compiler::cc: [cc:main.cpp] flag classify: 0 modeled / 0 raw-keyed / 0 probe / 0 preprocessor / 6 no-effect / 1 parser-handled / 0 user-allowed / 0 unmodeled\n2026-10-11T07:03:32.929552Z DEBUG kache::cache_key: cc preprocess memo input /kache/cc-root/normal/value.h matched none of 1 candidate paths\n2026-10-11T07:03:32.954865Z DEBUG kache::wrapper: cc cache key for main.cpp: f57bca606702f453\n2026-10-11T07:03:32.954965Z DEBUG kache::scheduler: scheduler resource snapshot; resource-aware admission is future work available=16 ancestor_limits_complete=false current_memory_events_known=false current_memory_low=0 current_memory_high=0 current_memory_max=0 current_memory_oom=0 current_memory_oom_kill=0 current_memory_oom_group_kill=0\n"
+    }
+  ],
+  "expected": "2",
+  "actual": "2"
+}

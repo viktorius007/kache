@@ -1,0 +1,20 @@
+ARGV ["/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/permission-probe", "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/volume", "shared"]
+CWD /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t
+ENV {"HOME": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/home", "RUSTUP_HOME": "/Users/viktor/.rustup", "CARGO_HOME": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/cargo-home", "KACHE_CONFIG": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/config.toml", "KACHE_CACHE_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/volume/cache", "KACHE_RUNTIME_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/runtime", "TMPDIR": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/tmp", "RUSTC_WRAPPER": ""}
+EXIT 101
+RESTORE Hardlink source_mode=444 output_mode=444 shared=true
+RESTORE Copy source_mode=444 output_mode=755 shared=false
+RESTORE ExecutableHardlink source_mode=444 output_mode=755 shared=false
+RESTORE Hardlink source_mode=555 output_mode=555 shared=true
+RESTORE Copy source_mode=555 output_mode=755 shared=false
+RESTORE ExecutableHardlink source_mode=555 output_mode=555 shared=true
+RESTORE_CONTROLS_GREEN
+PUBLISHED mode=444 inode=82 source_inode=82 nlink=2
+AFTER_DUPLICATE mode=666 inode=82 nlink=2
+SOURCE_WRITE Ok(()); BLOB_CHANGED true
+
+thread 'main' (48868255) panicked at /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/permission-probe.rs:47:2:
+assertion `left == right` failed: PUBLISHED_BLOB_BECAME_WRITABLE: duplicate publication cleared read-only on existing shared blob
+  left: 146
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

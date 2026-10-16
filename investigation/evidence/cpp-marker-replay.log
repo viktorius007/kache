@@ -1,0 +1,10 @@
+cold 1 main.o: main.cpp __kache_root__/value.h
+
+restore 1 main.o: main.cpp /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/cpp-marker-mkun94lh/project/value.h
+
+after-header-change 1 main.o: main.cpp /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/cpp-marker-mkun94lh/project/value.h
+
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/cpp-marker-replay.py", line 17, in <module>
+    assert value=='2',f'CPP_HEADER_CHANGE_MISSED: literal {marker} header changed but executable returned {value}, expected 2'
+AssertionError: CPP_HEADER_CHANGE_MISSED: literal __kache_root__ header changed but executable returned 1, expected 2

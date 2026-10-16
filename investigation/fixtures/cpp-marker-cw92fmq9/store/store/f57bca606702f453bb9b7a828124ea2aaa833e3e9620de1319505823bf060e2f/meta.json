@@ -1,0 +1,30 @@
+{
+  "cache_key": "f57bca606702f453bb9b7a828124ea2aaa833e3e9620de1319505823bf060e2f",
+  "key_schema": 32,
+  "crate_name": "main.cpp",
+  "crate_types": [],
+  "files": [
+    {
+      "name": "__kache_cc_object.o",
+      "size": 728,
+      "hash": "3ccf72a56c420b73561fcf693e2a0982c5ba623d9e643454d10f0333578c4ec3",
+      "executable": false
+    },
+    {
+      "name": "__kache_cc_depinfo.d",
+      "size": 32,
+      "hash": "69b6bb8c368e8794e1138da183ef4e8363c3bef9008cd15c930c2f0449c877a9",
+      "executable": false
+    }
+  ],
+  "stdout": "",
+  "stderr": "",
+  "features": [],
+  "target": "aarch64",
+  "profile": "",
+  "compile_time_ms": 23,
+  "emit_kinds": [
+    "dep-info",
+    "obj"
+  ]
+}

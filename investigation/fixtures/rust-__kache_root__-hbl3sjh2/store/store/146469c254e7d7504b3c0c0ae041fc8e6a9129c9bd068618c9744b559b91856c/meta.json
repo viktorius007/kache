@@ -1,0 +1,38 @@
+{
+  "cache_key": "146469c254e7d7504b3c0c0ae041fc8e6a9129c9bd068618c9744b559b91856c",
+  "key_schema": 32,
+  "crate_name": "restoration_probe",
+  "crate_types": [
+    "bin"
+  ],
+  "files": [
+    {
+      "name": "restoration_probe-9eb752662eed7283.d",
+      "size": 198,
+      "hash": "67857f184d8bdfa003fde115922cedb2ff709ebbce1fdb695caa79f27ac86ed9",
+      "executable": false
+    },
+    {
+      "name": "restoration_probe-9eb752662eed7283",
+      "size": 472176,
+      "hash": "3c093079fb58a6f919fc807d82e40be6d82039a822f475463d39b4440897ebc2",
+      "executable": true
+    },
+    {
+      "name": "restoration_probe-9eb752662eed7283.dsym.tar",
+      "size": 2348032,
+      "hash": "64dce9a6fd66f548078b761ac71cc9771dd8a11813e76b4864d3dc6e07657a60",
+      "executable": false
+    }
+  ],
+  "stdout": "",
+  "stderr": "{\"$message_type\":\"artifact\",\"artifact\":\"/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_root__-hbl3sjh2/project/target/debug/deps/restoration_probe-9eb752662eed7283.d\",\"emit\":\"dep-info\"}\n{\"$message_type\":\"artifact\",\"artifact\":\"/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_root__-hbl3sjh2/project/target/debug/deps/restoration_probe-9eb752662eed7283\",\"emit\":\"link\"}\n",
+  "features": [],
+  "target": "host",
+  "profile": "dev",
+  "compile_time_ms": 140,
+  "emit_kinds": [
+    "dep-info",
+    "link"
+  ]
+}

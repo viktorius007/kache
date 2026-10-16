@@ -1,0 +1,146 @@
+{
+  "case": "/Users/viktor/Developer/github/kache-prs/restoration-literal-marker/target/sandbox-discovery-g39strnf",
+  "baseline_sha256": "45840941809ca7c45622027f84d2c653c737e7ff35d375cfbf355b619456120f",
+  "final_sha256": "ca423a7af9cd8771d429e22dd3fb538bf9b5c3169e7f26d3f7889bede7850791",
+  "commands": [
+    {
+      "argv": [
+        "/usr/sbin/lsof",
+        "-nP",
+        "-a",
+        "-i",
+        "TCP@127.0.0.1:62587",
+        "-sTCP:LISTEN",
+        "-Fp"
+      ],
+      "elapsed_ms": 59.97,
+      "exit": 0,
+      "stdout": "p28443\nf3\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/sbin/lsof",
+        "-nP",
+        "-a",
+        "-i",
+        "TCP@127.0.0.1:62587",
+        "-sTCP:LISTEN",
+        "-Fp"
+      ],
+      "elapsed_ms": 55.66,
+      "exit": 0,
+      "stdout": "p28443\nf3\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/sbin/lsof",
+        "-nP",
+        "-a",
+        "-i",
+        "TCP@127.0.0.1:62587",
+        "-sTCP:LISTEN",
+        "-Fp"
+      ],
+      "elapsed_ms": 55.55,
+      "exit": 0,
+      "stdout": "p28443\nf3\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/sbin/lsof",
+        "-nP",
+        "-a",
+        "-i",
+        "TCP@127.0.0.1:62587",
+        "-sTCP:LISTEN",
+        "-Fp"
+      ],
+      "elapsed_ms": 55.72,
+      "exit": 0,
+      "stdout": "p28443\nf3\n",
+      "stderr": ""
+    },
+    {
+      "label": "baseline",
+      "fixture": "denied",
+      "argv": [
+        "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+        "/Users/viktor/Developer/github/kache-prs/restoration-literal-marker/target/sandbox-discovery-g39strnf/denied/cc",
+        "-xassembler-with-cpp",
+        "-c",
+        "input.s",
+        "-o",
+        "object.o"
+      ],
+      "elapsed_ms": 85.9,
+      "exit": 0,
+      "stdout": "",
+      "stderr": "kache: warning: fallback `/Users/viktor/Developer/github/kache-prs/restoration-literal-marker/target/sandbox-discovery-g39strnf/denied/sccache`: sccache server 28443 sandbox denies writing /Users/viktor/Developer/github/kache-prs/restoration-literal-marker/target/sandbox-discovery-g39strnf/denied; compiling directly without fallback\n",
+      "calls": "direct\n"
+    },
+    {
+      "label": "final",
+      "fixture": "denied",
+      "argv": [
+        "/Users/viktor/Developer/github/kache-prs/restoration-literal-marker/target/debug/kache",
+        "/Users/viktor/Developer/github/kache-prs/restoration-literal-marker/target/sandbox-discovery-g39strnf/denied/cc",
+        "-xassembler-with-cpp",
+        "-c",
+        "input.s",
+        "-o",
+        "object.o"
+      ],
+      "elapsed_ms": 77.22,
+      "exit": 0,
+      "stdout": "",
+      "stderr": "kache: warning: fallback `/Users/viktor/Developer/github/kache-prs/restoration-literal-marker/target/sandbox-discovery-g39strnf/denied/sccache`: sccache server 28443 sandbox denies writing /Users/viktor/Developer/github/kache-prs/restoration-literal-marker/target/sandbox-discovery-g39strnf/denied; compiling directly without fallback\n",
+      "calls": "direct\n"
+    },
+    {
+      "label": "baseline",
+      "fixture": "allowed",
+      "argv": [
+        "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+        "/Users/viktor/Developer/github/kache-prs/restoration-literal-marker/target/sandbox-discovery-g39strnf/allowed/cc",
+        "-xassembler-with-cpp",
+        "-c",
+        "input.s",
+        "-o",
+        "object.o"
+      ],
+      "elapsed_ms": 77.23,
+      "exit": 0,
+      "stdout": "",
+      "stderr": "fallback compiler error\nkache: warning: fallback `/Users/viktor/Developer/github/kache-prs/restoration-literal-marker/target/sandbox-discovery-g39strnf/allowed/sccache`: exit status: 42; compiling directly without fallback\n",
+      "calls": "fallback\ndirect\n"
+    },
+    {
+      "label": "final",
+      "fixture": "allowed",
+      "argv": [
+        "/Users/viktor/Developer/github/kache-prs/restoration-literal-marker/target/debug/kache",
+        "/Users/viktor/Developer/github/kache-prs/restoration-literal-marker/target/sandbox-discovery-g39strnf/allowed/cc",
+        "-xassembler-with-cpp",
+        "-c",
+        "input.s",
+        "-o",
+        "object.o"
+      ],
+      "elapsed_ms": 81.14,
+      "exit": 0,
+      "stdout": "",
+      "stderr": "fallback compiler error\nkache: warning: fallback `/Users/viktor/Developer/github/kache-prs/restoration-literal-marker/target/sandbox-discovery-g39strnf/allowed/sccache`: exit status: 42; compiling directly without fallback\n",
+      "calls": "fallback\ndirect\n"
+    }
+  ],
+  "fixture_scope": "Same listener/profile, assembler passthrough compiler and failing sccache scripts as fallback_recovery_test; recreated outside the Rust harness to expose discovery diagnostics.",
+  "policy": {
+    "pid": 28443,
+    "sandboxed": 1,
+    "denied_create": -1,
+    "allowed_create": -1
+  }
+}

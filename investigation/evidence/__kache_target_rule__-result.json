@@ -1,0 +1,35 @@
+{
+  "marker": "__kache_target_rule__",
+  "case": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d",
+  "steps": [
+    {
+      "label": "cold",
+      "value": "1",
+      "deps": {
+        "target/debug/restoration_probe.d": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d/project/target/debug/restoration_probe: /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d/project/__kache_target_rule__/main.rs\n",
+        "target/debug/deps/restoration_probe-9eb752662eed7283.d": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d/project/target/debug/deps/restoration_probe-9eb752662eed7283.d: __kache_target_rule__/main.rs\n\n/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d/project/target/debug/deps/restoration_probe-9eb752662eed7283: __kache_target_rule__/main.rs\n\n__kache_target_rule__/main.rs:\n"
+      },
+      "cache_hit": false
+    },
+    {
+      "label": "restore",
+      "value": "1",
+      "deps": {
+        "target/debug/restoration_probe.d": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d/project/target/debug/restoration_probe: /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d/project/target/main.rs\n",
+        "target/debug/deps/restoration_probe-9eb752662eed7283.d": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d/project/target/debug/deps/restoration_probe-9eb752662eed7283.d: /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d/project/target/main.rs\n\n/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d/project/target/debug/deps/restoration_probe-9eb752662eed7283: /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d/project/target/main.rs\n\n/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d/project/target/main.rs:\n"
+      },
+      "cache_hit": true
+    },
+    {
+      "label": "after-source-change",
+      "value": "1",
+      "deps": {
+        "target/debug/restoration_probe.d": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d/project/target/debug/restoration_probe: /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d/project/target/main.rs\n",
+        "target/debug/deps/restoration_probe-9eb752662eed7283.d": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d/project/target/debug/deps/restoration_probe-9eb752662eed7283.d: /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d/project/target/main.rs\n\n/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d/project/target/debug/deps/restoration_probe-9eb752662eed7283: /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d/project/target/main.rs\n\n/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-__kache_target_rule__-_uod0z9d/project/target/main.rs:\n"
+      },
+      "cache_hit": true
+    }
+  ],
+  "actual": "1",
+  "expected": "2"
+}

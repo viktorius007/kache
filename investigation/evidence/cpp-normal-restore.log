@@ -1,0 +1,10 @@
+ARGV ["make"]
+CWD /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/cpp-marker-cw92fmq9/project
+ENV {"HOME": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/cpp-marker-cw92fmq9/home", "RUSTUP_HOME": "/Users/viktor/.rustup", "CARGO_HOME": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/cpp-marker-cw92fmq9/cargo-home", "KACHE_CONFIG": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/cpp-marker-cw92fmq9/config.toml", "KACHE_CACHE_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/cpp-marker-cw92fmq9/store", "KACHE_RUNTIME_DIR": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/cpp-marker-cw92fmq9/runtime", "TMPDIR": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/cpp-marker-cw92fmq9/tmp", "RUSTC_WRAPPER": ""}
+EXIT 0
+/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache clang++ -MMD -MF main.d -c main.cpp -o main.o
+clang++ main.o -o probe
+2026-10-11T07:03:31.760704Z DEBUG kache::compiler::cc: [cc:main.cpp] flag classify: 0 modeled / 0 raw-keyed / 0 probe / 0 preprocessor / 6 no-effect / 1 parser-handled / 0 user-allowed / 0 unmodeled
+2026-10-11T07:03:31.764086Z DEBUG kache::wrapper: cc cache key for main.cpp: 5691990c04c7e5ab
+2026-10-11T07:03:31.765044Z DEBUG kache_store::link: reflinked /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/cpp-marker-cw92fmq9/store/store/blobs/56/56f45f0b9d3b6558c12766975c24fe5e0690ac67425e4b8acc5d7a4848647925 -> main.o
+2026-10-11T07:03:31.765287Z DEBUG kache::wrapper: cc local cache hit for main.cpp (5691990c04c7e5ab)

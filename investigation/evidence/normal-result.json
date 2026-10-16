@@ -1,0 +1,35 @@
+{
+  "marker": "normal",
+  "case": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-normal-61sczdfb",
+  "steps": [
+    {
+      "label": "cold",
+      "value": "1",
+      "deps": {
+        "target/debug/restoration_probe.d": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-normal-61sczdfb/project/target/debug/restoration_probe: /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-normal-61sczdfb/project/normal/main.rs\n",
+        "target/debug/deps/restoration_probe-9eb752662eed7283.d": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-normal-61sczdfb/project/target/debug/deps/restoration_probe-9eb752662eed7283.d: normal/main.rs\n\n/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-normal-61sczdfb/project/target/debug/deps/restoration_probe-9eb752662eed7283: normal/main.rs\n\nnormal/main.rs:\n"
+      },
+      "cache_hit": false
+    },
+    {
+      "label": "restore",
+      "value": "1",
+      "deps": {
+        "target/debug/restoration_probe.d": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-normal-61sczdfb/project/target/debug/restoration_probe: /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-normal-61sczdfb/project/normal/main.rs\n",
+        "target/debug/deps/restoration_probe-9eb752662eed7283.d": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-normal-61sczdfb/project/target/debug/deps/restoration_probe-9eb752662eed7283.d: normal/main.rs\n\n/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-normal-61sczdfb/project/target/debug/deps/restoration_probe-9eb752662eed7283: normal/main.rs\n\nnormal/main.rs:\n"
+      },
+      "cache_hit": true
+    },
+    {
+      "label": "after-source-change",
+      "value": "2",
+      "deps": {
+        "target/debug/restoration_probe.d": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-normal-61sczdfb/project/target/debug/restoration_probe: /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-normal-61sczdfb/project/normal/main.rs\n",
+        "target/debug/deps/restoration_probe-9eb752662eed7283.d": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-normal-61sczdfb/project/target/debug/deps/restoration_probe-9eb752662eed7283.d: normal/main.rs\n\n/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/rust-normal-61sczdfb/project/target/debug/deps/restoration_probe-9eb752662eed7283: normal/main.rs\n\nnormal/main.rs:\n"
+      },
+      "cache_hit": false
+    }
+  ],
+  "actual": "2",
+  "expected": "2"
+}

@@ -1,0 +1,29 @@
+{
+  "case": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t",
+  "commands": [
+    [
+      "hdiutil",
+      "create",
+      "-size",
+      "24m",
+      "-fs",
+      "HFS+",
+      "-volname",
+      "kache-fixture",
+      "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/fixture.dmg"
+    ],
+    [
+      "hdiutil",
+      "attach",
+      "-nobrowse",
+      "-mountpoint",
+      "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/volume",
+      "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/fixture.dmg"
+    ],
+    [
+      "hdiutil",
+      "detach",
+      "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/volume"
+    ]
+  ]
+}

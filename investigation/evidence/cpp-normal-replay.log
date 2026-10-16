@@ -1,0 +1,7 @@
+cold 1 main.o: main.cpp normal/value.h
+
+restore 1 main.o: main.cpp normal/value.h
+
+after-header-change 2 main.o: main.cpp normal/value.h
+
+CPP_HEADER_CHANGE_TRACKED normal

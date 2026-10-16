@@ -1,0 +1,177 @@
+[
+  {
+    "id": "restoration-literal-marker",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T07:10:56.503826+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex reviewer",
+      "mode": "production-readiness",
+      "slice": "file-restoration"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Literal dependency directories that match Kache dep-info sentinels are expanded into different paths, allowing Cargo and Make to miss real input changes.",
+    "scenario": "Generated Rust bin paths __kache_cwd__/main.rs, __kache_workspace__/main.rs, __kache_root__/main.rs and __kache_target_rule__/main.rs each restored from cache. Existing decoy main.rs paths satisfy restore checks. After real source changes output 1\u21922, Cargo says Fresh and executable still prints 1. C++ includes __kache_root__/value.h; restored dep-info watches decoy value.h, so Make skips compile after actual header changes and program stays at 1.",
+    "evidence": [
+      {
+        "path": "crates/kache-store/src/link.rs",
+        "lines": "1635-1638,1740-1777,2023-2080,2093-2148",
+        "point": "Reserved marker strings are expanded in each Make token without an escape for original relative dependencies."
+      },
+      {
+        "path": "src/wrapper.rs",
+        "lines": "2980-3015,5193-5206,5286-5293,5615-5624",
+        "point": "C++ and Rust store/restore paths feed compiler dep-info through these transforms."
+      },
+      {
+        "path": "investigation/evidence/cwd-replay.log",
+        "lines": "all",
+        "point": "Actual runtime stale output after source change; stored JSON captures dep-info each stage."
+      },
+      {
+        "path": "investigation/evidence/cpp-marker-replay.log",
+        "lines": "all",
+        "point": "Actual stale C++ output after header change."
+      }
+    ],
+    "trace": "cargo build / make \u2192 baseline kache wrapper \u2192 store normalized compiler dep-info \u2192 cache hit \u2192 expand original literal marker into cwd/workspace/target \u2192 Cargo/Make watches existing wrong input \u2192 true input changes \u2192 build skips compilation \u2192 stale executable",
+    "authority": {
+      "source": "compiler caching correctness",
+      "quote": "Restoring a cache hit must preserve the compiler dependency set so a change to an actual input invalidates the build."
+    },
+    "proof": {
+      "red_test": "FILE restoration-replay.py\nimport json, os, pathlib, shutil, subprocess, sys, tempfile, time\nROOT = pathlib.Path(__file__).resolve().parent\nBASE = pathlib.Path('/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug')\n\ndef environment(case):\n    env = {k:v for k,v in os.environ.items() if not k.startswith(('KACHE_', 'CARGO_', 'RUSTC_', 'XDG_'))}\n    for name in ('home','cargo-home','runtime','store','tmp'):\n        (case/name).mkdir(exist_ok=True)\n    (case/'config.toml').write_text('[cache]\\nlocal_only = true\\n')\n    env.update(HOME=str(case/'home'), RUSTUP_HOME=os.environ.get('RUSTUP_HOME','/Users/viktor/.rustup'), CARGO_HOME=str(case/'cargo-home'), KACHE_CONFIG=str(case/'config.toml'), KACHE_CACHE_DIR=str(case/'store'), KACHE_RUNTIME_DIR=str(case/'runtime'), TMPDIR=str(case/'tmp'), TMP=str(case/'tmp'), TEMP=str(case/'tmp'), KACHE_LOCAL_ONLY='1', KACHE_CACHE_EXECUTABLES='1', KACHE_LOG='kache=debug', RUSTC_WRAPPER='', CC='clang', CXX='clang++', HOST_CC='clang', HOST_CXX='clang++')\n    for key in ('HOME','CARGO_HOME','KACHE_CONFIG','KACHE_CACHE_DIR','KACHE_RUNTIME_DIR','TMPDIR','TMP','TEMP'):\n        assert pathlib.Path(env[key]).resolve().is_relative_to(ROOT.resolve()), (key,env[key])\n    return env\n\ndef run(argv, cwd, env, label, timeout=90):\n    p = subprocess.run([str(a) for a in argv],cwd=cwd,env=env,capture_output=True,text=True,timeout=timeout)\n    (ROOT/'evidence'/f'{label}.log').write_text('ARGV '+json.dumps([str(a) for a in argv])+'\\nCWD '+str(cwd)+'\\nENV '+json.dumps({k:env[k] for k in ('HOME','RUSTUP_HOME','CARGO_HOME','KACHE_CONFIG','KACHE_CACHE_DIR','KACHE_RUNTIME_DIR','TMPDIR','RUSTC_WRAPPER')})+'\\nEXIT '+str(p.returncode)+'\\n'+p.stdout+p.stderr)\n    if p.returncode:\n        print(p.stdout+p.stderr,flush=True)\n    assert p.returncode == 0, f'{label} exited {p.returncode}'\n    return p.stdout+p.stderr\n\ndef rust_marker(marker):\n    case = pathlib.Path(tempfile.mkdtemp(prefix='rust-'+marker+'-', dir=ROOT/'fixtures'))\n    env = environment(case); project=case/'project'; source=project/marker\n    source.mkdir(parents=True)\n    (project/'Cargo.toml').write_text('[workspace]\\n[package]\\nname=\"restoration_probe\"\\nversion=\"0.1.0\"\\nedition=\"2024\"\\n[[bin]]\\nname=\"restoration_probe\"\\npath=\"'+marker+'/main.rs\"\\n')\n    code='fn main() { println!(\"1\"); }\\n'\n    (source/'main.rs').write_text(code)\n    (project/'main.rs').write_text(code)\n    # A literal marker resolves to the wrong existing source after expansion.\n    (project/'target').mkdir()\n    if marker in ('__kache_root__','__kache_target_rule__'):\n        (project/'target'/'main.rs').write_text(code)\n    env['RUSTC_WRAPPER']=str(BASE/'kache')\n    steps=[]\n    def build(label):\n        output=run(['cargo','build','--offline','-vv'],project,env,marker+'-'+label)\n        value=run([project/'target/debug/restoration_probe'],project,env,marker+'-'+label+'-output').strip()\n        deps={str(f.relative_to(project)):f.read_text() for f in (project/'target').rglob('*.d')}\n        steps.append(dict(label=label,value=value,deps=deps,cache_hit='cache hit' in output.lower()))\n        print(marker,label,value,json.dumps(deps),flush=True)\n        return value\n    build('cold')\n    # Keep only the stand-in required by root/target marker expansions.\n    shutil.rmtree(project/'target')\n    if marker in ('__kache_root__','__kache_target_rule__'):\n        (project/'target').mkdir(); (project/'target/main.rs').write_text(code)\n    build('restore')\n    time.sleep(1.1)\n    (source/'main.rs').write_text('fn main() { println!(\"2\"); }\\n')\n    actual=build('after-source-change')\n    result=dict(marker=marker,case=str(case),steps=steps,actual=actual,expected='2')\n    (ROOT/'evidence'/f'{marker}-result.json').write_text(json.dumps(result,indent=2)+'\\n')\n    assert actual=='2', f'RESTORATION_SOURCE_CHANGE_MISSED: literal {marker} dependency changed but executable returned {actual}, expected 2'\n    print('SOURCE_CHANGE_TRACKED',marker)\n\nif __name__=='__main__':\n    rust_marker(sys.argv[1] if len(sys.argv)>1 else '__kache_cwd__')\n\nFILE cpp-marker-replay.py\nimport importlib.util,json,pathlib,shutil,sys,tempfile,time\nspec=importlib.util.spec_from_file_location('restoration',pathlib.Path(__file__).with_name('restoration-replay.py')); module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)\nroot=module.ROOT; marker=sys.argv[1] if len(sys.argv)>1 else '__kache_root__'\ncase=pathlib.Path(tempfile.mkdtemp(prefix='cpp-marker-',dir=root/'fixtures'));env=module.environment(case);project=case/'project'; (project/marker).mkdir(parents=True)\n(project/marker/'value.h').write_text('#define VALUE 1\\n'); (project/'value.h').write_text('#define VALUE 1\\n')\n(project/'main.cpp').write_text('#include \"'+marker+'/value.h\"\\n#include <cstdio>\\nint main(){std::printf(\"%d\\\\n\",VALUE);}\\n')\n(project/'Makefile').write_text('all: probe\\nprobe: main.o\\n\\tclang++ main.o -o probe\\nmain.o: main.cpp\\n\\t'+str(module.BASE/'kache')+' clang++ -MMD -MF main.d -c main.cpp -o main.o\\n-include main.d\\n')\nsteps=[]\ndef build(label):\n    out=module.run(['make'],project,env,'cpp-'+marker+'-'+label)\n    val=module.run([project/'probe'],project,env,'cpp-'+marker+'-'+label+'-output').strip()\n    d=(project/'main.d').read_text();steps.append(dict(label=label,value=val,dep_info=d,make_output=out));print(label,val,d,flush=True);return val\nbuild('cold')\nfor f in ['main.o','main.d','probe']: (project/f).unlink()\nbuild('restore');time.sleep(1.1);(project/marker/'value.h').write_text('#define VALUE 2\\n');value=build('after-header-change')\n(root/'evidence'/('cpp-'+marker+'-result.json')).write_text(json.dumps(dict(case=str(case),steps=steps,expected='2',actual=value),indent=2)+'\\n')\nassert value=='2',f'CPP_HEADER_CHANGE_MISSED: literal {marker} header changed but executable returned {value}, expected 2'\nprint('CPP_HEADER_CHANGE_TRACKED',marker)\n",
+      "name": "rust_marker(__kache_cwd__) and cpp_marker(__kache_root__)",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "AssertionError: RESTORATION_SOURCE_CHANGE_MISSED: literal __kache_cwd__ dependency changed but executable returned 1, expected 2\nAssertionError: CPP_HEADER_CHANGE_MISSED: literal __kache_root__ header changed but executable returned 1, expected 2",
+      "gate_cases": [
+        {
+          "name": "rust-literal-cwd",
+          "argv": [
+            "python3",
+            "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/restoration-replay.py",
+            "__kache_cwd__"
+          ],
+          "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration",
+          "timeout_seconds": 180,
+          "expected_failure_regex": "RESTORATION_SOURCE_CHANGE_MISSED",
+          "assertion_regex": "executable returned 1, expected 2"
+        },
+        {
+          "name": "cpp-literal-root",
+          "argv": [
+            "python3",
+            "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/cpp-marker-replay.py",
+            "__kache_root__"
+          ],
+          "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration",
+          "timeout_seconds": 180,
+          "expected_failure_regex": "CPP_HEADER_CHANGE_MISSED",
+          "assertion_regex": "executable returned 1, expected 2"
+        }
+      ]
+    },
+    "severity": "Silent stale output for legal literal names, reaching ordinary Cargo and Make cache hits. Existing matching decoy increases impact from conservative rebuild to missed rebuild. This is conditional on marker spelling; no claim about arbitrary paths.",
+    "status": "open"
+  },
+  {
+    "id": "restoration-shared-publication-permission",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T07:10:56.503826+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex reviewer",
+      "mode": "production-readiness",
+      "slice": "file-restoration"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Duplicate publication of a source already hardlinked to its published blob clears the existing blob read-only protection and allows mutation through the source alias.",
+    "scenario": "On generated HFS+ filesystem, use baseline ArtifactStore public put_with_compile_time API with immutable .rlib output and a policy permitting hardlinks. First put links source and blob, mode 0444. Second put of the same source stages a third alias and detects existing blob; staging discard changes shared permissions to 0666. Writing source succeeds and changes blob bytes. No forced test hook was used. This condition is proved at exported store API; ordinary Cargo end-to-end entry into this exact duplicate-source state was not proved.",
+    "evidence": [
+      {
+        "path": "crates/kache-store/src/store.rs",
+        "lines": "269-281,2784-2828,3901-3983,4024-4085",
+        "point": "Staging hardlinks source on real no-CoW path. Existing-blob branch discards staging through unlink_blob, which clears readonly on the shared inode. publish returns before set_blob_readonly."
+      },
+      {
+        "path": "src/wrapper.rs",
+        "lines": "4899-4911,5262-5270",
+        "point": "Rust wrapper calls put_with_compile_time and retains ordinary compiler-owned paths for .rlib/.rmeta; source policy in src/compiler_store.rs permits immutable Hardlink kinds."
+      },
+      {
+        "path": "investigation/evidence/permissions-public-api.log",
+        "lines": "all",
+        "point": "Same source/blob inode 0444\u21920666; SOURCE_WRITE Ok(()); BLOB_CHANGED true; assertion fails."
+      },
+      {
+        "path": "investigation/evidence/permission-replay.log",
+        "lines": "all",
+        "point": "Generated HFS+ image mount and successful detach in finally."
+      }
+    ],
+    "trace": "public ArtifactStore.put_with_compile_time \u2192 stage_blob_from_source real hardlink \u2192 hash \u2192 publish_staged_blob \u2192 blob already exists \u2192 discard_staged_blob \u2192 unlink_blob clears shared readonly \u2192 blob stays writable \u2192 source write changes CAS bytes",
+    "authority": {
+      "source": "published blob integrity",
+      "quote": "A hardlinked published immutable blob must stay read-only so a consumer write cannot alter its recorded content."
+    },
+    "proof": {
+      "red_test": "FILE permission-replay.py\nimport importlib.util, json, os, pathlib, subprocess, tempfile\nspec=importlib.util.spec_from_file_location('restoration',pathlib.Path(__file__).with_name('restoration-replay.py')); module=importlib.util.module_from_spec(spec); spec.loader.exec_module(module)\nroot=module.ROOT\ncase=pathlib.Path(tempfile.mkdtemp(prefix='permissions-',dir=root/'fixtures')); env=module.environment(case)\nmount=case/'volume'; mount.mkdir(); image=case/'fixture.dmg'\ncommands=[]\ndef run(argv):\n    commands.append([str(a) for a in argv]); p=subprocess.run([str(a) for a in argv],cwd=case,env=env,capture_output=True,text=True,timeout=90)\n    print('ARGV',json.dumps(commands[-1]),'EXIT',p.returncode,p.stdout,p.stderr,flush=True)\n    assert p.returncode==0, 'fixture command failed'\n    return p.stdout\nattached=False\ntry:\n    run(['hdiutil','create','-size','24m','-fs','HFS+','-volname','kache-fixture',image])\n    run(['hdiutil','attach','-nobrowse','-mountpoint',mount,image]); attached=True\n    # Paths remain under the generated fixture even though filesystem differs.\n    env['KACHE_CACHE_DIR']=str(mount/'cache'); pathlib.Path(env['KACHE_CACHE_DIR']).mkdir()\n    assert pathlib.Path(env['KACHE_CACHE_DIR']).resolve().is_relative_to(root.resolve())\n    deps=module.BASE/'deps'; out=case/'permission-probe'\n    args=['rustc','--edition=2024',root/'permission-probe.rs','-L','dependency='+str(deps),'--extern','kache_store='+str(next(deps.glob('libkache_store-*.rlib'))),'-o',out]\n    env['RUSTC_WRAPPER']=''\n    module.run(args,case,env,'permissions-compile')\n    module.run([out,case,'independent'],case,env,'permissions-apfs-control')\n    (mount/'independent-case').mkdir()\n    module.run([out,mount/'independent-case','independent'],case,env,'permissions-hfs-independent-control')\n    module.run([out,mount,'shared'],case,env,'permissions-public-api')\n\nfinally:\n    if attached:\n        run(['hdiutil','detach',mount])\n    (root/'evidence/permission-commands.json').write_text(json.dumps(dict(case=str(case),commands=commands),indent=2)+'\\n')\n\nFILE permission-probe.rs\nuse std::{fs,path::PathBuf};\nuse std::os::unix::fs::{MetadataExt,PermissionsExt};\nuse kache_store::{ArtifactStore,ArtifactPolicy,config::Config,link::*};\nstruct Policy;\nimpl ArtifactPolicy for Policy {\n fn allow_hardlink(_: &str)->bool { true }\n fn allow_empty(_: &str,_:&[String])->bool { false }\n fn emit_kind(_: &str)->Option<&'static str>{Some(\"link\")}\n fn stable_after_store(_: &str)->bool {true}\n}\nfn main(){\n let root=PathBuf::from(std::env::args_os().nth(1).unwrap());\n\n let restore_dir=root.join(\"restore-controls\");fs::create_dir_all(&restore_dir).unwrap();\n for mode in [0o444,0o555] {\n  for (i,strategy) in [LinkStrategy::Hardlink,LinkStrategy::Copy,LinkStrategy::ExecutableHardlink].into_iter().enumerate(){\n   let blob=restore_dir.join(format!(\"blob-{mode:o}-{i}\"));let out=restore_dir.join(format!(\"out-{mode:o}-{i}\"));\n   let bytes=b\"generated fixture artifact\";fs::write(&blob,bytes).unwrap();fs::set_permissions(&blob,fs::Permissions::from_mode(mode)).unwrap();\n   link_to_target(&blob,&out,strategy).unwrap();let bm=fs::metadata(&blob).unwrap();let om=fs::metadata(&out).unwrap();\n   println!(\"RESTORE {strategy:?} source_mode={mode:o} output_mode={:o} shared={}\",om.mode()&0o777,bm.ino()==om.ino());\n   assert_eq!(fs::read(&out).unwrap(),bytes);assert_eq!(bm.mode()&0o222,0,\"restore made published source writable\");\n   let result=fs::write(&out,b\"consumer rewrite\");\n   if bm.ino()==om.ino(){assert!(result.is_err(),\"shared restored output allowed content mutation\");}else{result.unwrap();}\n   assert_eq!(fs::read(&blob).unwrap(),bytes,\"consumer rewrite corrupted published source\");\n  }\n }\n let blob=restore_dir.join(\"writable-blob\");fs::write(&blob,b\"private cc output\").unwrap();fs::set_permissions(&blob,fs::Permissions::from_mode(0o444)).unwrap();\n let out=restore_dir.join(\"private-target.o\");prepare_writable_target_from_file(&blob,&out).unwrap().publish().unwrap();\n assert_ne!(fs::metadata(&out).unwrap().ino(),fs::metadata(&blob).unwrap().ino());fs::write(&out,b\"rewritten cc output\").unwrap();assert_eq!(fs::read(&blob).unwrap(),b\"private cc output\");\n let out=restore_dir.join(\"transformed.d\");write_restored(&out,b\"expanded depinfo\",LinkStrategy::Hardlink).unwrap();fs::write(&out,b\"new depinfo\").unwrap();\n println!(\"RESTORE_CONTROLS_GREEN\");\n let independent=std::env::args().nth(2).as_deref()==Some(\"independent\");\n let cache=root.join(if independent {\"independent-api-cache\"} else {\"api-cache\"}); let cfg=Config{cache_dir:cache,max_size:1<<28,gc_evict_shared:false,upload_spool_max_jobs:8,deferred_durability:false};\n let store=ArtifactStore::<Policy>::open(cfg).unwrap();\n let src=root.join(\"source.rlib\"); fs::write(&src,b\"generated artifact 73\").unwrap();\n let files=vec![(src.clone(),\"libfixture.rlib\".to_string())];\n let put=|key:&str,files:&[(PathBuf,String)]|(if independent {store.put_with_compile_time_independent(key,\"fixture\",&[\"rlib\".into()],&[],\"fixture\",\"debug\",files,\"\",\"\",1)} else {store.put_with_compile_time(key,\"fixture\",&[\"rlib\".into()],&[],\"fixture\",\"debug\",files,\"\",\"\",1)}).unwrap();\n put(&\"a\".repeat(64),&files); let blob=store.blob_path(&kache_store::file_hash::hash_file(&src).unwrap());\n let m=fs::metadata(&blob).unwrap();println!(\"PUBLISHED mode={:o} inode={} source_inode={} nlink={}\",m.mode()&0o777,m.ino(),fs::metadata(&src).unwrap().ino(),m.nlink());\n assert_eq!(m.mode()&0o222,0,\"new blob must be read-only\");\n // Duplicate source is already a hardlink to this published blob.\n put(&\"b\".repeat(64),&files);\n let m=fs::metadata(&blob).unwrap();println!(\"AFTER_DUPLICATE mode={:o} inode={} nlink={}\",m.mode()&0o777,m.ino(),m.nlink());\n let before=fs::read(&blob).unwrap();let write=fs::write(&src,b\"corrupted through source hardlink\");\n println!(\"SOURCE_WRITE {:?}; BLOB_CHANGED {}\",write,fs::read(&blob).unwrap()!=before);\n if independent {assert_eq!(fs::read(&blob).unwrap(),before,\"independent source mutation changed blob\");println!(\"INDEPENDENT_BLOB_PROTECTED\");}\n assert_eq!(m.mode()&0o222,0,\"PUBLISHED_BLOB_BECAME_WRITABLE: duplicate publication cleared read-only on existing shared blob\");\n}\n\nFILE restoration-replay.py\nimport json, os, pathlib, shutil, subprocess, sys, tempfile, time\nROOT = pathlib.Path(__file__).resolve().parent\nBASE = pathlib.Path('/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug')\n\ndef environment(case):\n    env = {k:v for k,v in os.environ.items() if not k.startswith(('KACHE_', 'CARGO_', 'RUSTC_', 'XDG_'))}\n    for name in ('home','cargo-home','runtime','store','tmp'):\n        (case/name).mkdir(exist_ok=True)\n    (case/'config.toml').write_text('[cache]\\nlocal_only = true\\n')\n    env.update(HOME=str(case/'home'), RUSTUP_HOME=os.environ.get('RUSTUP_HOME','/Users/viktor/.rustup'), CARGO_HOME=str(case/'cargo-home'), KACHE_CONFIG=str(case/'config.toml'), KACHE_CACHE_DIR=str(case/'store'), KACHE_RUNTIME_DIR=str(case/'runtime'), TMPDIR=str(case/'tmp'), TMP=str(case/'tmp'), TEMP=str(case/'tmp'), KACHE_LOCAL_ONLY='1', KACHE_CACHE_EXECUTABLES='1', KACHE_LOG='kache=debug', RUSTC_WRAPPER='', CC='clang', CXX='clang++', HOST_CC='clang', HOST_CXX='clang++')\n    for key in ('HOME','CARGO_HOME','KACHE_CONFIG','KACHE_CACHE_DIR','KACHE_RUNTIME_DIR','TMPDIR','TMP','TEMP'):\n        assert pathlib.Path(env[key]).resolve().is_relative_to(ROOT.resolve()), (key,env[key])\n    return env\n\ndef run(argv, cwd, env, label, timeout=90):\n    p = subprocess.run([str(a) for a in argv],cwd=cwd,env=env,capture_output=True,text=True,timeout=timeout)\n    (ROOT/'evidence'/f'{label}.log').write_text('ARGV '+json.dumps([str(a) for a in argv])+'\\nCWD '+str(cwd)+'\\nENV '+json.dumps({k:env[k] for k in ('HOME','RUSTUP_HOME','CARGO_HOME','KACHE_CONFIG','KACHE_CACHE_DIR','KACHE_RUNTIME_DIR','TMPDIR','RUSTC_WRAPPER')})+'\\nEXIT '+str(p.returncode)+'\\n'+p.stdout+p.stderr)\n    if p.returncode:\n        print(p.stdout+p.stderr,flush=True)\n    assert p.returncode == 0, f'{label} exited {p.returncode}'\n    return p.stdout+p.stderr\n\ndef rust_marker(marker):\n    case = pathlib.Path(tempfile.mkdtemp(prefix='rust-'+marker+'-', dir=ROOT/'fixtures'))\n    env = environment(case); project=case/'project'; source=project/marker\n    source.mkdir(parents=True)\n    (project/'Cargo.toml').write_text('[workspace]\\n[package]\\nname=\"restoration_probe\"\\nversion=\"0.1.0\"\\nedition=\"2024\"\\n[[bin]]\\nname=\"restoration_probe\"\\npath=\"'+marker+'/main.rs\"\\n')\n    code='fn main() { println!(\"1\"); }\\n'\n    (source/'main.rs').write_text(code)\n    (project/'main.rs').write_text(code)\n    # A literal marker resolves to the wrong existing source after expansion.\n    (project/'target').mkdir()\n    if marker in ('__kache_root__','__kache_target_rule__'):\n        (project/'target'/'main.rs').write_text(code)\n    env['RUSTC_WRAPPER']=str(BASE/'kache')\n    steps=[]\n    def build(label):\n        output=run(['cargo','build','--offline','-vv'],project,env,marker+'-'+label)\n        value=run([project/'target/debug/restoration_probe'],project,env,marker+'-'+label+'-output').strip()\n        deps={str(f.relative_to(project)):f.read_text() for f in (project/'target').rglob('*.d')}\n        steps.append(dict(label=label,value=value,deps=deps,cache_hit='cache hit' in output.lower()))\n        print(marker,label,value,json.dumps(deps),flush=True)\n        return value\n    build('cold')\n    # Keep only the stand-in required by root/target marker expansions.\n    shutil.rmtree(project/'target')\n    if marker in ('__kache_root__','__kache_target_rule__'):\n        (project/'target').mkdir(); (project/'target/main.rs').write_text(code)\n    build('restore')\n    time.sleep(1.1)\n    (source/'main.rs').write_text('fn main() { println!(\"2\"); }\\n')\n    actual=build('after-source-change')\n    result=dict(marker=marker,case=str(case),steps=steps,actual=actual,expected='2')\n    (ROOT/'evidence'/f'{marker}-result.json').write_text(json.dumps(result,indent=2)+'\\n')\n    assert actual=='2', f'RESTORATION_SOURCE_CHANGE_MISSED: literal {marker} dependency changed but executable returned {actual}, expected 2'\n    print('SOURCE_CHANGE_TRACKED',marker)\n\nif __name__=='__main__':\n    rust_marker(sys.argv[1] if len(sys.argv)>1 else '__kache_cwd__')\n",
+      "name": "duplicate_shared_blob_publication_keeps_readonly",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "PUBLISHED mode=444 source_inode matches blob inode\nAFTER_DUPLICATE mode=666\nSOURCE_WRITE Ok(()); BLOB_CHANGED true\nPUBLISHED_BLOB_BECAME_WRITABLE",
+      "gate_cases": [
+        {
+          "name": "duplicate-shared-publication",
+          "argv": [
+            "python3",
+            "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/permission-replay.py"
+          ],
+          "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration",
+          "timeout_seconds": 180,
+          "expected_failure_regex": "PUBLISHED_BLOB_BECAME_WRITABLE",
+          "assertion_regex": "SOURCE_WRITE Ok\\(\\(\\)\\); BLOB_CHANGED true"
+        }
+      ]
+    },
+    "severity": "Loss of CAS content integrity when an existing published blob/source shared inode is submitted again. Source alias becomes writable and can change bytes under recorded digest. Exported production store path executed; usual Cargo recurrence frequency and downstream cache-hit validation response remain unmeasured.",
+    "status": "open"
+  },
+  {
+    "id": "restoration-ordinary-dependency-control",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T07:10:56.503826+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex reviewer",
+      "mode": "production-readiness",
+      "slice": "file-restoration"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Ordinary relative source/header paths preserve rebuild behavior in the sampled cache restores.",
+    "checked": "Rust directory normal and C++ header directory normal cold \u2192 restore \u2192 input change; both programs print 2. This is the golden green partner for marker reds.",
+    "closed_by": "Tier 1: evidence/normal-replay.log and evidence/cpp-normal-replay.log, JSON stage outcomes; exit 0.",
+    "reopens_if": "An ordinary spelling, platform or path configuration changes actual dependencies after restore.",
+    "status": "no-action"
+  },
+  {
+    "id": "restoration-ordinary-materialization-control",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T07:10:56.503826+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "inherited Codex reviewer",
+      "mode": "production-readiness",
+      "slice": "file-restoration"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "All sampled public restoration strategies protect the original blob; independent-copy publication protects duplicate source puts.",
+    "checked": "Actual public LinkStrategy::Hardlink, Copy and ExecutableHardlink on APFS and HFS+, source modes 0444/0555. Shared read-only outputs reject fs::write; independent outputs accept writes without altering source. Writable C/C++ restore and transformed dep-info are independent. Independent ArtifactStore put on APFS and HFS+ keeps blob 0444 after duplicate put and consumer write.",
+    "closed_by": "Tier 1: evidence/permissions-apfs-control.log and evidence/permissions-hfs-independent-control.log, RESTORE_CONTROLS_GREEN and INDEPENDENT_BLOB_PROTECTED; exit 0.",
+    "reopens_if": "A distinct platform, ACL, race or transfer failure violates the tested source byte/mode protection.",
+    "status": "no-action"
+  }
+]

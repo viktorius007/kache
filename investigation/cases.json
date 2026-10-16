@@ -1,0 +1,37 @@
+[
+  {
+    "name": "rust-literal-cwd",
+    "argv": [
+      "python3",
+      "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/restoration-replay.py",
+      "__kache_cwd__"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration",
+    "timeout_seconds": 180,
+    "expected_failure_regex": "RESTORATION_SOURCE_CHANGE_MISSED",
+    "assertion_regex": "executable returned 1, expected 2"
+  },
+  {
+    "name": "cpp-literal-root",
+    "argv": [
+      "python3",
+      "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/cpp-marker-replay.py",
+      "__kache_root__"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration",
+    "timeout_seconds": 180,
+    "expected_failure_regex": "CPP_HEADER_CHANGE_MISSED",
+    "assertion_regex": "executable returned 1, expected 2"
+  },
+  {
+    "name": "duplicate-shared-publication",
+    "argv": [
+      "python3",
+      "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/permission-replay.py"
+    ],
+    "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration",
+    "timeout_seconds": 180,
+    "expected_failure_regex": "PUBLISHED_BLOB_BECAME_WRITABLE",
+    "assertion_regex": "SOURCE_WRITE Ok\\(\\(\\)\\); BLOB_CHANGED true"
+  }
+]

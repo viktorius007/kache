@@ -1,0 +1,25 @@
+cargo fmt --all -- --check
+cargo fmt --manifest-path fuzz/Cargo.toml -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+    Blocking waiting for file lock on package cache
+    Checking kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/restoration-shared-publication-permission/crates/kache-fs)
+    Checking kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/restoration-shared-publication-permission/crates/kache-format)
+    Checking kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/restoration-shared-publication-permission/crates/kache-core)
+    Checking kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/restoration-shared-publication-permission/crates/kache-store)
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/restoration-shared-publication-permission)
+    Checking kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-prs/restoration-shared-publication-permission/crates/kache-shims)
+    Checking kache-e2e v1.0.0 (/Users/viktor/Developer/github/kache-prs/restoration-shared-publication-permission/crates/kache-e2e)
+    Checking kache-service v1.0.0 (/Users/viktor/Developer/github/kache-prs/restoration-shared-publication-permission/crates/kache-service)
+error: the borrowed expression implements the required traits
+    --> crates/kache-store/src/store/tests.rs:1306:29
+     |
+1306 |     let store = Store::open(&test_config(dir.path())).unwrap();
+     |                             ^^^^^^^^^^^^^^^^^^^^^^^^ help: change this to: `test_config(dir.path())`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_borrows_for_generic_args
+     = note: `-D clippy::needless-borrows-for-generic-args` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::needless_borrows_for_generic_args)]`
+
+error: could not compile `kache-store` (lib test) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: recipe `lint` failed on line 373 with exit code 101
