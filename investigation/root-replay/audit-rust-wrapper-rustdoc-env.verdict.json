@@ -1,0 +1,10 @@
+{
+  "owner": "audit-rust-wrapper",
+  "source": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/replay-cases/rustdoc-env.json",
+  "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-rust-wrapper-rustdoc-env.json",
+  "verdict": "ADMITTED",
+  "exit_code": 1,
+  "expected_failure_found": true,
+  "assertion_found": true,
+  "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-rust-wrapper-rustdoc-env.log"
+}

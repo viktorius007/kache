@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/probe_remote_validation.py",
+    "binding",
+    "swap"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation",
+  "timeout_seconds": 60,
+  "expected_exit_code": 1,
+  "expected_failure_regex": "AssertionError: WRONG_REMOTE_BINDING: source returns 11 but restored valid artifact returns 29",
+  "assertion_regex": "WRONG_REMOTE_BINDING"
+}

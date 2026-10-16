@@ -1,0 +1,25 @@
+PASS
+SHA: a6ab3046332acfca16cd4a389937db03f8d68d25
+Authority: READY delivery.json names this fix and gate_exit=0; checkout HEAD matches and git status is clean.
+Gate: saved just check gate.log has formatting, Clippy -D warnings, resource guard and 76 successful test summaries: 5,891 passed, 0 failed, 16 ignored.
+Regression: red.log records four behavioral channel failures at the test-only commit; final green.log reports Ran 2 tests / OK, covering stable and unstable for each behavior.
+Controls: saved proof and healthy logs show payload-failure exit9 with old advertised package present, and successful pool-copy-before-index publication; original-proof.py is byte-identical to the saved audit probe.
+CI controls: ci-path-control.log and publish-control.log each report Ran 10 tests / OK; workflow-policy.log reports 724 checks passed across 36 selectors.
+Criteria → proof: availability before metadata → test-apt-publish.py:121; failure preserves live indexes/state → :147; channel routing/additive retention/db-last → :122–145 and :148–162.
+Scope: test-only 0092d78ffd1b4edc324f470aaac6f0aa155eb086 then fix a6ab304; exactly publisher, regression script and two-line CI invocation changed; no generated/investigation artifacts.
+Review is source/evidence only: no production changes, target writes, repeated investigation or gate.
+---
+
+Findings: no blocking correctness or upstream-suitability finding in the delivered scope.
+
+Cleared files and correctness:
+- scripts/apt/publish.sh:32–62 retains stable → stable/unstable and unstable → unstable selection. The existing additive rclone copy of pool/:43–50 now completes before every dists sync. Its top-level failure remains governed by set -euo pipefail at :2, so a failed copy prevents index, public-key and database operations. Public key and persisted database remain after metadata at :64–81; arguments, checksums, destinations and optional directory guards are unchanged.
+- scripts/test-apt-publish.py:21–47 executes the real Bash publisher through an offline transport adapter. The fake checks incoming Packages filenames against remote payloads at metadata-sync time, before later operations can hide an ordering error; copy is additive, sync replaces and injected pool failure exits9. Fixture HOME, credentials, remote and call log are private to the test. :121–145 proves availability and exact command routing for both channel partitions, old-package retention and db-last publication; :147–162 pins the failure identity, exact old Packages/InRelease/database bytes, no subsequent transport operations, absent new payload and retained old payload. Baseline red is the named availability/retained-index violation, rather than a setup error. Oracle expectations come from fixture-owned bytes and the availability invariant, not the publisher implementation.
+- .github/workflows/ci.yml:615–650 runs python3 scripts/test-apt-publish.py in the unconditional Repository consistency job for pushes, pull requests and release tags; the invocation needs no real rclone or R2 credentials. The workflow policy control is green. scripts/ci-changes.py and its existing path-control test still recognize the publisher as packaging, while the added test is executable independently of compiler-group filtering.
+
+Shape and evidence:
+- Production shape satisfies Size/Existence/Shape/Comments: one existing call-block relocation, no new function, validator, interface, suppression or parallel policy owner. The new comment states the ordering/failure invariant. Reuse search `search_code --pattern rclone --path-filter 'scripts/.*test|scripts/apt/' --limit 15` returned the three existing APT shell modules in the baseline coordinator index; exact-tip source search confirms the new regression executes the existing publisher. No newly introduced production helper requires a consumer trace. All three changed files were read fully, plus configure-rclone.sh and CI classification context.
+- Both executed red-first tests preserve their oracles after repair. Success/failure transfer states and stable/unstable channels supply the relevant discriminators; fixtures neither mutate process-global environment nor contact host publisher state. No Rust lines changed, so no local cargo-mutants claim is made; AGENTS.md assigns changed-line mutation validation to CI.
+- PR body is 47 words and links baseline publish.sh:41–60, the actual metadata-before-pool defect. Delivery gate identity, final native suite, transport controls and CI policy evidence all bind to the unchanged delivered fix SHA according to delivery.json and final report.md.
+
+Limits: the transport is a local rclone fixture, not an executed R2 deployment or APT client. This review establishes ordering and fail-fast preservation within one publisher invocation; it does not establish provider consistency, concurrent-publisher serialization or atomic multi-object metadata replacement. The unchanged crates.io control's first host-Python3.9 setup failure is retained separately; its supported-Python rerun reports 10 tests / OK. No source repair or fresh-verifier handoff is needed.

@@ -1,0 +1,14 @@
+{
+  "id": "qa-ci-hydration-002",
+  "argv": [
+    "python3",
+    "investigation/gate_case.py",
+    "concurrent",
+    "--binary",
+    "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-ci-hydration",
+  "timeout_seconds": 180,
+  "expected_failure_regex": "AssertionError: concurrent sync must hydrate all entries without import errors",
+  "assertion_regex": "AssertionError: concurrent sync must hydrate all entries without import errors"
+}

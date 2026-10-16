@@ -1,0 +1,15 @@
+{
+  "id": "nonzero-orphan",
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "argv": [
+    "/opt/homebrew/bin/python3.14",
+    "/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/proofs/nonzero_measurement_orphan.py"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails",
+  "timeout_seconds": 60,
+  "expected_failure_regex": "Failed measurement returned while its child survived and wrote an artifact after failure",
+  "assertion_regex": "AssertionError: Failed measurement returned while its child survived and wrote an artifact after failure",
+  "expected_exit": 1,
+  "production_source_modified": false,
+  "fixture_scope": "all fixture homes/config/stores and logs under assigned investigation; no compiler workload or actual network download"
+}

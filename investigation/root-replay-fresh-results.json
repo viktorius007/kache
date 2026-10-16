@@ -1,0 +1,42 @@
+[
+  {
+    "owner": "qa-store-transactions",
+    "source": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/cases.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-store-transactions-0.json",
+    "verdict": "ADMITTED",
+    "exit_code": 101,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-store-transactions-0.log"
+  },
+  {
+    "owner": "qa-store-transactions",
+    "source": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/cases.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-store-transactions-1.json",
+    "verdict": "ADMITTED",
+    "exit_code": 101,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-store-transactions-1.log"
+  },
+  {
+    "owner": "qa-ci-hydration",
+    "source": "/Users/viktor/Developer/github/kache-investigations/qa-ci-hydration/investigation/cases.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-ci-hydration-0.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-ci-hydration-0.log"
+  },
+  {
+    "owner": "qa-ci-hydration",
+    "source": "/Users/viktor/Developer/github/kache-investigations/qa-ci-hydration/investigation/cases.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-ci-hydration-1.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-ci-hydration-1.log"
+  }
+]

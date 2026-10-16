@@ -1,0 +1,18 @@
+=== kache fixture scenarios ===
+Binary:  /Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache
+Version: kache 1.0.0
+Fixtures: e2e-timeout
+Select:   suite:e2e
+
+--- e2e-timeout (cache: /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/envelope-audit-guardrails-replay-verify-timeout/tmp/.tmpqtWkL8)
+=> e2e-timeout: pass
+
+Results written to /Users/viktor/Developer/github/kache-investigations/audit-guardrails/investigation/verify-timeout-exnioqp5/results.json
+PASS: all executed fixtures green (0 skipped)
+HARNESS_EXIT=0
+ELAPSED_SECONDS=5.233
+RESULTS=[{"name": "e2e-timeout", "phases": [{"phase": "cold", "status": "pass", "verify": {"exit_code": 0, "failure_reason": null, "passed": true, "stdout": "ok"}}, {"phase": "warm", "status": "pass", "verify": {"exit_code": 0, "failure_reason": null, "passed": true, "stdout": "ok"}}, {"phase": "noop", "status": "pass", "verify": {"exit_code": 0, "failure_reason": null, "passed": true, "stdout": "ok"}}, {"phase": "relocate", "status": "pass", "verify": {"exit_code": 0, "failure_reason": null, "passed": true, "stdout": "ok"}}], "status": "pass"}]
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/investigation/probe-verify-timeout.py", line 52, in <module>
+    assert result.returncode != 0, 'Verify timeout contract: executable exceeded timeout_s=1 but harness passed'
+AssertionError: Verify timeout contract: executable exceeded timeout_s=1 but harness passed

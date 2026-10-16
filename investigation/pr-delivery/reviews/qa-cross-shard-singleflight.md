@@ -1,0 +1,12 @@
+PASS
+Verified SHA: 9e469c9a6e319339c9a3146461a2fcfc2e12c8f4; clean worktree and git diff --check.
+Evidence directory: /Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/pr-delivery/qa-cross-shard-singleflight.
+Commit split: test-only 4a1a2994b86eb43d114cafe74608d17323f95b76 then production fix 9e469c9a6e319339c9a3146461a2fcfc2e12c8f4; only daemon.rs, daemon/tests.rs and remote_resilience.rs; no generated artifacts.
+Old red: red.log reports both hit responses but follower Store::get yields None at the named store-publication assertion, 0 passed/1 failed. Saved concurrent/reverse/socket proofs and sequential/same-store controls corroborate the contract.
+New green: green.log has 3 passed/0 failed: two-store regression elects each store leader and requires committed rows/exact independent fixture bytes in both; same-store alias uses one GET; direct restore controls remain green.
+Gate: delivery.json records build-slot.py just check gate_exit=0 and gate_head equal to this SHA; gate.log:5233 has 4382 passed/0 failed/14 ignored and completes workspace checks; reviewer reused logs without gate/audit repeats.
+Identity: handle_remote_check_started_at daemon.rs:4493–4516 admits configured native store paths, validates entry directory, then claims by expected_entry_dir; PathBuf/Path in remote_resilience.rs:694–752 preserves destination identity without lossy string conversion.
+Inner guard: unchanged handle_remote_check_leader still joins/reclaims per key, checks the requested Store before accepting a joined hit, performs each destination import and preserves the original deadline; distinct stores therefore publish independently.
+Primitive/alias controls: gate.log:4077/:4110 pass capacity, completion slot release, follower result and dropped-leader wakeup tests after mechanical Path adaptation; daemon/tests.rs:10813 uses explicit main-store and dot-component aliases while retaining one GET.
+Shape/portability/PR: existing coordinator/helpers reused; no new production abstraction/schema/validator or platform-specific API; temporary fixtures preserve real coordinator/import behavior. The 45-word body links the defective baseline call and states the concrete publication outcome.
+Findings: none blocking. Initial unchanged sandbox-preflight failure and rerun evidence remain documented; exact-tip final full gate passes. CI mutation testing and Windows execution remain CI responsibilities before landing.

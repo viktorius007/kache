@@ -1,0 +1,11 @@
+Syncing dists/unstable/ to R2...
+Copying pool/ to R2 (additive)...
+publish_exit=9
+boundary_calls=["sync", "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/investigation/apt-order-xlxxgijw/repo/dists/unstable/", "r2:fixture/kache/apt/dists/unstable/"]; ["copy", "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/investigation/apt-order-xlxxgijw/repo/pool/", "r2:fixture/kache/apt/pool/"]
+PUBLIC_INDEX_FILENAME=pool/main/k/kache/new.deb
+PUBLIC_PACKAGE_EXISTS=False
+injected object-store failure during package upload
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/investigation/probe-apt-publication.py", line 65, in <module>
+    assert package_exists, 'APT publication integrity: live index points at absent package after pool upload failure'
+AssertionError: APT publication integrity: live index points at absent package after pool upload failure

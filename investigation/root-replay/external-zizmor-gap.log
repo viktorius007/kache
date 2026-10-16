@@ -1,0 +1,5 @@
+kache-publish.yml: cache-poisoning count=0; scanner exit=14
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/cache-poisoning-audit/investigation/zizmor-probe.py", line 11, in <module>
+    assert count==expected, f'expected {expected} cache-poisoning finding, got {count}'
+AssertionError: expected 1 cache-poisoning finding, got 0

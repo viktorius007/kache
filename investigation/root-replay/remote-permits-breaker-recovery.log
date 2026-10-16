@@ -1,0 +1,29 @@
+
+running 1 test
+test remote_permits_probe::remote_permits_probe_recovery_after_queue_timeout ... FIXTURE slow_packs=3 compressed_bytes=3152049 artifact_mib=1
+VICTIM found=Some(true)
+VICTIM found=Some(true)
+VICTIM found=Some(true)
+CAPACITY total=4 used=0 suppressed=0
+RECOVERY after_capacity_release=true found=Some(true) elapsed_ms=757 tiny_wire_gets=4
+MEASURE pool=4 occupied=3 artifact_mib=1 tiny_budget_ms=1000 active=3 head_ms=0 tiny_found=Some(true) tiny_ms=1635 tiny_wire_gets=4
+FIXTURE slow_packs=4 compressed_bytes=4202732 artifact_mib=1
+VICTIM found=Some(false)
+VICTIM found=Some(false)
+VICTIM found=Some(false)
+CAPACITY total=4 used=0 suppressed=0
+RECOVERY after_capacity_release=true found=Some(false) elapsed_ms=751 tiny_wire_gets=0
+MEASURE pool=4 occupied=4 artifact_mib=1 tiny_budget_ms=1000 active=4 head_ms=0 tiny_found=Some(false) tiny_ms=1759 tiny_wire_gets=0
+FAILED
+
+failures:
+
+failures:
+    remote_permits_probe::remote_permits_probe_recovery_after_queue_timeout
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4398 filtered out; finished in 5.52s
+
+
+thread 'remote_permits_probe::remote_permits_probe_recovery_after_queue_timeout' (48371798) panicked at source/../remote_permits_probe.rs:181:5:
+three local queue timeouts suppressed a healthy remote after all capacity was released
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

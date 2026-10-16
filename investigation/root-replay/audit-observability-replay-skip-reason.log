@@ -1,0 +1,8 @@
+CONTROL rustc produced rlib; production event records admission-threshold
+OBSERVED report reason = unknown
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/probes/real_compile_report.py", line 91, in <module>
+    main()
+  File "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/probes/real_compile_report.py", line 84, in main
+    assert row['reason'] == 'admission-threshold', 'SKIP_REASON_LOST: production skip became unknown in report'
+AssertionError: SKIP_REASON_LOST: production skip became unknown in report

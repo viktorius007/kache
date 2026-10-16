@@ -1,0 +1,11 @@
+{
+  "name": "duplicate-shared-publication",
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/permission-replay.py"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration",
+  "timeout_seconds": 180,
+  "expected_failure_regex": "PUBLISHED_BLOB_BECAME_WRITABLE",
+  "assertion_regex": "SOURCE_WRITE Ok\\(\\(\\)\\); BLOB_CHANGED true"
+}

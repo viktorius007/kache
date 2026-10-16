@@ -1,0 +1,10 @@
+{
+  "owner": "pack-publisher",
+  "source": "agent preserved binary",
+  "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/pack-publisher-entry-budget.json",
+  "verdict": "ADMITTED",
+  "exit_code": 101,
+  "expected_failure_found": true,
+  "assertion_found": true,
+  "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/pack-publisher-entry-budget.log"
+}

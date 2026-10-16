@@ -1,0 +1,18 @@
+
+running 1 test
+blocking_rows=10000 passes=[0, 0, 0] recovered_cost_ms=0
+test tests::compile_cost_backfill_does_not_starve_legacy_expensive_entry ... FAILED
+
+failures:
+
+failures:
+    tests::compile_cost_backfill_does_not_starve_legacy_expensive_entry
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 3.45s
+
+
+thread 'tests::compile_cost_backfill_does_not_starve_legacy_expensive_entry' (48361028) panicked at src/lib.rs:58:9:
+assertion `left == right` failed: successive backfill sweeps must reach a recoverable expensive entry behind a full batch of valid zero-cost legacy entries
+  left: 0
+ right: 60000
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

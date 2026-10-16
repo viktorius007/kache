@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "/Users/viktor/Developer/github/kache-investigations/remote-permits/investigation/target/debug/deps/permit_probe-fdb3884d9cb50b57",
+    "remote_permits_probe::remote_permits_probe_recovery_after_queue_timeout",
+    "--exact",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/remote-permits",
+  "timeout_seconds": 180,
+  "expected_failure_regex": "panicked at",
+  "assertion_regex": "three local queue timeouts suppressed a healthy remote after all capacity was released"
+}

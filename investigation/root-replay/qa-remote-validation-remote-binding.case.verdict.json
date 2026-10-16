@@ -1,0 +1,10 @@
+{
+  "owner": "qa-remote-validation",
+  "source": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/remote-binding.case.json",
+  "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-remote-validation-remote-binding.case.json",
+  "verdict": "ADMITTED",
+  "exit_code": 1,
+  "expected_failure_found": true,
+  "assertion_found": true,
+  "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-remote-validation-remote-binding.case.log"
+}

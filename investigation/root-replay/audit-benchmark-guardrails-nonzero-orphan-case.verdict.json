@@ -1,0 +1,10 @@
+{
+  "owner": "audit-benchmark-guardrails",
+  "source": "/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/proofs/nonzero-orphan-case.json",
+  "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-benchmark-guardrails-nonzero-orphan-case.json",
+  "verdict": "ADMITTED",
+  "exit_code": 1,
+  "expected_failure_found": true,
+  "assertion_found": true,
+  "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-benchmark-guardrails-nonzero-orphan-case.log"
+}

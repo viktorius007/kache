@@ -1,0 +1,22 @@
+[
+  {
+    "owner": "qa-store-transactions",
+    "source": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/cases.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-store-transactions-0.json"
+  },
+  {
+    "owner": "qa-store-transactions",
+    "source": "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions/investigation/cases.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-store-transactions-1.json"
+  },
+  {
+    "owner": "qa-ci-hydration",
+    "source": "/Users/viktor/Developer/github/kache-investigations/qa-ci-hydration/investigation/cases.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-ci-hydration-0.json"
+  },
+  {
+    "owner": "qa-ci-hydration",
+    "source": "/Users/viktor/Developer/github/kache-investigations/qa-ci-hydration/investigation/cases.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-ci-hydration-1.json"
+  }
+]

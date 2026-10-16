@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "/private/tmp/kache-d5-release-target/release/deps/kache-db3e2e345e4f7b02",
+    "a_post_upload_gc_sweep_allows_health_requests_while_a_writer_is_busy",
+    "--nocapture"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/coordinator",
+  "timeout_seconds": 30,
+  "expected_failure_regex": "test result: FAILED\\.",
+  "assertion_regex": "a health request must complete while the post-upload sweep waits for a SQLite writer"
+}

@@ -1,0 +1,27 @@
+[
+  {
+    "owner": "pack-publisher",
+    "source": "agent preserved binary",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/pack-publisher-entry-budget.json"
+  },
+  {
+    "owner": "pack-publisher",
+    "source": "agent preserved binary",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/pack-publisher-plan-deadline.json"
+  },
+  {
+    "owner": "eviction-value",
+    "source": "agent preserved binary",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/eviction-value-backfill.json"
+  },
+  {
+    "owner": "remote-permits",
+    "source": "agent preserved binary",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/remote-permits-small-hit.json"
+  },
+  {
+    "owner": "remote-permits",
+    "source": "agent preserved binary",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/remote-permits-breaker-recovery.json"
+  }
+]

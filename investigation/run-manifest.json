@@ -1,0 +1,58 @@
+{
+  "baseline": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "model": "gpt-6.1-sol",
+  "reasoning": "high",
+  "targeted_worktrees": [
+    "/Users/viktor/Developer/github/kache-investigations/release-performance",
+    "/Users/viktor/Developer/github/kache-investigations/remote-permits",
+    "/Users/viktor/Developer/github/kache-investigations/eviction-value",
+    "/Users/viktor/Developer/github/kache-investigations/ephemeral-ci",
+    "/Users/viktor/Developer/github/kache-investigations/pack-publisher",
+    "/Users/viktor/Developer/github/kache-investigations/cache-poisoning-audit",
+    "/Users/viktor/Developer/github/kache-d5-investigation"
+  ],
+  "audit_worktrees": [
+    "/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails",
+    "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build",
+    "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters",
+    "/Users/viktor/Developer/github/kache-investigations/audit-cli-config",
+    "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance",
+    "/Users/viktor/Developer/github/kache-investigations/audit-filesystem-targets",
+    "/Users/viktor/Developer/github/kache-investigations/audit-guardrails",
+    "/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs",
+    "/Users/viktor/Developer/github/kache-investigations/audit-observability",
+    "/Users/viktor/Developer/github/kache-investigations/audit-planner-service",
+    "/Users/viktor/Developer/github/kache-investigations/audit-remote-daemon",
+    "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper",
+    "/Users/viktor/Developer/github/kache-investigations/audit-store-core",
+    "/Users/viktor/Developer/github/kache-investigations/audit-store-link"
+  ],
+  "mapping": "/Users/viktor/Developer/github/kache-investigations/sweep-map/investigation/audit-map.json",
+  "coverage_transfers": "investigation/coverage-transfers.json",
+  "status": "investigation wave finished with explicit unresolved checks",
+  "completion_worktrees": [
+    "/Users/viktor/Developer/github/kache-investigations/qa-ci-hydration",
+    "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration",
+    "/Users/viktor/Developer/github/kache-investigations/qa-native-inputs",
+    "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation",
+    "/Users/viktor/Developer/github/kache-investigations/qa-store-transactions",
+    "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination"
+  ],
+  "consolidated_report": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/report.md",
+  "findings_register": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/findings-register.json",
+  "replay_cases_admitted": 38,
+  "runtime_filter_scopes": [
+    "qa-native-inputs",
+    "qa-store-transactions",
+    "qa-target-coordination",
+    "qa-file-restoration",
+    "qa-remote-validation"
+  ],
+  "unexecuted_checks": [
+    "native archive hash/consume interleaving",
+    "macOS dylib export/version behavior",
+    "split Cargo build-directory lock exclusion",
+    "target blob middle-corruption validation",
+    "exact upstream Biome release gate"
+  ]
+}

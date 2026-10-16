@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "/Users/viktor/Developer/github/kache-investigations/eviction-value/investigation/target/debug/deps/eviction_investigation-e613bf3fe78e2e7c",
+    "tests::compile_cost_backfill_does_not_starve_legacy_expensive_entry",
+    "--exact",
+    "--nocapture"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/eviction-value",
+  "timeout_seconds": 180,
+  "expected_failure_regex": "panicked at",
+  "assertion_regex": "successive backfill sweeps"
+}

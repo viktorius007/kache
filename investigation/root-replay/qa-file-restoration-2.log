@@ -1,0 +1,30 @@
+ARGV ["hdiutil", "create", "-size", "24m", "-fs", "HFS+", "-volname", "kache-fixture", "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/fixture.dmg"] EXIT 0 created: /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/fixture.dmg
+ 
+ARGV ["hdiutil", "attach", "-nobrowse", "-mountpoint", "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/volume", "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/fixture.dmg"] EXIT 0 /dev/disk4          	GUID_partition_scheme          	
+/dev/disk4s1        	Apple_HFS                      	/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/volume
+ 
+RESTORE Hardlink source_mode=444 output_mode=444 shared=true
+RESTORE Copy source_mode=444 output_mode=755 shared=false
+RESTORE ExecutableHardlink source_mode=444 output_mode=755 shared=false
+RESTORE Hardlink source_mode=555 output_mode=555 shared=true
+RESTORE Copy source_mode=555 output_mode=755 shared=false
+RESTORE ExecutableHardlink source_mode=555 output_mode=555 shared=true
+RESTORE_CONTROLS_GREEN
+PUBLISHED mode=444 inode=82 source_inode=82 nlink=2
+AFTER_DUPLICATE mode=666 inode=82 nlink=2
+SOURCE_WRITE Ok(()); BLOB_CHANGED true
+
+thread 'main' (48868255) panicked at /Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/permission-probe.rs:47:2:
+assertion `left == right` failed: PUBLISHED_BLOB_BECAME_WRITABLE: duplicate publication cleared read-only on existing shared blob
+  left: 146
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+ARGV ["hdiutil", "detach", "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/fixtures/permissions-hjksot4t/volume"] EXIT 0 "disk4" ejected.
+ 
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/permission-replay.py", line 26, in <module>
+    module.run([out,mount,'shared'],case,env,'permissions-public-api')
+  File "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/restoration-replay.py", line 20, in run
+    assert p.returncode == 0, f'{label} exited {p.returncode}'
+AssertionError: permissions-public-api exited 101

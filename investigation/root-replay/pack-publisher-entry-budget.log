@@ -1,0 +1,17 @@
+
+running 1 test
+test daemon::tests::investigation_packed_prefetch_obeys_the_configured_entry_budget ... FAILED
+
+failures:
+
+failures:
+    daemon::tests::investigation_packed_prefetch_obeys_the_configured_entry_budget
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 0.15s
+
+
+thread 'daemon::tests::investigation_packed_prefetch_obeys_the_configured_entry_budget' (48361031) panicked at /Users/viktor/Developer/github/kache-investigations/pack-publisher/investigation/overlay/daemon-tests.rs:14935:5:
+assertion `left == right` failed: packed prefetch must honor the configured maximum entries per plan
+  left: 2
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

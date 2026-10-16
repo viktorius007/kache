@@ -1,0 +1,11 @@
+{
+  "name": "default_bin_respects_executable_cache_disable",
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/default_bin_policy.py"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance",
+  "timeout_seconds": 120,
+  "expected_failure_regex": "AssertionError: executable caching disabled must route default-bin rustc invocation through fallback",
+  "assertion_regex": "expected true, observed false"
+}

@@ -1,0 +1,13 @@
+{
+  "case": "empty",
+  "root": "/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-empty-sg0zi4f1",
+  "direct_only": false,
+  "initial": "false",
+  "cached": "false",
+  "direct": "true",
+  "changed_cache_hit": true
+}
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/repro_env_cases.py", line 107, in <module>
+    assert cached == expected, "ASSERTION key oracle violated: cached=" + repr(cached) + " direct=" + repr(expected)
+AssertionError: ASSERTION key oracle violated: cached='false' direct='true'

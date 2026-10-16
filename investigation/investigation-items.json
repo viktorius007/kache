@@ -1,0 +1,43 @@
+[
+  {
+    "id": "PERFORMANCE-RELEASE-1494",
+    "classification": "measured_cost",
+    "label": "Measured cost \u2014 evaluate",
+    "impact_severity": "medium",
+    "action": "Implement a safe optimization experiment; measure retained cost and rerun the exact upstream gate",
+    "summary": "Workspace tree guard adds measured overhead; repeated work offers optimization candidates. No validated fix or proof of the exact Biome regression yet.",
+    "evidence": "/Users/viktor/Developer/github/kache-investigations/release-performance/investigation/report.md"
+  },
+  {
+    "id": "LEAD-NATIVE-ARCHIVE",
+    "classification": "unproven_lead",
+    "label": "Unproven lead \u2014 investigate",
+    "action": "Execute a behavioral test before proposing a fix",
+    "summary": "Native archive changes between key calculation and compiler consumption",
+    "evidence": "/Users/viktor/Developer/github/kache-investigations/qa-native-inputs/investigation/report.md"
+  },
+  {
+    "id": "LEAD-NATIVE-DYLIB",
+    "classification": "unproven_lead",
+    "label": "Unproven lead \u2014 investigate",
+    "action": "Execute a behavioral test before proposing a fix",
+    "summary": "macOS dylib export/version changes with unchanged install name",
+    "evidence": "/Users/viktor/Developer/github/kache-investigations/qa-native-inputs/investigation/report.md"
+  },
+  {
+    "id": "LEAD-CARGO-SPLIT-LOCK",
+    "classification": "unproven_lead",
+    "label": "Unproven lead \u2014 investigate",
+    "action": "Execute a behavioral test before proposing a fix",
+    "summary": "Cargo split-build-directory lock exclusion",
+    "evidence": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/report.md"
+  },
+  {
+    "id": "LEAD-TARGET-BLOB",
+    "classification": "unproven_lead",
+    "label": "Unproven lead \u2014 investigate",
+    "action": "Execute a behavioral test before proposing a fix",
+    "summary": "Target artifact validation after same-length middle-blob corruption",
+    "evidence": "/Users/viktor/Developer/github/kache-investigations/qa-target-coordination/investigation/report.md"
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "id": "cli-config-001",
+  "argv": [
+    "/opt/homebrew/bin/python3.14",
+    "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/repro_rustdoc_config.py"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config",
+  "timeout_seconds": 90,
+  "expected_failure_regex": "AssertionError: RUSTDOC_CONFIG_CORRUPTED",
+  "assertion_regex": "duplicate key"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "rust-wrapper-001",
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/probes/diagnostic_format.py"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper",
+  "timeout_seconds": 100,
+  "expected_failure_regex": "AssertionError: CACHE_DIAGNOSTIC_FORMAT: --error-format=json replayed human diagnostics",
+  "assertion_regex": "CACHE_DIAGNOSTIC_FORMAT: --error-format=json replayed human diagnostics"
+}

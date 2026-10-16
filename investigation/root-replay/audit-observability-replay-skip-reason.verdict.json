@@ -1,0 +1,10 @@
+{
+  "owner": "audit-observability",
+  "source": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/replay-skip-reason.json",
+  "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-observability-replay-skip-reason.json",
+  "verdict": "ADMITTED",
+  "exit_code": 1,
+  "expected_failure_found": true,
+  "assertion_found": true,
+  "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-observability-replay-skip-reason.log"
+}

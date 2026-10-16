@@ -1,0 +1,8 @@
+CONTROL explicit --crate-type bin: fallback runtime output=true
+OBSERVED omitted --crate-type: fallback runtime output=false
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/default_bin_policy.py", line 42, in <module>
+    main()
+  File "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/default_bin_policy.py", line 38, in main
+    assert observed == 'true', 'executable caching disabled must route default-bin rustc invocation through fallback; expected true, observed '+observed
+AssertionError: executable caching disabled must route default-bin rustc invocation through fallback; expected true, observed false

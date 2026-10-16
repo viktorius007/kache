@@ -1,0 +1,52 @@
+[
+  {
+    "owner": "pack-publisher",
+    "source": "agent preserved binary",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/pack-publisher-entry-budget.json",
+    "verdict": "ADMITTED",
+    "exit_code": 101,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/pack-publisher-entry-budget.log"
+  },
+  {
+    "owner": "pack-publisher",
+    "source": "agent preserved binary",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/pack-publisher-plan-deadline.json",
+    "verdict": "REJECTED",
+    "exit_code": 101,
+    "expected_failure_found": true,
+    "assertion_found": false,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/pack-publisher-plan-deadline.log"
+  },
+  {
+    "owner": "eviction-value",
+    "source": "agent preserved binary",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/eviction-value-backfill.json",
+    "verdict": "ADMITTED",
+    "exit_code": 101,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/eviction-value-backfill.log"
+  },
+  {
+    "owner": "remote-permits",
+    "source": "agent preserved binary",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/remote-permits-small-hit.json",
+    "verdict": "ADMITTED",
+    "exit_code": 101,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/remote-permits-small-hit.log"
+  },
+  {
+    "owner": "remote-permits",
+    "source": "agent preserved binary",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/remote-permits-breaker-recovery.json",
+    "verdict": "ADMITTED",
+    "exit_code": 101,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/remote-permits-breaker-recovery.log"
+  }
+]

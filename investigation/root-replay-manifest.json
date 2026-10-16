@@ -1,0 +1,27 @@
+[
+  {
+    "owner": "qa-file-restoration",
+    "source": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/cases.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-file-restoration-0.json"
+  },
+  {
+    "owner": "qa-file-restoration",
+    "source": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/cases.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-file-restoration-1.json"
+  },
+  {
+    "owner": "qa-file-restoration",
+    "source": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/cases.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-file-restoration-2.json"
+  },
+  {
+    "owner": "qa-remote-validation",
+    "source": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/cross-shard-singleflight.case.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-remote-validation-cross-shard-singleflight.case.json"
+  },
+  {
+    "owner": "qa-remote-validation",
+    "source": "/Users/viktor/Developer/github/kache-investigations/qa-remote-validation/investigation/remote-binding.case.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/qa-remote-validation-remote-binding.case.json"
+  }
+]

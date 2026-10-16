@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/cc-integrity-probes.py",
+    "link-library",
+    "--discovery",
+    "1"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters",
+  "timeout_seconds": 60,
+  "expected_failure_regex": "AssertionError: CACHE_INTEGRITY_FAILURE: link-library: cached 1, direct compiler expected 2; result=local_hit",
+  "assertion_regex": "CACHE_INTEGRITY_FAILURE: link-library: cached 1, direct compiler expected 2; result=local_hit"
+}

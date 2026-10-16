@@ -1,0 +1,242 @@
+[
+  {
+    "owner": "audit-rust-wrapper",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/replay-cases/rustdoc-env.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-rust-wrapper-rustdoc-env.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-rust-wrapper-rustdoc-env.log"
+  },
+  {
+    "owner": "audit-rust-wrapper",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/replay-cases/emit-destination.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-rust-wrapper-emit-destination.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-rust-wrapper-emit-destination.log"
+  },
+  {
+    "owner": "audit-rust-wrapper",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/replay-cases/diagnostic-format.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-rust-wrapper-diagnostic-format.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-rust-wrapper-diagnostic-format.log"
+  },
+  {
+    "owner": "audit-rust-wrapper",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/replay-cases/rustdoc-nested.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-rust-wrapper-rustdoc-nested.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-rust-wrapper-rustdoc-nested.log"
+  },
+  {
+    "owner": "audit-rust-wrapper",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/replay-cases/rustdoc-outer-include.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-rust-wrapper-rustdoc-outer-include.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-rust-wrapper-rustdoc-outer-include.log"
+  },
+  {
+    "owner": "audit-key-native-inputs",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-empty.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-key-native-inputs-replay-empty.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-key-native-inputs-replay-empty.log"
+  },
+  {
+    "owner": "audit-key-native-inputs",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-locator.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-key-native-inputs-replay-locator.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-key-native-inputs-replay-locator.log"
+  },
+  {
+    "owner": "audit-cc-cuda-adapters",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/cc-optional-header.replay.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-cc-cuda-adapters-cc-optional-header.replay.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-cc-cuda-adapters-cc-optional-header.replay.log"
+  },
+  {
+    "owner": "audit-cc-cuda-adapters",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/cc-header-permutation.replay.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-cc-cuda-adapters-cc-header-permutation.replay.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-cc-cuda-adapters-cc-header-permutation.replay.log"
+  },
+  {
+    "owner": "audit-cc-cuda-adapters",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/cc-link-library.replay.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-cc-cuda-adapters-cc-link-library.replay.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-cc-cuda-adapters-cc-link-library.replay.log"
+  },
+  {
+    "owner": "audit-cargo-build",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/proofs/cargo-declarations.replay.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-cargo-build-cargo-declarations.replay.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-cargo-build-cargo-declarations.replay.log"
+  },
+  {
+    "owner": "audit-observability",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/replay-torn-utf8.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-observability-replay-torn-utf8.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-observability-replay-torn-utf8.log"
+  },
+  {
+    "owner": "audit-observability",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/replay-redact-root.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-observability-replay-redact-root.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-observability-replay-redact-root.log"
+  },
+  {
+    "owner": "audit-observability",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/replay-skip-reason.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-observability-replay-skip-reason.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-observability-replay-skip-reason.log"
+  },
+  {
+    "owner": "audit-cli-config",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/replay-cases.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-cli-config-replay-cases-0.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-cli-config-replay-cases-0.log"
+  },
+  {
+    "owner": "audit-cli-config",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/replay-cases.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-cli-config-replay-cases-1.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-cli-config-replay-cases-1.log"
+  },
+  {
+    "owner": "audit-planner-service",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/timeline-auth-replay.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-planner-service-timeline-auth-replay.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-planner-service-timeline-auth-replay.log"
+  },
+  {
+    "owner": "audit-planner-service",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/stale-lease-replay.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-planner-service-stale-lease-replay.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-planner-service-stale-lease-replay.log"
+  },
+  {
+    "owner": "audit-contract-conformance",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-contract-conformance/investigation/default-bin-policy-case.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-contract-conformance-default-bin-policy-case.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-contract-conformance-default-bin-policy-case.log"
+  },
+  {
+    "owner": "audit-remote-daemon",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-remote-daemon/investigation/credential-child.case.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-remote-daemon-credential-child.case.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-remote-daemon-credential-child.case.log"
+  },
+  {
+    "owner": "audit-guardrails",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/investigation/replay-verify-timeout.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-guardrails-replay-verify-timeout.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-guardrails-replay-verify-timeout.log"
+  },
+  {
+    "owner": "audit-guardrails",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/investigation/replay-apt-publication.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-guardrails-replay-apt-publication.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-guardrails-replay-apt-publication.log"
+  },
+  {
+    "owner": "audit-benchmark-guardrails",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/proofs/timed-fetch-stderr-case.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-benchmark-guardrails-timed-fetch-stderr-case.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-benchmark-guardrails-timed-fetch-stderr-case.log"
+  },
+  {
+    "owner": "audit-benchmark-guardrails",
+    "source": "/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/proofs/nonzero-orphan-case.json",
+    "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-benchmark-guardrails-nonzero-orphan-case.json",
+    "verdict": "ADMITTED",
+    "exit_code": 1,
+    "expected_failure_found": true,
+    "assertion_found": true,
+    "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-benchmark-guardrails-nonzero-orphan-case.log"
+  }
+]

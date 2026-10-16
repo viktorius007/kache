@@ -1,0 +1,10 @@
+{
+  "owner": "audit-cc-cuda-adapters",
+  "source": "/Users/viktor/Developer/github/kache-investigations/audit-cc-cuda-adapters/investigation/cc-optional-header.replay.json",
+  "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-cc-cuda-adapters-cc-optional-header.replay.json",
+  "verdict": "ADMITTED",
+  "exit_code": 1,
+  "expected_failure_found": true,
+  "assertion_found": true,
+  "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-cc-cuda-adapters-cc-optional-header.replay.log"
+}

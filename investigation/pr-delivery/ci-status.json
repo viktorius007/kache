@@ -1,0 +1,254 @@
+[
+  {
+    "id": "benchmark-guardrails-001",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1510",
+    "fix_commit": "1e43f94a21eef0a773dd9382881ca22321909441",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38134573706"
+  },
+  {
+    "id": "benchmark-guardrails-002",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1514",
+    "fix_commit": "80a55c9f08ce701d3f5aeaa367e95fdcd60f8c35",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38135641043"
+  },
+  {
+    "id": "cargo-build-001",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1498",
+    "fix_commit": "4b691f4045e73422630594a2c341a05f0693cd12",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38132516641"
+  },
+  {
+    "id": "cc-header-permutation",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1505",
+    "fix_commit": "c994eb5d6cd2a34fe16191cbe1b4e654a41e2430",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38133753127"
+  },
+  {
+    "id": "cc-optional-header",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1501",
+    "fix_commit": "7d2905f91fb72b8fec610771df13670cbe427c72",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38132753321"
+  },
+  {
+    "id": "cc-link-library",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1513",
+    "fix_commit": "2fd65704731782ebdcda6d099ea044ad1690a5ee",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38135635796"
+  },
+  {
+    "id": "cli-config-001",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1521",
+    "fix_commit": "a9f22bd37e70793bc977be3c2d96486f7a87421b",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38138411708"
+  },
+  {
+    "id": "cli-config-002",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1525",
+    "fix_commit": "31f6ac2747887dd9184dfab36f14e80a76e5008f",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38139180889"
+  },
+  {
+    "id": "CONTRACT-BIN-001",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1516",
+    "fix_commit": "44d79666bacc71d75eb52c342f42aed8e5b776f6",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38136360656"
+  },
+  {
+    "id": "guardrails-apt-publication-order",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1530",
+    "fix_commit": "a6ab3046332acfca16cd4a389937db03f8d68d25",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38140033883"
+  },
+  {
+    "id": "guardrails-verify-timeout-unused",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1526",
+    "fix_commit": "9ea3e56c34f77506cf2816f6577501694eac26e4",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38139237956"
+  },
+  {
+    "id": "KEY-ENV-001",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1499",
+    "fix_commit": "0bf475d9f614217b973deddd842e023403e9ba06",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38132514970"
+  },
+  {
+    "id": "KEY-ENV-002",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1503",
+    "fix_commit": "4ecbb4c4f26bb2f858db09ab865082bbcc84b170",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38133363166"
+  },
+  {
+    "id": "observability-001",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1524",
+    "fix_commit": "bbe72d7a4f0f219dc6a7c6a0ba59311510b79563",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38139004890"
+  },
+  {
+    "id": "observability-002",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1533",
+    "fix_commit": "fe6a80d51cad01478c45e89ceab89bd28af59e58",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38141135007"
+  },
+  {
+    "id": "observability-003",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1518",
+    "fix_commit": "106ea8bb3352b78d2e09d01d7fbc8228478003ad",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38136742753"
+  },
+  {
+    "id": "planner-service-timeline-auth",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1535",
+    "fix_commit": "a8363ab9baea06dc135c3c7a100ab8368982f0f2",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38142172262"
+  },
+  {
+    "id": "planner-service-stale-lease",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1528",
+    "fix_commit": "f58c9ed2fee7338a6a1af9e53ef13152d1dd37ae",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38139512881"
+  },
+  {
+    "id": "rd-credential-child-001",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1506",
+    "fix_commit": "52f94c5059975855621037381721032dc23537f9",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38133831005"
+  },
+  {
+    "id": "rust-wrapper-001",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1507",
+    "fix_commit": "40695fbd03cb626fbb5c0391a7757d5da4b7ffc3",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38133872629"
+  },
+  {
+    "id": "rust-wrapper-002",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1517",
+    "fix_commit": "50ec03ca1462a3316a8ba4fa61c15e4989dc7aff",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38136478631"
+  },
+  {
+    "id": "rust-wrapper-003",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1527",
+    "fix_commit": "19b0c7418b5f92b5bc364a7a8510b7d6bb49f163",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38139284563"
+  },
+  {
+    "id": "rust-wrapper-004",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1522",
+    "fix_commit": "c8285860ce1c002b0e11fa1f3f8d91c4d9954387",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38138472502"
+  },
+  {
+    "id": "rust-wrapper-005",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1531",
+    "fix_commit": "eb8fb0045eea4f44adf62e61789a57f83d7d5d82",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38140517485"
+  },
+  {
+    "id": "ephemeral-ci-001",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1519",
+    "fix_commit": "7e7f98decc0b52883a49f493cbbc5d25f5b94882",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38137280659"
+  },
+  {
+    "id": "ephemeral-ci-002",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1529",
+    "fix_commit": "e8df9b2a6e6165de82592d73c711ddf1219c768f",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38139991784"
+  },
+  {
+    "id": "EV594-001",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1534",
+    "fix_commit": "b0993e290a54d6dbb9e732f9a0af47a869252181",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38141699450"
+  },
+  {
+    "id": "pack-prefetch-entry-budget",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1523",
+    "fix_commit": "91132248be1015dd43013328cae3f834a0356ff9",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38138492028"
+  },
+  {
+    "id": "pack-prefetch-plan-deadline",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1532",
+    "fix_commit": "b8d8f0513597f60de190f56395f5317238ff01f2",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38140614773"
+  },
+  {
+    "id": "restoration-literal-marker",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1502",
+    "fix_commit": "27525c27865026aa5943a36cb7e32d4dfd1b664b",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38133037648"
+  },
+  {
+    "id": "restoration-shared-publication-permission",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1509",
+    "fix_commit": "8a819c9787a8306ec83d5fa2369d78bd693a8ddc",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38134386086"
+  },
+  {
+    "id": "qa-remote-binding",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1500",
+    "fix_commit": "b06aba292b0cabb5d47fa0ad6a7c0a77b31206a1",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38132646697"
+  },
+  {
+    "id": "qa-cross-shard-singleflight",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1512",
+    "fix_commit": "9e469c9a6e319339c9a3146461a2fcfc2e12c8f4",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38135408987"
+  },
+  {
+    "id": "store-publication-rollback-001",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1508",
+    "fix_commit": "d46894130adb5033ba91c2a8fd69b0748c6f75ee",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38134328250"
+  },
+  {
+    "id": "remote-permits-cost-002",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1511",
+    "fix_commit": "21381a061bba7f7d864a11d46f6d05885046fd30",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38135137136"
+  },
+  {
+    "id": "D5",
+    "pr": "https://github.com/kunobi-ninja/kache/pull/1515",
+    "fix_commit": "5e6317398b7442759c362929bad76e70d83b90bf",
+    "ci": "maintainer approval required",
+    "latest_ci_run": "https://github.com/kunobi-ninja/kache/actions/runs/38135796545"
+  }
+]

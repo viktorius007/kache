@@ -1,0 +1,10 @@
+{
+  "owner": "audit-key-native-inputs",
+  "source": "/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/replay-locator.json",
+  "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-key-native-inputs-replay-locator.json",
+  "verdict": "ADMITTED",
+  "exit_code": 1,
+  "expected_failure_found": true,
+  "assertion_found": true,
+  "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-key-native-inputs-replay-locator.log"
+}

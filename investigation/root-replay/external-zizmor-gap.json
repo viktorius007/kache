@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/cache-poisoning-audit/investigation/zizmor-probe.py",
+    "kache-publish.yml"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/cache-poisoning-audit",
+  "timeout_seconds": 60,
+  "expected_failure_regex": "AssertionError: expected 1 cache-poisoning finding, got 0",
+  "assertion_regex": "kache-publish.yml: cache-poisoning count=0; scanner exit=14"
+}

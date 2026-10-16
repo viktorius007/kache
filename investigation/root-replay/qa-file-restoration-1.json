@@ -1,0 +1,12 @@
+{
+  "name": "cpp-literal-root",
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration/investigation/cpp-marker-replay.py",
+    "__kache_root__"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/qa-file-restoration",
+  "timeout_seconds": 180,
+  "expected_failure_regex": "CPP_HEADER_CHANGE_MISSED",
+  "assertion_regex": "executable returned 1, expected 2"
+}

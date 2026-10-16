@@ -1,0 +1,14 @@
+{
+  "id": "planner-service-timeline-auth",
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/probes/timeline_workload_auth.py",
+    "--binary",
+    "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service",
+  "timeout_seconds": 30,
+  "expected_failure_regex": "AssertionError: TIMELINE_WORKLOAD_AUTH_MISSING",
+  "assertion_regex": "TIMELINE_WORKLOAD_AUTH_MISSING",
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9"
+}

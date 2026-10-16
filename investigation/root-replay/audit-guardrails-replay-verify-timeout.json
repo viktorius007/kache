@@ -1,0 +1,10 @@
+{
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/investigation/probe-verify-timeout.py"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-guardrails",
+  "timeout_seconds": 35,
+  "expected_failure_regex": "AssertionError",
+  "assertion_regex": "Verify timeout contract: executable exceeded timeout_s=1 but harness passed"
+}

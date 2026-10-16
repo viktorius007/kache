@@ -1,0 +1,17 @@
+
+running 1 test
+test daemon::tests::investigation_packed_prefetch_stops_starting_objects_after_plan_deadline ... FAILED
+
+failures:
+
+failures:
+    daemon::tests::investigation_packed_prefetch_stops_starting_objects_after_plan_deadline
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 1.54s
+
+
+thread 'daemon::tests::investigation_packed_prefetch_stops_starting_objects_after_plan_deadline' (48411508) panicked at /Users/viktor/Developer/github/kache-investigations/pack-publisher/investigation/overlay/daemon-tests.rs:15001:5:
+assertion `left == right` failed: packed prefetch must not start another object after the plan dispatch deadline
+  left: 1
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

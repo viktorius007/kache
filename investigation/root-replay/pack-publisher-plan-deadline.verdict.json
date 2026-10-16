@@ -1,0 +1,10 @@
+{
+  "owner": "pack-publisher",
+  "source": "agent preserved binary",
+  "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/pack-publisher-plan-deadline.json",
+  "verdict": "REJECTED",
+  "exit_code": 101,
+  "expected_failure_found": true,
+  "assertion_found": false,
+  "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/pack-publisher-plan-deadline.log"
+}

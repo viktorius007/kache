@@ -1,0 +1,3 @@
+[cache]
+local_only = true
+daemon_publish = false

@@ -1,0 +1,18 @@
+PASS
+Delivered tip: a9f22bd37e70793bc977be3c2d96486f7a87421b; checkout verified clean.
+Baseline: 4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9. Test commit: 8a404f7f75372c13b52f2623d32378bc0abc5d54; fix follows in the delivered tip.
+Evidence root: /Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/pr-delivery/cli-config-001.
+Checked delivery.json, red.log/red-unit.log, green.log/green-unit.log, external-green.log, rustdoc-config-evidence.json/external-proof.py, harness-notes.md, gate.log and pr-body.md.
+Behavioral red: unit and real init succeed through edit but produce a duplicate [build] table rejected by TOML. Green: 15 rustdoc controls, 20 init controls, external plain/comment Cargo metadata success before and after init.
+Full just check: manifest gate_exit 0; final gate main 4382 passed/14 ignored, all 117 CLI tests and six fallback tests pass, workspace/doc tests complete successfully. No audit or gate rerun performed.
+
+Findings: none blocking.
+
+- [Build-header recognition](/Users/viktor/Developer/github/kache-prs/cli-config-001/src/cli.rs:9081) accepts the valid trailing-comment spelling while retaining the original header text. The existing configure_cargo_rustdoc path parses the full document and requires build.rustc-wrapper = kache before editing, so the removed redundant validation conjunct does not expose invalid configs to this production branch.
+- [Table boundary recognition](/Users/viktor/Developer/github/kache-prs/cli-config-001/src/cli.rs:9039) reuses the existing TOML parser to recognize commented subsequent tables. The editor consequently inserts build.rustdoc in [build] and leaves an env.rustdoc assignment in its own table. Existing plain-header replacement, absent-table insertion, similar-key/comment preservation and malformed-line controls remain covered.
+- [Unit oracle](/Users/viktor/Developer/github/kache-prs/cli-config-001/src/cli/tests.rs:2935) parses both original and edited TOML, checks compiler settings and both distinct rustdoc fields, retains comments and requires idempotence. It discriminates both changed production lines.
+- [Init oracle](/Users/viktor/Developer/github/kache-prs/cli-config-001/tests/cli_commands_test.rs:2700) drives the real CLI in an isolated HOME/cache/CARGO_HOME. It requires valid edited TOML, preserved wrapper/environment setting, and an absolute existing rustdoc shim. Existing init controls retain dry-run, preexisting rustdoc, custom Cargo home and repeated setup behavior. External evidence additionally checks real Cargo metadata accepts plain and commented configs before/after setup and stops each fixture daemon.
+- Scope is three files in a test-only commit followed by a two-line production fix, without generated artifacts or dependency changes. Production rustdoc setup and its integration test retain Unix cfg; platform-independent editor tests compile under test cfg. No cache serialization or key identity changes require invalidation.
+- Body is 37 words, describes duplicate-table corruption, repair and successful tests/gate, and links the defective baseline apply_rustdoc_edit function. The full gate uses the delivered tip; initial global HOME/TMPDIR harness overrides are documented and corrected without source changes.
+
+Codebase-memory: coordinator baseline graph is ready with partial Rust semantics. Positive bounded search located apply_rustdoc_edit, closes_toml_table and wrapper-edit owners; check_index_coverage checked src/cli.rs. Delivered source and diff verified the conclusions; the six-result page was sufficient for owner identification, with no exhaustive search claim.

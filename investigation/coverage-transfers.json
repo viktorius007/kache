@@ -1,0 +1,29 @@
+{
+  "benchmark-guardrails": {
+    "from": "guardrails",
+    "paths": [
+      "crates/kache-e2e/src/bench_host.rs",
+      "crates/kache-e2e/src/bench_otlp.rs",
+      "crates/kache-e2e/src/bench_profile.rs",
+      "crates/kache-e2e/src/bench_runner.rs",
+      "scripts/bench-contention.py",
+      "scripts/bench-short.py",
+      "scripts/bench/__init__.py",
+      "scripts/bench/engine.py",
+      "scripts/bench/gate_local.py",
+      "scripts/bench/job_telemetry.py",
+      "scripts/bench/phases.py",
+      "scripts/bench/report.py",
+      "scripts/bench/short.py",
+      "scripts/bench/stats.py",
+      "scripts/install-bench-mbx.sh",
+      "scripts/test-bench-contention.py"
+    ]
+  },
+  "store-link": {
+    "from": "store-core",
+    "paths": [
+      "crates/kache-store/src/link.rs"
+    ]
+  }
+}

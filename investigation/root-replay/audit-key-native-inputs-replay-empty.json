@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs/investigation/repro_env_cases.py",
+    "empty"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-key-native-inputs",
+  "timeout_seconds": 180,
+  "expected_failure_regex": "AssertionError: ASSERTION key oracle violated",
+  "assertion_regex": "ASSERTION key oracle violated: cached=.* direct="
+}

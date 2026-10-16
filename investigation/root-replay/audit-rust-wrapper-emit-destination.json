@@ -1,0 +1,11 @@
+{
+  "id": "rust-wrapper-002",
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper/investigation/probes/emit_destination.py"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-rust-wrapper",
+  "timeout_seconds": 100,
+  "expected_failure_regex": "AssertionError: CACHE_EMIT_DESTINATION: hit failed to materialize requested --emit=metadata path",
+  "assertion_regex": "CACHE_EMIT_DESTINATION: hit failed to materialize requested --emit=metadata path"
+}

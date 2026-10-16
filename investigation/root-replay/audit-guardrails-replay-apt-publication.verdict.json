@@ -1,0 +1,10 @@
+{
+  "owner": "audit-guardrails",
+  "source": "/Users/viktor/Developer/github/kache-investigations/audit-guardrails/investigation/replay-apt-publication.json",
+  "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-guardrails-replay-apt-publication.json",
+  "verdict": "ADMITTED",
+  "exit_code": 1,
+  "expected_failure_found": true,
+  "assertion_found": true,
+  "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-guardrails-replay-apt-publication.log"
+}

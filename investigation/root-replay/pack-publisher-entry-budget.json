@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "/Users/viktor/Developer/github/kache-investigations/pack-publisher/investigation/pack-probe",
+    "daemon::tests::investigation_packed_prefetch_obeys_the_configured_entry_budget",
+    "--exact",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/pack-publisher",
+  "timeout_seconds": 180,
+  "expected_failure_regex": "panicked at",
+  "assertion_regex": "packed prefetch must honor the configured maximum entries per plan"
+}

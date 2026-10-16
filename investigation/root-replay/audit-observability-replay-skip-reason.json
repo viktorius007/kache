@@ -1,0 +1,14 @@
+{
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-observability/investigation/probes/real_compile_report.py",
+    "skip-reason"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-observability",
+  "timeout_seconds": 60,
+  "expected_failure_regex": "SKIP_REASON_LOST",
+  "assertion_regex": "SKIP_REASON_LOST",
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "expected_exit_code": 1,
+  "oracle": "Actual compiler must return 0 and produce rlib; dedicated failing assertion is the only accepted red signal."
+}

@@ -1,0 +1,10 @@
+{
+  "owner": "audit-cli-config",
+  "source": "/Users/viktor/Developer/github/kache-investigations/audit-cli-config/investigation/replay-cases.json",
+  "case": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-cli-config-replay-cases-0.json",
+  "verdict": "ADMITTED",
+  "exit_code": 1,
+  "expected_failure_found": true,
+  "assertion_found": true,
+  "log": "/Users/viktor/Developer/github/kache-investigations/coordinator/investigation/root-replay/audit-cli-config-replay-cases-0.log"
+}

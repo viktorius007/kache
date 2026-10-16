@@ -1,0 +1,21 @@
+{
+  "control": false,
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "warning: session audit-session not sent: service answered 401 Unauthorized: build timelines need the service's credentials\n",
+  "calls": [
+    {
+      "method": "POST",
+      "path": "/v1/build-timelines",
+      "authorization": null,
+      "encoding": "zstd",
+      "body_bytes": 356
+    }
+  ]
+}
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/probes/timeline_workload_auth.py", line 71, in <module>
+    main()
+  File "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/probes/timeline_workload_auth.py", line 64, in main
+    assert posts[0]["authorization"] == "Bearer " + token, "TIMELINE_WORKLOAD_AUTH_MISSING: available Actions credential was omitted from production timeline upload"
+AssertionError: TIMELINE_WORKLOAD_AUTH_MISSING: available Actions credential was omitted from production timeline upload
