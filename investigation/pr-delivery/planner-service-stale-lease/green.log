@@ -1,0 +1,140 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/planner-service-stale-lease)
+    Finished `test` profile [unoptimized] target(s) in 24.86s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target/debug/deps/kache-1216026e9547a40d)
+
+running 89 tests
+test scheduler::tests::a_free_pool_gives_a_heavy_compile_its_whole_weight_at_once ... ok
+test scheduler::tests::a_keyless_compile_takes_a_permit_and_no_flight ... ok
+test scheduler::tests::a_lease_waits_for_a_compile_checking_its_marker ... ok
+test scheduler::tests::a_pool_of_one_runs_tests_without_a_lease ... ok
+test scheduler::tests::a_slot_is_the_memory_shared_across_the_pool ... ok
+test scheduler::tests::acquire_test_lease_fails_open_and_uses_the_given_pool ... ok
+test scheduler::tests::compile_need_caps_heavy_compiles_at_what_tests_leave ... ok
+test scheduler::tests::covered_misses_skip_the_permit_but_join_the_flight ... ok
+test scheduler::tests::cpu_parser_rejects_zero_and_rounds_fractional_capacity_up ... ok
+test scheduler::tests::cpuset_parser_merges_overlap_and_rejects_overflow ... ok
+test scheduler::tests::default_pool_size_follows_available_parallelism ... ok
+test scheduler::tests::discovery_flights_hold_until_publish_and_fail_open ... ok
+test scheduler::tests::dropping_miss_guard_releases_flight_and_permit ... ok
+test scheduler::tests::elastic_leases_take_every_free_test_slot ... ok
+test scheduler::tests::equal_cpu_ratios_are_tied_in_both_directions ... ok
+
+running 1 test
+test scheduler::tests::test_lease_owner_child_fixture ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 0.01s
+
+test scheduler::tests::exited_test_lease_owner_restores_admission ... ok
+test scheduler::tests::fail_open_when_scheduler_dir_is_a_file ... ok
+test scheduler::tests::flight_compile_then_release_fixture ... ignored, subprocess fixture for waiter_rechecks_after_owner_completes
+test scheduler::tests::flight_owner_child_fixture ... ignored, subprocess fixture for lease_reclaim_on_process_exit
+test scheduler::tests::flight_wait_is_attributed_even_when_it_times_out ... ok
+test scheduler::tests::flights_are_scoped_to_the_cache_key ... ok
+test scheduler::tests::garbage_weight_file_uses_unmeasured_floor ... ok
+test scheduler::tests::heavy_compiles_fit_in_the_reserve_while_tests_hold_the_rest ... ok
+test scheduler::tests::heavy_compiles_take_their_full_weight_without_tests ... ok
+test scheduler::tests::heavy_compiles_take_what_tests_leave ... ok
+test scheduler::tests::lease_covers_a_marker_named_through_a_symlink ... ok
+test scheduler::tests::lease_covers_only_markers_of_this_scheduler ... ok
+
+running 1 test
+test scheduler::tests::lease_reclaim_on_process_exit ... ok
+test scheduler::tests::malformed_ancestor_memory_clears_limit_and_headroom ... ok
+test scheduler::tests::measured_weights_follow_the_machines_memory ... ok
+test scheduler::tests::meminfo_total_is_read_in_kib ... ok
+test scheduler::tests::memory_event_parser_rejects_bad_rows_and_empty_input ... ok
+test scheduler::tests::memory_limit_reader_distinguishes_unlimited_and_malformed ... ok
+test scheduler::tests::a_marker_that_stays_busy_releases_the_slots ... ok
+test scheduler::tests::mountinfo_decoder_accepts_kernel_escapes_and_utf8 ... ok
+test scheduler::tests::mountinfo_parser_rejects_relative_and_parent_paths ... ok
+test scheduler::tests::off_switch_does_not_create_scheduler_dir ... ok
+test scheduler::tests::open_clamps_a_zero_pool_to_one ... ok
+test scheduler::tests::owner_compiles_without_waiting ... ok
+test scheduler::tests::peak_child_rss_bytes_samples_a_waited_child ... ok
+test scheduler::tests::permit_owner_child_fixture ... ignored, subprocess fixture for permit_pool_blocks_until_a_slot_is_free
+
+running 1 test
+test scheduler::tests::memory_pressure_admits_a_compile_only_when_no_other_holds_a_slot ... ok
+test scheduler::tests::permits_in_use_counts_held_slots ... ok
+test scheduler::tests::permits_in_use_is_unknown_when_the_slots_cannot_be_read ... ok
+test scheduler::tests::proc_cgroup_parser_preserves_path_whitespace ... ok
+test scheduler::tests::proc_cgroup_parser_rejects_ambiguous_or_escaping_paths ... ok
+test scheduler::tests::record_compile_rss_persists_child_sample ... ok
+test scheduler::tests::record_test_rss_persists_the_child_sample ... ok
+test scheduler::tests::reserve_is_a_quarter_of_the_pool_and_at_least_one ... ok
+test scheduler::tests::resource_discovery_failure_returns_unsupported_snapshot ... ok
+test scheduler::tests::resource_domain_decodes_mountinfo_path_escapes ... ok
+test scheduler::tests::resource_domain_marks_a_subtree_only_mount_incomplete ... ok
+test scheduler::tests::resource_domain_prefers_the_mount_that_exposes_parent_limits ... ok
+test scheduler::tests::resource_domain_resolves_mount_root_and_injected_files ... ok
+test scheduler::tests::resource_snapshot_accepts_child_limits_without_root_controller_files ... ok
+test scheduler::tests::resource_snapshot_keeps_leaf_quota_when_ancestor_ratio_ties ... ok
+test scheduler::tests::resource_snapshot_reads_cpuset_ranges_and_memory_events ... ok
+test scheduler::tests::resource_snapshot_reads_current_headroom_and_saturates ... ok
+test scheduler::tests::resource_snapshot_rejects_missing_non_root_controller_files ... ok
+test scheduler::tests::resource_snapshot_takes_tightest_nested_limits ... ok
+test scheduler::tests::resource_snapshot_uses_each_ancestor_usage_for_headroom ... ok
+test scheduler::tests::resource_snapshot_uses_tighter_ancestor_cpu_quota ... ok
+test scheduler::tests::resource_snapshot_with_malformed_ancestor_cpu_has_no_quota ... ok
+test scheduler::tests::resource_snapshot_with_unknown_bounded_usage_has_no_headroom ... ok
+test scheduler::tests::rss_from_getrusage_requires_success_and_positive_rss ... ok
+test scheduler::tests::rss_units_to_bytes_match_platform_units ... ok
+test scheduler::tests::rustc_and_cc_identities_do_not_collide ... ok
+test scheduler::tests::rustc_identity_ignores_crate_type_order ... ok
+test scheduler::tests::rustc_identity_separates_link_from_metadata ... ok
+test scheduler::tests::slot_is_held_separates_missing_from_unreadable ... ok
+test scheduler::tests::test_floor_reads_recorded_rss ... ok
+test scheduler::tests::test_lease_owner_child_fixture ... ignored, subprocess fixture for exited_test_lease_owner_restores_admission
+test scheduler::tests::permit_owner_child_fixture ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 0.31s
+
+test scheduler::tests::permit_pool_blocks_until_a_slot_is_free ... ok
+test scheduler::tests::test_leases_never_take_the_reserve ... ok
+test scheduler::tests::test_need_clamps_to_the_slots_above_the_reserve ... ok
+test scheduler::tests::tests_held_counts_an_unprobeable_marker_as_every_slot ... ok
+test scheduler::tests::tests_held_counts_an_unreadable_directory_as_every_slot ... ok
+test scheduler::tests::tests_held_counts_held_markers ... ok
+test scheduler::tests::the_machines_memory_is_read ... ok
+test scheduler::tests::trace_diagnostics_emits_resource_snapshot_fields ... ok
+test scheduler::tests::unmeasured_compile_weight_is_one ... ok
+test scheduler::tests::unmeasured_link_weight_clamps_to_pool ... ok
+test scheduler::tests::unmeasured_link_weight_is_two ... ok
+test scheduler::tests::unsupported_resource_snapshot_is_empty ... ok
+
+running 1 test
+test scheduler::tests::test_leases_are_bounded_by_the_slots_above_the_reserve ... ok
+test scheduler::tests::weight_for_maps_measured_rss_to_512mib_slots ... ok
+test scheduler::tests::weight_in_slots_rounds_up_within_the_pool ... ok
+test scheduler::tests::weight_ledger_overrides_unmeasured_floor ... ok
+test scheduler::tests::flight_compile_then_release_fixture ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 0.22s
+
+test scheduler::tests::waiter_rechecks_after_owner_completes ... ok
+
+test result: ok. 85 passed; 0 failed; 4 ignored; 0 measured; 4308 filtered out; finished in 0.90s
+
+    Finished `test` profile [unoptimized] target(s) in 0.67s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target/debug/deps/kache-1216026e9547a40d)
+
+running 16 tests
+test test_runner::tests::artifact_stem_requires_cargo_metadata_hash ... ok
+test test_runner::tests::declared_threads_reads_argv_before_env ... ok
+test test_runner::tests::declared_threads_rejects_zero_garbage_and_missing_values ... ok
+test test_runner::tests::exact_test_is_the_argument_after_exact ... ok
+test test_runner::tests::exit_disposition_keeps_codes_and_signals ... ok
+test test_runner::tests::finish_returns_the_exit_code ... ok
+test test_runner::tests::lease_env_sets_threads_only_for_elastic_wants ... ok
+test test_runner::tests::plan_execs_listing_and_benches ... ok
+test test_runner::tests::per_test_runs_keep_their_own_rss_history ... ok
+test test_runner::tests::plan_execs_unhashed_binaries ... ok
+test test_runner::tests::plan_execs_when_the_scheduler_is_off ... ok
+test test_runner::tests::plan_execs_under_a_covering_lease ... ok
+test test_runner::tests::plan_fixes_declared_and_per_test_wants ... ok
+test test_runner::tests::plan_wants_elastic_floor_by_default ... ok
+test test_runner::tests::wait_budget_is_shorter_under_nextest ... ok
+test test_runner::tests::plan_uses_recorded_rss_as_the_floor ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 4381 filtered out; finished in 0.00s
+

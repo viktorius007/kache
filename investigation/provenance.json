@@ -1,0 +1,135 @@
+{
+  "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "worktree": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service",
+  "source_unchanged": true,
+  "baseline_binary": "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+  "binary_sha256": "45840941809ca7c45622027f84d2c653c737e7ff35d375cfbf355b619456120f",
+  "primary_blobs": [
+    {
+      "path": "crates/kache-core/Cargo.toml",
+      "blob": "7d86ae11ec066be04e33555a38fc2a8edc7c28f8",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "crates/kache-core/README.md",
+      "blob": "9df64700f2040c0500e8da5b9601b68b97e31a82",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "crates/kache-core/src/lib.rs",
+      "blob": "e22460c6d2523443a237752d99d5f887c2ab61be",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "crates/kache-core/src/timeline.rs",
+      "blob": "3ff97c295cf33ccd0b69454d96b634e68d56105c",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "crates/kache-service/Cargo.toml",
+      "blob": "9cb84f4fad70da2570fa6c517aaba0a992225781",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "crates/kache-service/src/auth.rs",
+      "blob": "2a826dba0eaa72f291e01154298e579e0bcdb15e",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "crates/kache-service/src/lib.rs",
+      "blob": "153995b164b35555f0aef34cb83407c7d3a8893a",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "crates/kache-service/src/main.rs",
+      "blob": "27afadb4b40624f4141f3553942b7681b2ef3e38",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "crates/kache-service/src/metrics.rs",
+      "blob": "9373d2c346078c56e61a62e7d00a5e4d42525f14",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "crates/kache-service/src/state.rs",
+      "blob": "520e5f97b7bcc214eaf08012046519c767b6dbbf",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "crates/kache-service/src/timelines.rs",
+      "blob": "91b6b149aeedba5a977c8e588a3f553d30ee9692",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "crates/kache-service/tests/cli.rs",
+      "blob": "c53faba2ce27f039b3d1ffb6ba1d66ed9448e999",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "crates/kache-service/tests/concurrent_planner_db.rs",
+      "blob": "a61d42611b63f10380af4318b789353e839db143",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "docs/how-it-works/limits.mdx",
+      "blob": "9c1a0c76f2d47050e5e0332e8b442a7596b32573",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "docs/remote-service.mdx",
+      "blob": "7663feff6eea089c9a1c4b440ec88fe69e90353c",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "src/build_intent.rs",
+      "blob": "d07774cc31c6b7152b1078df52e2ef1c084a19c3",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "src/demand.rs",
+      "blob": "c9ecdbcc9e08ef33a1b179b0b847213bfdfde5bb",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "src/fallback_planner.rs",
+      "blob": "46a203a46e8c655c5ecef8c3fc1569ab57ffc02c",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "src/machine.rs",
+      "blob": "8490c3fd18e13590b5b6a9f6ad0be92ddd99046b",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "src/planner_auth.rs",
+      "blob": "57adc9ef0aeb242cf541063a60fb973c662f8caf",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "src/planner_client.rs",
+      "blob": "803c583bbd7ddb9a1d834b32a0b9014fcf9f84cc",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "src/remote_plan.rs",
+      "blob": "febeb537668077c522f586669c83f237069864b9",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "src/scheduler.rs",
+      "blob": "651d23161e1604dbde0d86f6342a6d5f82f4bbea",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "src/scheduler/pressure.rs",
+      "blob": "d1427fec5d9b42ce706b0c7f279adba4dab266ef",
+      "matches_pinned_baseline": true
+    },
+    {
+      "path": "src/timeline_client.rs",
+      "blob": "8ed4db93077b8a343a928d77e9d8e495cceeda16",
+      "matches_pinned_baseline": true
+    }
+  ],
+  "runtime_builds": "none; baseline CLI supplied read-only by coordinator"
+}

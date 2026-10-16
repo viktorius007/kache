@@ -1,0 +1,8 @@
+{
+  "id": "planner-service-stale-lease",
+  "url": "https://github.com/kunobi-ninja/kache/pull/1528",
+  "branch": "fix/planner-service-stale-lease",
+  "fix_commit": "f58c9ed2fee7338a6a1af9e53ef13152d1dd37ae",
+  "state": "draft",
+  "review": "investigation/pr-delivery/reviews/planner-service-stale-lease.md"
+}

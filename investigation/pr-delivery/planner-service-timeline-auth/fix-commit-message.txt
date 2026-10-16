@@ -1,0 +1,15 @@
+fix: resolve automatic planner credentials for timeline uploads
+
+push_timeline read only config.token, so Actions and trusted-session
+credentials used by planner requests were omitted from telemetry uploads.
+Reuse planner_auth::bearer with the existing upload timeout as its bounded
+authentication deadline; retain explicit-token priority and unauthenticated
+advisory errors. The upload client keeps its established timeout.
+
+No new authentication function, type, trait, module or visibility is added.
+The shared resolver already owns workload/session selection and trust.
+
+Share the same deadline with the POST using planner_client's existing
+remaining-budget pattern. Reject exhausted auth budgets before dispatch
+and give the HTTP request only the remaining allowance. Paused-clock
+regressions prove both delayed auth and exhausted auth behavior.

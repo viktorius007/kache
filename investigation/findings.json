@@ -1,0 +1,223 @@
+[
+  {
+    "id": "planner-service-timeline-auth",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T05:53:44.841744+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "codex-inherited",
+      "mode": "production-readiness",
+      "slice": "planner-service"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Timeline uploads omit automatic workload and session authentication, so documented OIDC/Actions-only services reject them.",
+    "scenario": "A job sets ACTIONS_ID_TOKEN_REQUEST_URL and ACTIONS_ID_TOKEN_REQUEST_TOKEN, no static planner token, and calls kache telemetry push. The assembled zstd POST carries no Authorization and never requests the available Actions credential; an auth-requiring endpoint rejects it with 401 and no timeline is stored.",
+    "evidence": [
+      {
+        "path": "src/timeline_client.rs",
+        "lines": "50-69",
+        "point": "push_timeline adds a bearer only for config.token; automatic planner_auth resolution is never used."
+      },
+      {
+        "path": "src/planner_client.rs",
+        "lines": "43-58",
+        "point": "prefetch client resolves planner_auth::bearer within its request deadline."
+      },
+      {
+        "path": "src/cli.rs",
+        "lines": "484-526",
+        "point": "production telemetry_push calls push_timeline and prints warning on a failed upload."
+      },
+      {
+        "path": "crates/kache-service/src/timelines.rs",
+        "lines": "244-254",
+        "point": "configured auth refuses unauthenticated submissions before storage."
+      },
+      {
+        "path": "docs/remote-service.mdx",
+        "lines": "42-61",
+        "point": "both POST endpoints require bearer; the documented client Actions provider fetches a job token automatically."
+      }
+    ],
+    "trace": "kache telemetry push \u2192 cli::telemetry_push \u2192 timeline_client::push_timeline \u2192 POST /v1/build-timelines with no bearer \u2192 configured service authentication gate \u2192 401, warning, exit 0",
+    "authority": {
+      "source": "docs/remote-service.mdx authentication contract + lost-upload failure mode",
+      "quote": "Configure any of these and `POST /v1/prefetch-plan` and `POST /v1/build-timelines` require a bearer token that one of them accepts."
+    },
+    "proof": {
+      "red_test": "#!/usr/bin/env python3\n\"\"\"Observe production CLI upload headers with isolated Actions and service fixtures.\"\"\"\nimport argparse, base64, http.server, json, os, pathlib, subprocess, tempfile, threading, time\n\nROOT = pathlib.Path(__file__).resolve().parents[2]\nDEFAULT_BIN = \"/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache\"\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--binary\", default=DEFAULT_BIN)\n    parser.add_argument(\"--static-control\", action=\"store_true\")\n    args = parser.parse_args()\n    payload = base64.urlsafe_b64encode(json.dumps({\"exp\": int(time.time()) + 3600}).encode()).decode().rstrip(\"=\")\n    token = \"eyJhbGciOiJSUzI1NiJ9.\" + payload + \".fixture-signature\"\n    calls = []\n    class Handler(http.server.BaseHTTPRequestHandler):\n        def log_message(self, *_):\n            pass\n        def reply(self, status, value):\n            body = json.dumps(value).encode()\n            self.send_response(status)\n            self.send_header(\"Content-Type\", \"application/json\")\n            self.send_header(\"Content-Length\", str(len(body)))\n            self.end_headers()\n            self.wfile.write(body)\n        def do_GET(self):\n            calls.append({\"method\": \"GET\", \"path\": self.path, \"authorization\": self.headers.get(\"Authorization\")})\n            if self.path.startswith(\"/token?\"):\n                self.reply(200, {\"value\": token})\n            else:\n                self.reply(404, {\"error\": \"no discovery\"})\n        def do_POST(self):\n            body = self.rfile.read(int(self.headers.get(\"Content-Length\", \"0\")))\n            auth = self.headers.get(\"Authorization\")\n            calls.append({\"method\": \"POST\", \"path\": self.path, \"authorization\": auth, \"encoding\": self.headers.get(\"Content-Encoding\"), \"body_bytes\": len(body)})\n            if auth != \"Bearer \" + token:\n                self.reply(401, {\"error\": \"build timelines need the service's credentials\"})\n            else:\n                self.reply(200, {\"stored\": \"inserted\"})\n    server = http.server.ThreadingHTTPServer((\"127.0.0.1\", 0), Handler)\n    thread = threading.Thread(target=server.serve_forever, daemon=True)\n    thread.start()\n    try:\n        with tempfile.TemporaryDirectory(prefix=\"timeline-auth-\", dir=ROOT / \"investigation\") as scratch:\n            directory = pathlib.Path(scratch)\n            cache, home = directory / \"cache\", directory / \"home\"\n            cache.mkdir(); home.mkdir()\n            config = directory / \"config.toml\"\n            config.write_text('[cache]\\nlocal_store = \"' + str(cache) + '\"\\nauto_gc = false\\n')\n            event = {\"ts\":\"2026-10-11T01:00:00Z\", \"crate_name\":\"audit_fixture\", \"result\":\"miss\", \"elapsed_ms\":10, \"size\":1, \"cache_key\":\"audit-key\", \"schema\":26, \"session_id\":\"audit-session\", \"root\":str(directory)}\n            (cache / \"events.jsonl\").write_text(json.dumps(event) + \"\\n\")\n            env = {key:value for key,value in os.environ.items() if not key.startswith((\"KACHE_\", \"KUNOBI_\", \"ACTIONS_\", \"CARGO_\", \"RUST_\"))}\n            env.update({\"HOME\":str(home), \"XDG_CONFIG_HOME\":str(home / \"config\"), \"KACHE_CONFIG\":str(config), \"KACHE_STORE\":str(cache), \"KACHE_PLANNER_ENDPOINT\":f\"http://127.0.0.1:{server.server_port}\", \"ACTIONS_ID_TOKEN_REQUEST_URL\":f\"http://127.0.0.1:{server.server_port}/token?api-version=2.0\", \"ACTIONS_ID_TOKEN_REQUEST_TOKEN\":\"fixture-runtime\", \"RUSTC_WRAPPER\":\"\"})\n            if args.static_control:\n                env[\"KACHE_PLANNER_TOKEN\"] = token\n            run = subprocess.run([args.binary, \"telemetry\", \"push\", \"--all\"], cwd=directory, env=env, capture_output=True, text=True, timeout=20)\n            evidence = {\"control\":args.static_control, \"exit_code\":run.returncode, \"stdout\":run.stdout, \"stderr\":run.stderr, \"calls\":calls}\n            output = ROOT / \"investigation\" / (\"timeline_auth_control.json\" if args.static_control else \"timeline_auth_red.json\")\n            output.write_text(json.dumps(evidence, indent=2) + \"\\n\")\n            print(json.dumps(evidence, indent=2), flush=True)\n            posts = [call for call in calls if call[\"method\"] == \"POST\"]\n            assert len(posts) == 1 and posts[0][\"path\"] == \"/v1/build-timelines\", \"fixture must reach production timeline upload\"\n            assert posts[0][\"body_bytes\"] > 0 and posts[0][\"encoding\"] == \"zstd\", \"fixture must upload the assembled compressed record\"\n            assert posts[0][\"authorization\"] == \"Bearer \" + token, \"TIMELINE_WORKLOAD_AUTH_MISSING: available Actions credential was omitted from production timeline upload\"\n            assert \"sent session audit-session\" in run.stdout, \"authenticated fixture upload must report stored session\"\n            print(\"CONTROL_PASS: authenticated upload reached fixture service\")\n    finally:\n        server.shutdown(); server.server_close()\n\nif __name__ == \"__main__\":\n    main()\n",
+      "name": "timeline_workload_auth.py",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "{\n  \"control\": false,\n  \"exit_code\": 0,\n  \"stdout\": \"\",\n  \"stderr\": \"warning: session audit-session not sent: service answered 401 Unauthorized: build timelines need the service's credentials\\n\",\n  \"calls\": [\n    {\n      \"method\": \"POST\",\n      \"path\": \"/v1/build-timelines\",\n      \"authorization\": null,\n      \"encoding\": \"zstd\",\n      \"body_bytes\": 355\n    }\n  ]\n}\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/probes/timeline_workload_auth.py\", line 71, in <module>\n    main()\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/probes/timeline_workload_auth.py\", line 64, in main\n    assert posts[0][\"authorization\"] == \"Bearer \" + token, \"TIMELINE_WORKLOAD_AUTH_MISSING: available Actions credential was omitted from production timeline upload\"\nAssertionError: TIMELINE_WORKLOAD_AUTH_MISSING: available Actions credential was omitted from production timeline upload\n",
+      "replay_case": "investigation/timeline-auth-replay.json",
+      "control": "same available token set as KACHE_PLANNER_TOKEN: upload carries Authorization and reports inserted; timeline-auth-control.log",
+      "oracle": "test-owned workload token must appear on actual production CLI HTTP upload; independent server records headers; explicit static token proves fixture, record assembly and network path can succeed",
+      "limits": "HTTP service/token fixtures preserve the client authentication boundary. No live GitHub issuer, JWT signature verification or Kunobi login was executed; missing session-token resolution is also directly wired in source."
+    },
+    "severity": "Every timeline push from an Actions/OIDC-only deployment loses its record; static-token deployments are unaffected. Builds continue and the CLI reports a warning, so the effect is telemetry loss rather than compiler correctness or credential disclosure.",
+    "status": "open"
+  },
+  {
+    "id": "planner-service-stale-lease",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T05:53:44.841744+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "codex-inherited",
+      "mode": "production-readiness",
+      "slice": "planner-service"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "A stale inherited test lease marker suppresses scheduler admission after the owner has exited and released its slots.",
+    "scenario": "Capture KACHE_TEST_LEASE from a real kache test-runner child. Once that runner exits, its marker is demonstrably unlocked. A descendant with that inherited environment starts another Cargo-style hashed test through test-runner; lease_covers accepts the stale path and the new test runs with zero held scheduler slots.",
+    "evidence": [
+      {
+        "path": "src/scheduler.rs",
+        "lines": "685-695",
+        "point": "lease_covers validates only canonical parent-directory equality, not whether the marker exists or its OS lock is held."
+      },
+      {
+        "path": "src/test_runner.rs",
+        "lines": "144-158",
+        "point": "a covering path returns Plan::Exec and skips acquire_test_lease."
+      },
+      {
+        "path": "src/scheduler.rs",
+        "lines": "379-409",
+        "point": "the same predicate suppresses compiler permits in begin_miss and keyless_compile."
+      },
+      {
+        "path": "src/config.rs",
+        "lines": "2049",
+        "point": "compiler config captures KACHE_TEST_LEASE unchanged."
+      }
+    ],
+    "trace": "test-runner creates lease \u2192 child inherits marker path \u2192 original runner exits, OS releases slots \u2192 descendant retains environment \u2192 test_runner::plan/ scheduler::lease_covers \u2192 unscheduled execution; compiler miss admission shares the predicate",
+    "authority": {
+      "source": "docs/how-it-works/limits.mdx test runner contract + resource admission failure mode",
+      "quote": "Builds started inside a running test use that test's slots."
+    },
+    "proof": {
+      "red_test": "#!/usr/bin/env python3\n\"\"\"Replay a lease marker captured from an exited production test runner.\"\"\"\nimport argparse, json, os, pathlib, subprocess, tempfile\nROOT = pathlib.Path(__file__).resolve().parents[2]\nDEFAULT_BIN = \"/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache\"\nCHILD = \"\"\"#!/usr/bin/env python3\nimport fcntl, json, os, pathlib\nheld = 0\nfor slot in pathlib.Path(os.environ['KACHE_FIXTURE_CACHE']).joinpath('scheduler/permits').glob('*'):\n    with slot.open('r') as handle:\n        try:\n            fcntl.flock(handle, fcntl.LOCK_SH | fcntl.LOCK_NB)\n        except BlockingIOError:\n            held += 1\nprint(json.dumps({'held':held, 'marker':os.environ.get('KACHE_TEST_LEASE')}))\n\"\"\"\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument('--binary', default=DEFAULT_BIN)\n    parser.add_argument('--clear-control', action='store_true')\n    args = parser.parse_args()\n    with tempfile.TemporaryDirectory(prefix='stale-lease-', dir=ROOT / 'investigation') as scratch:\n        directory = pathlib.Path(scratch)\n        cache, home = directory / 'cache', directory / 'home'\n        cache.mkdir(); home.mkdir()\n        config = directory / 'config.toml'\n        config.write_text('[cache]\\nlocal_store = \"' + str(cache) + '\"\\nauto_gc = false\\n')\n        child = directory / 'fixture-0123456789abcdef'\n        child.write_text(CHILD); child.chmod(0o755)\n        env = {key:value for key,value in os.environ.items() if not key.startswith(('KACHE_', 'KUNOBI_', 'ACTIONS_', 'CARGO_', 'RUST_', 'NEXTEST_'))}\n        env.update({'HOME':str(home), 'XDG_CONFIG_HOME':str(home / 'config'), 'KACHE_CONFIG':str(config), 'KACHE_STORE':str(cache), 'KACHE_LOCAL_ONLY':'1', 'KACHE_FIXTURE_CACHE':str(cache), 'RUSTC_WRAPPER':''})\n        def run(current):\n            proc = subprocess.run([args.binary, 'test-runner', str(child), '--test-threads', '1'], cwd=directory, env=current, capture_output=True, text=True, timeout=15)\n            assert proc.returncode == 0, proc.stderr\n            return json.loads(proc.stdout)\n        initial = run(env)\n        assert initial['held'] >= 1 and initial['marker'], 'positive control must observe actual OS permit lock while runner is alive'\n        marker = pathlib.Path(initial['marker'])\n        import fcntl\n        with marker.open('r') as handle:\n            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)\n        if not args.clear_control:\n            env['KACHE_TEST_LEASE'] = initial['marker']\n        second = run(env)\n        evidence = {'control':args.clear_control, 'initial':initial, 'marker_released_before_second':True, 'second':second}\n        output = ROOT / 'investigation' / ('stale_lease_control.json' if args.clear_control else 'stale_lease_red.json')\n        output.write_text(json.dumps(evidence, indent=2) + '\\n')\n        print(json.dumps(evidence, indent=2), flush=True)\n        assert second['held'] >= 1, 'STALE_LEASE_BYPASS: a released marker from an exited test runner suppresses all production scheduler permits'\n        print('CONTROL_PASS: fresh runner acquires permits')\nif __name__ == '__main__':\n    main()\n",
+      "name": "stale_test_lease.py",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "{\n  \"control\": false,\n  \"initial\": {\n    \"held\": 1,\n    \"marker\": \"/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/stale-lease-wqlj5c9b/cache/scheduler/tests/4\"\n  },\n  \"marker_released_before_second\": true,\n  \"second\": {\n    \"held\": 0,\n    \"marker\": \"/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/stale-lease-wqlj5c9b/cache/scheduler/tests/4\"\n  }\n}\nTraceback (most recent call last):\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/probes/stale_test_lease.py\", line 53, in <module>\n    main()\n  File \"/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/probes/stale_test_lease.py\", line 50, in main\n    assert second['held'] >= 1, 'STALE_LEASE_BYPASS: a released marker from an exited test runner suppresses all production scheduler permits'\nAssertionError: STALE_LEASE_BYPASS: a released marker from an exited test runner suppresses all production scheduler permits\n",
+      "replay_case": "investigation/stale-lease-replay.json",
+      "control": "clear stale marker from second runner env: held slots=1 while child is alive; stale-lease-control.log",
+      "oracle": "independent child tries shared OS flock on each permit file while runner is alive; initial legitimate runner holds a slot, released marker is acquired independently, stale second runner holds zero",
+      "limits": "Executed macOS test-runner path. Compiler bypass is source-traced through the same predicate; real memory exhaustion and Linux/Windows behavior were not executed. Probe recreates inherited descendant environment using the actual captured marker."
+    },
+    "severity": "Opt-in scheduled tests and compilers descended from a test process that outlive its runner can execute outside the machine-wide pool. This defeats memory/concurrency admission and can compound oversubscription; it does not alone prove OOM. Ordinary descendants while their owner remains alive and processes without KACHE_TEST_LEASE are unaffected.",
+    "status": "open"
+  },
+  {
+    "id": "planner-service-sql-injection",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:53:44.841744+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "codex-inherited",
+      "mode": "production-readiness",
+      "slice": "planner-service"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Planner query identifiers from network intent do not become executable SQL.",
+    "checked": "SQL equality lookups, namespace, dependency, crate keys and timeline metadata are bound with rusqlite params; only migration table/column identifiers come from fixed arrays.",
+    "closed_by": "tier 2: crates/kache-service/src/state.rs:365-424,466-528,544-644,341-361",
+    "reopens_if": "query construction starts interpolating client-controlled names",
+    "status": "dismissed"
+  },
+  {
+    "id": "planner-service-partial-seed",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:53:44.841744+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "codex-inherited",
+      "mode": "production-readiness",
+      "slice": "planner-service"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "A failed seed cannot publish a partially replaced planner projection.",
+    "checked": "replace_with_state deletes and inserts inside one SQLite transaction; readiness is published after load_repository returns; legacy directory migration refuses unseeded destruction and quarantines instead of deleting.",
+    "closed_by": "tier 2: crates/kache-service/src/state.rs:102-149,208-241; crates/kache-service/src/lib.rs:273-276,308-334",
+    "reopens_if": "transaction boundaries, startup readiness ordering, or migration behavior change; crash/disk-full runtime campaign remains unexecuted",
+    "status": "dismissed"
+  },
+  {
+    "id": "planner-service-unbounded-decode",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:53:44.841744+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "codex-inherited",
+      "mode": "production-readiness",
+      "slice": "planner-service"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Per-request timeline decoded-body growth is explicitly bounded in production.",
+    "checked": "compressed bytes limited before decode; zstd reader takes max+1 and refuses excess; schema and record id rejected before storing; this does not establish bounded aggregate memory or storage retention.",
+    "closed_by": "tier 2: crates/kache-service/src/timelines.rs:174-211,265-302",
+    "reopens_if": "limits are removed or request admission/concurrent aggregate memory becomes the claim; decode runtime not executed here",
+    "status": "dismissed"
+  },
+  {
+    "id": "planner-service-optional-fallback",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:53:44.841744+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "codex-inherited",
+      "mode": "production-readiness",
+      "slice": "planner-service"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Planner authentication/status failure does not eliminate daemon fallback planning.",
+    "checked": "resolve_prefetch_plan errors flow to daemon fallback; UseFallback and Execute-empty also fall back; DoNothing deliberately stops prefetch; unresolved speculative identity work is cancelled and retried with ordinary admission.",
+    "closed_by": "tier 2: src/planner_client.rs:13-20,43-69; src/daemon.rs:6471-6661; src/fallback_planner.rs:127-174; tier 4 docs/remote-service.mdx:10",
+    "reopens_if": "fallback dispatch or admission composition changes; full daemon runtime belongs to the remote-daemon slice",
+    "status": "dismissed"
+  },
+  {
+    "id": "planner-service-auth-origin",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:53:44.841744+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "codex-inherited",
+      "mode": "production-readiness",
+      "slice": "planner-service"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Automatic planner credentials are guarded by endpoint transport and stored trust.",
+    "checked": "explicit token precedence; workload resolver receives the planner base URL as audience; automatic flow refuses non-HTTPS/non-loopback origins; Kunobi session discovery checked against stored pin every use; session refresh guarded per process and via a cross-process lock.",
+    "closed_by": "tier 2: src/planner_auth.rs:49-92,161-244,298-342; kunobi-auth-1.0.0/src/client/workload.rs:106-142",
+    "reopens_if": "endpoint origin/redirect or pin semantics change; external key rotation and live login were not executed",
+    "status": "dismissed"
+  },
+  {
+    "id": "planner-service-normal-permit-lifetime",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T05:53:44.841744+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "codex-inherited",
+      "mode": "production-readiness",
+      "slice": "planner-service"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Normal miss admission holds flight and permits through the coordinated compile.",
+    "checked": "MissGuard field ordering releases permit before flight; StoreLock guard owns OS lock; wrapper joins flight then permit then claim, and keyless paths hold permit through compiler execution. The stale inherited lease finding is the separately proven exception.",
+    "closed_by": "tier 2: src/scheduler.rs:220-257,379-409; src/wrapper.rs:1119-1151,6090-6145,8061-8071; independent runtime lock control in stale-lease-control.log",
+    "reopens_if": "new acquisition-order path, lock unlink behavior, or guard lifetime change",
+    "status": "dismissed"
+  }
+]

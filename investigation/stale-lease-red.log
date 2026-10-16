@@ -1,0 +1,18 @@
+{
+  "control": false,
+  "initial": {
+    "held": 1,
+    "marker": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/stale-lease-wqlj5c9b/cache/scheduler/tests/4"
+  },
+  "marker_released_before_second": true,
+  "second": {
+    "held": 0,
+    "marker": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/stale-lease-wqlj5c9b/cache/scheduler/tests/4"
+  }
+}
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/probes/stale_test_lease.py", line 53, in <module>
+    main()
+  File "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/probes/stale_test_lease.py", line 50, in main
+    assert second['held'] >= 1, 'STALE_LEASE_BYPASS: a released marker from an exited test runner suppresses all production scheduler permits'
+AssertionError: STALE_LEASE_BYPASS: a released marker from an exited test runner suppresses all production scheduler permits

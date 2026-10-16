@@ -1,0 +1,86 @@
+   Compiling tokio v1.53.1
+   Compiling hyper v1.11.1
+   Compiling hyper-util v0.1.20
+   Compiling tower v0.5.3
+   Compiling tokio-rustls v0.26.5
+   Compiling tower-http v0.6.11
+   Compiling hyper-rustls v0.27.9
+   Compiling opendal-core v0.59.3
+   Compiling tokio-util v0.7.19
+   Compiling reqwest v0.13.5
+   Compiling reqwest v0.12.28
+   Compiling oauth2 v5.0.0
+   Compiling reqsign-file-read-tokio v3.0.7
+   Compiling axum v0.8.9
+   Compiling openidconnect v4.0.1
+   Compiling backon v1.6.0
+   Compiling reqsign-google v3.2.0
+   Compiling opendal-layer-retry v0.59.3
+   Compiling kunobi-auth v1.0.0
+   Compiling opendal-service-gcs v0.59.3
+   Compiling opendal-service-s3 v0.59.3
+   Compiling opendal-http-transport-reqwest v0.59.3
+   Compiling opendal-service-fs v0.59.3
+   Compiling oci-client v0.18.0
+   Compiling interprocess v2.4.4
+   Compiling kunobi-daemon v0.9.0
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/planner-service-timeline-auth)
+error[E0277]: `PhantomPinned` cannot be unpinned
+   --> src/timeline_client.rs:307:36
+    |
+307 |             assert!(futures::poll!(post_started.notified()).is_pending());
+    |                     ---------------^^^^^^^^^^^^^^^^^^^^^^^-
+    |                     |              |
+    |                     |              within `Notified<'_>`, the trait `Unpin` is not implemented for `PhantomPinned`
+    |                     required by a bound introduced by this call
+    |
+    = note: consider using the `pin!` macro
+            consider using `Box::pin` if you need to access the pinned value outside of the current scope
+note: required because it appears within the type `tokio::sync::notify::Waiter`
+   --> /Users/viktor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/sync/notify.rs:215:8
+    |
+215 | struct Waiter {
+    |        ^^^^^^
+note: required because it appears within the type `Notified<'_>`
+   --> /Users/viktor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/sync/notify.rs:381:12
+    |
+381 | pub struct Notified<'a> {
+    |            ^^^^^^^^
+note: required by a bound in `futures::poll`
+   --> /Users/viktor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.34/src/async_await/poll.rs:24:25
+    |
+ 24 | pub fn poll<F: Future + Unpin>(future: F) -> PollOnce<F> {
+    |                         ^^^^^ required by this bound in `poll`
+help: consider removing this method call, as the receiver has type `std::sync::Arc<tokio::sync::Notify>` and `std::sync::Arc<tokio::sync::Notify>: Unpin` trivially holds
+    |
+307 -             assert!(futures::poll!(post_started.notified()).is_pending());
+307 +             assert!(futures::poll!(post_started).is_pending());
+    |
+
+error[E0277]: `PhantomPinned` cannot be unpinned
+   --> src/timeline_client.rs:307:21
+    |
+307 |             assert!(futures::poll!(post_started.notified()).is_pending());
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ within `Notified<'_>`, the trait `Unpin` is not implemented for `PhantomPinned`
+    |
+    = note: consider using the `pin!` macro
+            consider using `Box::pin` if you need to access the pinned value outside of the current scope
+note: required because it appears within the type `tokio::sync::notify::Waiter`
+   --> /Users/viktor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/sync/notify.rs:215:8
+    |
+215 | struct Waiter {
+    |        ^^^^^^
+note: required because it appears within the type `Notified<'_>`
+   --> /Users/viktor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/sync/notify.rs:381:12
+    |
+381 | pub struct Notified<'a> {
+    |            ^^^^^^^^
+note: required by a bound in `futures_util::async_await::poll::PollOnce`
+   --> /Users/viktor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.34/src/async_await/poll.rs:30:33
+    |
+ 30 | pub struct PollOnce<F: Future + Unpin> {
+    |                                 ^^^^^ required by this bound in `PollOnce`
+    = note: this error originates in the macro `futures::poll` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `kache` (bin "kache" test) due to 3 previous errors

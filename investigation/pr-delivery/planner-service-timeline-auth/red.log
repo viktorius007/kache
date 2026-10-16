@@ -1,0 +1,24 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/planner-service-timeline-auth)
+    Finished `test` profile [unoptimized] target(s) in 1.31s
+     Running tests/timeline_auth_test.rs (/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target/debug/deps/timeline_auth_test-60af0002ddec78f9)
+
+running 1 test
+test telemetry_push_uses_automatic_auth_and_preserves_explicit_and_missing_controls ... FAILED
+
+failures:
+
+---- telemetry_push_uses_automatic_auth_and_preserves_explicit_and_missing_controls stdout ----
+
+thread 'telemetry_push_uses_automatic_auth_and_preserves_explicit_and_missing_controls' (58818877) panicked at tests/timeline_auth_test.rs:143:9:
+assertion `left == right` failed: available Actions credential must authenticate the production timeline upload
+  left: Null
+ right: String("Bearer eyJhbGciOiJSUzI1NiJ9.eyJleHAiOjQxMDI0NDQ4MDB9.fixture-signature")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    telemetry_push_uses_automatic_auth_and_preserves_explicit_and_missing_controls
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+error: test failed, to rerun pass `--test timeline_auth_test`

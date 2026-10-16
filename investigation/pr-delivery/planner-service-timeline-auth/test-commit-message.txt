@@ -1,0 +1,18 @@
+test: require automatic credentials on timeline uploads
+
+Port the saved CLI authentication proof to an isolated loopback service.
+The compressed production upload must use Actions credentials, prefer an
+explicit bearer and retain advisory reporting when credentials are missing.
+The response-refusal unit fixture supplies its own bearer to isolate 413.
+
+Graph search for axum::serve under tests returned one S3 fixture, which
+models a different HTTP contract. Reuse common::hermetic_command; local
+handlers own the Actions/token and timeline request boundaries. No new
+production helper or visibility is needed. Record behavioral red first;
+CI owns mutation testing.
+
+Review adds isolated child fixtures with a paused Tokio clock to require one
+budget across delayed authentication and POST, and no dispatch after auth
+exhaustion. Test-only Tokio test-util enables clock control without a
+production hook. Graph search for start_paused returned zero hits; local
+HTTP handlers and existing child-test selection patterns serve this seam.

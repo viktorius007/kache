@@ -1,0 +1,28 @@
+{
+  "id": "planner-service-timeline-auth",
+  "status": "READY",
+  "branch": "fix/planner-service-timeline-auth",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/planner-service-timeline-auth",
+  "test_commit": "9c339144e7bb51c3882dfa8df7184fad234d3b3f",
+  "fix_commit": "a8363ab9baea06dc135c3c7a100ab8368982f0f2",
+  "title": "Authenticate timeline uploads with automatic planner credentials",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/pr-body.md",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "gate_command": "CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py just check",
+  "gate_exit": 0,
+  "gate_head": "a8363ab9baea06dc135c3c7a100ab8368982f0f2",
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/gate.log",
+  "changed_files": [
+    "Cargo.toml",
+    "src/timeline_client.rs",
+    "tests/timeline_auth_test.rs"
+  ],
+  "oracle_notes": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/oracle-notes.md",
+  "original_proof": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/timeline-auth-replay.json",
+  "dispatch": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/dispatch.json",
+  "timeout_red_log": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/timeout-red.log",
+  "review_correction": "Shared deadline and remaining POST budget; old gate and READY archived under before-timeout-review prefix",
+  "mutation_testing": "CI only; not run locally"
+}

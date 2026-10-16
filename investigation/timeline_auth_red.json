@@ -1,0 +1,15 @@
+{
+  "control": false,
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "warning: session audit-session not sent: service answered 401 Unauthorized: build timelines need the service's credentials\n",
+  "calls": [
+    {
+      "method": "POST",
+      "path": "/v1/build-timelines",
+      "authorization": null,
+      "encoding": "zstd",
+      "body_bytes": 356
+    }
+  ]
+}

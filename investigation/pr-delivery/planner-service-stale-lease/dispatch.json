@@ -1,0 +1,11 @@
+{
+  "id": "planner-service-stale-lease",
+  "author": "audit_remote_daemon",
+  "previous_author": "audit_planner_service unavailable",
+  "branch": "fix/planner-service-stale-lease",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/planner-service-stale-lease",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "proof": "../../stale-lease-replay.json",
+  "private_target": "/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target",
+  "ownership": "assigned worktree and delivery artifacts only; preserve sibling changes; no audit repeat"
+}

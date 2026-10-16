@@ -1,0 +1,12 @@
+{
+  "control": true,
+  "initial": {
+    "held": 1,
+    "marker": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/stale-lease-11a6gk54/cache/scheduler/tests/4"
+  },
+  "marker_released_before_second": true,
+  "second": {
+    "held": 1,
+    "marker": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/stale-lease-11a6gk54/cache/scheduler/tests/4"
+  }
+}

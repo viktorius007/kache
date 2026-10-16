@@ -1,0 +1,14 @@
+test: require admission after an inherited lease owner exits
+
+A real subprocess owns a test lease while the parent observes its marker
+and two scheduler slots. Capture successful nested-reuse controls while
+that owner is alive, then require keyed/keyless compile permits and runner
+scheduling after the owner exits and an independent lock probe succeeds.
+Existing covering-lease controls now hold actual marker locks.
+
+Reuse search: graph query test runner nested lease slots process returned
+existing runner, scheduler lease and locking fixtures. Reuse spawn_fixture,
+wait_ready, test_scheduler, permits_in_use and plan. Existing child fixtures
+hold flights or ordinary permits, not test lease markers, so add one private
+lease owner fixture. The user explicitly requested this deliberately red
+test commit separately from the production repair.

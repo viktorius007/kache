@@ -1,0 +1,51 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/planner-service-timeline-auth)
+    Finished `test` profile [unoptimized] target(s) in 15.74s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target/debug/deps/kache-c6acbbe6b5828ac6)
+
+running 10 tests
+test timeline_client::tests::a_path_prefix_in_the_endpoint_is_kept ... ok
+test timeline_client::tests::a_refusal_is_reported_with_the_services_own_explanation ... ok
+test timeline_client::tests::a_refused_record_fails_with_the_services_message ... ok
+test timeline_client::tests::a_record_is_posted_compressed_with_the_bearer_token ... ok
+test timeline_client::tests::an_upload_waits_longer_than_a_plan_request ... ok
+test timeline_client::tests::exhausted_auth_does_not_dispatch_a_timeline ... ok
+test timeline_client::tests::auth_and_timeline_share_one_timeout ... ok
+test timeline_client::tests::the_url_is_derived_from_the_planner_endpoint ... ok
+test timeline_client::tests::the_body_is_zstd_of_the_record_json ... ok
+test timeline_client::tests::timeline_deadline_child_fixture ... ignored, isolated subprocess fixture for timeline authentication deadlines
+
+test result: ok. 9 passed; 0 failed; 1 ignored; 0 measured; 4388 filtered out; finished in 0.02s
+
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/planner-service-timeline-auth)
+    Finished `test` profile [unoptimized] target(s) in 19.43s
+     Running tests/timeline_auth_test.rs (/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target/debug/deps/timeline_auth_test-17fd89861ccc07c5)
+
+running 1 test
+test telemetry_push_uses_automatic_auth_and_preserves_explicit_and_missing_controls ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+    Finished `test` profile [unoptimized] target(s) in 0.27s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target/debug/deps/kache-c6acbbe6b5828ac6)
+
+running 17 tests
+test planner_auth::tests::a_fresh_session_is_used_as_is ... ok
+test planner_auth::tests::a_plain_http_planner_gets_no_automatic_credential ... ok
+test planner_auth::tests::a_fresh_session_needs_no_refresh_slot ... ok
+test planner_auth::tests::a_planner_without_login_yields_no_session ... ok
+test planner_auth::tests::a_refresh_that_finds_the_session_already_renewed_keeps_it ... ok
+test planner_auth::tests::an_expired_session_is_refreshed_and_saved ... ok
+test planner_auth::tests::explicit_token_wins ... ok
+test planner_auth::tests::an_expired_session_without_a_refresh_token_is_not_sent ... ok
+test planner_auth::tests::planner_base_strips_the_prefetch_plan_path ... ok
+test planner_auth::tests::resolve_sends_the_actions_token_to_a_loopback_planner_bound_to_its_url ... ok
+test planner_auth::tests::session_locks_live_under_the_kunobi_config_directory ... ok
+test planner_auth::tests::sessions_for_one_issuer_are_kept_apart_per_client ... ok
+test planner_auth::tests::only_a_planner_pinned_by_kache_login_offers_its_session ... ok
+test planner_auth::tests::the_session_lock_excludes_a_second_holder_until_released ... ok
+test planner_auth::tests::the_session_lock_gives_up_after_its_wait ... ok
+test planner_auth::tests::tofu_locks_are_created_inside_the_config_guard ... ok
+test planner_auth::tests::the_session_lock_waits_for_the_holder_to_release ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 4381 filtered out; finished in 0.18s
+

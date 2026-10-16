@@ -1,0 +1,43 @@
+[
+  {
+    "command": "CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py cargo test --bin kache timeline_client::tests",
+    "observed_exit": 101,
+    "head": "657bf608c3fb91105ba86d5010a4b2bf95f68422",
+    "tracked_tests": "uncommitted paused-clock deadline controls",
+    "log": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/timeout-red.log"
+  },
+  {
+    "command": "CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py cargo test --test timeline_auth_test telemetry_push_uses_automatic_auth_and_preserves_explicit_and_missing_controls -- --exact",
+    "observed_exit": 101,
+    "head": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+    "tracked_tests": "uncommitted regression and refusal fixture adaptation",
+    "log": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/red.log"
+  },
+  {
+    "command": "CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py cargo test --test timeline_auth_test",
+    "observed_exit": 0,
+    "head": "9c339144e7bb51c3882dfa8df7184fad234d3b3f",
+    "tracked_fix": "uncommitted shared bearer resolution",
+    "log": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/green.log"
+  },
+  {
+    "command": "CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py cargo test --bin kache timeline_client::tests",
+    "observed_exit": 0,
+    "head": "9c339144e7bb51c3882dfa8df7184fad234d3b3f",
+    "tracked_fix": "uncommitted shared bearer resolution",
+    "log": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/green.log"
+  },
+  {
+    "command": "CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py cargo test --bin kache planner_auth::tests",
+    "observed_exit": 0,
+    "head": "9c339144e7bb51c3882dfa8df7184fad234d3b3f",
+    "tracked_fix": "uncommitted shared bearer resolution",
+    "log": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/green.log"
+  },
+  {
+    "command": "CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py just check",
+    "observed_exit": 0,
+    "head": "a8363ab9baea06dc135c3c7a100ab8368982f0f2",
+    "log": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/gate.log"
+  }
+]

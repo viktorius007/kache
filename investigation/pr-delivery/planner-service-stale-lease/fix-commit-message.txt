@@ -1,0 +1,8 @@
+fix: require a live marker lock before reusing a test lease
+
+An inherited marker path survives the test owner. Checking only its parent
+directory suppresses admission even after the owner releases all slots.
+Keep the existing scheduler-directory check and require an exclusively held
+marker through the existing slot_is_held probe. Missing, released or
+unprobeable markers take ordinary admission; valid nested children retain
+reuse. No new production helper or lease representation is introduced.

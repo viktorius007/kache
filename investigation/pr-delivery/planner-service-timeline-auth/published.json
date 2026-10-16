@@ -1,0 +1,8 @@
+{
+  "id": "planner-service-timeline-auth",
+  "url": "https://github.com/kunobi-ninja/kache/pull/1535",
+  "branch": "fix/planner-service-timeline-auth",
+  "fix_commit": "a8363ab9baea06dc135c3c7a100ab8368982f0f2",
+  "state": "draft",
+  "review": "investigation/pr-delivery/reviews/planner-service-timeline-auth.md"
+}

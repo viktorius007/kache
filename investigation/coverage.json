@@ -1,0 +1,611 @@
+{
+  "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "slice": "planner-service",
+  "primary_paths_count": 25,
+  "primary_production_fully_read": 25,
+  "primary_full_file_reviewed": 18,
+  "primary_embedded_suite_sampled": 7,
+  "graph_project": "Users-viktor-Developer-github-kache-investigations-coordinator",
+  "graph_limit": "Rust semantic_partial; binding/expanded-call/impl gaps; full source used for production bodies; no exhaustive graph-only claim",
+  "paths": [
+    {
+      "path": "crates/kache-core/Cargo.toml",
+      "state": "reviewed",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: 7d86ae11ec066be04e33555a38fc2a8edc7c28f8"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          32
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": null,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "production source/config/schema changes or new concrete adverse workload"
+    },
+    {
+      "path": "crates/kache-core/README.md",
+      "state": "reviewed",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: 9df64700f2040c0500e8da5b9601b68b97e31a82"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          30
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": null,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "production source/config/schema changes or new concrete adverse workload"
+    },
+    {
+      "path": "crates/kache-core/src/lib.rs",
+      "state": "sampled",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: e22460c6d2523443a237752d99d5f887c2ab61be"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          800
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": 627,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "any production change; unread embedded tests require further testing before an exhaustive suite claim"
+    },
+    {
+      "path": "crates/kache-core/src/timeline.rs",
+      "state": "reviewed",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: 3ff97c295cf33ccd0b69454d96b634e68d56105c"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          536
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": null,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "production source/config/schema changes or new concrete adverse workload"
+    },
+    {
+      "path": "crates/kache-service/Cargo.toml",
+      "state": "reviewed",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: 9cb84f4fad70da2570fa6c517aaba0a992225781"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          37
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": null,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "production source/config/schema changes or new concrete adverse workload"
+    },
+    {
+      "path": "crates/kache-service/src/auth.rs",
+      "state": "reviewed",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: 2a826dba0eaa72f291e01154298e579e0bcdb15e"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          452
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": null,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "production source/config/schema changes or new concrete adverse workload"
+    },
+    {
+      "path": "crates/kache-service/src/lib.rs",
+      "state": "sampled",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: 153995b164b35555f0aef34cb83407c7d3a8893a"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          610
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": 517,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "any production change; unread embedded tests require further testing before an exhaustive suite claim"
+    },
+    {
+      "path": "crates/kache-service/src/main.rs",
+      "state": "reviewed",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: 27afadb4b40624f4141f3553942b7681b2ef3e38"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          232
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": null,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "production source/config/schema changes or new concrete adverse workload"
+    },
+    {
+      "path": "crates/kache-service/src/metrics.rs",
+      "state": "reviewed",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: 9373d2c346078c56e61a62e7d00a5e4d42525f14"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          423
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": null,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "production source/config/schema changes or new concrete adverse workload"
+    },
+    {
+      "path": "crates/kache-service/src/state.rs",
+      "state": "sampled",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: 520e5f97b7bcc214eaf08012046519c767b6dbbf"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          920
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": 696,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "any production change; unread embedded tests require further testing before an exhaustive suite claim"
+    },
+    {
+      "path": "crates/kache-service/src/timelines.rs",
+      "state": "reviewed",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: 91b6b149aeedba5a977c8e588a3f553d30ee9692"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          895
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": null,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "production source/config/schema changes or new concrete adverse workload"
+    },
+    {
+      "path": "crates/kache-service/tests/cli.rs",
+      "state": "reviewed",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: c53faba2ce27f039b3d1ffb6ba1d66ed9448e999"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          38
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": null,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "production source/config/schema changes or new concrete adverse workload"
+    },
+    {
+      "path": "crates/kache-service/tests/concurrent_planner_db.rs",
+      "state": "reviewed",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: a61d42611b63f10380af4318b789353e839db143"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          170
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": null,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "production source/config/schema changes or new concrete adverse workload"
+    },
+    {
+      "path": "docs/how-it-works/limits.mdx",
+      "state": "reviewed",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: 9c1a0c76f2d47050e5e0332e8b442a7596b32573"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          24
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": null,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "production source/config/schema changes or new concrete adverse workload"
+    },
+    {
+      "path": "docs/remote-service.mdx",
+      "state": "reviewed",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: 7663feff6eea089c9a1c4b440ec88fe69e90353c"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          130
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": null,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "production source/config/schema changes or new concrete adverse workload"
+    },
+    {
+      "path": "src/build_intent.rs",
+      "state": "sampled",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: d07774cc31c6b7152b1078df52e2ef1c084a19c3"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          499
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": 361,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "any production change; unread embedded tests require further testing before an exhaustive suite claim"
+    },
+    {
+      "path": "src/demand.rs",
+      "state": "reviewed",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: c9ecdbcc9e08ef33a1b179b0b847213bfdfde5bb"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          140
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": null,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "production source/config/schema changes or new concrete adverse workload"
+    },
+    {
+      "path": "src/fallback_planner.rs",
+      "state": "sampled",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: 46a203a46e8c655c5ecef8c3fc1569ab57ffc02c"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          493
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": 333,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "any production change; unread embedded tests require further testing before an exhaustive suite claim"
+    },
+    {
+      "path": "src/machine.rs",
+      "state": "reviewed",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: 8490c3fd18e13590b5b6a9f6ad0be92ddd99046b"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          481
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": null,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "production source/config/schema changes or new concrete adverse workload"
+    },
+    {
+      "path": "src/planner_auth.rs",
+      "state": "sampled",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: 57adc9ef0aeb242cf541063a60fb973c662f8caf"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          485
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": 344,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "any production change; unread embedded tests require further testing before an exhaustive suite claim"
+    },
+    {
+      "path": "src/planner_client.rs",
+      "state": "reviewed",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: 803c583bbd7ddb9a1d834b32a0b9014fcf9f84cc"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          258
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": null,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "production source/config/schema changes or new concrete adverse workload"
+    },
+    {
+      "path": "src/remote_plan.rs",
+      "state": "reviewed",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: febeb537668077c522f586669c83f237069864b9"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          153
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": null,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "production source/config/schema changes or new concrete adverse workload"
+    },
+    {
+      "path": "src/scheduler.rs",
+      "state": "sampled",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: 651d23161e1604dbde0d86f6342a6d5f82f4bbea"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          1660
+        ],
+        [
+          2765,
+          2810
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": 1435,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "any production change; unread embedded tests require further testing before an exhaustive suite claim"
+    },
+    {
+      "path": "src/scheduler/pressure.rs",
+      "state": "reviewed",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: d1427fec5d9b42ce706b0c7f279adba4dab266ef"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          259
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": null,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "production source/config/schema changes or new concrete adverse workload"
+    },
+    {
+      "path": "src/timeline_client.rs",
+      "state": "reviewed",
+      "evidence": [
+        "source text read directly; graph_status.txt and graph_coverage.txt document partial Rust semantics",
+        "production source blob matches pinned baseline: 8ed4db93077b8a343a928d77e9d8e495cceeda16"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          251
+        ]
+      ],
+      "production_fully_read": true,
+      "production_end_line": null,
+      "runtime_sampling": "baseline CLI proof for src/scheduler.rs and src/timeline_client.rs; remaining paths source review only",
+      "reopen_conditions": "production source/config/schema changes or new concrete adverse workload"
+    },
+    {
+      "path": "src/cli.rs",
+      "state": "collateral",
+      "evidence": "production seam source review; primary ownership remains another slice",
+      "reviewed_ranges": [
+        [
+          484,
+          582
+        ]
+      ],
+      "reopen_conditions": "seam implementation/config changes; full collateral audit belongs to owning slice"
+    },
+    {
+      "path": "src/timeline.rs",
+      "state": "collateral",
+      "evidence": "production seam source review; primary ownership remains another slice",
+      "reviewed_ranges": [
+        [
+          205,
+          254
+        ]
+      ],
+      "reopen_conditions": "seam implementation/config changes; full collateral audit belongs to owning slice"
+    },
+    {
+      "path": "src/events.rs",
+      "state": "collateral",
+      "evidence": "production seam source review; primary ownership remains another slice",
+      "reviewed_ranges": [
+        [
+          50,
+          210
+        ]
+      ],
+      "reopen_conditions": "seam implementation/config changes; full collateral audit belongs to owning slice"
+    },
+    {
+      "path": "src/test_runner.rs",
+      "state": "collateral",
+      "evidence": "production seam source review; primary ownership remains another slice",
+      "reviewed_ranges": [
+        [
+          1,
+          252
+        ],
+        [
+          276,
+          330
+        ]
+      ],
+      "reopen_conditions": "seam implementation/config changes; full collateral audit belongs to owning slice"
+    },
+    {
+      "path": "src/config.rs",
+      "state": "collateral",
+      "evidence": "production seam source review; primary ownership remains another slice",
+      "reviewed_ranges": [
+        [
+          577,
+          590
+        ],
+        [
+          2049,
+          2049
+        ],
+        [
+          2959,
+          3013
+        ]
+      ],
+      "reopen_conditions": "seam implementation/config changes; full collateral audit belongs to owning slice"
+    },
+    {
+      "path": "src/wrapper.rs",
+      "state": "collateral",
+      "evidence": "production seam source review; primary ownership remains another slice",
+      "reviewed_ranges": [
+        [
+          1090,
+          1168
+        ],
+        [
+          2050,
+          2138
+        ],
+        [
+          2320,
+          2410
+        ],
+        [
+          6028,
+          6160
+        ],
+        [
+          8040,
+          8085
+        ]
+      ],
+      "reopen_conditions": "seam implementation/config changes; full collateral audit belongs to owning slice"
+    },
+    {
+      "path": "src/daemon.rs",
+      "state": "collateral",
+      "evidence": "production seam source review; primary ownership remains another slice",
+      "reviewed_ranges": [
+        [
+          6420,
+          6685
+        ]
+      ],
+      "reopen_conditions": "seam implementation/config changes; full collateral audit belongs to owning slice"
+    },
+    {
+      "path": "crates/kache-store/src/store.rs",
+      "state": "collateral",
+      "evidence": "production seam source review; primary ownership remains another slice",
+      "reviewed_ranges": [
+        [
+          1290,
+          1385
+        ]
+      ],
+      "reopen_conditions": "seam implementation/config changes; full collateral audit belongs to owning slice"
+    },
+    {
+      "path": "packaging/charts/kache-service/templates/deployment.yaml",
+      "state": "collateral",
+      "evidence": "production seam source review; primary ownership remains another slice",
+      "reviewed_ranges": "full",
+      "reopen_conditions": "seam implementation/config changes; full collateral audit belongs to owning slice"
+    },
+    {
+      "path": "packaging/charts/kache-service/values.yaml",
+      "state": "collateral",
+      "evidence": "production seam source review; primary ownership remains another slice",
+      "reviewed_ranges": "full",
+      "reopen_conditions": "seam implementation/config changes; full collateral audit belongs to owning slice"
+    },
+    {
+      "path": "packaging/nix/module.nix",
+      "state": "collateral",
+      "evidence": "production seam source review; primary ownership remains another slice",
+      "reviewed_ranges": "full",
+      "reopen_conditions": "seam implementation/config changes; full collateral audit belongs to owning slice"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+diff --git a/src/timeline_client.rs b/src/timeline_client.rs
+index eac3d29..c71c9ec 100644
+--- a/src/timeline_client.rs
++++ b/src/timeline_client.rs
+@@ -58,12 +58,14 @@ pub(crate) async fn push_timeline(
+         .build()
+         .context("building the timeline client")?;
+ 
++    let deadline = tokio::time::Instant::now() + push_timeout(config);
++    let bearer = crate::planner_auth::bearer(config, deadline).await;
+     let mut request = client
+         .post(build_timelines_url(&config.endpoint))
+         .header(reqwest::header::CONTENT_TYPE, "application/json")
+         .header(reqwest::header::CONTENT_ENCODING, "zstd")
+         .body(encode_record(record)?);
+-    if let Some(token) = config.token.as_deref() {
++    if let Some(token) = bearer {
+         request = request.bearer_auth(token);
+     }
+ 

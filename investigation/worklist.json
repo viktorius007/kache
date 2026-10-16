@@ -1,0 +1,601 @@
+{
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "slice": "planner-service",
+  "title": "Planning, scheduling, planner authentication and HTTP service state",
+  "primary_paths": [
+    {
+      "path": "crates/kache-core/Cargo.toml",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "7d86ae11ec066be04e33555a38fc2a8edc7c28f8",
+      "bytes": 1111,
+      "text_lines": 32,
+      "kind": "config-or-delivery-collateral",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 32,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-core/README.md",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "9df64700f2040c0500e8da5b9601b68b97e31a82",
+      "bytes": 1332,
+      "text_lines": 30,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 30,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-core/src/lib.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "e22460c6d2523443a237752d99d5f887c2ab61be",
+      "bytes": 56308,
+      "text_lines": 1522,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1522,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-core/src/timeline.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "3ff97c295cf33ccd0b69454d96b634e68d56105c",
+      "bytes": 19799,
+      "text_lines": 536,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 536,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-service/Cargo.toml",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "9cb84f4fad70da2570fa6c517aaba0a992225781",
+      "bytes": 1407,
+      "text_lines": 37,
+      "kind": "config-or-delivery-collateral",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 37,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-service/src/auth.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "2a826dba0eaa72f291e01154298e579e0bcdb15e",
+      "bytes": 17745,
+      "text_lines": 452,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 452,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-service/src/lib.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "153995b164b35555f0aef34cb83407c7d3a8893a",
+      "bytes": 45616,
+      "text_lines": 1273,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1273,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-service/src/main.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "27afadb4b40624f4141f3553942b7681b2ef3e38",
+      "bytes": 7748,
+      "text_lines": 232,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 232,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-service/src/metrics.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "9373d2c346078c56e61a62e7d00a5e4d42525f14",
+      "bytes": 15803,
+      "text_lines": 423,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 423,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-service/src/state.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "520e5f97b7bcc214eaf08012046519c767b6dbbf",
+      "bytes": 72138,
+      "text_lines": 1878,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1878,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-service/src/timelines.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "91b6b149aeedba5a977c8e588a3f553d30ee9692",
+      "bytes": 31659,
+      "text_lines": 895,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 895,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-service/tests/cli.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "c53faba2ce27f039b3d1ffb6ba1d66ed9448e999",
+      "bytes": 1139,
+      "text_lines": 38,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 38,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-service/tests/concurrent_planner_db.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "a61d42611b63f10380af4318b789353e839db143",
+      "bytes": 6329,
+      "text_lines": 170,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 170,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/how-it-works/limits.mdx",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "9c1a0c76f2d47050e5e0332e8b442a7596b32573",
+      "bytes": 4099,
+      "text_lines": 24,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 24,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/remote-service.mdx",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "7663feff6eea089c9a1c4b440ec88fe69e90353c",
+      "bytes": 7432,
+      "text_lines": 130,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 130,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/build_intent.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "d07774cc31c6b7152b1078df52e2ef1c084a19c3",
+      "bytes": 30014,
+      "text_lines": 859,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 859,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/demand.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "c9ecdbcc9e08ef33a1b179b0b847213bfdfde5bb",
+      "bytes": 4291,
+      "text_lines": 140,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 140,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/fallback_planner.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "46a203a46e8c655c5ecef8c3fc1569ab57ffc02c",
+      "bytes": 33181,
+      "text_lines": 855,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 855,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/machine.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "8490c3fd18e13590b5b6a9f6ad0be92ddd99046b",
+      "bytes": 15953,
+      "text_lines": 481,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 481,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/planner_auth.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "57adc9ef0aeb242cf541063a60fb973c662f8caf",
+      "bytes": 34200,
+      "text_lines": 934,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 934,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/planner_client.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "803c583bbd7ddb9a1d834b32a0b9014fcf9f84cc",
+      "bytes": 9380,
+      "text_lines": 258,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 258,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/remote_plan.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "febeb537668077c522f586669c83f237069864b9",
+      "bytes": 5274,
+      "text_lines": 153,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 153,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/scheduler.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "651d23161e1604dbde0d86f6342a6d5f82f4bbea",
+      "bytes": 119803,
+      "text_lines": 3172,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 3172,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/scheduler/pressure.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "d1427fec5d9b42ce706b0c7f279adba4dab266ef",
+      "bytes": 9418,
+      "text_lines": 259,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 259,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/timeline_client.rs",
+      "primary_slice": "planner-service",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "8ed4db93077b8a343a928d77e9d8e495cceeda16",
+      "bytes": 9231,
+      "text_lines": 251,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 251,
+          "state": "queued"
+        }
+      ]
+    }
+  ],
+  "reading_batches": [
+    {
+      "id": "http-service-state-and-auth",
+      "paths": [
+        "crates/kache-service/Cargo.toml",
+        "crates/kache-service/src/auth.rs",
+        "crates/kache-service/src/lib.rs",
+        "crates/kache-service/src/main.rs",
+        "crates/kache-service/src/metrics.rs",
+        "crates/kache-service/src/state.rs",
+        "crates/kache-service/src/timelines.rs",
+        "crates/kache-service/tests/cli.rs",
+        "crates/kache-service/tests/concurrent_planner_db.rs",
+        "src/planner_auth.rs",
+        "src/planner_client.rs",
+        "src/timeline_client.rs"
+      ],
+      "text_lines": 6841,
+      "review_state": "queued"
+    },
+    {
+      "id": "planning-scheduling-and-resources",
+      "paths": [
+        "crates/kache-core/Cargo.toml",
+        "crates/kache-core/README.md",
+        "crates/kache-core/src/lib.rs",
+        "crates/kache-core/src/timeline.rs",
+        "docs/how-it-works/limits.mdx",
+        "docs/remote-service.mdx",
+        "src/build_intent.rs",
+        "src/demand.rs",
+        "src/fallback_planner.rs",
+        "src/machine.rs",
+        "src/remote_plan.rs",
+        "src/scheduler.rs",
+        "src/scheduler/pressure.rs"
+      ],
+      "text_lines": 8193,
+      "review_state": "queued"
+    }
+  ],
+  "obligations": [
+    "Trace intent and manifest planning, fallback disposition, client-side prediction/prefetch decisions, resource permits, machine memory limits, demand signaling and service request/response schemas.",
+    "Trace static/OIDC/GitHub auth, credential origin/trusted endpoint decisions, request/decompression bounds, SQLite writes, concurrent planner requests, timeline ingestion, metrics/health/readiness and HA leases.",
+    "Review server startup and deployment configuration composition with Helm/Nix and CLI login/config; establish actual production consumers before relying on public API names or comments."
+  ],
+  "contracts": [
+    {
+      "id": "planner-optional",
+      "path": "docs/remote-service.mdx",
+      "line": 10,
+      "quote": "The planner ranks likely artifacts before rustc asks for exact keys. It is optional: local caching, exact remote lookup, sync, and client-side fallback planning work without it.",
+      "primary_slice": "planner-service"
+    }
+  ],
+  "owned_interactions": [
+    {
+      "id": "compiler-flight-permits",
+      "primary_slice": "planner-service",
+      "consult_slice": "compiler-reuse",
+      "contract": "scheduler/demand/machine \u2192 wrapper compile/discovery flights; permit and per-key lock lifetimes"
+    },
+    {
+      "id": "daemon-planner",
+      "primary_slice": "planner-service",
+      "consult_slice": "remote-daemon",
+      "contract": "daemon build sessions/manifests \u2194 planner_client/build_intent/remote_plan; fallback and bounded prefetch"
+    },
+    {
+      "id": "auth-login-client",
+      "primary_slice": "planner-service",
+      "consult_slice": "cli-operations",
+      "contract": "cli/login + config \u2194 planner_auth/client/server auth; credential origin and trusted endpoint binding"
+    }
+  ],
+  "consult_interactions": [
+    {
+      "id": "telemetry-schema",
+      "primary_slice": "cli-operations",
+      "consult_slice": "planner-service",
+      "contract": "events/report/timeline \u2194 kache-core timeline and timeline_client/server ingest; schema, counters, bounded retention"
+    },
+    {
+      "id": "guardrail-domain-oracles",
+      "primary_slice": "guardrails",
+      "consult_slice": "all",
+      "contract": "kache-e2e/scripts/CI/scenario oracles \u2194 each domain-specific test; real compiler/process/remote observations and meaningful failure discrimination"
+    }
+  ],
+  "sampling_needs": [
+    "Fixture HTTP/SQLite paths can run locally; Kubernetes HA leases and external OIDC key rotation are source/documentation review unless isolated emulation is executed.",
+    "Resource/admission/load measurements require coordination for a quiet window; measured workloads do not establish global performance."
+  ],
+  "expected_coverage_report": "Record every path as fully read, sampled with bounds, or pending. Mapped is not reviewed. Fully read production/framework/configuration paths and explicitly record runtime sampling."
+}

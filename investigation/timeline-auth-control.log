@@ -1,0 +1,16 @@
+{
+  "control": true,
+  "exit_code": 0,
+  "stdout": "sent session audit-session (1 units): inserted\n",
+  "stderr": "",
+  "calls": [
+    {
+      "method": "POST",
+      "path": "/v1/build-timelines",
+      "authorization": "Bearer eyJhbGciOiJSUzI1NiJ9.eyJleHAiOiAxNzkxNzAxNTAwfQ.fixture-signature",
+      "encoding": "zstd",
+      "body_bytes": 358
+    }
+  ]
+}
+CONTROL_PASS: authenticated upload reached fixture service

@@ -1,0 +1,47 @@
+   Compiling kache-fs v1.0.0 (/Users/viktor/Developer/github/kache-prs/planner-service-timeline-auth/crates/kache-fs)
+   Compiling kache-format v1.0.0 (/Users/viktor/Developer/github/kache-prs/planner-service-timeline-auth/crates/kache-format)
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/planner-service-timeline-auth)
+   Compiling kache-shims v1.0.0 (/Users/viktor/Developer/github/kache-prs/planner-service-timeline-auth/crates/kache-shims)
+   Compiling kache-store v1.0.0 (/Users/viktor/Developer/github/kache-prs/planner-service-timeline-auth/crates/kache-store)
+   Compiling kache-core v1.0.0 (/Users/viktor/Developer/github/kache-prs/planner-service-timeline-auth/crates/kache-core)
+error: function `reuse_outer_build` is never used
+  --> tests/common/mod.rs:41:4
+   |
+41 | fn reuse_outer_build() -> bool {
+   |    ^^^^^^^^^^^^^^^^^
+   |
+   = note: `-D dead-code` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
+
+error: static `KACHE_BIN` is never used
+  --> tests/common/mod.rs:52:8
+   |
+52 | static KACHE_BIN: OnceLock<Result<PathBuf, String>> = OnceLock::new();
+   |        ^^^^^^^^^
+
+error: function `build_kache` is never used
+  --> tests/common/mod.rs:55:8
+   |
+55 | pub fn build_kache() {
+   |        ^^^^^^^^^^^
+
+error: function `kache_binary` is never used
+  --> tests/common/mod.rs:60:8
+   |
+60 | pub fn kache_binary() -> PathBuf {
+   |        ^^^^^^^^^^^^
+
+error: function `bootstrap_kache` is never used
+  --> tests/common/mod.rs:67:4
+   |
+67 | fn bootstrap_kache() -> Result<PathBuf, String> {
+   |    ^^^^^^^^^^^^^^^
+
+error: function `isolated_config_path` is never used
+   --> tests/common/mod.rs:134:8
+    |
+134 | pub fn isolated_config_path(cache_dir: &Path) -> PathBuf {
+    |        ^^^^^^^^^^^^^^^^^^^^
+
+error: could not compile `kache` (test "timeline_auth_test") due to 6 previous errors
+warning: build failed, waiting for other jobs to finish...

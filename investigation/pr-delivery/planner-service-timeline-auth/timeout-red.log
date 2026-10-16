@@ -1,0 +1,67 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/planner-service-timeline-auth)
+    Finished `test` profile [unoptimized] target(s) in 40.53s
+     Running unittests src/main.rs (/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target/debug/deps/kache-c6acbbe6b5828ac6)
+
+running 10 tests
+test timeline_client::tests::a_path_prefix_in_the_endpoint_is_kept ... ok
+test timeline_client::tests::a_refusal_is_reported_with_the_services_own_explanation ... ok
+test timeline_client::tests::a_refused_record_fails_with_the_services_message ... ok
+test timeline_client::tests::a_record_is_posted_compressed_with_the_bearer_token ... ok
+test timeline_client::tests::an_upload_waits_longer_than_a_plan_request ... ok
+test timeline_client::tests::auth_and_timeline_share_one_timeout ... FAILED
+test timeline_client::tests::exhausted_auth_does_not_dispatch_a_timeline ... FAILED
+test timeline_client::tests::the_url_is_derived_from_the_planner_endpoint ... ok
+test timeline_client::tests::timeline_deadline_child_fixture ... ignored, isolated subprocess fixture for timeline authentication deadlines
+test timeline_client::tests::the_body_is_zstd_of_the_record_json ... ok
+
+failures:
+
+---- timeline_client::tests::auth_and_timeline_share_one_timeout stdout ----
+
+thread 'timeline_client::tests::auth_and_timeline_share_one_timeout' (59347263) panicked at src/timeline_client.rs:209:9:
+delayed: 
+running 1 test
+test timeline_client::tests::timeline_deadline_child_fixture ... FAILED
+
+failures:
+
+failures:
+    timeline_client::tests::timeline_deadline_child_fixture
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4397 filtered out; finished in 0.00s
+
+
+thread 'timeline_client::tests::timeline_deadline_child_fixture' (59347268) panicked at src/timeline_client.rs:300:23:
+auth and upload must end within one 30-second budget: Pending
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+---- timeline_client::tests::exhausted_auth_does_not_dispatch_a_timeline stdout ----
+
+thread 'timeline_client::tests::exhausted_auth_does_not_dispatch_a_timeline' (59347264) panicked at src/timeline_client.rs:209:9:
+exhausted: 
+running 1 test
+test timeline_client::tests::timeline_deadline_child_fixture ... FAILED
+
+failures:
+
+failures:
+    timeline_client::tests::timeline_deadline_child_fixture
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4397 filtered out; finished in 0.00s
+
+
+thread 'timeline_client::tests::timeline_deadline_child_fixture' (59347267) panicked at src/timeline_client.rs:300:23:
+auth and upload must end within one 30-second budget: Pending
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    timeline_client::tests::auth_and_timeline_share_one_timeout
+    timeline_client::tests::exhausted_auth_does_not_dispatch_a_timeline
+
+test result: FAILED. 7 passed; 2 failed; 1 ignored; 0 measured; 4388 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `--bin kache`

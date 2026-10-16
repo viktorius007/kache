@@ -1,0 +1,25 @@
+{
+  "id": "planner-service-timeline-auth",
+  "status": "READY",
+  "branch": "fix/planner-service-timeline-auth",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/planner-service-timeline-auth",
+  "test_commit": "251d8c744b89c455b2531d98c8bc29953a9dc8c2",
+  "fix_commit": "657bf608c3fb91105ba86d5010a4b2bf95f68422",
+  "title": "Authenticate timeline uploads with automatic planner credentials",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/pr-body.md",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "gate_command": "CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/qa-remote-binding/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py just check",
+  "gate_exit": 0,
+  "gate_head": "657bf608c3fb91105ba86d5010a4b2bf95f68422",
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/gate.log",
+  "changed_files": [
+    "src/timeline_client.rs",
+    "tests/timeline_auth_test.rs"
+  ],
+  "oracle_notes": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/oracle-notes.md",
+  "original_proof": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/timeline-auth-replay.json",
+  "dispatch": "/Users/viktor/Developer/github/kache-investigations/audit-planner-service/investigation/pr-delivery/planner-service-timeline-auth/dispatch.json",
+  "mutation_testing": "CI only; not run locally"
+}
