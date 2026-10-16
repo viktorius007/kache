@@ -1,0 +1,32 @@
+[
+  {
+    "trial": 0,
+    "exit_codes": [
+      1,
+      0,
+      1,
+      0
+    ],
+    "entries": 24
+  },
+  {
+    "trial": 1,
+    "exit_codes": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "entries": 24
+  },
+  {
+    "trial": 2,
+    "exit_codes": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "entries": 24
+  }
+]

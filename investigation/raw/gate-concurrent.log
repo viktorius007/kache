@@ -1,0 +1,8 @@
+PASS fixture seed {"seed_build_s": 3.058558708, "seed_push_s": 0.32479812500000005, "entries": 24, "logical_bytes": 19103368, "remote_bytes": 6412511, "remote_files": 48}
+RESULT concurrent sync [{"trial": 0, "exit_codes": [1, 1, 1, 1], "entries": 24}, {"trial": 1, "exit_codes": [0, 1, 1, 0], "entries": 24}, {"trial": 2, "exit_codes": [0, 1, 1, 0], "entries": 24}]
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/qa-ci-hydration/investigation/gate_case.py", line 22, in <module>
+    getattr(ci_probe, args.case)(binary)
+  File "/Users/viktor/Developer/github/kache-investigations/qa-ci-hydration/investigation/ci_probe.py", line 274, in concurrent
+    assert all(row['exit_codes'] == [0, 0, 0, 0] and row['entries'] == 24 for row in rows), 'concurrent sync must hydrate all entries without import errors'
+AssertionError: concurrent sync must hydrate all entries without import errors

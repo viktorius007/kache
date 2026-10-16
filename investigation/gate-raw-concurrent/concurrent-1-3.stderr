@@ -1,0 +1,7 @@
+Listing remote keys... 24 keys
+  Downloading: 1/24  Downloading: 2/24  Downloading: 3/24  Downloading: 4/24  Downloading: 5/24  Downloading: 6/24
+  error: import d1a42501c284750f...: downloaded entry d1a42501c284750f missing file: libfixture14-c8cd52eb9f1c8236.rlib
+  Downloading: 7/24  Downloading: 8/24  Downloading: 9/24  Downloading: 10/24  Downloading: 11/24  Downloading: 12/24
+  error: import c18baf466323eb3b...: downloaded entry c18baf466323eb3b: content hash mismatch for libfixture03-e71883eec8ea4de1.rmeta (claimed 04989655466f07c7ec54cb9fc334a1289897c3d3fa15a4cd968e4aa8ca85e0f4, actual db485d01a5e30f3173d27ec1b7d9dbd5fc099859c8db90cb52d2ad264a596cea)
+  Downloading: 13/24  Downloading: 14/24  Downloading: 15/24  Downloading: 16/24  Downloading: 17/24  Downloading: 18/24  Downloading: 19/24  Downloading: 20/24  Downloading: 21/24  Downloading: 22/24  Downloading: 23/24  Downloading: 24/24  Downloaded:  22/24 (2 failed)
+error: 2 transfer(s) or import(s) failed during sync

@@ -1,0 +1,570 @@
+
+src/main.rs
+1148:                 verify || checksums || repair,
+1149:                 checksums,
+1150:                 repair,
+1151:                 json,
+1152:             )
+1153:         }
+1154:         Some(Commands::Sync {
+1155:             manifest_path,
+1156:             pull,
+1157:             push,
+1158:             dry_run,
+1159:             all,
+1160:             workspace,
+1161:             allow_partial,
+1162:         }) => cli::sync(
+1163:             &config,
+1164:             manifest_path.as_deref(),
+1165:             pull,
+1166:             push,
+1167:             dry_run,
+1168:             all,
+1169:             workspace,
+1170:             allow_partial,
+1171:         ),
+1172:         Some(Commands::SaveManifest {
+1173:             manifest_key,
+1174:             namespace,
+1175:         }) => cli::save_manifest(&config, manifest_key.as_deref(), namespace.as_deref()),
+1176:         Some(Commands::Daemon { command: None }) => service::status(json),
+
+src/cli.rs
+7440: /// Synchronize the local cache with its remote: pull missing artifacts, push new ones.
+7441: ///
+7442: /// Works directly against the remote (no daemon required). Safe to run alongside the daemon —
+7443: /// downloads use atomic extraction, imports use INSERT OR REPLACE, and uploads are idempotent.
+7444: pub fn sync(
+7445:     config: &Config,
+7446:     manifest_path: Option<&str>,
+7447:     pull_only: bool,
+7448:     push_only: bool,
+7449:     dry_run: bool,
+7450:     pull_all: bool,
+7451:     pull_workspace: bool,
+7452:     allow_partial: bool,
+7453: ) -> Result<()> {
+7454:     let remote = config.require_remote()?;
+7455: 
+7456:     let store = Store::open(config)?;
+7457:     let workspace_crates = workspace_filter(manifest_path);
+7458: 
+7459:     // For the default filtered pull: parse Cargo.lock for every dependency crate
+7460:     // name. Skipped under --workspace, which scopes the pull to workspace members
+7461:     // only (the deps are expected to be provided some other way).
+7462:     let lock_crates = if !pull_all && !pull_workspace && !push_only {
+7463:         parse_cargo_lock_crate_names()
+7464:     } else {
+7465:         None
+7466:     };
+7467: 
+7468:     let rt = tokio::runtime::Builder::new_current_thread()
+7469:         .enable_all()
+7470:         .build()
+7471:         .context("building tokio runtime")?;
+7472: 
+7473:     rt.block_on(sync_inner(
+7474:         config,
+7475:         &store,
+7476:         remote,
+7477:         workspace_crates.as_ref(),
+7478:         pull_only,
+7479:         push_only,
+7480:         dry_run,
+7481:         pull_all,
+7482:         lock_crates.as_ref(),
+7483:         pull_workspace,
+7484:         allow_partial,
+7485:     ))
+
+src/cli.rs
+7489: async fn sync_inner(
+7490:     config: &Config,
+7491:     store: &Store,
+7492:     remote: &crate::config::RemoteConfig,
+7493:     workspace_crates: Option<&std::collections::HashSet<String>>,
+7494:     pull_only: bool,
+7495:     push_only: bool,
+7496:     dry_run: bool,
+7497:     pull_all: bool,
+7498:     lock_crates: Option<&std::collections::HashSet<String>>,
+7499:     pull_workspace: bool,
+7500:     allow_partial: bool,
+7501: ) -> Result<()> {
+7502:     // Validate `--workspace` BEFORE connecting: `create_backend` resolves
+7503:     // credentials, which can launch a `credential_process` or block on an SSO
+7504:     // prompt. Failing after that for a reason knowable up front wastes the user's
+7505:     // time and can leave an interactive prompt hanging.
+7506:     if pull_workspace && workspace_crates.is_none_or(|crates| crates.is_empty()) {
+7507:         anyhow::bail!(
+7508:             "--workspace: no workspace members resolved (cargo metadata failed or this is not              a Cargo workspace); refusing to fall back to a full remote scan"
+7509:         );
+7510:     }
+7511: 
+7512:     let backend = crate::remote_backend::create_backend_for(
+7513:         remote,
+7514:         config.pull_request_prefix.as_deref(),
+7515:         config.s3_pool_idle_secs,
+7516:     )
+7517:     .await
+7518:     .context("connecting to the remote — check its configuration and access")?;
+7519:     let remote_cache: Arc<dyn crate::cache_remote::CacheRemote> =
+7520:         Arc::new(crate::cache_remote::V3Remote::new(backend, remote.clone()));
+7521:     sync_with_client(
+7522:         remote_cache.as_ref(),
+7523:         config,
+7524:         store,
+7525:         workspace_crates,
+7526:         pull_only,
+7527:         push_only,
+7528:         dry_run,
+7529:         pull_all,
+7530:         lock_crates,
+7531:         pull_workspace,
+7532:         allow_partial,
+7533:     )
+7534:     .await
+7535: }
+
+src/cli.rs
+7628:     };
+7629: 
+7630:     let local_entries = store.list_entries("name")?;
+7631: 
+7632:     // to_pull: remote keys not present on disk locally — (cache_key, crate_name).
+7633:     let to_pull: Vec<(String, String)> = if !push_only {
+7634:         s3_keys
+7635:             .iter()
+7636:             .filter(|(k, _)| {
+7637:                 let entry_dir = config.store_dir().join(k.as_str());
+7638:                 !entry_dir.exists()
+7639:             })
+7640:             .map(|(k, cn)| (k.clone(), cn.clone()))
+7641:             .collect()
+7642:     } else {
+7643:         Vec::new()
+7644:     };
+7645: 
+
+src/cli.rs
+7718:             let fail_ref = &fail;
+7719: 
+7720:             // We do NOT tokio::spawn — FuturesUnordered polls futures cooperatively
+7721:             // on the current thread. This avoids Send requirements for Store.
+7722:             in_flight.push(async move {
+7723:                 // Re-check: daemon (or a parallel sync) may have downloaded it
+7724:                 let entry_dir = cfg.store_dir().join(&key);
+7725:                 if entry_dir.exists() {
+7726:                     ok_ref.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+7727:                     return;
+7728:                 }
+7729: 
+7730:                 let blobs_dir = cfg.store_dir().join("blobs");
+7731:                 let result = remote_cache
+7732:                     .download_entry(&key, &crate_name, &entry_dir, &blobs_dir, None)
+7733:                     .await;
+7734:                 match result {
+7735:                     Ok(_bytes) => {
+7736:                         // Import into index — opens a fresh Store (cheap with WAL).
+7737:                         // INSERT OR REPLACE is idempotent if daemon also imported.
+7738:                         let mut imported = false;
+7739:                         match Store::open(&cfg) {
+7740:                             Ok(s) => match s.import_restored_entry(&key) {
+7741:                                 Ok(_) => {
+7742:                                     imported = true;
+7743:                                 }
+7744:                                 Err(e) => {
+7745:                                     eprintln!(
+7746:                                         "\n  error: import {}...: {e}",
+7747:                                         &key[..16.min(key.len())]
+7748:                                     );
+7749:                                 }
+7750:                             },
+7751:                             Err(e) => {
+7752:                                 eprintln!(
+7753:                                     "\n  error: open store for import {}...: {e}",
+7754:                                     &key[..16.min(key.len())]
+7755:                                 );
+7756:                             }
+7757:                         }
+7758:                         if imported {
+7759:                             ok_ref.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+7760:                         } else {
+7761:                             fail_ref.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+7762:                         }
+7763:                     }
+7764:                     Err(e) => {
+7765:                         eprintln!("\n  error: pull {}...: {e}", &key[..16.min(key.len())]);
+7766:                         fail_ref.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+7767:                     }
+7768:                 }
+7769:             });
+7770:         }
+7771: 
+7772:         // Drain remaining
+7773:         use futures::StreamExt;
+7774:         while in_flight.next().await.is_some() {
+7775:             eprint!(
+7776:                 "\r  Downloading: {}/{}",
+7777:                 ok.load(std::sync::atomic::Ordering::Relaxed)
+7778:                     + fail.load(std::sync::atomic::Ordering::Relaxed),
+7779:                 total,
+7780:             );
+7781:         }
+7782:         let ok_count = ok.load(std::sync::atomic::Ordering::Relaxed);
+7783:         let fail_count = fail.load(std::sync::atomic::Ordering::Relaxed);
+7784:         total_failed += fail_count;
+7785:         eprintln!(
+7786:             "\r  Downloaded:  {ok_count}/{total}{}",
+7787:             if fail_count > 0 {
+7788:                 format!(" ({fail_count} failed)")
+7789:             } else {
+7790:                 String::new()
+7791:             },
+7792:         );
+7793:     }
+7794: 
+7795:     // ── Push phase ──────────────────────────────────────────────
+
+src/config.rs
+1535:         let disabled = std::env::var("KACHE_DISABLED")
+1536:             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+1537:             .unwrap_or(false);
+1538: 
+1539:         let cache_dir = env_or_ignored("KACHE_CACHE_DIR", ignore_env)
+1540:             .map(|s| shellexpand(&s))
+1541:             .or_else(|_| {
+1542:                 file_config
+1543:                     .as_ref()
+1544:                     .ok()
+1545:                     .and_then(|c| c.cache.as_ref())
+1546:                     .and_then(|c| c.local_store.as_ref())
+1547:                     .map(|s| shellexpand(s))
+1548:                     .ok_or(())
+1549:             })
+1550:             .unwrap_or_else(|_| default_cache_dir());
+1551: 
+1552:         let readonly_store = env_or_ignored("KACHE_READONLY_STORE", ignore_env)
+1553:             .ok()
+1554:             .or_else(|| {
+1555:                 file_config
+1556:                     .as_ref()
+1557:                     .ok()
+1558:                     .and_then(|c| c.cache.as_ref())
+1559:                     .and_then(|c| c.readonly_store.clone())
+1560:             })
+1561:             .filter(|s| !s.is_empty())
+1562:             .map(|s| shellexpand(&s));
+1563: 
+1564:         // Keep the historical single-directory layout unless explicitly split.
+1565:         // Resolve this once alongside `cache_dir`: wrappers and their daemon must
+1566:         // agree on every runtime path even if ambient env changes later.
+1567:         let runtime_dir = env_or_ignored("KACHE_RUNTIME_DIR", ignore_env)
+1568:             .map(|s| shellexpand(&s))
+1569:             .or_else(|_| {
+1570:                 file_config
+1571:                     .as_ref()
+1572:                     .ok()
+1573:                     .and_then(|c| c.cache.as_ref())
+1574:                     .and_then(|c| c.runtime_dir.as_ref())
+1575:                     .map(|s| shellexpand(s))
+1576:                     .ok_or(())
+1577:             })
+1578:             .unwrap_or_else(|_| cache_dir.clone());
+1579:         let runtime_follows_cache = runtime_dir == cache_dir;
+1580: 
+1581:         // Trusted node-local L1 (#811): isolate the persistent store under a
+1582:         // single path-safe label. Invalid or unusable labels fail open to the
+
+src/config.rs
+3012:         })
+3013:     }
+3014: 
+3015:     pub fn store_dir(&self) -> PathBuf {
+3016:         self.cache_dir.join("store")
+3017:     }
+3018: 
+3019:     /// Shard store dir serving `path`, if its volume is mapped in
+3020:     /// `[cache.volumes]`. Longest normalized-prefix match, so `/mnt` and
+
+src/config.rs
+3914: 
+3915: /// Resolve the config file path to actually load from.
+3916: /// Priority: `KACHE_CONFIG` env var > nearest `.kache.toml` > XDG user config.
+3917: pub(crate) fn resolve_config_path() -> PathBuf {
+3918:     resolve_config_path_from(
+3919:         std::env::var("KACHE_CONFIG").ok().map(|s| shellexpand(&s)),
+3920:         std::env::current_dir().ok(),
+3921:     )
+3922: }
+3923: 
+3924: /// A fingerprint of the *active config file* — its resolved path plus content,
+3925: /// or a stable sentinel when the file is absent. The daemon records this at
+
+src/cache_remote.rs
+100: /// The v3 object layout over a byte-object backend.
+101: pub struct V3Remote {
+102:     backend: Arc<dyn RemoteBackend>,
+103:     remote: RemoteConfig,
+104: }
+105: 
+106: impl V3Remote {
+107:     pub fn new(backend: Arc<dyn RemoteBackend>, remote: RemoteConfig) -> Self {
+108:         Self { backend, remote }
+109:     }
+110: 
+111:     fn layout(&self) -> RemoteLayout<'_> {
+112:         RemoteLayout::new(self.backend.as_ref(), &self.remote)
+113:     }
+114: }
+115: 
+116: #[async_trait]
+117: impl CacheRemote for V3Remote {
+118:     async fn exists_entry(&self, cache_key: &str, crate_name: &str) -> Result<bool> {
+119:         self.layout().exists_entry(cache_key, crate_name).await
+120:     }
+121: 
+122:     async fn download_entry(
+123:         &self,
+124:         cache_key: &str,
+125:         crate_name: &str,
+126:         entry_dir: &Path,
+127:         blobs_dir: &Path,
+128:         deadline: Option<Instant>,
+129:     ) -> Result<DownloadResult> {
+130:         self.layout()
+131:             .download_entry_until(cache_key, crate_name, entry_dir, blobs_dir, deadline)
+132:             .await
+133:     }
+134: 
+135:     async fn download_entry_observed(
+136:         &self,
+
+src/remote_layout.rs
+757:             );
+758:         }
+759:     }
+760:     for cached_file in &meta.files {
+761:         match computed_hashes.get(Path::new(&cached_file.name)) {
+762:             Some(actual) if actual == &cached_file.hash => {}
+763:             Some(actual) => bail!(
+764:                 "content hash mismatch for {} (expected {}, got {})",
+765:                 cached_file.name,
+766:                 cached_file.hash,
+767:                 actual
+768:             ),
+769:             None => bail!(
+770:                 "downloaded entry pack is missing declared file {}",
+771:                 cached_file.name
+772:             ),
+773:         }
+774:     }
+775: 
+776:     if dest_dir.exists() {
+777:         deadline_io_check(deadline, "entry publication")?;
+778:         std::fs::remove_dir_all(dest_dir).context("removing existing extracted v3 entry dir")?;
+779:     }
+780: 
+781:     let tmp_path = tmp_dir.keep();
+782:     std::fs::rename(&tmp_path, dest_dir).or_else(|_| {
+783:         copy_dir_all_until(&tmp_path, dest_dir, deadline).and_then(|()| {
+784:             std::fs::remove_dir_all(&tmp_path).context("removing temp dir after v3 copy")
+785:         })
+786:     })?;
+787: 
+788:     deadline_io_check(deadline, "entry publication")?;
+789: 
+790:     Ok(ExtractedEntry {
+791:         original_bytes: total_bytes,
+792:         meta,
+793:     })
+794: }
+795: 
+796: #[cfg(test)]
+797: fn copy_dir_all(src: &Path, dst: &Path) -> Result<()> {
+
+crates/kache-store/src/store.rs
+2416: 
+2417:     /// Check if a committed entry exists for this cache key.
+2418:     pub fn contains(&self, cache_key: &str) -> bool {
+2419:         let entry_dir = self.entry_dir(cache_key);
+2420:         let meta_path = entry_dir.join("meta.json");
+2421: 
+2422:         if !meta_path.exists() {
+2423:             return false;
+2424:         }
+2425: 
+2426:         // Check if it's committed in the database
+2427:         self.db
+2428:             .query_row(
+2429:                 "SELECT committed FROM entries WHERE cache_key = ?1",
+2430:                 params![cache_key],
+2431:                 |row| row.get::<_, bool>(0),
+2432:             )
+2433:             .unwrap_or(false)
+2434:     }
+2435: 
+
+crates/kache-store/src/store.rs
+2945:     /// store and records them in the `blobs` table, leaving only
+2946:     /// `meta.json` in the entry directory.
+2947:     pub fn import_downloaded_entry(&self, cache_key: &str) -> Result<()> {
+2948:         self.refuse_write("import an entry")?;
+2949:         let entry_dir = self.entry_dir(cache_key);
+2950:         let meta_path = entry_dir.join("meta.json");
+2951:         let content = fs::read_to_string(&meta_path).context("reading downloaded meta.json")?;
+2952:         let meta: EntryMeta =
+2953:             serde_json::from_str(&content).context("parsing downloaded meta.json")?;
+2954: 
+2955:         // Remote `meta.json` is untrusted (a shared / MITM'd bucket can poison
+2956:         // its `files[]`), so validate the trust boundary before any field reaches
+2957:         // path construction, the blob store, or the user's `target/` (#211).
+2958:         let short_key = cache_key.get(..16).unwrap_or(cache_key);
+2959:         for cached_file in &meta.files {
+2960:             // C: a malformed `hash` becomes a shard path component (`&hash[..2]`)
+2961:             // — reject anything that isn't a 64-char blake3 hex digest so it can
+2962:             // never panic a slice or escape the blob shard.
+2963:             if !kache_format::is_blob_hash(&cached_file.hash) {
+2964:                 anyhow::bail!(
+2965:                     "downloaded entry {short_key}: rejecting file {} — malformed blob hash {:?}",
+2966:                     cached_file.name,
+2967:                     cached_file.hash,
+2968:                 );
+2969:             }
+2970:             // B: a `name` that is absolute or contains `..` escapes the entry dir
+2971:             // on join — require a single normal component.
+2972:             if !kache_format::is_safe_artifact_name(&cached_file.name) {
+2973:                 anyhow::bail!(
+2974:                     "downloaded entry {short_key}: rejecting unsafe artifact name {:?}",
+2975:                     cached_file.name,
+2976:                 );
+2977:             }
+2978: 
+2979:             let file_path = entry_dir.join(&cached_file.name);
+2980:             if !file_path.is_file() {
+2981:                 anyhow::bail!(
+2982:                     "downloaded entry {short_key} missing file: {}",
+2983:                     cached_file.name
+2984:                 );
+2985:             }
+2986:             let file_meta = fs::metadata(&file_path).with_context(|| {
+2987:                 format!("downloaded entry {short_key}: stat {}", cached_file.name)
+2988:             })?;
+2989:             if file_meta.len() != cached_file.size {
+2990:                 anyhow::bail!(
+2991:                     "downloaded entry {short_key} file {} size mismatch (expected {}, got {})",
+2992:                     cached_file.name,
+2993:                     cached_file.size,
+2994:                     file_meta.len(),
+2995:                 );
+2996:             }
+2997:             // A: re-hash the bytes and reject if they don't match the claimed
+2998:             // address. Size-only is insufficient for untrusted content — a
+2999:             // same-length substituted/corrupted object would otherwise be
+3000:             // installed under its claimed hash and hardlinked into the build as
+3001:             // if content-verified. blake3 is fast; do it before any rename/INSERT.
+3002:             let actual = crate::file_hash::hash_file(&file_path).with_context(|| {
+3003:                 format!(
+3004:                     "downloaded entry {short_key}: hashing {} for trust-boundary check",
+3005:                     cached_file.name
+3006:                 )
+3007:             })?;
+3008:             if actual != cached_file.hash {
+3009:                 anyhow::bail!(
+3010:                     "downloaded entry {short_key}: content hash mismatch for {} \
+3011:                      (claimed {}, actual {})",
+3012:                     cached_file.name,
+3013:                     cached_file.hash,
+3014:                     actual,
+3015:                 );
+3016:             }
+3017:         }
+3018: 
+3019:         // Phase 1: move each *new* blob into the content-addressed store and make
+3020:         // it durable. For blobs that already exist (shared), keep the downloaded
+3021:         // copy in the entry dir for now — it's the fallback Phase 2 restores from
+3022:         // if a concurrent remove unlinks the blob.
+3023:         for cached_file in &meta.files {
+3024:             let blob = self.blob_path(&cached_file.hash);
+3025:             if !blob.is_file() {
+3026:                 let file_path = entry_dir.join(&cached_file.name);
+3027:                 fs::create_dir_all(blob.parent().unwrap())
+3028:                     .context("creating blob shard directory")?;
+3029:                 fs::rename(&file_path, &blob).with_context(|| {
+3030:                     format!(
+3031:                         "moving downloaded artifact {} to blob store",
+3032:                         file_path.display()
+3033:                     )
+3034:                 })?;
+3035:                 crate::atomic::fsync_file(&blob).context("flushing downloaded blob to disk")?;
+3036:                 set_blob_readonly(&blob);
+3037:             }
+3038:         }
+3039: 
+3040:         let total_size: u64 = meta.files.iter().map(|f| f.size).sum();
+3041: 
+3042:         let content_hash = compute_content_hash(&meta.files);
+3043: 
+3044:         // Phase 2: register blob references and the entry row atomically, so the
+3045:         // entry only becomes visible once every blob is in place. The write lock
+3046:         // the INSERT/UPDATE holds also serializes us against `remove_entry`'s
+3047:         // unlink, so we can safely restore a blob a concurrent remove reclaimed.
+3048:         let crate_type_str = meta.crate_types.join(",");
+3049:         let num_features = meta.features.len() as i64;
+3050:         let tx = self.db.unchecked_transaction()?;
+3051:         // A second download of a committed key (two daemons, a retried
+3052:         // prefetch) replaces a generation that already holds references.
+3053:         release_entry_blob_refs(&tx, cache_key)?;
+3054:         for cached_file in &meta.files {
+3055:             let inserted = tx.execute(
+3056:                 "INSERT OR IGNORE INTO blobs (hash, size, refcount) VALUES (?1, ?2, 1)",
+3057:                 params![cached_file.hash, cached_file.size as i64],
+3058:             )?;
+
+crates/kache-store/src/store.rs
+3109:     /// This is the format-agnostic seam future remote layouts should call.
+3110:     /// A failed import must not leave an uncommitted `meta.json` behind: daemon
+3111:     /// download waiters use the extracted directory as a wake-up hint, and the
+3112:     /// residue could otherwise be mistaken for a published entry. Cleanup is
+3113:     /// serialized with Store publishers and preserves any committed generation
+3114:     /// that won the race.
+3115:     pub fn import_restored_entry(&self, cache_key: &str) -> Result<()> {
+3116:         self.refuse_write("import an entry")?;
+3117:         match self.import_downloaded_entry(cache_key) {
+3118:             Ok(()) => Ok(()),
+3119:             Err(import_error) => match self.discard_uncommitted_restored_entry(cache_key) {
+3120:                 Ok(()) => Err(import_error),
+3121:                 Err(cleanup_error) => Err(import_error.context(format!(
+3122:                     "also failed to discard uncommitted restored entry: {cleanup_error:#}"
+3123:                 ))),
+3124:             },
+3125:         }
+3126:     }
+3127: 
+
+docs/remote-cache/ci.mdx
+119: `kache daemon stop` lets the daemon work through its upload queue before it exits, so run it before the runner goes away. The daemon gives the queue 30 seconds. Uploads still queued after that stay in the store's upload queue and go out the next time a daemon starts on that store, so they are lost on a runner that discards its store. The command waits up to 35 seconds and fails if the daemon is still draining. It also fails when no daemon is running.
+120: 
+121: `kache sync --push` does not replace the daemon: inside a Cargo workspace it uploads only the workspace's own crates, without their dependencies. The daemon keeps credentials from the environment, so they can stay in `KACHE_S3_ACCESS_KEY` and `KACHE_S3_SECRET_KEY`, the runner's secret store, or the standard cloud identity chain. Use `--allow-partial` only when cache failure must not fail the job.
+122: 
+123: ## Ephemeral and persistent runners
+124: 
+125: Speculative prefetch is intended for empty runners. A persistent self-hosted runner may already have the needed entries locally. Measure both modes and disable speculation when it adds work:
+126: 
+127: ```toml
+128: [cache]
+129: prefetch_enabled = false
+130: ```
+131: 
+132: This keeps exact remote reads and uploads.
+133: 
+134: A job that keeps its target directory between runs, on a persistent runner or through a cached `target/`, should set `KACHE_ADAPTIVE_INCREMENTAL=0` or `CARGO_INCREMENTAL=0`. Otherwise [adaptive incremental mode](/docs/getting-started/quick-start#executables-and-incremental-builds) treats each workspace member or path dependency that changed since the previous run, and the local crates that depend on it, as code you are editing: a debug build compiles them incrementally and neither stores nor uploads them.
+135: 
+136: Concurrent jobs may share a persistent local store, but each job should have a distinct `KACHE_RUNTIME_DIR` for sockets, locks, event logs, and session state. kache-action already gives each job its own runtime directory. For a trusted disk that persists across jobs, set `node-cache: true` and `cache-dir` on the action.
+137: 
+138: A job that should read a shared store without writing to it can mount it read-only and set `KACHE_READONLY_STORE` to the directory that holds its `index.db`. Kache checks it after the job's own store and restores hits from it by copy. See [Read-only store](/docs/getting-started/configuration#read-only-store).
+139: 
+140: On a trusted builder that keeps a disk across jobs, point `KACHE_CACHE_DIR` at that disk and set `KACHE_TRUST_DOMAIN` to one label for the trust domain (for example `github.kunobi-ninja.kache`). Kache stores under `$KACHE_CACHE_DIR/<label>/`. Keep `KACHE_RUNTIME_DIR` on the job's scratch disk so sockets die with the pod. Do not mount that disk or export `KACHE_TRUST_DOMAIN` on public or fork jobs. An unusable label leaves `KACHE_CACHE_DIR` unchanged.
+141: 
+142: ## Progress and reports

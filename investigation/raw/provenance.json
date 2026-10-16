@@ -1,0 +1,18 @@
+{
+  "platform": "macOS-15.8.1-arm64-arm-64bit",
+  "machine": "arm64",
+  "python": "3.9.6",
+  "binary": "/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache",
+  "binary_sha256": "45840941809ca7c45622027f84d2c653c737e7ff35d375cfbf355b619456120f",
+  "source_sha256": {
+    "src/main.rs": "dbee13fb7baa24b7278e8d3e462820992566aee49fe8d3461904b739c644f7d4",
+    "src/cli.rs": "f2e747501173bd137b5fa5751e7f61943901551c2697e0bc126835b1dfd77357",
+    "src/config.rs": "2331a40edfb12827787ad445432c4f638eaaa8cecc10037a97ae1e551ddde01c",
+    "src/cache_remote.rs": "21bd18baaffe8b6ad485f441b2328dc7e01ad123ccc329f575536835d86b67e7",
+    "src/remote_layout.rs": "c7ad76225d41f749e5349fab626825aece153e197eddb250e50c0bebddfbc3c8",
+    "crates/kache-store/src/store.rs": "f257078be67112a5ebbf6b3705414a5352804bfcb47b85095cf1ef69ca1f635f",
+    "docs/remote-cache/ci.mdx": "b4852baef211be429f7bf4477587e11623d2933b4407ee7f511238c3db34c89a"
+  },
+  "fixture_inputs": "24 generated Rust libraries; each includes deterministic 256 KiB payload; edition 2024; cargo -j2; debug baseline; local_only on builds; adaptive/incremental disabled",
+  "quiet_window": "Root granted a quiet window immediately before filesystem measurement and released holds after loopback completion. Other investigators held builds and compiler probes. This is coordination evidence, not a guarantee the host ran no unrelated background work."
+}

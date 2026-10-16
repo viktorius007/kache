@@ -1,0 +1,122 @@
+[
+  {
+    "run": 0,
+    "cold_sync_s": 1.050382041,
+    "warm_sync_s": 0.04327583300000004,
+    "warm_clean_target_build_s": 1.132579167,
+    "entries": 24,
+    "build_events": {
+      "results": {
+        "passthrough": 5,
+        "local_hit": 24
+      },
+      "compiler_runs": 0,
+      "restored_bytes": 0,
+      "reflinked_bytes": 19094680,
+      "hardlinked_bytes": 0,
+      "copied_bytes": 0,
+      "restore_ms": 94,
+      "key_ms": 33,
+      "startup_ms": 84,
+      "lookup_ms": 0,
+      "dep_info_ms": 811,
+      "elapsed_ms": 1653
+    }
+  },
+  {
+    "run": 1,
+    "cold_sync_s": 1.0907194170000003,
+    "warm_sync_s": 0.0450036250000001,
+    "warm_clean_target_build_s": 1.113741792,
+    "entries": 24,
+    "build_events": {
+      "results": {
+        "passthrough": 5,
+        "local_hit": 24
+      },
+      "compiler_runs": 0,
+      "restored_bytes": 0,
+      "reflinked_bytes": 19094680,
+      "hardlinked_bytes": 0,
+      "copied_bytes": 0,
+      "restore_ms": 46,
+      "key_ms": 34,
+      "startup_ms": 84,
+      "lookup_ms": 0,
+      "dep_info_ms": 853,
+      "elapsed_ms": 1653
+    }
+  },
+  {
+    "run": 2,
+    "cold_sync_s": 1.1236897080000006,
+    "warm_sync_s": 0.04462691700000043,
+    "warm_clean_target_build_s": 1.186048875,
+    "entries": 24,
+    "build_events": {
+      "results": {
+        "passthrough": 5,
+        "local_hit": 24
+      },
+      "compiler_runs": 0,
+      "restored_bytes": 0,
+      "reflinked_bytes": 19094680,
+      "hardlinked_bytes": 0,
+      "copied_bytes": 0,
+      "restore_ms": 96,
+      "key_ms": 33,
+      "startup_ms": 87,
+      "lookup_ms": 0,
+      "dep_info_ms": 875,
+      "elapsed_ms": 1756
+    }
+  },
+  {
+    "run": 3,
+    "cold_sync_s": 1.2598590829999994,
+    "warm_sync_s": 0.05418000000000056,
+    "warm_clean_target_build_s": 1.321570542,
+    "entries": 24,
+    "build_events": {
+      "results": {
+        "passthrough": 5,
+        "local_hit": 24
+      },
+      "compiler_runs": 0,
+      "restored_bytes": 0,
+      "reflinked_bytes": 19094680,
+      "hardlinked_bytes": 0,
+      "copied_bytes": 0,
+      "restore_ms": 90,
+      "key_ms": 42,
+      "startup_ms": 90,
+      "lookup_ms": 0,
+      "dep_info_ms": 965,
+      "elapsed_ms": 1981
+    }
+  },
+  {
+    "run": 4,
+    "cold_sync_s": 1.3251364579999994,
+    "warm_sync_s": 0.05541120799999888,
+    "warm_clean_target_build_s": 1.288080292,
+    "entries": 24,
+    "build_events": {
+      "results": {
+        "passthrough": 5,
+        "local_hit": 24
+      },
+      "compiler_runs": 0,
+      "restored_bytes": 0,
+      "reflinked_bytes": 19094680,
+      "hardlinked_bytes": 0,
+      "copied_bytes": 0,
+      "restore_ms": 87,
+      "key_ms": 39,
+      "startup_ms": 96,
+      "lookup_ms": 0,
+      "dep_info_ms": 902,
+      "elapsed_ms": 1906
+    }
+  }
+]

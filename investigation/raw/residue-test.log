@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/qa-ci-hydration/investigation/ci_probe.py", line 287, in <module>
+    globals()[args.mode](args.binary.resolve())
+  File "/Users/viktor/Developer/github/kache-investigations/qa-ci-hydration/investigation/ci_probe.py", line 171, in residue
+    assert outcomes[1]['entries'] == 24, f"sync must complete hydration after extraction residue; got {outcomes[1]['entries']} committed entries, expected 24"
+AssertionError: sync must complete hydration after extraction residue; got 23 committed entries, expected 24

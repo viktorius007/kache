@@ -1,0 +1,57 @@
+[
+  {
+    "run": 0,
+    "cold_sync_s": 1.4088592500000001,
+    "warm_sync_s": 0.07260754199999986,
+    "cold_http_requests": 25,
+    "cold_http_body_bytes": 6411683,
+    "warm_http_requests": 1,
+    "warm_http_body_bytes": 6467,
+    "cold_pack_gets": 24,
+    "warm_pack_gets": 0
+  },
+  {
+    "run": 1,
+    "cold_sync_s": 1.4395867089999999,
+    "warm_sync_s": 0.07340087499999992,
+    "cold_http_requests": 25,
+    "cold_http_body_bytes": 6411683,
+    "warm_http_requests": 1,
+    "warm_http_body_bytes": 6467,
+    "cold_pack_gets": 24,
+    "warm_pack_gets": 0
+  },
+  {
+    "run": 2,
+    "cold_sync_s": 1.442171417,
+    "warm_sync_s": 0.06816754100000022,
+    "cold_http_requests": 25,
+    "cold_http_body_bytes": 6411683,
+    "warm_http_requests": 1,
+    "warm_http_body_bytes": 6467,
+    "cold_pack_gets": 24,
+    "warm_pack_gets": 0
+  },
+  {
+    "run": 3,
+    "cold_sync_s": 1.4421224590000001,
+    "warm_sync_s": 0.07927025000000043,
+    "cold_http_requests": 25,
+    "cold_http_body_bytes": 6411683,
+    "warm_http_requests": 1,
+    "warm_http_body_bytes": 6467,
+    "cold_pack_gets": 24,
+    "warm_pack_gets": 0
+  },
+  {
+    "run": 4,
+    "cold_sync_s": 1.4152721249999995,
+    "warm_sync_s": 0.07199770899999969,
+    "cold_http_requests": 25,
+    "cold_http_body_bytes": 6411683,
+    "warm_http_requests": 1,
+    "warm_http_body_bytes": 6467,
+    "cold_pack_gets": 24,
+    "warm_pack_gets": 0
+  }
+]

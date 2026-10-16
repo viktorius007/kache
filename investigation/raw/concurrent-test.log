@@ -1,0 +1,7 @@
+RESULT concurrent sync [{"trial": 0, "exit_codes": [1, 0, 1, 0], "entries": 24}, {"trial": 1, "exit_codes": [0, 1, 0, 0], "entries": 24}, {"trial": 2, "exit_codes": [1, 1, 1, 1], "entries": 24}]
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/qa-ci-hydration/investigation/ci_probe.py", line 287, in <module>
+    globals()[args.mode](args.binary.resolve())
+  File "/Users/viktor/Developer/github/kache-investigations/qa-ci-hydration/investigation/ci_probe.py", line 274, in concurrent
+    assert all(row['exit_codes'] == [0, 0, 0, 0] and row['entries'] == 24 for row in rows), 'concurrent sync must hydrate all entries without import errors'
+AssertionError: concurrent sync must hydrate all entries without import errors

@@ -1,0 +1,5 @@
+Listing remote keys... 24 keys
+  Downloading: 1/24  Downloading: 2/24  Downloading: 3/24  Downloading: 4/24  Downloading: 5/24  Downloading: 6/24  Downloading: 7/24  Downloading: 8/24  Downloading: 9/24  Downloading: 10/24  Downloading: 11/24
+  error: pull cc0b3b6bac60d1cc...: removing existing extracted v3 entry dir
+  Downloading: 12/24  Downloading: 13/24  Downloading: 14/24  Downloading: 15/24  Downloading: 16/24  Downloading: 17/24  Downloading: 18/24  Downloading: 19/24  Downloading: 20/24  Downloading: 21/24  Downloading: 22/24  Downloading: 23/24  Downloading: 24/24  Downloaded:  23/24 (1 failed)
+error: 1 transfer(s) or import(s) failed during sync

@@ -1,0 +1,14 @@
+results_refs: 1  (cols: id prefix)
+  0 Users-viktor-Developer-github-kache-investigations-coordinator.
+results_ref_rule: @N+suffix=prefix+suffix
+results: 5  (cols: qn label file lines in out)
+  @0+src.compiler.cc.CcDirectoryListings.contains Method src/compiler/cc.rs 5765-5776 3 3
+  @0+tests.proc_macro_env_key_test.contains Function tests/proc_macro_env_key_test.rs 194-196 1 0
+  @0+crates.kache-store.src.store.ArtifactStore.contains Method crates/kache-store/src/store.rs 2418-2434 194 2
+  @0+crates.kache-store.src.store.ArtifactStore.import_restored_entry Method crates/kache-store/src/store.rs 3115-3126 5 3
+  @0+src.cli.sync_with_client Function src/cli.rs 7562-7880 21 17
+total: 5
+returned: 5
+has_more: false
+truncated: false
+

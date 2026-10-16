@@ -1,0 +1,23 @@
+{
+  "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "mode": "production-readiness",
+  "reviewed_scope": "CLI bulk sync hydration; generated filesystem and loopback remote; final local-only cache reuse",
+  "reviewed_files": [
+    "src/main.rs",
+    "src/cli.rs",
+    "src/config.rs",
+    "src/cache_remote.rs",
+    "src/remote_layout.rs",
+    "crates/kache-store/src/store.rs",
+    "docs/remote-cache/ci.mdx"
+  ],
+  "coverage": "bounded source and executed cases; partial Rust graph; not whole-file audit",
+  "limits": [
+    "native daemon",
+    "cloud/CI fleet",
+    "release performance",
+    "adversarial remote",
+    "full crash/cancellation lifecycle",
+    "postrace byte integrity"
+  ]
+}

@@ -1,0 +1,5 @@
+Listing remote keys... 24 keys
+  Downloading: 1/24  Downloading: 2/24  Downloading: 3/24  Downloading: 4/24  Downloading: 5/24  Downloading: 6/24  Downloading: 7/24  Downloading: 8/24  Downloading: 9/24  Downloading: 10/24  Downloading: 11/24  Downloading: 12/24  Downloading: 13/24  Downloading: 14/24  Downloading: 15/24  Downloading: 16/24  Downloading: 17/24  Downloading: 18/24  Downloading: 19/24  Downloading: 20/24  Downloading: 21/24  Downloading: 22/24
+  error: import 14cd09d594a6c63e...: downloaded entry 14cd09d594a6c63e: content hash mismatch for libfixture11-de567f496175ad14.rmeta (claimed d8e469d616c0446190684fc26ca893ac0dd7ccdd1ef7bc7f29c2908c19c53311, actual af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262)
+  Downloading: 23/24  Downloading: 24/24  Downloaded:  23/24 (1 failed)
+error: 1 transfer(s) or import(s) failed during sync

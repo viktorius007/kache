@@ -1,0 +1,49 @@
+[
+  {
+    "arm": "clean",
+    "entries": 24,
+    "duration_s": 1.5316895830000001,
+    "key": "642145cc874129de65a561f23d8e3bcd8a1790d34143c0e867b8b8a4383e7bf7",
+    "build_events": {
+      "results": {
+        "passthrough": 5,
+        "local_hit": 24
+      },
+      "compiler_runs": 0,
+      "restored_bytes": 0,
+      "reflinked_bytes": 19094680,
+      "hardlinked_bytes": 0,
+      "copied_bytes": 0,
+      "restore_ms": 56,
+      "key_ms": 41,
+      "startup_ms": 107,
+      "lookup_ms": 0,
+      "dep_info_ms": 828,
+      "elapsed_ms": 1769
+    }
+  },
+  {
+    "arm": "extracted-residue",
+    "entries": 23,
+    "duration_s": 1.223949083,
+    "key": "642145cc874129de65a561f23d8e3bcd8a1790d34143c0e867b8b8a4383e7bf7",
+    "build_events": {
+      "results": {
+        "passthrough": 5,
+        "local_hit": 23,
+        "miss": 1
+      },
+      "compiler_runs": 1,
+      "restored_bytes": 0,
+      "reflinked_bytes": 18299068,
+      "hardlinked_bytes": 0,
+      "copied_bytes": 0,
+      "restore_ms": 43,
+      "key_ms": 31,
+      "startup_ms": 87,
+      "lookup_ms": 0,
+      "dep_info_ms": 751,
+      "elapsed_ms": 1720
+    }
+  }
+]
