@@ -1,0 +1,8 @@
+{
+  "id": "cargo-build-001",
+  "url": "https://github.com/kunobi-ninja/kache/pull/1498",
+  "branch": "fix/cargo-build-001",
+  "fix_commit": "4b691f4045e73422630594a2c341a05f0693cd12",
+  "state": "draft",
+  "review": "investigation/pr-delivery/reviews/cargo-build-001.md"
+}

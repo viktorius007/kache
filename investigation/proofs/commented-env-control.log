@@ -1,0 +1,24 @@
+INIT_EXIT 0
+kache · setup
+
+Setup plan
+  Cargo    caching      Rust and native dependencies
+  Config   ~/.cargo/config.toml
+  Daemon   background   start or restart the cache if needed
+
+Setup
+  Cargo caching: Rust and native dependencies
+    Config: ~/.cargo/config.toml
+    Backup: ~/.cargo/.kache-cargo-backup-xqRTgV
+  ✓ Cargo caching: configured
+  • Cargo target protection and C/C++ caching: skipped (--no-shell)
+  • Test pacing: skipped (--no-shell)
+  → Login service: skipped (--no-service)
+  → Background cache: not running
+    ✓ Background cache: running
+
+  Ready for Cargo builds. Use cargo as usual.
+  Run kache doctor to check this terminal.
+
+ 
+CONFIG_UNCHANGED False

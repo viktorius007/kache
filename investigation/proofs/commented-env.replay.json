@@ -1,0 +1,18 @@
+{
+  "id": "cargo-build-observation-001",
+  "scope": "minor CLI configuration compatibility; excluded from high-value findings",
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/proofs/commented-env.py"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build",
+  "timeout_seconds": 60,
+  "expected_failure_regex": "AssertionError: VALID_COMMENTED_ENV_REJECTED",
+  "assertion_regex": "VALID_COMMENTED_ENV_REJECTED",
+  "consequence": "init declines a valid commented env table; validation occurs before config write so original config is preserved",
+  "source": "src/cargo_env.rs:127 and src/cli.rs:9411-9414",
+  "logs": [
+    "commented-env.log",
+    "commented-env-control.log"
+  ]
+}

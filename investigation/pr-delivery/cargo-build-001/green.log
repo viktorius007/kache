@@ -1,0 +1,13 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/cargo-build-001)
+    Finished `test` profile [unoptimized] target(s) in 10.33s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 5 tests
+test build_script::declarations::tests::a_rerun_directive_is_read_in_either_form ... ok
+test build_script::tests::declarations_follow_cargo_rerun_rules ... ok
+test build_script::tests::an_empty_rerun_if_env_changed_name_is_not_a_declaration ... ok
+test build_script::tests::padded_rerun_declarations_keep_exact_paths_and_environment_names ... ok
+test build_script::tests::legacy_rerun_predictions_are_rejected_before_reuse ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 4392 filtered out; finished in 0.01s
+

@@ -1,0 +1,186 @@
+[
+  {
+    "id": "cargo-build-001",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-10-11T06:01:07.275846+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "Codex (inherited parent model)",
+      "mode": "production-readiness",
+      "slice": "cargo-build"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Build-script caching drops Cargo-recognized rerun environment declarations surrounded by whitespace and silently restores stale generated output.",
+    "scenario": "A normal build.rs prints a stable file declaration and \"  cargo:rerun-if-env-changed=APP_MODE  \", then writes APP_MODE into OUT_DIR/value. With baseline Kache as RUSTC_WRAPPER, Cargo builds first with APP_MODE=first and then second. Both builds succeed but the executable includes first twice; plain Cargo produces first then second.",
+    "evidence": [
+      {
+        "path": "src/build_script/declarations.rs",
+        "lines": "39-56",
+        "point": "Cargo-facing declaration parser applies line.trim() before rerun_directive."
+      },
+      {
+        "path": "src/build_script/declarations.rs",
+        "lines": "61-97",
+        "point": "Run-cache prediction parser calls rerun_directive(line) without trimming, omitting the padded APP_MODE declaration."
+      },
+      {
+        "path": "src/build_script.rs",
+        "lines": "1290-1310",
+        "point": "Run action key folds only the environment names retained in prediction.env."
+      },
+      {
+        "path": "src/build_script.rs",
+        "lines": "1531-1548",
+        "point": "Recording a successful script run constructs its prediction using parse_declarations."
+      },
+      {
+        "path": "src/wrapper.rs",
+        "lines": "3387-3401",
+        "point": "A compiled build_script_build installs the production launcher, proving reachability through ordinary Cargo."
+      },
+      {
+        "path": "investigation/proofs/cargo-declarations.log",
+        "lines": "1-15",
+        "point": "Second successful Cargo build returns first and records a build_script_run local_hit with the first key."
+      },
+      {
+        "path": "investigation/proofs/cargo-declarations-control.log",
+        "lines": "1-9",
+        "point": "Plain Cargo on the same fixture semantics produces first, second."
+      }
+    ],
+    "trace": "Cargo builds script \u2192 wrapper installs launcher \u2192 main dispatches KACHE_BUILD_SCRIPT_PATH \u2192 run_shim/run_cached \u2192 record_with_tools/parse_declarations omits APP_MODE \u2192 action_key excludes changed APP_MODE \u2192 local_hit replays old OUT_DIR/value \u2192 newly built executable prints first.",
+    "authority": {
+      "source": "docs/how-it-works/build-scripts.mdx:36-53; Cargo implementation https://doc.rust-lang.org/stable/nightly-rustc/src/cargo/compiler/custom_build.rs.html",
+      "quote": "Kache reuses Cargo's own rule for when a build script must rerun. Every variable the script declared with cargo:rerun-if-env-changed is covered; Cargo trims instruction lines."
+    },
+    "proof": {
+      "red_test": "\"\"\"Tiny real-Cargo audit probes; all writable state is disposable and isolated.\"\"\"\nimport json,os,pathlib,subprocess,tempfile,time,sys\nBASE=pathlib.Path(__file__).resolve().parents[2]\nBINARY='/Users/viktor/Developer/github/kache-investigations/coordinator/target/debug/kache'\nINCREMENTAL='--incremental' in sys.argv\nDIRECT='--direct' in sys.argv\nsysroot=pathlib.Path(subprocess.check_output(['/opt/homebrew/opt/rustup/bin/rustc','--print','sysroot'],text=True).strip())\nCARGO=str(sysroot/'bin/cargo'); RUSTC=str(sysroot/'bin/rustc')\nwith tempfile.TemporaryDirectory(prefix='kache-cargo-',dir='/private/tmp') as tmp:\n root=pathlib.Path(tmp); pkg=root/'pkg'; (pkg/'src').mkdir(parents=True); home=root/'home'; (home/'.cargo').mkdir(parents=True)\n cfg=root/'kache.toml'; cfg.write_text('[cache]\\nbuild_script_hermetic = false\\n')\n (pkg/'Cargo.toml').write_text('[package]\\nname = \"declared-app\"\\nversion = \"0.1.0\"\\nedition = \"2021\"\\n[workspace]\\n'+('[dependencies]\\npm = { path = \"pm\" }\\n' if INCREMENTAL else ''))\n (pkg/'input').write_text('stable')\n directive='cargo:rerun-if-env-changed=APP_MODE' if INCREMENTAL else '  cargo:rerun-if-env-changed=APP_MODE  '\n (pkg/'build.rs').write_text('fn main() { println!(\"cargo:rerun-if-changed=input\"); println!(\"'+directive+'\"); std::fs::write(std::path::Path::new(&std::env::var(\"OUT_DIR\").unwrap()).join(\"value\"),std::env::var(\"APP_MODE\").unwrap()).unwrap(); }')\n (pkg/'src/main.rs').write_text('fn main() { print!(\"{}\", '+('pm::bake!()' if INCREMENTAL else 'include_str!(concat!(env!(\"OUT_DIR\"),\"/value\"))')+'); }')\n if INCREMENTAL:\n  (pkg/'pm/src').mkdir(parents=True); (pkg/'pm/Cargo.toml').write_text('[package]\\nname=\"pm\"\\nversion=\"0.1.0\"\\nedition=\"2021\"\\n[lib]\\nproc-macro=true\\n')\n  (pkg/'pm/src/lib.rs').write_text('extern crate proc_macro; #[proc_macro] pub fn bake(_: proc_macro::TokenStream) -> proc_macro::TokenStream { format!(\"{:?}\",std::env::var(\"APP_MODE\").unwrap()).parse().unwrap() }')\n env={k:v for k,v in os.environ.items() if not k.startswith(('KACHE_','CARGO_','RUSTC_','XDG_')) and k not in ('OUT_DIR','RUSTFLAGS')}; env.update(HOME=str(home),CARGO_HOME=str(home/'.cargo'),KACHE_CONFIG=str(cfg),KACHE_HOST_CONFIG='',KACHE_CACHE_DIR=str(root/'cache'),KACHE_RUNTIME_DIR=str(root/'runtime'),KACHE_DAEMON_PUBLISH='0',KACHE_DAEMON_IDLE_TIMEOUT='1',CARGO_TARGET_DIR=str(root/'target'),CARGO_INCREMENTAL='1' if INCREMENTAL else '0',KACHE_CACHE_EXECUTABLES='1',RUSTC=RUSTC,RUSTC_WRAPPER='' if DIRECT else BINARY,HOST_CC='clang',HOST_CXX='clang++',CC='clang',CXX='clang++')\n if INCREMENTAL: env['KACHE_INCREMENTAL_CRATES']='declared_app'\n print('VERSIONS',subprocess.check_output([CARGO,'-V'],text=True).strip(),subprocess.check_output([RUSTC,'-V'],text=True).strip(),flush=True)\n time.sleep(.2); outputs=[]\n try:\n  for mode in ['first','second']:\n   env['APP_MODE']=mode\n   result=subprocess.run([CARGO,'build','--offline','-j','1'],cwd=pkg,env=env,capture_output=True,timeout=45)\n   print('BUILD',mode,'EXIT',result.returncode,'STDERR',result.stderr.decode(),flush=True); assert result.returncode==0\n   output=subprocess.check_output([str(root/'target/debug/declared-app')],text=True); outputs.append(output)\n  print('OUTPUTS',outputs,flush=True)\n  log=root/'runtime/events.jsonl'\n  if log.exists():\n   events=[json.loads(s) for s in log.read_text().splitlines()]; print('EVENTS',json.dumps([{k:e.get(k) for k in ['crate_name','result','cache_key','passthrough_reason','incremental_policy']} for e in events]),flush=True)\n  if INCREMENTAL:\n   managed=list((root/'target/debug/incremental.kache-auto').rglob('query-cache.bin'))\n   print('MANAGED_QUERY_CACHES',[str(path.relative_to(root)) for path in managed],flush=True)\n   assert managed, 'SEAM_FIXTURE_NOT_MANAGED: expected private rustc query cache'\n  assert outputs==['first','second'], 'STALE_CARGO_DECLARATION_OUTPUT: changed declared environment must produce second output, got '+repr(outputs)\n finally:\n  if not DIRECT: subprocess.run([BINARY,'daemon','stop'],cwd=root,env=env,capture_output=True,timeout=20)\n",
+      "name": "padded_cargo_declaration_rebuilds_generated_value",
+      "fails_on": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "output": "AssertionError: STALE_CARGO_DECLARATION_OUTPUT: changed declared environment must produce second output, got ['first', 'first']",
+      "source_artifact": "investigation/proofs/cargo-declarations.py",
+      "replay_artifact": "investigation/proofs/cargo-declarations.replay.json",
+      "supplementary": [
+        "investigation/proofs/padded-declarations.py",
+        "investigation/proofs/padded-declarations.log",
+        "investigation/proofs/padded-declarations-control.log"
+      ]
+    },
+    "severity": "Silent wrong compiled contents rather than a diagnostic: generated configuration, bindings or selected features can remain stale even though Cargo recognizes the declared change. Default build-script cache reaches the defect; scope requires padded declaration lines. Demonstrated with non-hermetic cache and one macOS Rust toolchain; no general cross-platform scope claim.",
+    "status": "open"
+  },
+  {
+    "id": "cargo-build-dismissal-001",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:01:07.275846+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "Codex (inherited parent model)",
+      "mode": "production-readiness",
+      "slice": "cargo-build"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "No stale proc-macro output in the tested canonical declared-env managed incremental workload.",
+    "checked": "Two Cargo builds change APP_MODE from first to second; build.rs canonically declares the env input; an unchanged dependency proc-macro reads std::env::var(APP_MODE); forced declared_app incremental lane is observed, and private incremental.kache-auto query-cache files are asserted. Output changes correctly.",
+    "evidence": [
+      {
+        "path": "investigation/proofs/incremental-declarations.log",
+        "lines": "1-12",
+        "point": "Outputs first, second; force-list events plus private managed query caches prove exercised path."
+      },
+      {
+        "path": "src/wrapper.rs",
+        "lines": "193-212",
+        "point": "Eligibility checks extra_inputs, motivating the seam probe."
+      }
+    ],
+    "trace": "Canonical declaration makes Cargo rerun \u2192 managed force-list compiles declared_app using private incremental state \u2192 proc-macro expansion produces current environment value.",
+    "authority": {
+      "source": "executed fixture on pinned baseline",
+      "quote": "OUTPUTS ['first', 'second']"
+    },
+    "closed_by": {
+      "tier": "runtime narrow disproof",
+      "citation": "investigation/proofs/cargo-declarations.py --incremental and incremental-declarations.log; rustc/Cargo 1.99.0"
+    },
+    "reopens_if": "A different Rust toolchain, activated adaptive path, proc-macro dependency shape or declared file/environment mutation yields stale externally observable output. This does not close all incremental correctness questions.",
+    "severity": "Potential stale compilation would be material; tested scenario did not demonstrate it.",
+    "status": "no-action"
+  },
+  {
+    "id": "cargo-build-dismissal-002",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:01:07.275846+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "Codex (inherited parent model)",
+      "mode": "production-readiness",
+      "slice": "cargo-build"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Undeclared system probes, external side effects and transformed root values are explicit build-script cache limits.",
+    "checked": "Compared relocation and action-key/outside-output behavior against published Limits. No additional runtime defect admitted for absent replay of undeclared probes or root lengths/hashes.",
+    "evidence": [
+      {
+        "path": "docs/how-it-works/build-scripts.mdx",
+        "lines": "268-281",
+        "point": "Explicitly states transformed root values may be wrong, undeclared PATH/pkg-config/system state is unkeyed, and side effects outside captured output are not replayed."
+      }
+    ],
+    "trace": "Documented cache scope \u2192 undeclared observations or nontext root transformations \u2192 outside the promised Cargo-declared input guarantee.",
+    "authority": {
+      "source": "docs/how-it-works/build-scripts.mdx:268-281",
+      "quote": "The key covers what Cargo compares. It does not cover state a script probes without declaring it."
+    },
+    "closed_by": {
+      "tier": "explicit authority",
+      "citation": "docs/how-it-works/build-scripts.mdx:268-281"
+    },
+    "reopens_if": "A declared input or explicitly promised output replay is missed, or the contract expands.",
+    "severity": "May affect workloads but not a newly proven contract defect in this audit.",
+    "status": "no-action"
+  },
+  {
+    "id": "cargo-build-dismissal-003",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-10-11T06:01:07.275846+00:00",
+      "commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+      "model": "Codex (inherited parent model)",
+      "mode": "production-readiness",
+      "slice": "cargo-build"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Dropping the executable from test-runner lease arguments does not lose target identity in the current global lock design.",
+    "checked": "Read target-use locking and test-runner/delegate callers. shared_for arguments select quiet output only; shared obtains cache_dir/target-use.lock globally. No runtime race claim inferred from omitted executable argv.",
+    "evidence": [
+      {
+        "path": "src/target_use.rs",
+        "lines": "31-74",
+        "point": "Global target-use.lock protects the cache; argument scan only changes notice sink."
+      },
+      {
+        "path": "src/test_runner.rs",
+        "lines": "1-431",
+        "point": "Production runner holds target-use lease while executing child and deciding cache reuse."
+      }
+    ],
+    "trace": "Runner \u2192 shared_for \u2192 quiet(args) \u2192 shared(cache_dir) \u2192 one global reader lock; cleanup exclusion does not derive from executable argument.",
+    "authority": {
+      "source": "current source lock invariant",
+      "quote": "Hold while Cargo or a target runner may still use build output."
+    },
+    "closed_by": {
+      "tier": "source invariant, limited",
+      "citation": "src/target_use.rs:31-74"
+    },
+    "reopens_if": "The lock becomes target-scoped, a caller drops the lease before child completion, or an executed concurrent cleanup fixture escapes exclusion.",
+    "severity": "Potential active-output deletion not established by this source lead.",
+    "status": "no-action"
+  }
+]

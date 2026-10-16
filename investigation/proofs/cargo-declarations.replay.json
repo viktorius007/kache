@@ -1,0 +1,12 @@
+{
+  "id": "cargo-build-001-real-cargo",
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/proofs/cargo-declarations.py"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build",
+  "timeout_seconds": 120,
+  "expected_failure_regex": "AssertionError: STALE_CARGO_DECLARATION_OUTPUT",
+  "assertion_regex": "STALE_CARGO_DECLARATION_OUTPUT: changed declared environment must produce second output, got \\['first', 'first'\\]"
+}

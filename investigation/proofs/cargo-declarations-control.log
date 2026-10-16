@@ -1,0 +1,8 @@
+VERSIONS cargo 1.99.0 (5f94df478 2026-08-27) rustc 1.99.0 (b940084d7 2026-09-28)
+BUILD first EXIT 0 STDERR    Compiling declared-app v0.1.0 (/private/tmp/kache-cargo-6pdlm68z/pkg)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.33s
+
+BUILD second EXIT 0 STDERR    Compiling declared-app v0.1.0 (/private/tmp/kache-cargo-6pdlm68z/pkg)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.11s
+
+OUTPUTS ['first', 'second']

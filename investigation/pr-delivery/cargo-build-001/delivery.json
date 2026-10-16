@@ -1,0 +1,27 @@
+{
+  "id": "cargo-build-001",
+  "branch": "fix/cargo-build-001",
+  "worktree": "/Users/viktor/Developer/github/kache-prs/cargo-build-001",
+  "test_commit": "6b9c759e82244ede265c4a088c70a6bd61a59818",
+  "fix_commit": "4b691f4045e73422630594a2c341a05f0693cd12",
+  "title": "Honor padded build-script rerun declarations",
+  "body_file": "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/pr-delivery/cargo-build-001/pr-body.md",
+  "base_sha": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "gate_command": "env CARGO_TARGET_DIR=/Users/viktor/Developer/github/kache-prs/cargo-build-001/target python3 /Users/viktor/Developer/github/kache-investigations/coordinator/investigation/pr-delivery/build-slot.py just check",
+  "gate_exit": 0,
+  "red_log": "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/pr-delivery/cargo-build-001/red.log",
+  "green_log": "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/pr-delivery/cargo-build-001/green.log",
+  "gate_log": "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/pr-delivery/cargo-build-001/gate.log",
+  "changed_files": [
+    "src/build_script.rs",
+    "src/build_script/declarations.rs"
+  ],
+  "external_green_log": "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/pr-delivery/cargo-build-001/external-green.log",
+  "external_proof": "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/pr-delivery/cargo-build-001/external-proof.py",
+  "tests": [
+    "build_script::tests::padded_rerun_declarations_keep_exact_paths_and_environment_names",
+    "build_script::tests::legacy_rerun_predictions_are_rejected_before_reuse"
+  ],
+  "working_tree_clean": true,
+  "ci_status": "not published; root owns publication and CI"
+}

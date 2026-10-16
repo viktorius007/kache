@@ -1,0 +1,1127 @@
+{
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "slice": "cargo-build",
+  "primary_total": 51,
+  "graph": {
+    "project": "Users-viktor-Developer-github-kache-investigations-coordinator",
+    "artifact": "investigation/graph-coverage.json",
+    "limits": [
+      "Rust semantic partial: binding oracle, expanded calls and impl relationships unavailable",
+      "Native source confirms the consequential callers; graph CALLS completeness not assumed"
+    ]
+  },
+  "paths": [
+    {
+      "path": "crates/kache-shims/Cargo.toml",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          26
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "crates/kache-shims/README.md",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          25
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "crates/kache-shims/proptest-regressions/select/tests.txt",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          11
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "crates/kache-shims/src/farm.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          550
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "crates/kache-shims/src/farm/tests.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          911,
+          990
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "crates/kache-shims/src/fs.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          229
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "crates/kache-shims/src/lib.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          15
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "crates/kache-shims/src/select.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          578
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "crates/kache-shims/src/select/tests.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          951,
+          1030
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "docs/how-it-works/build-scripts.mdx",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          284
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "launcher/build_script.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          261
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "src/build_script.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json",
+        "All production logic read; embedded test module deliberately sampled"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          2022
+        ],
+        [
+          2648,
+          2680
+        ],
+        [
+          4450,
+          4495
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation",
+      "production_read_range": [
+        1,
+        2022
+      ]
+    },
+    {
+      "path": "src/build_script/declarations.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json",
+        "investigation/proofs/padded-declarations.log",
+        "cargo-build-001"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          163
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "src/build_script/hermetic.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json",
+        "All production logic read; embedded test module deliberately sampled"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          1010
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation",
+      "production_read_range": [
+        1,
+        762
+      ]
+    },
+    {
+      "path": "src/build_script/inputs.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json",
+        "All production logic read; embedded test module deliberately sampled"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          600
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation",
+      "production_read_range": [
+        1,
+        536
+      ]
+    },
+    {
+      "path": "src/build_script/outside.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json",
+        "All production logic read; embedded test module deliberately sampled"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          625
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation",
+      "production_read_range": [
+        1,
+        566
+      ]
+    },
+    {
+      "path": "src/build_script_inputs.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          598
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "src/build_script_inputs/tests.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          935,
+          985
+        ],
+        [
+          1114,
+          1193
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "src/cargo_env.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json",
+        "investigation/proofs/commented-env.log (minor compatibility observation excluded from admitted high-value findings)"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          259
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "src/cargo_layout.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          441
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "src/cargo_proxy.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json",
+        "All production logic read; embedded test module deliberately sampled"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          1135
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation",
+      "production_read_range": [
+        1,
+        1023
+      ]
+    },
+    {
+      "path": "src/fallback.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          231
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "src/fallback/macos.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          207
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "src/fallback/sandbox.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          194
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "src/incremental_policy.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json",
+        "All production logic read; embedded test module deliberately sampled"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          1150
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation",
+      "production_read_range": [
+        1,
+        1032
+      ]
+    },
+    {
+      "path": "src/out_dir_alias.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json",
+        "All production logic read; embedded test module deliberately sampled"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          1080
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation",
+      "production_read_range": [
+        1,
+        986
+      ]
+    },
+    {
+      "path": "src/test_runner.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json",
+        "All production logic read; embedded test module deliberately sampled"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          490
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation",
+      "production_read_range": [
+        1,
+        431
+      ]
+    },
+    {
+      "path": "src/test_runner/delegate.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json",
+        "All production logic read; embedded test module deliberately sampled"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          630
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation",
+      "production_read_range": [
+        1,
+        583
+      ]
+    },
+    {
+      "path": "test-projects/custom-harness/Cargo.lock",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          7
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "test-projects/custom-harness/Cargo.toml",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          15
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "test-projects/custom-harness/src/lib.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          3
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "test-projects/custom-harness/tests/harness.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          7
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "test-projects/hello-world/Cargo.lock",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          7
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "test-projects/hello-world/Cargo.toml",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          7
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "test-projects/hello-world/src/main.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          3
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "test-projects/stale-check/Cargo.lock",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          7
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "test-projects/stale-check/Cargo.toml",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          10
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "test-projects/stale-check/src/helper.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          3
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "test-projects/stale-check/src/lib.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          27
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "test-projects/stale-check/src/main.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          10
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "tests/adaptive_incremental_test.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          105
+        ],
+        [
+          986,
+          1065
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "tests/adaptive_incremental_workspace_test.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          631,
+          710
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "tests/build_script_declared_inputs_test.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          220
+        ],
+        [
+          473,
+          552
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "tests/build_script_inputs_test.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          109,
+          188
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "tests/build_script_launcher_test.rs",
+      "ownership": "primary",
+      "state": "reviewed",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1,
+          127
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "tests/cargo_proxy_test.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          1286,
+          1365
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "tests/custom_harness_test.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          145,
+          224
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "tests/fallback_recovery_test.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          298,
+          377
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "tests/incremental_passthrough_test.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          443,
+          522
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "tests/out_dir_alias_test.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          604,
+          683
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "tests/test_runner_test.rs",
+      "ownership": "primary",
+      "state": "sampled",
+      "evidence": [
+        "Native source read at pinned commit",
+        "investigation/graph-coverage.json"
+      ],
+      "reviewed_ranges": [
+        [
+          640,
+          719
+        ]
+      ],
+      "runtime": "No committed suite executed; isolated baseline proof cases are separately enumerated",
+      "reopens_if": "Relevant production behavior changes, a concrete failing workload, or unsampled tests need investigation"
+    },
+    {
+      "path": "src/main.rs",
+      "ownership": "secondary",
+      "state": "collateral",
+      "reviewed_ranges": [
+        [
+          856,
+          885
+        ]
+      ],
+      "evidence": [
+        "Source review of dispatch/key/init/target-reader seams; primary ownership belongs to other slice"
+      ],
+      "runtime": "Only baseline fixture execution",
+      "reopens_if": "Observed seam failure or change to caller/locking contract"
+    },
+    {
+      "path": "src/wrapper.rs",
+      "ownership": "secondary",
+      "state": "collateral",
+      "reviewed_ranges": [
+        [
+          130,
+          220
+        ],
+        [
+          3307,
+          3402
+        ],
+        [
+          3535,
+          3648
+        ],
+        [
+          3745,
+          3885
+        ],
+        [
+          4600,
+          4645
+        ]
+      ],
+      "evidence": [
+        "Source review of dispatch/key/init/target-reader seams; primary ownership belongs to other slice"
+      ],
+      "runtime": "Only baseline fixture execution",
+      "reopens_if": "Observed seam failure or change to caller/locking contract"
+    },
+    {
+      "path": "src/cli.rs",
+      "ownership": "secondary",
+      "state": "collateral",
+      "reviewed_ranges": [
+        [
+          9319,
+          9445
+        ],
+        [
+          9450,
+          9495
+        ],
+        [
+          9500,
+          9587
+        ]
+      ],
+      "evidence": [
+        "Source review of dispatch/key/init/target-reader seams; primary ownership belongs to other slice"
+      ],
+      "runtime": "Only baseline fixture execution",
+      "reopens_if": "Observed seam failure or change to caller/locking contract"
+    },
+    {
+      "path": "tests/common/mod.rs",
+      "ownership": "secondary",
+      "state": "collateral",
+      "reviewed_ranges": [
+        [
+          125,
+          183
+        ]
+      ],
+      "evidence": [
+        "Source review of dispatch/key/init/target-reader seams; primary ownership belongs to other slice"
+      ],
+      "runtime": "Only baseline fixture execution",
+      "reopens_if": "Observed seam failure or change to caller/locking contract"
+    },
+    {
+      "path": "src/target_use.rs",
+      "ownership": "secondary",
+      "state": "collateral",
+      "reviewed_ranges": [
+        [
+          1,
+          135
+        ]
+      ],
+      "evidence": [
+        "Source review of dispatch/key/init/target-reader seams; primary ownership belongs to other slice"
+      ],
+      "runtime": "Only baseline fixture execution",
+      "reopens_if": "Observed seam failure or change to caller/locking contract"
+    },
+    {
+      "path": "src/config.rs",
+      "ownership": "secondary",
+      "state": "collateral",
+      "reviewed_ranges": [],
+      "evidence": [
+        "Text searches for configuration fields only; not a full structural review"
+      ],
+      "runtime": "Not exercised separately",
+      "reopens_if": "Configuration interpretation becomes a defect lead"
+    }
+  ],
+  "limits": [
+    "Source complete for production portions of primary files; embedded and standalone large tests sampled with exact bounds",
+    "No general compatibility or integrity claim from isolated macOS/toolchain probes",
+    "No host caches/config/services modified; fixtures use isolated homes/stores",
+    "Managed proc-macro case used force-list immediate lane; activated learned adaptive lane not tested",
+    "No cancellation or concurrent cleanup fixture executed; those paths reviewed only"
+  ],
+  "runtime_cases": [
+    {
+      "argv": [
+        "python3",
+        "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/proofs/cargo-declarations.py",
+        "--incremental"
+      ],
+      "outcome": "green managed force-list proc-macro env change"
+    },
+    {
+      "argv": [
+        "python3",
+        "investigation/proofs/cargo-declarations.py"
+      ],
+      "outcome": "expected red stale generated output"
+    },
+    {
+      "argv": [
+        "python3",
+        "investigation/proofs/cargo-declarations.py",
+        "--direct"
+      ],
+      "outcome": "green ordinary Cargo control"
+    },
+    {
+      "argv": [
+        "python3",
+        "investigation/proofs/padded-declarations.py"
+      ],
+      "outcome": "expected red launcher cache hit"
+    },
+    {
+      "argv": [
+        "python3",
+        "investigation/proofs/padded-declarations.py",
+        "--control"
+      ],
+      "outcome": "green unpadded launcher control"
+    },
+    {
+      "argv": [
+        "python3",
+        "investigation/proofs/commented-env.py"
+      ],
+      "outcome": "red minor compatibility observation, unchanged config"
+    },
+    {
+      "argv": [
+        "python3",
+        "investigation/proofs/commented-env.py",
+        "--control"
+      ],
+      "outcome": "green canonical config control"
+    }
+  ]
+}

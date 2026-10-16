@@ -1,0 +1,15 @@
+{
+  "id": "cargo-build-dismissal-001",
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "argv": [
+    "python3",
+    "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/proofs/cargo-declarations.py",
+    "--incremental"
+  ],
+  "workdir": "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build",
+  "timeout_seconds": 120,
+  "expected_exit": 0,
+  "assertion_regex": "MANAGED_QUERY_CACHES",
+  "expected_failure_regex": null,
+  "purpose": "green narrow seam disproof, not admitted red finding"
+}

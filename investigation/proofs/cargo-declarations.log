@@ -1,0 +1,13 @@
+VERSIONS cargo 1.99.0 (5f94df478 2026-08-27) rustc 1.99.0 (b940084d7 2026-09-28)
+BUILD first EXIT 0 STDERR    Compiling declared-app v0.1.0 (/private/tmp/kache-cargo-mtn4ghy6/pkg)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.58s
+
+BUILD second EXIT 0 STDERR    Compiling declared-app v0.1.0 (/private/tmp/kache-cargo-mtn4ghy6/pkg)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.26s
+
+OUTPUTS ['first', 'first']
+EVENTS [{"crate_name": "unknown", "result": "passthrough", "cache_key": "", "passthrough_reason": "not-a-compile|query / probe (--print, -vV)", "incremental_policy": null}, {"crate_name": "___", "result": "passthrough", "cache_key": "", "passthrough_reason": "not-a-compile|query / probe (--print, -vV)", "incremental_policy": null}, {"crate_name": "unknown", "result": "passthrough", "cache_key": "", "passthrough_reason": "not-a-compile|query / probe (--print, -vV)", "incremental_policy": null}, {"crate_name": "build_script_build", "result": "miss", "cache_key": "b819eb70dc209be87c7d1e61aa3035e1e8a1597d1b975ef4dc959b3256d8bd53", "passthrough_reason": null, "incremental_policy": null}, {"crate_name": "build_script_run", "result": "miss", "cache_key": "74295d4b17db673546b8ff5f6a14e3559f61f16711c5bb155cee9bccd1d0a1e1", "passthrough_reason": null, "incremental_policy": null}, {"crate_name": "declared_app", "result": "miss", "cache_key": "fce06d305e948c22d6f3a3f5b62fe905a939b1884a41c884230d64315deb6069", "passthrough_reason": null, "incremental_policy": null}, {"crate_name": "build_script_run", "result": "local_hit", "cache_key": "74295d4b17db673546b8ff5f6a14e3559f61f16711c5bb155cee9bccd1d0a1e1", "passthrough_reason": null, "incremental_policy": null}, {"crate_name": "declared_app", "result": "dup", "cache_key": "749cb05b746accb76e9144a0935fe00d2805964e3c3e6dee78a3137bb582522d", "passthrough_reason": null, "incremental_policy": null}]
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/proofs/cargo-declarations.py", line 34, in <module>
+    assert outputs==['first','second'], 'STALE_CARGO_DECLARATION_OUTPUT: changed declared environment must produce second output, got '+repr(outputs)
+AssertionError: STALE_CARGO_DECLARATION_OUTPUT: changed declared environment must produce second output, got ['first', 'first']

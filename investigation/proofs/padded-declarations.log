@@ -1,0 +1,14 @@
+RUN first exit 0 stdout cargo:rerun-if-changed=input
+  cargo:rerun-if-env-changed=APP_MODE  
+ stderr 
+RUN second exit 0 stdout cargo:rerun-if-changed=input
+  cargo:rerun-if-env-changed=APP_MODE  
+ stderr 
+OUTPUTS ['first', 'first']
+EVENTS {"ts":"2026-10-11T05:50:23.661011Z","crate_name":"build_script_run","root":"/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/padded-h1ycijy6/pkg","version":"1.0.0","result":"miss","elapsed_ms":9,"compile_time_ms":2,"size":147,"cache_key":"9a8b545f68c038c8888d488b0cb5c01785320dcd7a969cc12516e17c20b7e7ca","schema":26,"session_id":"d9eb16961c54913b","key_ms":0,"key_hash_hits":0,"key_hash_misses":0,"key_hash_bytes":0,"lookup_ms":0,"restore_ms":0,"store_ms":1,"startup_ms":0,"dep_info_ms":0,"dep_info_runs":0,"prediction_mismatches":0,"flight_wait_ms":0,"permit_wait_ms":0,"store_output_blobs":2,"store_duplicate_blobs":0,"store_new_blobs":2,"compiler_runs":0,"preprocessor_runs":0,"probe_runs":0,"reflinked_bytes":0,"hardlinked_bytes":0,"copied_bytes":0,"store_reflinked_bytes":147,"store_hardlinked_bytes":0,"store_copied_bytes":0,"store_copy_cross_device_bytes":0,"store_copy_permission_bytes":0,"store_copy_ineligible_bytes":0,"store_copy_other_bytes":0,"restore_copy_cross_device_bytes":0,"restore_copy_permission_bytes":0,"restore_copy_exclusive_bytes":0,"restore_copy_other_bytes":0,"daemon_store_ms":0,"package":"pkg"}
+{"ts":"2026-10-11T05:50:23.670315Z","crate_name":"build_script_run","root":"/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/padded-h1ycijy6/pkg","version":"1.0.0","result":"local_hit","elapsed_ms":2,"compile_time_ms":2,"size":5,"cache_key":"9a8b545f68c038c8888d488b0cb5c01785320dcd7a969cc12516e17c20b7e7ca","schema":26,"session_id":"d9eb16961c54913b","key_ms":0,"key_hash_hits":0,"key_hash_misses":0,"key_hash_bytes":0,"lookup_ms":0,"restore_ms":0,"store_ms":0,"startup_ms":0,"dep_info_ms":0,"dep_info_runs":0,"prediction_mismatches":0,"flight_wait_ms":0,"permit_wait_ms":0,"store_output_blobs":0,"store_duplicate_blobs":0,"store_new_blobs":0,"compiler_runs":0,"preprocessor_runs":0,"probe_runs":0,"reflinked_bytes":5,"hardlinked_bytes":0,"copied_bytes":0,"store_reflinked_bytes":0,"store_hardlinked_bytes":0,"store_copied_bytes":0,"store_copy_cross_device_bytes":0,"store_copy_permission_bytes":0,"store_copy_ineligible_bytes":0,"store_copy_other_bytes":0,"restore_copy_cross_device_bytes":0,"restore_copy_permission_bytes":0,"restore_copy_exclusive_bytes":0,"restore_copy_other_bytes":0,"daemon_store_ms":0,"package":"pkg"}
+
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/proofs/padded-declarations.py", line 22, in <module>
+    assert outputs == ['first','second'], 'STALE_BUILD_SCRIPT_ENV: expected second generated output, got '+repr(outputs)
+AssertionError: STALE_BUILD_SCRIPT_ENV: expected second generated output, got ['first', 'first']

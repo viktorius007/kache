@@ -1,0 +1,4 @@
+Test padded build-script declarations and legacy predictions
+
+Cargo trims declaration lines, but the run cache loses padded inputs.
+Reject predictions made by that parser so upgrading cannot reuse stale output.

@@ -1,0 +1,22 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/cargo-build-001)
+    Finished `test` profile [unoptimized] target(s) in 16.87s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 1 test
+test build_script::tests::legacy_rerun_predictions_are_rejected_before_reuse ... FAILED
+
+failures:
+
+---- build_script::tests::legacy_rerun_predictions_are_rejected_before_reuse stdout ----
+
+thread 'build_script::tests::legacy_rerun_predictions_are_rejected_before_reuse' (51164702) panicked at src/build_script.rs:3375:9:
+legacy predictions may have omitted a declared environment input
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    build_script::tests::legacy_rerun_predictions_are_rejected_before_reuse
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4396 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--bin kache`

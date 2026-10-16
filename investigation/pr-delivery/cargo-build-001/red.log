@@ -1,0 +1,34 @@
+   Compiling kache v1.0.0 (/Users/viktor/Developer/github/kache-prs/cargo-build-001)
+    Finished `test` profile [unoptimized] target(s) in 11.07s
+     Running unittests src/main.rs (target/debug/deps/kache-1216026e9547a40d)
+
+running 5 tests
+test build_script::declarations::tests::a_rerun_directive_is_read_in_either_form ... ok
+test build_script::tests::declarations_follow_cargo_rerun_rules ... ok
+test build_script::tests::an_empty_rerun_if_env_changed_name_is_not_a_declaration ... ok
+test build_script::tests::padded_rerun_declarations_keep_exact_paths_and_environment_names ... FAILED
+test build_script::tests::legacy_rerun_predictions_are_rejected_before_reuse ... FAILED
+
+failures:
+
+---- build_script::tests::padded_rerun_declarations_keep_exact_paths_and_environment_names stdout ----
+
+thread 'build_script::tests::padded_rerun_declarations_keep_exact_paths_and_environment_names' (51175205) panicked at src/build_script.rs:2666:17:
+assertion `left == right` failed: environment declaration: " \tcargo:rerun-if-changed=input \t\r\n \tcargo:rerun-if-env-changed=APP_MODE \t\r\n"
+  left: []
+ right: ["APP_MODE"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- build_script::tests::legacy_rerun_predictions_are_rejected_before_reuse stdout ----
+
+thread 'build_script::tests::legacy_rerun_predictions_are_rejected_before_reuse' (51175204) panicked at src/build_script.rs:3375:9:
+legacy predictions may have omitted a declared environment input
+
+
+failures:
+    build_script::tests::legacy_rerun_predictions_are_rejected_before_reuse
+    build_script::tests::padded_rerun_declarations_keep_exact_paths_and_environment_names
+
+test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 4392 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--bin kache`

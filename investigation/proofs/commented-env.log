@@ -1,0 +1,23 @@
+INIT_EXIT 1
+kache · setup
+
+Setup plan
+  Cargo    caching      Rust and native dependencies
+  Config   ~/.cargo/config.toml
+  Daemon   background   start or restart the cache if needed
+
+Setup
+  Cargo caching: Rust and native dependencies
+    Config: ~/.cargo/config.toml
+ error: TOML parse error at line 7, column 2
+  |
+7 | [env]
+  |  ^^^
+duplicate key
+
+
+CONFIG_UNCHANGED True
+Traceback (most recent call last):
+  File "/Users/viktor/Developer/github/kache-investigations/audit-cargo-build/investigation/proofs/commented-env.py", line 12, in <module>
+    assert p.returncode==0, 'VALID_COMMENTED_ENV_REJECTED: init must configure valid Cargo TOML with a commented env table'
+AssertionError: VALID_COMMENTED_ENV_REJECTED: init must configure valid Cargo TOML with a commented env table
