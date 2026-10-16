@@ -143,15 +143,17 @@ pub fn run(args: &[OsString]) -> i32 {
         }
     };
     let marker = (!prefix.is_empty()).then(|| delegate::delegate_marker(&prefix));
+    let hidden = own_runner_var(&args[0], &delegate::utf8_vars());
+    let hidden = hidden.as_deref();
     let command = [prefix, args.to_vec()].concat();
     match (scheduler_dir, plan(args, &env, scheduler_dir)) {
         (Some(cache_dir), Plan::Schedule { key, want }) => {
             let _target_use = target_use;
-            run_scheduled(&command, marker, cache_dir, &env, &key, want)
+            run_scheduled(&command, marker, hidden, cache_dir, &env, &key, want)
         }
         _ => match target_use {
-            Some(lease) => run_protected(&command, marker, lease),
-            None => exec(&command, marker),
+            Some(lease) => run_protected(&command, marker, hidden, lease),
+            None => exec(&command, marker, hidden),
         },
     }
 }
@@ -160,11 +162,13 @@ pub fn run(args: &[OsString]) -> i32 {
 fn run_protected(
     args: &[OsString],
     marker: Option<String>,
+    hidden: Option<&str>,
     _lease: crate::target_use::Lease,
 ) -> i32 {
     let mut command = Command::new(&args[0]);
     command.args(&args[1..]);
     set_marker(&mut command, marker);
+    hide_runner(&mut command, hidden);
     let mut child = match command.spawn() {
         Ok(child) => child,
         Err(error) => return run_failed(&args[0], &error),
@@ -307,13 +311,37 @@ fn set_marker(command: &mut Command, marker: Option<String>) {
     };
 }
 
+/// The exported variable that names this runner, which a test must not
+/// inherit. `kache init` exports `CARGO_TARGET_<HOST>_RUNNER` to every shell
+/// so that Cargo starts tests through the runner. Cargo passes no runner from
+/// its configuration to a test, so without the variable a test sees none.
+/// With it, a library that starts binaries the way Cargo would, such as
+/// assert_cmd's `cargo_bin`, starts each of them through this runner. Inside
+/// a test the variable paces nothing: what a test starts does not wait for
+/// slots of its own, and the target lease the runner holds covers the whole
+/// cache. A binary without Cargo's hash, such as `cargo run`'s, keeps the
+/// variable, so the tests it starts are paced.
+fn own_runner_var(binary: &OsStr, vars: &[(String, String)]) -> Option<String> {
+    artifact_stem(binary)?;
+    let triple = delegate::exported_triple(vars).ok()??;
+    Some(format!("CARGO_TARGET_{triple}_RUNNER"))
+}
+
+/// Keep `var`, from [`own_runner_var`], out of the test's environment.
+fn hide_runner(command: &mut Command, var: Option<&str>) {
+    if let Some(var) = var {
+        command.env_remove(var);
+    }
+}
+
 /// Run the binary as it is. On Unix the runner becomes the binary.
 /// `marker` is set as [`delegate::DELEGATE_ENV`] when a project runner
 /// comes first.
-fn exec(args: &[OsString], marker: Option<String>) -> i32 {
+fn exec(args: &[OsString], marker: Option<String>, hidden: Option<&str>) -> i32 {
     let mut command = Command::new(&args[0]);
     command.args(&args[1..]);
     set_marker(&mut command, marker);
+    hide_runner(&mut command, hidden);
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
@@ -333,6 +361,7 @@ fn exec(args: &[OsString], marker: Option<String>) -> i32 {
 fn run_scheduled(
     args: &[OsString],
     marker: Option<String>,
+    hidden: Option<&str>,
     cache_dir: &Path,
     env: &TestEnv,
     key: &str,
@@ -347,6 +376,7 @@ fn run_scheduled(
     let mut command = Command::new(&args[0]);
     command.args(&args[1..]);
     set_marker(&mut command, marker);
+    hide_runner(&mut command, hidden);
     if let Some(lease) = &lease {
         command.envs(lease_env(want, lease.marker_path(), lease.held()));
     }
@@ -579,6 +609,30 @@ mod tests {
             Plan::Exec
         );
         assert_eq!(plan(&[], &env(), Some(cache.path())), Plan::Exec);
+    }
+
+    #[test]
+    fn a_test_loses_only_the_variable_that_names_this_runner() {
+        let vars = |value: &str| {
+            vec![
+                ("PATH".to_owned(), "/bin".to_owned()),
+                ("CARGO_TARGET_A_RUNNER".to_owned(), value.to_owned()),
+            ]
+        };
+        let test = OsStr::new(PROBE);
+        assert_eq!(
+            own_runner_var(test, &vars("kache test-runner")).as_deref(),
+            Some("CARGO_TARGET_A_RUNNER")
+        );
+        assert_eq!(
+            own_runner_var(test, &vars("/opt/bin/kache test-runner")).as_deref(),
+            Some("CARGO_TARGET_A_RUNNER")
+        );
+        assert_eq!(own_runner_var(test, &vars("qemu-aarch64")), None);
+        assert_eq!(own_runner_var(test, &[]), None);
+        // `cargo run` binaries keep it: the tests they start stay paced.
+        let tool = OsStr::new("/t/debug/demo");
+        assert_eq!(own_runner_var(tool, &vars("kache test-runner")), None);
     }
 
     #[test]

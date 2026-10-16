@@ -34,6 +34,7 @@ case "$PROBE_MODE" in
   abort) ulimit -c 0 2>/dev/null; kill -ABRT $$; sleep 5; exit 1 ;;
   echo) exec cat ;;
   env) printf 'lease=%s threads=%s\n' "${KACHE_TEST_LEASE-unset}" "${RUST_TEST_THREADS-unset}" ;;
+  runner-var) eval "printf %s \"\${$PROBE_RUNNER_VAR-unset}\"" > "$PROBE_DIR/runner-var" ;;
   started) : > "$PROBE_DIR/started" ;;
   term)
     trap 'exit 0' TERM
@@ -442,6 +443,105 @@ fn a_project_runner_that_starts_kache_again_does_not_loop() {
         fs::read_to_string(fixture.path().join("wrapped")).unwrap(),
         "x\n"
     );
+}
+
+/// `kache init` exports `CARGO_TARGET_<HOST>_RUNNER` to every shell. Cargo
+/// reads it to start the test; the test must not inherit it. A library that
+/// starts binaries the way Cargo would, such as assert_cmd's `cargo_bin`,
+/// reads the variable and would start every binary the test runs through
+/// `kache test-runner`, which no project configured. Without the exported
+/// variable no runner reaches the test either: Cargo passes none from its
+/// configuration.
+#[test]
+fn a_test_does_not_inherit_the_exported_runner() {
+    let var = host_runner_var();
+    // A broken config sends the runner down the path where it becomes the
+    // test; `KACHE_SCHEDULER=0` down the one where it waits for an unpaced
+    // test; the default down the scheduled one.
+    let configs = tempfile::tempdir().unwrap();
+    let broken = configs.path().join("broken.toml");
+    fs::write(&broken, "[paths]\nbase_dirs = [\"relative\"]\n").unwrap();
+    for (scheduler, config) in [("1", None), ("0", None), ("1", Some(&broken))] {
+        let fixture = Fixture::new();
+        let mut command = fixture.runner(&fixture.probe(), "runner-var");
+        command
+            .current_dir(fixture.path())
+            .env("PWD", fixture.path())
+            .env("CARGO_HOME", fixture.path().join("cargo-home"))
+            .env("KACHE_SCHEDULER", scheduler)
+            .env("PROBE_RUNNER_VAR", &var)
+            .env(&var, "kache test-runner");
+        if let Some(config) = config {
+            command.env("KACHE_CONFIG", config);
+        }
+        let output = run(command);
+        assert!(output.status.success(), "{output:?}");
+        assert_eq!(
+            fs::read_to_string(fixture.path().join("runner-var")).unwrap(),
+            "unset",
+            "scheduler={scheduler} config={config:?}"
+        );
+    }
+
+    // The project's own runner does not get it either.
+    let fixture = Fixture::new();
+    kache_fs::testutil::write_executable(
+        &fixture.path().join("wrap"),
+        "#!/bin/sh\neval \"printf %s \\\"\\${$PROBE_RUNNER_VAR-unset}\\\"\" > \"$PROBE_DIR/wrap-runner-var\"\nexec \"$@\"\n",
+    );
+    fs::create_dir(fixture.path().join(".cargo")).unwrap();
+    fs::write(
+        fixture.path().join(".cargo/config.toml"),
+        "[target.'cfg(unix)']\nrunner = ['./wrap']\n",
+    )
+    .unwrap();
+    let mut command = fixture.runner(&fixture.probe(), "runner-var");
+    command
+        .current_dir(fixture.path())
+        .env("PWD", fixture.path())
+        .env("CARGO_HOME", fixture.path().join("cargo-home"))
+        .env("PROBE_RUNNER_VAR", &var)
+        .env(&var, "kache test-runner");
+    let output = run(command);
+    assert!(output.status.success(), "{output:?}");
+    for file in ["wrap-runner-var", "runner-var"] {
+        assert_eq!(
+            fs::read_to_string(fixture.path().join(file)).unwrap(),
+            "unset",
+            "{file}"
+        );
+    }
+}
+
+/// A binary without Cargo's hash, such as one `cargo run` starts, keeps the
+/// exported runner, so the tests it starts are still paced. A runner the
+/// variable names other than kache is never touched.
+#[test]
+fn the_exported_runner_stays_where_it_still_paces_tests() {
+    let var = host_runner_var();
+    let fixture = Fixture::new();
+    let tool = fixture.path().join("tool");
+    kache_fs::testutil::write_executable(&tool, PROBE_SCRIPT);
+    for (binary, value) in [
+        (tool.as_path(), "kache test-runner"),
+        (fixture.probe().as_path(), "qemu-aarch64 -L /sysroot"),
+    ] {
+        let mut command = fixture.runner(binary, "runner-var");
+        command
+            .current_dir(fixture.path())
+            .env("PWD", fixture.path())
+            .env("CARGO_HOME", fixture.path().join("cargo-home"))
+            .env("PROBE_RUNNER_VAR", &var)
+            .env(&var, value);
+        let output = run(command);
+        assert!(output.status.success(), "{output:?}");
+        assert_eq!(
+            fs::read_to_string(fixture.path().join("runner-var")).unwrap(),
+            value,
+            "{}",
+            binary.display()
+        );
+    }
 }
 
 /// Cargo refuses two matching `cfg` runners. The runner refuses too, rather
