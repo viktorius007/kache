@@ -1,0 +1,33 @@
+{
+  "status": "PASS",
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "tracked_paths": 843,
+  "slices": 11,
+  "uncovered": 0,
+  "overlaps": 0,
+  "frontier_rows": 2530,
+  "discriminators": [
+    {
+      "discriminator": "missing-path",
+      "result": "rejected",
+      "reason": "uncovered or untracked path"
+    },
+    {
+      "discriminator": "duplicate-path",
+      "result": "rejected",
+      "reason": "inventory overlap"
+    },
+    {
+      "discriminator": "duplicate-primary",
+      "result": "rejected",
+      "reason": "primary overlap or omission"
+    },
+    {
+      "discriminator": "missing-seam-owner",
+      "result": "rejected",
+      "reason": "seam has no owner"
+    }
+  ],
+  "production_modified": false,
+  "semantic_review_claimed": false
+}

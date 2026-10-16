@@ -1,0 +1,4217 @@
+{
+  ".cargo/config.toml": {
+    "blob": "f07fb9e419a6b267a626858393f6c9fb0d5866cc",
+    "mode": "100644",
+    "bytes": 476
+  },
+  ".cargo/mutants.toml": {
+    "blob": "9a64c6551c8eda426f1554b217f55c5204c68247",
+    "mode": "100644",
+    "bytes": 26258
+  },
+  ".config/nextest.toml": {
+    "blob": "baf4abceb31147c6b810028b3166e6c1ce4b0cc8",
+    "mode": "100644",
+    "bytes": 701
+  },
+  ".dockerignore": {
+    "blob": "dcec0c070cfc57475654719a277f262ac82c433b",
+    "mode": "100644",
+    "bytes": 22
+  },
+  ".gitattributes": {
+    "blob": "cc6c3571e9f4876fc4831381302e01debdd4c796",
+    "mode": "100644",
+    "bytes": 457
+  },
+  ".github/CI.md": {
+    "blob": "9a0fa12290ad503a9927cf773fa4abca5553bf09",
+    "mode": "100644",
+    "bytes": 5207
+  },
+  ".github/CODEOWNERS": {
+    "blob": "aa25db7dc67e13bb96833834e7dd4ce51f76eb32",
+    "mode": "100644",
+    "bytes": 429
+  },
+  ".github/CONTRIBUTING.md": {
+    "blob": "39c9a44c0570adcb5950ba30675c47e62eb6a512",
+    "mode": "100644",
+    "bytes": 10799
+  },
+  ".github/ISSUE_TEMPLATE/bug_report.md": {
+    "blob": "bbd7d12691b92660f4a22ee38b0480affa3f9c9b",
+    "mode": "100644",
+    "bytes": 919
+  },
+  ".github/ISSUE_TEMPLATE/feature_request.md": {
+    "blob": "59acb4bb2817253e2a2f29866a539a141e268271",
+    "mode": "100644",
+    "bytes": 567
+  },
+  ".github/PULL_REQUEST_TEMPLATE.md": {
+    "blob": "4f1180a2cd5756ebd8c1bfe2ee8da00536bfdb53",
+    "mode": "100644",
+    "bytes": 763
+  },
+  ".github/SECURITY.md": {
+    "blob": "82f6e1312e334a33bfc23d1b299c33ecf0fd7af2",
+    "mode": "100644",
+    "bytes": 1681
+  },
+  ".github/actions/setup-pgp-kms-signing/action.yml": {
+    "blob": "2d97e4df1c602bcebadb06ad4d17dfa815341d0c",
+    "mode": "100644",
+    "bytes": 4549
+  },
+  ".github/prefetch-qualification.md": {
+    "blob": "ba65a795e7338d8e274ed1369e32d174bb73def7",
+    "mode": "100644",
+    "bytes": 7343
+  },
+  ".github/tests/.gitignore": {
+    "blob": "c2658d7d1b31848c3b71960543cb0368e56cd4c7",
+    "mode": "100644",
+    "bytes": 14
+  },
+  ".github/tests/package-lock.json": {
+    "blob": "4bc832f0728c78eb1001f69679f8234087603828",
+    "mode": "100644",
+    "bytes": 1114
+  },
+  ".github/tests/package.json": {
+    "blob": "88f6b43577e4f1c2e931a433d12c93172a180327",
+    "mode": "100644",
+    "bytes": 253
+  },
+  ".github/tests/perf-gate-authorization.test.mjs": {
+    "blob": "2177254fdd8da919c9d49901495a61328ad5a8e6",
+    "mode": "100644",
+    "bytes": 6770
+  },
+  ".github/tests/workflow-policy.mjs": {
+    "blob": "46136111702317ad0c80dd1bb899085a294cf425",
+    "mode": "100644",
+    "bytes": 16840
+  },
+  ".github/tests/workflow-policy.test.mjs": {
+    "blob": "f3420218ac678c55657f8acced15fcec4b39e9f0",
+    "mode": "100644",
+    "bytes": 2004
+  },
+  ".github/workflows/bench-firefox-windows.yml": {
+    "blob": "37eeb8291e492559347b17fcf81610e965d32cc9",
+    "mode": "100644",
+    "bytes": 28616
+  },
+  ".github/workflows/bench-sccache.yml": {
+    "blob": "e80851c94b01b57f2252e6579ff5a9b34cfa5784",
+    "mode": "100644",
+    "bytes": 3815
+  },
+  ".github/workflows/bench.yml": {
+    "blob": "c7fe9f589a4696aef12c98fe7f71202cd1df7e52",
+    "mode": "100644",
+    "bytes": 36239
+  },
+  ".github/workflows/ci.yml": {
+    "blob": "09b66dfce31008ea79821e813efd1a05df6d2be0",
+    "mode": "100644",
+    "bytes": 85747
+  },
+  ".github/workflows/fuzz.yml": {
+    "blob": "d182ac623ac3e7d5351153a5b862cf1a0d8a9740",
+    "mode": "100644",
+    "bytes": 3630
+  },
+  ".github/workflows/package-publish.yml": {
+    "blob": "662ba2696e63e90e14a30e3e736967ed04a713b7",
+    "mode": "100644",
+    "bytes": 22718
+  },
+  ".github/workflows/perf-gate-preflight.yml": {
+    "blob": "483dc0cc1cea7edd997a92caf48c3719287ce802",
+    "mode": "100644",
+    "bytes": 4549
+  },
+  ".github/workflows/perf-gate.yml": {
+    "blob": "4499d1a603333def71cdfcbb77fd46a1510567c3",
+    "mode": "100644",
+    "bytes": 29061
+  },
+  ".github/workflows/prefetch-qualification-consumer.yml": {
+    "blob": "8cf0911a38d6ee47456fd8b794ef623dbc387c85",
+    "mode": "100644",
+    "bytes": 2518
+  },
+  ".github/workflows/prefetch-qualification.yml": {
+    "blob": "3aaefa02c112a8102e65939e5e9c762077b79af0",
+    "mode": "100644",
+    "bytes": 6590
+  },
+  ".github/workflows/publish-crates.yaml": {
+    "blob": "34976697a757755e4a36d50b2ee817dc2e28cd6b",
+    "mode": "100644",
+    "bytes": 5262
+  },
+  ".github/workflows/service-image.yml": {
+    "blob": "ca29ce6a0e190b279ba8b8ef66177743590443ca",
+    "mode": "100644",
+    "bytes": 4464
+  },
+  ".github/workflows/warm-windows-sysroot.yml": {
+    "blob": "89eaa15af2e5aab471edc1353d0b5118ec4d401b",
+    "mode": "100644",
+    "bytes": 534
+  },
+  ".gitignore": {
+    "blob": "f1f05772c6cb04aa86ae4b3c1e4e6fca4dc0d49e",
+    "mode": "100644",
+    "bytes": 2304
+  },
+  ".pinact.yaml": {
+    "blob": "70487daf6042b2696f6480b8a419150c2d692f42",
+    "mode": "100644",
+    "bytes": 1013
+  },
+  "AGENTS.md": {
+    "blob": "feb48ea21e49efae98980020d594be5a4151c8d5",
+    "mode": "100644",
+    "bytes": 3425
+  },
+  "Cargo.lock": {
+    "blob": "c898e054a5d6863f72843eaebc0989f2bd16054b",
+    "mode": "100644",
+    "bytes": 149833
+  },
+  "Cargo.toml": {
+    "blob": "d5f33db32d438d1b471118ca8950acf623806e88",
+    "mode": "100644",
+    "bytes": 8748
+  },
+  "Cross.toml": {
+    "blob": "7e7426da5c0e3a9df09901ee68668a229518e7e3",
+    "mode": "100644",
+    "bytes": 130
+  },
+  "Justfile": {
+    "blob": "c9e539f4214f80ded3cb7160990e01af456f248f",
+    "mode": "100644",
+    "bytes": 26399
+  },
+  "LICENSE": {
+    "blob": "fbe1a21e6241cd20b4588d34ef46b5273f92edf3",
+    "mode": "100644",
+    "bytes": 10760
+  },
+  "README.md": {
+    "blob": "fc1b2cd6385b298b812f38cf43443ce87b310e8c",
+    "mode": "100644",
+    "bytes": 8164
+  },
+  "assets/clean.gif": {
+    "blob": "b0d6ee09c88dfa7dfd65af8d269de16d50133443",
+    "mode": "100644",
+    "bytes": 89920
+  },
+  "assets/clean.webm": {
+    "blob": "fe83613d31a3f320543738005a0ead6c87f8e876",
+    "mode": "100644",
+    "bytes": 80245
+  },
+  "assets/demo-36381adc.gif": {
+    "blob": "e3d39d3c75f01c78bfd2b7ac78746b97ecb93d51",
+    "mode": "100644",
+    "bytes": 175775
+  },
+  "assets/demo-36381adc.png": {
+    "blob": "2e8866c5cd09ac5f92b38703aee5814141f3c657",
+    "mode": "100644",
+    "bytes": 154281
+  },
+  "assets/demo-36381adc.webm": {
+    "blob": "88e2fa87e9a85d7b69b03ab2aa18b830375d9d19",
+    "mode": "100644",
+    "bytes": 159915
+  },
+  "assets/demo.gif": {
+    "blob": "e3d39d3c75f01c78bfd2b7ac78746b97ecb93d51",
+    "mode": "100644",
+    "bytes": 175775
+  },
+  "assets/demo.png": {
+    "blob": "2e8866c5cd09ac5f92b38703aee5814141f3c657",
+    "mode": "100644",
+    "bytes": 154281
+  },
+  "assets/demo.webm": {
+    "blob": "88e2fa87e9a85d7b69b03ab2aa18b830375d9d19",
+    "mode": "100644",
+    "bytes": 159915
+  },
+  "assets/demo/README.md": {
+    "blob": "c0152593754edb9bde4d41bbbacba4cd5a7607ac",
+    "mode": "100644",
+    "bytes": 2796
+  },
+  "assets/demo/clean.tape": {
+    "blob": "c305ac14fd2864b3e5a87c0b6d2bda405992ce09",
+    "mode": "100644",
+    "bytes": 454
+  },
+  "assets/demo/demo.tape": {
+    "blob": "d7c6ab3c3828504e70c01a365efc42c62fba0b01",
+    "mode": "100644",
+    "bytes": 910
+  },
+  "assets/demo/env.sh": {
+    "blob": "0725b4e45d432c00124db42428c2cc0b8f0301a1",
+    "mode": "100644",
+    "bytes": 658
+  },
+  "assets/demo/init.tape": {
+    "blob": "f56d48ecef151efa799c8cae63b85adb99ec9e00",
+    "mode": "100644",
+    "bytes": 863
+  },
+  "assets/demo/monitor.tape": {
+    "blob": "c0ccfab2ca0af1626271dab5757841ee0da54d1b",
+    "mode": "100644",
+    "bytes": 668
+  },
+  "assets/demo/prepare.sh": {
+    "blob": "8c588f184a0e8a6ecadb175e5717ac3feab9d11f",
+    "mode": "100755",
+    "bytes": 2689
+  },
+  "assets/demo/why-miss.tape": {
+    "blob": "67d0f686320b1573a864064d02240a0f499c8d69",
+    "mode": "100644",
+    "bytes": 635
+  },
+  "assets/init.gif": {
+    "blob": "8790c6f73a897c7d71571c276742335d51546bba",
+    "mode": "100644",
+    "bytes": 336585
+  },
+  "assets/init.webm": {
+    "blob": "a68c36dc16e2c3ea7493ed8b765c42a8c10cbf7a",
+    "mode": "100644",
+    "bytes": 303186
+  },
+  "assets/macos/Info.plist": {
+    "blob": "d60a8ff2adc1c0857359966b65f3b951000bf534",
+    "mode": "100644",
+    "bytes": 456
+  },
+  "assets/monitor-9dd7cee8.gif": {
+    "blob": "19a0d4fa7fc3a5c8f599a1726254a4bee9de8895",
+    "mode": "100644",
+    "bytes": 601590
+  },
+  "assets/monitor-9dd7cee8.png": {
+    "blob": "e2b19ada5e53e30706310b70048c56a6b4d4319b",
+    "mode": "100644",
+    "bytes": 133669
+  },
+  "assets/monitor-9dd7cee8.webm": {
+    "blob": "91c306e0b0e32577ba9cb49b530f32cc6e2fbcbb",
+    "mode": "100644",
+    "bytes": 437395
+  },
+  "assets/monitor.gif": {
+    "blob": "19a0d4fa7fc3a5c8f599a1726254a4bee9de8895",
+    "mode": "100644",
+    "bytes": 601590
+  },
+  "assets/monitor.png": {
+    "blob": "e2b19ada5e53e30706310b70048c56a6b4d4319b",
+    "mode": "100644",
+    "bytes": 133669
+  },
+  "assets/monitor.webm": {
+    "blob": "91c306e0b0e32577ba9cb49b530f32cc6e2fbcbb",
+    "mode": "100644",
+    "bytes": 437395
+  },
+  "assets/store-worktrees.svg": {
+    "blob": "84e42866eb8eeaba23627d5c81eca9129a80163d",
+    "mode": "100644",
+    "bytes": 8444
+  },
+  "assets/why-miss.gif": {
+    "blob": "aabef93b455e13e3723937a46d7c00ec58099c4b",
+    "mode": "100644",
+    "bytes": 564966
+  },
+  "assets/why-miss.webm": {
+    "blob": "5169c5d057b9a96bb1902c71fa688fe5dfc9710c",
+    "mode": "100644",
+    "bytes": 450977
+  },
+  "assets/worktree-cost.svg": {
+    "blob": "bd4db549001a9254748845e3f1a299eca5b202a6",
+    "mode": "100644",
+    "bytes": 1353
+  },
+  "build.rs": {
+    "blob": "662cd9f0ad6b2447f2c916af94801664d8c5b22a",
+    "mode": "100644",
+    "bytes": 3708
+  },
+  "crates/kache-core/Cargo.toml": {
+    "blob": "7d86ae11ec066be04e33555a38fc2a8edc7c28f8",
+    "mode": "100644",
+    "bytes": 1111
+  },
+  "crates/kache-core/README.md": {
+    "blob": "9df64700f2040c0500e8da5b9601b68b97e31a82",
+    "mode": "100644",
+    "bytes": 1332
+  },
+  "crates/kache-core/src/lib.rs": {
+    "blob": "e22460c6d2523443a237752d99d5f887c2ab61be",
+    "mode": "100644",
+    "bytes": 56308
+  },
+  "crates/kache-core/src/timeline.rs": {
+    "blob": "3ff97c295cf33ccd0b69454d96b634e68d56105c",
+    "mode": "100644",
+    "bytes": 19799
+  },
+  "crates/kache-e2e/Cargo.toml": {
+    "blob": "09fa066a2f762ee0ebe273186f072ca0db3f6f04",
+    "mode": "100644",
+    "bytes": 1012
+  },
+  "crates/kache-e2e/src/assertions.rs": {
+    "blob": "696fc530f75d407b027c4b5e8e142ec3aa351db5",
+    "mode": "100644",
+    "bytes": 28596
+  },
+  "crates/kache-e2e/src/bench_host.rs": {
+    "blob": "63d22989a1bbc039e489506fa913c2cdc3e521f2",
+    "mode": "100644",
+    "bytes": 31833
+  },
+  "crates/kache-e2e/src/bench_otlp.rs": {
+    "blob": "4c42a14c7159dcfb534c97bb07a23333ec8b4010",
+    "mode": "100644",
+    "bytes": 47070
+  },
+  "crates/kache-e2e/src/bench_profile.rs": {
+    "blob": "87eda5ca59d57060dfcdabda7820fa9f8ea9e059",
+    "mode": "100644",
+    "bytes": 57903
+  },
+  "crates/kache-e2e/src/bench_runner.rs": {
+    "blob": "987a4da9ff348085bd845f3c1947ac4a36e37cbd",
+    "mode": "100644",
+    "bytes": 192635
+  },
+  "crates/kache-e2e/src/bench_runner/tests.rs": {
+    "blob": "2cb5afe2282092af682407da5f875ac4ffdcd6c4",
+    "mode": "100644",
+    "bytes": 110660
+  },
+  "crates/kache-e2e/src/bin/e2e-fallback.rs": {
+    "blob": "9d3edc2766c4b7cfb799e474271623bffd9c7eeb",
+    "mode": "100644",
+    "bytes": 2692
+  },
+  "crates/kache-e2e/src/bin/kache-cc.rs": {
+    "blob": "1d57df00e9f8d22445c13cc522f388540aefe21b",
+    "mode": "100644",
+    "bytes": 374
+  },
+  "crates/kache-e2e/src/bin/kache-cxx.rs": {
+    "blob": "1354c86e7137cf8eee039eeb01246047555147ee",
+    "mode": "100644",
+    "bytes": 221
+  },
+  "crates/kache-e2e/src/bin/kache-scenario.rs": {
+    "blob": "b9641c8f4cfb8f2ec0eabc726902b8b175407358",
+    "mode": "100644",
+    "bytes": 75
+  },
+  "crates/kache-e2e/src/daemon.rs": {
+    "blob": "c5d0b0c647c7b50c1f9493cba3523c721fcaea0c",
+    "mode": "100644",
+    "bytes": 9425
+  },
+  "crates/kache-e2e/src/disk_usage.rs": {
+    "blob": "d30dd41b6986e84e803e8900cde4a6b2750e4d06",
+    "mode": "100644",
+    "bytes": 10915
+  },
+  "crates/kache-e2e/src/fixture.rs": {
+    "blob": "a1d0f48d4e00f0b3d1190d6afec9c3fcbc772585",
+    "mode": "100644",
+    "bytes": 29689
+  },
+  "crates/kache-e2e/src/fixture_runner.rs": {
+    "blob": "f32a4cf9cf7d4390bfc52f881eb07caae3d0c8ab",
+    "mode": "100644",
+    "bytes": 7905
+  },
+  "crates/kache-e2e/src/lib.rs": {
+    "blob": "c93ba64dcf87b122d1f042cd835617b6251717e9",
+    "mode": "100644",
+    "bytes": 4726
+  },
+  "crates/kache-e2e/src/phase.rs": {
+    "blob": "92560c011648ff41264a753df3ec0948891e3baa",
+    "mode": "100644",
+    "bytes": 2621
+  },
+  "crates/kache-e2e/src/report.rs": {
+    "blob": "ebf56c3473858e09b781380d56e41157e0eaea3c",
+    "mode": "100644",
+    "bytes": 12979
+  },
+  "crates/kache-e2e/src/result.rs": {
+    "blob": "32f7bdc35a592be13227192d57eaf2f725b9e60f",
+    "mode": "100644",
+    "bytes": 4419
+  },
+  "crates/kache-e2e/src/runner.rs": {
+    "blob": "9a17359ffd75d82ac69d0537dfbc4bc1278ea440",
+    "mode": "100644",
+    "bytes": 68760
+  },
+  "crates/kache-e2e/src/scenario.rs": {
+    "blob": "1dce09c8150b46ec514c1f55ff25f47db7da9cfe",
+    "mode": "100644",
+    "bytes": 25481
+  },
+  "crates/kache-e2e/src/scenario_runner.rs": {
+    "blob": "b1d043f9f7951d3c62eb9f13498a645076ebdc16",
+    "mode": "100644",
+    "bytes": 12864
+  },
+  "crates/kache-e2e/src/source.rs": {
+    "blob": "2edfe5c1a76a5056a3b615b68ec2d15f067afa89",
+    "mode": "100644",
+    "bytes": 22836
+  },
+  "crates/kache-e2e/tests/skip_summary.rs": {
+    "blob": "bcaacea472c62ae28e129a823a5abcbe80088d54",
+    "mode": "100644",
+    "bytes": 1073
+  },
+  "crates/kache-e2e/tests/strict_gate.rs": {
+    "blob": "63d33b0ec1ad9130ca4da38f18c6f856aa830d76",
+    "mode": "100644",
+    "bytes": 3342
+  },
+  "crates/kache-format/Cargo.toml": {
+    "blob": "b2e2fe185db3b7065df8f9d92e792aee804e7c73",
+    "mode": "100644",
+    "bytes": 568
+  },
+  "crates/kache-format/README.md": {
+    "blob": "49c1e0beffd76330fab4ec48d36a250071e811c9",
+    "mode": "100644",
+    "bytes": 1164
+  },
+  "crates/kache-format/src/lib.rs": {
+    "blob": "8b1247c5d959b6ac3e855790e7cbc34ceb07756f",
+    "mode": "100644",
+    "bytes": 15555
+  },
+  "crates/kache-format/tests/compatibility.rs": {
+    "blob": "ef7811c58486d73df551ebb677adb54bdd3aabea",
+    "mode": "100644",
+    "bytes": 1814
+  },
+  "crates/kache-format/tests/fixtures/entry-v31.json": {
+    "blob": "539b886432a00d09e3c1dc5d6c1ed5f41fe805fb",
+    "mode": "100644",
+    "bytes": 548
+  },
+  "crates/kache-fs/Cargo.toml": {
+    "blob": "7eca4e6778eeb60044078989032e80200990840e",
+    "mode": "100644",
+    "bytes": 980
+  },
+  "crates/kache-fs/LICENSE": {
+    "blob": "fbe1a21e6241cd20b4588d34ef46b5273f92edf3",
+    "mode": "100644",
+    "bytes": 10760
+  },
+  "crates/kache-fs/README.md": {
+    "blob": "96b9f571c22f4de23cd56451e7d68c14756b3c1f",
+    "mode": "100644",
+    "bytes": 1746
+  },
+  "crates/kache-fs/src/apfs.rs": {
+    "blob": "b9b85dde227c5c904955ee9b9110c599c07d2e3c",
+    "mode": "100644",
+    "bytes": 28728
+  },
+  "crates/kache-fs/src/apfs_values.rs": {
+    "blob": "341d882c213f33722be1084990fb793f45a4af9e",
+    "mode": "100644",
+    "bytes": 2661
+  },
+  "crates/kache-fs/src/copy.rs": {
+    "blob": "6569b4264c0b27603e6b137dbd17b4f367d640b7",
+    "mode": "100644",
+    "bytes": 13638
+  },
+  "crates/kache-fs/src/extents.rs": {
+    "blob": "0952b29ef25f391e8d61d1b822e6db56a1a3b808",
+    "mode": "100644",
+    "bytes": 6147
+  },
+  "crates/kache-fs/src/fallback.rs": {
+    "blob": "9e039bdf114694df05a5f6908a5da0711422ed2f",
+    "mode": "100644",
+    "bytes": 2558
+  },
+  "crates/kache-fs/src/identity.rs": {
+    "blob": "5f8776a8de66366b654b4a93cdc2b333289cc2e5",
+    "mode": "100644",
+    "bytes": 6350
+  },
+  "crates/kache-fs/src/ledger.rs": {
+    "blob": "0592ba85efec50d9335a51f2c511be26917745d7",
+    "mode": "100644",
+    "bytes": 4575
+  },
+  "crates/kache-fs/src/lib.rs": {
+    "blob": "50b6697eb06d3a7783711b7c5082320394e103e6",
+    "mode": "100644",
+    "bytes": 44443
+  },
+  "crates/kache-fs/src/linux.rs": {
+    "blob": "6b6a48b97b83a5c4ae15381cfcf9a5b8d65af710",
+    "mode": "100644",
+    "bytes": 7647
+  },
+  "crates/kache-fs/src/staging.rs": {
+    "blob": "925f5cbfe502da44a247da3404f1f60c8576e451",
+    "mode": "100644",
+    "bytes": 8389
+  },
+  "crates/kache-proofs/Cargo.toml": {
+    "blob": "6fe07c05e64b72c311250bfdcc098f771b6e4bef",
+    "mode": "100644",
+    "bytes": 382
+  },
+  "crates/kache-proofs/src/lib.rs": {
+    "blob": "37153ae4523e0565cc94658eb80cfe244ae79949",
+    "mode": "100644",
+    "bytes": 2314
+  },
+  "crates/kache-service/Cargo.toml": {
+    "blob": "9cb84f4fad70da2570fa6c517aaba0a992225781",
+    "mode": "100644",
+    "bytes": 1407
+  },
+  "crates/kache-service/src/auth.rs": {
+    "blob": "2a826dba0eaa72f291e01154298e579e0bcdb15e",
+    "mode": "100644",
+    "bytes": 17745
+  },
+  "crates/kache-service/src/lib.rs": {
+    "blob": "153995b164b35555f0aef34cb83407c7d3a8893a",
+    "mode": "100644",
+    "bytes": 45616
+  },
+  "crates/kache-service/src/main.rs": {
+    "blob": "27afadb4b40624f4141f3553942b7681b2ef3e38",
+    "mode": "100644",
+    "bytes": 7748
+  },
+  "crates/kache-service/src/metrics.rs": {
+    "blob": "9373d2c346078c56e61a62e7d00a5e4d42525f14",
+    "mode": "100644",
+    "bytes": 15803
+  },
+  "crates/kache-service/src/state.rs": {
+    "blob": "520e5f97b7bcc214eaf08012046519c767b6dbbf",
+    "mode": "100644",
+    "bytes": 72138
+  },
+  "crates/kache-service/src/timelines.rs": {
+    "blob": "91b6b149aeedba5a977c8e588a3f553d30ee9692",
+    "mode": "100644",
+    "bytes": 31659
+  },
+  "crates/kache-service/tests/cli.rs": {
+    "blob": "c53faba2ce27f039b3d1ffb6ba1d66ed9448e999",
+    "mode": "100644",
+    "bytes": 1139
+  },
+  "crates/kache-service/tests/concurrent_planner_db.rs": {
+    "blob": "a61d42611b63f10380af4318b789353e839db143",
+    "mode": "100644",
+    "bytes": 6329
+  },
+  "crates/kache-shims/Cargo.toml": {
+    "blob": "55f905793bc0999a1f432297e8d3fa8144b47e8a",
+    "mode": "100644",
+    "bytes": 787
+  },
+  "crates/kache-shims/README.md": {
+    "blob": "4cbaa0612d2be5be208dabccdecacdcfbb98274d",
+    "mode": "100644",
+    "bytes": 1606
+  },
+  "crates/kache-shims/proptest-regressions/select/tests.txt": {
+    "blob": "91ade7daa6425fc5735d70c52a34330dbf1ef49f",
+    "mode": "100644",
+    "bytes": 1352
+  },
+  "crates/kache-shims/src/farm.rs": {
+    "blob": "d06bad4b7c1182be4d70b01b9e01cafa048cc2c6",
+    "mode": "100644",
+    "bytes": 17603
+  },
+  "crates/kache-shims/src/farm/tests.rs": {
+    "blob": "b0d29384271c86cb9403a939263e6c8fe4249b49",
+    "mode": "100644",
+    "bytes": 31290
+  },
+  "crates/kache-shims/src/fs.rs": {
+    "blob": "652164923457d372dbfe25a50d9faeae85e09631",
+    "mode": "100644",
+    "bytes": 7303
+  },
+  "crates/kache-shims/src/lib.rs": {
+    "blob": "0174d94a9da31729caa1ba1296a12d23a33c97cb",
+    "mode": "100644",
+    "bytes": 449
+  },
+  "crates/kache-shims/src/select.rs": {
+    "blob": "ba5609603bfe7208ba34a14fd2f43caa5f7ebdd0",
+    "mode": "100644",
+    "bytes": 19368
+  },
+  "crates/kache-shims/src/select/tests.rs": {
+    "blob": "976d64b40c3189845b4e72b3c1a9d49f098d2e94",
+    "mode": "100644",
+    "bytes": 35890
+  },
+  "crates/kache-store/Cargo.toml": {
+    "blob": "4b52f23c3740877d579e078459a3e4c3a4bd2a68",
+    "mode": "100644",
+    "bytes": 1845
+  },
+  "crates/kache-store/README.md": {
+    "blob": "88772d49f2d98bfc1bc44d1cafb3c132f541a88a",
+    "mode": "100644",
+    "bytes": 1414
+  },
+  "crates/kache-store/examples/bench-cc-memos.rs": {
+    "blob": "775894eaec8f115b384b25c0506d6d57427c8e5b",
+    "mode": "100644",
+    "bytes": 4883
+  },
+  "crates/kache-store/src/atomic.rs": {
+    "blob": "244e4420c4b3d33540406728820a692c0a7b0636",
+    "mode": "100644",
+    "bytes": 22792
+  },
+  "crates/kache-store/src/blob_drift.rs": {
+    "blob": "03ac214cb184a794dcb788265d5ca7746358cfdd",
+    "mode": "100644",
+    "bytes": 6383
+  },
+  "crates/kache-store/src/blob_validation.rs": {
+    "blob": "21e5d56c0aac3c152f105bbd2074601297f2967e",
+    "mode": "100644",
+    "bytes": 1928
+  },
+  "crates/kache-store/src/cc_memo.rs": {
+    "blob": "6e37470854fef0a6bdb0fae62947a54654f8f709",
+    "mode": "100644",
+    "bytes": 51912
+  },
+  "crates/kache-store/src/config.rs": {
+    "blob": "5c42298be9ebd754893de5b8c0164e38d1f8f5a1",
+    "mode": "100644",
+    "bytes": 858
+  },
+  "crates/kache-store/src/eviction.rs": {
+    "blob": "2a20f5e9ae2df0f1e74ec1237d8f4bccc1213d99",
+    "mode": "100644",
+    "bytes": 29282
+  },
+  "crates/kache-store/src/eviction_evidence.rs": {
+    "blob": "3ce45e82e5b9da6a84a0673d30ffcf8a89659354",
+    "mode": "100644",
+    "bytes": 6570
+  },
+  "crates/kache-store/src/eviction_evidence/tests.rs": {
+    "blob": "599d1a0a00e3cd7d750f2b3065d011c50748105c",
+    "mode": "100644",
+    "bytes": 10062
+  },
+  "crates/kache-store/src/file_hash.rs": {
+    "blob": "7fca527afb8b62f42962592d3f1eb17f6ecdef98",
+    "mode": "100644",
+    "bytes": 75411
+  },
+  "crates/kache-store/src/filesystem.rs": {
+    "blob": "849a139ced406deb9643011cee6d29e982ecdd7e",
+    "mode": "100644",
+    "bytes": 10552
+  },
+  "crates/kache-store/src/index_compaction.rs": {
+    "blob": "7df8da0ade5b3443322650bba46bbb845a66735c",
+    "mode": "100644",
+    "bytes": 12636
+  },
+  "crates/kache-store/src/lib.rs": {
+    "blob": "f850ebe12c8c989f67d42876598d1915bb595dad",
+    "mode": "100644",
+    "bytes": 937
+  },
+  "crates/kache-store/src/link.rs": {
+    "blob": "73ee7a80b73b90d271dd94f4e1f5baec9880c872",
+    "mode": "100644",
+    "bytes": 200525
+  },
+  "crates/kache-store/src/markers.rs": {
+    "blob": "1df6a4dbde7452aab438e796f260c51a5a917c2f",
+    "mode": "100644",
+    "bytes": 20888
+  },
+  "crates/kache-store/src/opcounts.rs": {
+    "blob": "60dafe7712a63d1745abb314b95757818b8ffd58",
+    "mode": "100644",
+    "bytes": 11104
+  },
+  "crates/kache-store/src/sharing.rs": {
+    "blob": "e7c5f62fb8c83f0b0973b5ff6f41180f62b44777",
+    "mode": "100644",
+    "bytes": 11070
+  },
+  "crates/kache-store/src/store.rs": {
+    "blob": "e1b40bf19962a54147cb2d6e451fe459b5c11b00",
+    "mode": "100644",
+    "bytes": 286418
+  },
+  "crates/kache-store/src/store/tests.rs": {
+    "blob": "9f3bf84f8b8abfa1f0dfb6b0892f92523c91ef12",
+    "mode": "100644",
+    "bytes": 455414
+  },
+  "crates/kache-store/src/test_support.rs": {
+    "blob": "cc57aab15ae7b0343d2c1abd2c7bcd8749135613",
+    "mode": "100644",
+    "bytes": 3125
+  },
+  "crates/kache-store/tests/byte_counters.rs": {
+    "blob": "a7934800a9a292a5d5157365c073c8fec46d49c8",
+    "mode": "100644",
+    "bytes": 3063
+  },
+  "crates/kache-store/tests/staged_publication.rs": {
+    "blob": "f51527532b9ff17ed96e2967a0e5de54386da3db",
+    "mode": "100644",
+    "bytes": 2669
+  },
+  "crates/kache-store/tests/thread_store_counters.rs": {
+    "blob": "5cc738b2a4259f825c1e1207675be543061064f3",
+    "mode": "100644",
+    "bytes": 1064
+  },
+  "deny.toml": {
+    "blob": "7ca925de8cb8eed6a6edae37227479fc00443da9",
+    "mode": "100644",
+    "bytes": 2699
+  },
+  "docs/benchmarks.mdx": {
+    "blob": "49d162eaddeb0431602c95e573a78af009c69b0a",
+    "mode": "100644",
+    "bytes": 17154
+  },
+  "docs/commands/cli.schema.json": {
+    "blob": "6e3a4162ec018b0887c8f7f38dad94f9cad18538",
+    "mode": "100644",
+    "bytes": 1397
+  },
+  "docs/commands/meta.json": {
+    "blob": "cf78015ec7da6f84f32741ca9f86510ecb0f4c0f",
+    "mode": "100644",
+    "bytes": 52
+  },
+  "docs/commands/reference.mdx": {
+    "blob": "329d2c109a795e2c4b01b107fa677c9b52c60e4e",
+    "mode": "100644",
+    "bytes": 44951
+  },
+  "docs/commands/report.schema.json": {
+    "blob": "b29f8f4a2c929a221325bafd04ab7d1c2b8241bf",
+    "mode": "100755",
+    "bytes": 28381
+  },
+  "docs/compatibility.mdx": {
+    "blob": "553073f3ecc1b3342b39b99bf89b615a0c821b73",
+    "mode": "100644",
+    "bytes": 1628
+  },
+  "docs/daemon/lifecycle.mdx": {
+    "blob": "e3f177ed72216c7bada6aa3e944262a33a1929a3",
+    "mode": "100644",
+    "bytes": 11712
+  },
+  "docs/daemon/meta.json": {
+    "blob": "92bfdc0ab7a61e823f57cdc98880a57726e87022",
+    "mode": "100644",
+    "bytes": 62
+  },
+  "docs/daemon/overview.mdx": {
+    "blob": "7b90e58dc0a0ba7715f9a6a800e1ec054760f308",
+    "mode": "100644",
+    "bytes": 5109
+  },
+  "docs/deduplication.mdx": {
+    "blob": "c9844b6a07d49d72253bbc4cf5148030ba3612f1",
+    "mode": "100644",
+    "bytes": 5027
+  },
+  "docs/getting-started/c-cpp.mdx": {
+    "blob": "71b6714615fa7c9ef10ae9a63e62ab050b2be292",
+    "mode": "100644",
+    "bytes": 14366
+  },
+  "docs/getting-started/comparison.mdx": {
+    "blob": "c8402cae29f1d6865abc2a224125a33529ee4f81",
+    "mode": "100644",
+    "bytes": 6010
+  },
+  "docs/getting-started/configuration.mdx": {
+    "blob": "49b2991a3b00f7e8fbe7c6480b5946918dafcafa",
+    "mode": "100644",
+    "bytes": 65826
+  },
+  "docs/getting-started/cuda.mdx": {
+    "blob": "b5dd82d18387cdc33c00bbf6aa5aac05feb27d7b",
+    "mode": "100644",
+    "bytes": 5724
+  },
+  "docs/getting-started/installation.mdx": {
+    "blob": "0437de4f003678aef72db550f3fe133576020252",
+    "mode": "100644",
+    "bytes": 5680
+  },
+  "docs/getting-started/meta.json": {
+    "blob": "d9cacb1ba3adf6cc1d41ea91121a71f8c788699f",
+    "mode": "100644",
+    "bytes": 215
+  },
+  "docs/getting-started/mutation-testing.mdx": {
+    "blob": "e94b659d05bdf9e7f41a8a261ec87805de739530",
+    "mode": "100644",
+    "bytes": 4797
+  },
+  "docs/getting-started/quick-start.mdx": {
+    "blob": "2411a1a025d4836ec139da199e5927f418648c1f",
+    "mode": "100644",
+    "bytes": 8701
+  },
+  "docs/getting-started/rustdoc.mdx": {
+    "blob": "bd0410778b7e78ef4c6ad09fa3ec950a9b814baf",
+    "mode": "100644",
+    "bytes": 2513
+  },
+  "docs/getting-started/troubleshooting.mdx": {
+    "blob": "690acb32002b70269406bc1e764e2a899a8a1dc9",
+    "mode": "100644",
+    "bytes": 5666
+  },
+  "docs/how-it-works/architecture.mdx": {
+    "blob": "215bdc063d7c61ec36ef99343e86bdcf0d3e7c40",
+    "mode": "100644",
+    "bytes": 7560
+  },
+  "docs/how-it-works/build-scripts.mdx": {
+    "blob": "112bbe6359ebb9ce8928634504168823db9fa59c",
+    "mode": "100644",
+    "bytes": 16448
+  },
+  "docs/how-it-works/cache-key.mdx": {
+    "blob": "8ae287d99b2615f3b293123097970712cd1e6a99",
+    "mode": "100644",
+    "bytes": 16143
+  },
+  "docs/how-it-works/limits.mdx": {
+    "blob": "9c1a0c76f2d47050e5e0332e8b442a7596b32573",
+    "mode": "100644",
+    "bytes": 4099
+  },
+  "docs/how-it-works/meta.json": {
+    "blob": "a351da276923fe255edb73270b32b6e068dcf790",
+    "mode": "100644",
+    "bytes": 119
+  },
+  "docs/index.mdx": {
+    "blob": "7619e0408476027270d13e9a2f76e8a6c358f15b",
+    "mode": "100644",
+    "bytes": 4003
+  },
+  "docs/meta.json": {
+    "blob": "17bca7eeb373fadb53fd61aafaae24856ea6b3c7",
+    "mode": "100644",
+    "bytes": 259
+  },
+  "docs/monitor.mdx": {
+    "blob": "414b7ff5e27e3d1aac8602b186b9c0098fa04276",
+    "mode": "100644",
+    "bytes": 8344
+  },
+  "docs/remote-cache/bounding.mdx": {
+    "blob": "31907be431c7227bd02c7bac4448d27bc45f4a08",
+    "mode": "100644",
+    "bytes": 4601
+  },
+  "docs/remote-cache/ci.mdx": {
+    "blob": "90291a76766330cf672db0ddfac85036e25a5fcf",
+    "mode": "100644",
+    "bytes": 11867
+  },
+  "docs/remote-cache/filesystem-setup.mdx": {
+    "blob": "24747616bf8bd01f1358c69698795f3de6897f8c",
+    "mode": "100644",
+    "bytes": 2778
+  },
+  "docs/remote-cache/gcs-setup.mdx": {
+    "blob": "82f9c261723e7870041725cdffed45a8c8b1a839",
+    "mode": "100644",
+    "bytes": 2237
+  },
+  "docs/remote-cache/meta.json": {
+    "blob": "e0c0b7bb6298f528271db97cfa2cbda320cfc7b1",
+    "mode": "100644",
+    "bytes": 175
+  },
+  "docs/remote-cache/oci-setup.mdx": {
+    "blob": "f6f8ac2bb3b33d0d6b9826d19c7d5d9eee767d99",
+    "mode": "100644",
+    "bytes": 3327
+  },
+  "docs/remote-cache/overview.mdx": {
+    "blob": "e372866657cf2173a690bb4a739678aad9f9414f",
+    "mode": "100644",
+    "bytes": 2571
+  },
+  "docs/remote-cache/s3-setup.mdx": {
+    "blob": "bb20c09ed289b73cd0f8e16ea6c22abe071575f1",
+    "mode": "100644",
+    "bytes": 8548
+  },
+  "docs/remote-cache/sync.mdx": {
+    "blob": "e8c42cfee9a0963b8d72f8e900a97dc13bec18a5",
+    "mode": "100644",
+    "bytes": 2742
+  },
+  "docs/remote-service.mdx": {
+    "blob": "7663feff6eea089c9a1c4b440ec88fe69e90353c",
+    "mode": "100644",
+    "bytes": 7432
+  },
+  "flake.lock": {
+    "blob": "31c6ab588d193cdea77404f42b43ffd9e97e0054",
+    "mode": "100644",
+    "bytes": 1646
+  },
+  "flake.nix": {
+    "blob": "a5036d2ef2a9872edb8516d009edc8bdcc0e7b0f",
+    "mode": "100644",
+    "bytes": 7060
+  },
+  "fuzz/.gitignore": {
+    "blob": "188f196098e365ccc8c4934fdd607b012c8cc8a7",
+    "mode": "100644",
+    "bytes": 27
+  },
+  "fuzz/Cargo.lock": {
+    "blob": "df152421060daee560878fa0e14e518767cb664e",
+    "mode": "100644",
+    "bytes": 3422
+  },
+  "fuzz/Cargo.toml": {
+    "blob": "e5893087d167ae27fab04793a708b556dd8f5609",
+    "mode": "100644",
+    "bytes": 384
+  },
+  "fuzz/fuzz_targets/native_archive.rs": {
+    "blob": "5aad4a4344f00a3ebf4a29661f092e771b31e758",
+    "mode": "100644",
+    "bytes": 1227
+  },
+  "launcher/build_script.rs": {
+    "blob": "d3cc7b61d95f30d98c8d37f5b80863c9b0fb834a",
+    "mode": "100644",
+    "bytes": 9993
+  },
+  "mise.toml": {
+    "blob": "ce709f3cdaa7dfc2f79395c260b5771edfab4d4b",
+    "mode": "100644",
+    "bytes": 2369
+  },
+  "packaging/apt/distributions": {
+    "blob": "7a3ea1458508f37a776918be9ebfccb7341232b8",
+    "mode": "100644",
+    "bytes": 427
+  },
+  "packaging/aur/kache-bin/PKGBUILD": {
+    "blob": "e17e0b36e0356e96035c36994883eb5da28edfed",
+    "mode": "100644",
+    "bytes": 2239
+  },
+  "packaging/aur/kache-git/PKGBUILD": {
+    "blob": "6854ef4f723a9a5475565aa4233540917f3cd29e",
+    "mode": "100644",
+    "bytes": 2075
+  },
+  "packaging/charts/kache-service/Chart.yaml": {
+    "blob": "8b171447a01187030dd8df499100b41f12004cae",
+    "mode": "100644",
+    "bytes": 343
+  },
+  "packaging/charts/kache-service/templates/NOTES.txt": {
+    "blob": "0239b10dc1d7d283248019266c12665317bab9b2",
+    "mode": "100644",
+    "bytes": 1068
+  },
+  "packaging/charts/kache-service/templates/_helpers.tpl": {
+    "blob": "116b2dd6cdb6a2bfe1cf6fee1c668edbabd18768",
+    "mode": "100644",
+    "bytes": 1856
+  },
+  "packaging/charts/kache-service/templates/deployment.yaml": {
+    "blob": "e7e7c8d89b1eeb0a405319d20c4f75aa51a25e35",
+    "mode": "100644",
+    "bytes": 7448
+  },
+  "packaging/charts/kache-service/templates/ingress.yaml": {
+    "blob": "95b1c196c7efb710f3e1eb66e923a25a07a30fd8",
+    "mode": "100644",
+    "bytes": 1066
+  },
+  "packaging/charts/kache-service/templates/pvc.yaml": {
+    "blob": "afde8f60f406686b526c916ca16f13e747700f2e",
+    "mode": "100644",
+    "bytes": 640
+  },
+  "packaging/charts/kache-service/templates/rbac.yaml": {
+    "blob": "5cc6a6e0965b422f98b7498b83ad70ceb59a86b5",
+    "mode": "100644",
+    "bytes": 1230
+  },
+  "packaging/charts/kache-service/templates/service.yaml": {
+    "blob": "bc21edd99e4c6af1b653fcaabdec33060d80d79c",
+    "mode": "100644",
+    "bytes": 617
+  },
+  "packaging/charts/kache-service/values.schema.json": {
+    "blob": "0052519722e1220c8cf03bbe4f513cfcdead87bd",
+    "mode": "100644",
+    "bytes": 5131
+  },
+  "packaging/charts/kache-service/values.yaml": {
+    "blob": "d9e51b5c1df16821c3d9171aba3d2352787d34ef",
+    "mode": "100644",
+    "bytes": 3610
+  },
+  "packaging/debian/postinst": {
+    "blob": "695f2b93dd6e1c79038d1bf72332af5cb29b9ee5",
+    "mode": "100755",
+    "bytes": 378
+  },
+  "packaging/debian/prerm": {
+    "blob": "a3c3f85a3d74d8400cf0ccda836194ad15038a99",
+    "mode": "100755",
+    "bytes": 542
+  },
+  "packaging/docker-bake.hcl": {
+    "blob": "b28f85b5fe5bab63fe8eeec1c258dddd80ff392a",
+    "mode": "100644",
+    "bytes": 2600
+  },
+  "packaging/docker/e2e.Dockerfile": {
+    "blob": "2c975ce266eb28e65670c7ca37449f99b0f488cd",
+    "mode": "100644",
+    "bytes": 1676
+  },
+  "packaging/docker/service.Dockerfile": {
+    "blob": "fad58e11b2eb15baeba7e1f8b5854ecf40330511",
+    "mode": "100644",
+    "bytes": 1069
+  },
+  "packaging/nix/module.nix": {
+    "blob": "6fdbc1dc61fc5999797b0b2ccf534dcd9d7fc9ca",
+    "mode": "100644",
+    "bytes": 8338
+  },
+  "packaging/nix/package.nix": {
+    "blob": "d45f2e95a539619f08bc6e73824792932e46fdc5",
+    "mode": "100644",
+    "bytes": 3065
+  },
+  "rust-toolchain.toml": {
+    "blob": "21757aec3ddf561feed30022127059eaf179c215",
+    "mode": "100644",
+    "bytes": 415
+  },
+  "scenarios/COVERAGE.md": {
+    "blob": "2652a001ef8544a7b75f5e55837efd35c9fdb493",
+    "mode": "100644",
+    "bytes": 8570
+  },
+  "scenarios/README.md": {
+    "blob": "45d8af2e5cda1f61d7d5ffecb4d9aee86da30787",
+    "mode": "100644",
+    "bytes": 6505
+  },
+  "scenarios/bench-aube-mbx/scenario.toml": {
+    "blob": "b0d96be6ee329394802c4f3247a4a43f95cdd8a4",
+    "mode": "100644",
+    "bytes": 1561
+  },
+  "scenarios/bench-aube-sccache/scenario.toml": {
+    "blob": "5fedd94412105e3cc98b873377ae54e0dfaa00de",
+    "mode": "100644",
+    "bytes": 1457
+  },
+  "scenarios/bench-aube/scenario.toml": {
+    "blob": "6fbc49769861716ff5a3636b06c88a21752fca30",
+    "mode": "100644",
+    "bytes": 2955
+  },
+  "scenarios/bench-cuda-oxide-patched/patches/cuda-oxide-materialize-side-files.patch": {
+    "blob": "a1c49a73afed17cd157da11f34bc0c9bdb1dc187",
+    "mode": "100644",
+    "bytes": 28420
+  },
+  "scenarios/bench-cuda-oxide-patched/scenario.toml": {
+    "blob": "5dc82ef6de5e8247aee6d2a0f85fb9faad6ddf0a",
+    "mode": "100644",
+    "bytes": 4810
+  },
+  "scenarios/bench-cuda-oxide/scenario.toml": {
+    "blob": "1f1e3dae80ed592b5b2756d7d670f8061330326e",
+    "mode": "100644",
+    "bytes": 4336
+  },
+  "scenarios/bench-eza-mbx/scenario.toml": {
+    "blob": "c87c0abf1754d04b7713e9698455aecceb9bc6ed",
+    "mode": "100644",
+    "bytes": 1141
+  },
+  "scenarios/bench-eza-sccache/scenario.toml": {
+    "blob": "e98dde3f9e96d480fccce77b580d12314ebb6104",
+    "mode": "100644",
+    "bytes": 991
+  },
+  "scenarios/bench-eza/scenario.toml": {
+    "blob": "22f40062db369d7c2cd7772fcfbf40e9043da909",
+    "mode": "100644",
+    "bytes": 5286
+  },
+  "scenarios/bench-firefox-mbx/scenario.toml": {
+    "blob": "81d3d62fb049a52bd743aa42803c2d76cf33661f",
+    "mode": "100644",
+    "bytes": 2925
+  },
+  "scenarios/bench-firefox-pull-windows/scenario.toml": {
+    "blob": "4c7f475f2899eadf4cdba0d4b527878de3752423",
+    "mode": "100644",
+    "bytes": 2743
+  },
+  "scenarios/bench-firefox-pull/scenario.toml": {
+    "blob": "b829bc74b5c0fef6de251674968e662a14934eff",
+    "mode": "100644",
+    "bytes": 2872
+  },
+  "scenarios/bench-firefox-sccache/patches/firefox-generated-source-relative.patch": {
+    "blob": "97e9f236e2d4f59a4d159c7c41e8f07335df3b0f",
+    "mode": "100644",
+    "bytes": 22213
+  },
+  "scenarios/bench-firefox-sccache/patches/firefox-mozbuild-path-clean.patch": {
+    "blob": "b66fb7429c1b3018dd74df61a63643fa9911d294",
+    "mode": "100644",
+    "bytes": 41436
+  },
+  "scenarios/bench-firefox-sccache/scenario.toml": {
+    "blob": "20af02914f9ea6d0a1accb92fc4e502ade8a2cd0",
+    "mode": "100644",
+    "bytes": 2076
+  },
+  "scenarios/bench-firefox-windows/scenario.toml": {
+    "blob": "f7335cfc74bd3009522913c11b97f5a42839e590",
+    "mode": "100644",
+    "bytes": 6380
+  },
+  "scenarios/bench-firefox/cross-clone-plan.md": {
+    "blob": "6b2098bb4892c713205cab89939f97a9ff913590",
+    "mode": "100644",
+    "bytes": 8004
+  },
+  "scenarios/bench-firefox/patches/firefox-cbindgen-visibility.patch": {
+    "blob": "951e7023aa49324a353ecb49293ee6b955a33ccf",
+    "mode": "100644",
+    "bytes": 938
+  },
+  "scenarios/bench-firefox/patches/firefox-gecko-profiler-bindgen.patch": {
+    "blob": "e4156b02a3a706a867566fbf0971bcbd5ddfd175",
+    "mode": "100644",
+    "bytes": 706
+  },
+  "scenarios/bench-firefox/patches/firefox-generated-source-relative.patch": {
+    "blob": "97e9f236e2d4f59a4d159c7c41e8f07335df3b0f",
+    "mode": "100644",
+    "bytes": 22213
+  },
+  "scenarios/bench-firefox/patches/firefox-mozbuild-path-clean.patch": {
+    "blob": "b66fb7429c1b3018dd74df61a63643fa9911d294",
+    "mode": "100644",
+    "bytes": 41436
+  },
+  "scenarios/bench-firefox/scenario.toml": {
+    "blob": "ef06ff7b6f4376725eb0298265683d91e973f7f6",
+    "mode": "100644",
+    "bytes": 7587
+  },
+  "scenarios/bench-hk-mbx/scenario.toml": {
+    "blob": "79dbcde2f1574bb19b01091866aca50b1ad1e331",
+    "mode": "100644",
+    "bytes": 1834
+  },
+  "scenarios/bench-hk-pull-mbx/scenario.toml": {
+    "blob": "a059c3f119172d67d330b52959277b192d06478e",
+    "mode": "100644",
+    "bytes": 1577
+  },
+  "scenarios/bench-hk-pull-perf/scenario.toml": {
+    "blob": "32cdc9f598af5bfeac50e61aada885268f0a23b0",
+    "mode": "100644",
+    "bytes": 1717
+  },
+  "scenarios/bench-hk-sccache/scenario.toml": {
+    "blob": "47b534346f1e853babf6c317081cd45426ed57cc",
+    "mode": "100644",
+    "bytes": 1060
+  },
+  "scenarios/bench-hk/scenario.toml": {
+    "blob": "00305cb408d96fdced6b4d18dcc94d98d84797e8",
+    "mode": "100644",
+    "bytes": 4573
+  },
+  "scenarios/bench-kobe/scenario.toml": {
+    "blob": "ee63ef4ef3edd8e364f4a1859f79bea524a146ee",
+    "mode": "100644",
+    "bytes": 2399
+  },
+  "scenarios/bench-lance-mbx/scenario.toml": {
+    "blob": "c59d18647724d8672bdb5c6f55b54846a5cadc28",
+    "mode": "100644",
+    "bytes": 3735
+  },
+  "scenarios/bench-lance/scenario.toml": {
+    "blob": "6e15ee07cc0f50c2ba301181272d544be3d4955f",
+    "mode": "100644",
+    "bytes": 3927
+  },
+  "scenarios/bench-llvm/scenario.toml": {
+    "blob": "53a753f6d2395858a4297a28c053176390d24b32",
+    "mode": "100644",
+    "bytes": 3595
+  },
+  "scenarios/bench-opendal-mbx/scenario.toml": {
+    "blob": "01226ab07de73d97a8f3b572ddfa1a2a398812e3",
+    "mode": "100644",
+    "bytes": 4216
+  },
+  "scenarios/bench-opendal/scenario.toml": {
+    "blob": "d4da17e1b34ee6efe7106fa7b1271fe25b1d7399",
+    "mode": "100644",
+    "bytes": 4586
+  },
+  "scenarios/bench-surrealdb-mbx/scenario.toml": {
+    "blob": "bbcf76f2ec8d0f496b63739470e2b077a6aea7aa",
+    "mode": "100644",
+    "bytes": 5998
+  },
+  "scenarios/bench-surrealdb/scenario.toml": {
+    "blob": "5f043c237d452827c128860ff237ab6439293013",
+    "mode": "100644",
+    "bytes": 6191
+  },
+  "scenarios/e2e-bypass-rules/scenario.toml": {
+    "blob": "017456539fb6276009e0cefee697b1611198a21e",
+    "mode": "100644",
+    "bytes": 1871
+  },
+  "scenarios/e2e-bypass-rules/source/.kache.toml": {
+    "blob": "d5ce83af06857042f45ef2ca6c2ac8e94cbd0781",
+    "mode": "100644",
+    "bytes": 184
+  },
+  "scenarios/e2e-bypass-rules/source/Cargo.lock": {
+    "blob": "17a70cd2fdc9b24bae0543dc5e27b8665b4da9c1",
+    "mode": "100644",
+    "bytes": 156
+  },
+  "scenarios/e2e-bypass-rules/source/Cargo.toml": {
+    "blob": "4e5b792736b4bc6f7050661915564c56ef7f0b35",
+    "mode": "100644",
+    "bytes": 80
+  },
+  "scenarios/e2e-bypass-rules/source/src/main.rs": {
+    "blob": "7df2dddcff95619b86d11d218639f9a8c79a5c19",
+    "mode": "100644",
+    "bytes": 47
+  },
+  "scenarios/e2e-c-daemon-handoff/scenario.toml": {
+    "blob": "5979e7ea4ebd08076fb494d95bcb348a2f3ac80d",
+    "mode": "100644",
+    "bytes": 1745
+  },
+  "scenarios/e2e-c-daemon-handoff/source/.gitignore": {
+    "blob": "567609b1234a9b8806c5a05da6c866e480aa148d",
+    "mode": "100644",
+    "bytes": 7
+  },
+  "scenarios/e2e-c-daemon-handoff/source/Makefile": {
+    "blob": "685c0ab25e034c9290a03c73ae97f3e3ee7a2be9",
+    "mode": "100644",
+    "bytes": 627
+  },
+  "scenarios/e2e-c-daemon-handoff/source/src/bar.h": {
+    "blob": "67e6d32c6f26a3fb9b0c50be1ef1fb17bd6888b6",
+    "mode": "100644",
+    "bytes": 75
+  },
+  "scenarios/e2e-c-daemon-handoff/source/src/foo.c": {
+    "blob": "7d5cc8fcfea3c6df37c6a884f04153b1256e7048",
+    "mode": "100644",
+    "bytes": 109
+  },
+  "scenarios/e2e-c-depinfo/scenario.toml": {
+    "blob": "d516d8fa0fb550044d5a3ad9a4e1f97cd9ef8175",
+    "mode": "100644",
+    "bytes": 1164
+  },
+  "scenarios/e2e-c-depinfo/source/.gitignore": {
+    "blob": "dc84959d1dcee0eb0a0a0a34dda9b3489debcb8d",
+    "mode": "100644",
+    "bytes": 8
+  },
+  "scenarios/e2e-c-depinfo/source/Makefile": {
+    "blob": "c9c7a3529a449e5b088a5d2d353d45144f917f8c",
+    "mode": "100644",
+    "bytes": 482
+  },
+  "scenarios/e2e-c-depinfo/source/src/bar.h": {
+    "blob": "3b2abc272fd80923aaaf43552bc92d68834c5679",
+    "mode": "100644",
+    "bytes": 80
+  },
+  "scenarios/e2e-c-depinfo/source/src/foo.c": {
+    "blob": "94d4b5da9f50207d39a8fdddbab734e39084dece",
+    "mode": "100644",
+    "bytes": 110
+  },
+  "scenarios/e2e-c-hello/scenario.toml": {
+    "blob": "fbb6ba09f6f27622b72d518c693b65899fd4a4df",
+    "mode": "100644",
+    "bytes": 3232
+  },
+  "scenarios/e2e-c-hello/source/.gitignore": {
+    "blob": "567609b1234a9b8806c5a05da6c866e480aa148d",
+    "mode": "100644",
+    "bytes": 7
+  },
+  "scenarios/e2e-c-hello/source/Makefile": {
+    "blob": "685c0ab25e034c9290a03c73ae97f3e3ee7a2be9",
+    "mode": "100644",
+    "bytes": 627
+  },
+  "scenarios/e2e-c-hello/source/src/bar.h": {
+    "blob": "67e6d32c6f26a3fb9b0c50be1ef1fb17bd6888b6",
+    "mode": "100644",
+    "bytes": 75
+  },
+  "scenarios/e2e-c-hello/source/src/foo.c": {
+    "blob": "7d5cc8fcfea3c6df37c6a884f04153b1256e7048",
+    "mode": "100644",
+    "bytes": 109
+  },
+  "scenarios/e2e-c-passthrough/scenario.toml": {
+    "blob": "7686b438118ff2b27c3245d43d75fb33335cfef1",
+    "mode": "100644",
+    "bytes": 2155
+  },
+  "scenarios/e2e-c-passthrough/source/.gitignore": {
+    "blob": "567609b1234a9b8806c5a05da6c866e480aa148d",
+    "mode": "100644",
+    "bytes": 7
+  },
+  "scenarios/e2e-c-passthrough/source/Makefile": {
+    "blob": "609c9720a2e3c5674251ee67317ad6d4f17f4245",
+    "mode": "100644",
+    "bytes": 925
+  },
+  "scenarios/e2e-c-passthrough/source/src/main.c": {
+    "blob": "9719b5c5dd445dddf143836ab65045bbc611966e",
+    "mode": "100644",
+    "bytes": 87
+  },
+  "scenarios/e2e-c-shims/scenario.toml": {
+    "blob": "ff3771f0b722c0bcc4a5fbbdb5d229c3832f203b",
+    "mode": "100644",
+    "bytes": 1152
+  },
+  "scenarios/e2e-cc-asm-incbin/scenario.toml": {
+    "blob": "db4de4b44b2a65a4756c6c6ff9bcdcb8fb8ef3c8",
+    "mode": "100644",
+    "bytes": 1835
+  },
+  "scenarios/e2e-cc-asm-incbin/source/Makefile": {
+    "blob": "efb7bbbb7fe8d8b2627252663b9e6d9b7dc8ca6b",
+    "mode": "100644",
+    "bytes": 1042
+  },
+  "scenarios/e2e-cc-asm-incbin/source/src/blob.S": {
+    "blob": "2087dc78e93d4f6fb510ccfb2e9dbe3c8629061c",
+    "mode": "100644",
+    "bytes": 496
+  },
+  "scenarios/e2e-cc-asm-incbin/source/src/inline.c": {
+    "blob": "238642e736574d4415adf298f035ce4798918736",
+    "mode": "100644",
+    "bytes": 558
+  },
+  "scenarios/e2e-cc-asm-incbin/source/src/main.c": {
+    "blob": "ccd71475d9e1b16fa812351e5e29fe6012e5be35",
+    "mode": "100644",
+    "bytes": 520
+  },
+  "scenarios/e2e-cc-bench-flags-gnu/scenario.toml": {
+    "blob": "399802b77cc6887d58cb5876b1959acfdce0d8f6",
+    "mode": "100644",
+    "bytes": 1839
+  },
+  "scenarios/e2e-cc-bench-flags-gnu/source/Makefile": {
+    "blob": "830ccb715b6bbb7a77c0c686e436c658207bded1",
+    "mode": "100644",
+    "bytes": 956
+  },
+  "scenarios/e2e-cc-bench-flags-gnu/source/a.c": {
+    "blob": "56040fbaa9c2b995ee6c8b4763b43442c83fdb5c",
+    "mode": "100644",
+    "bytes": 541
+  },
+  "scenarios/e2e-cc-bench-flags/scenario.toml": {
+    "blob": "55b53e5e20612e114e19d7e30ee28f2d206b0f1a",
+    "mode": "100644",
+    "bytes": 2491
+  },
+  "scenarios/e2e-cc-bench-flags/source/Makefile": {
+    "blob": "321f18e210c44057756662d9f6f4f793a7afd7c2",
+    "mode": "100644",
+    "bytes": 1615
+  },
+  "scenarios/e2e-cc-bench-flags/source/a.c": {
+    "blob": "56040fbaa9c2b995ee6c8b4763b43442c83fdb5c",
+    "mode": "100644",
+    "bytes": 541
+  },
+  "scenarios/e2e-cc-cl-debug/scenario.toml": {
+    "blob": "4d59fbbf238c6e90f0b11503500443520710dc84",
+    "mode": "100644",
+    "bytes": 2306
+  },
+  "scenarios/e2e-cc-cl-debug/source/Makefile": {
+    "blob": "f23f0509405512b283432190d51cfad22ac8425c",
+    "mode": "100644",
+    "bytes": 498
+  },
+  "scenarios/e2e-cc-cl-debug/source/a.c": {
+    "blob": "e3896beef2d763d146acfa4c95e1a0074fdb0a14",
+    "mode": "100644",
+    "bytes": 92
+  },
+  "scenarios/e2e-cc-cl-same-content-sources/scenario.toml": {
+    "blob": "27d7b7c95f3ea632b42111a57738d69ea2c06f6f",
+    "mode": "100644",
+    "bytes": 1190
+  },
+  "scenarios/e2e-cc-cl-same-content-sources/source/Makefile": {
+    "blob": "5229bec715b6910d8c7e47e94591b395605c48bb",
+    "mode": "100644",
+    "bytes": 589
+  },
+  "scenarios/e2e-cc-cl-same-content-sources/source/build/a/util.obj": {
+    "blob": "a48c57fa18fd3121766bec63fbe6a987a4e792a1",
+    "mode": "100644",
+    "bytes": 910
+  },
+  "scenarios/e2e-cc-cl-same-content-sources/source/build/b/util.obj": {
+    "blob": "a48c57fa18fd3121766bec63fbe6a987a4e792a1",
+    "mode": "100644",
+    "bytes": 910
+  },
+  "scenarios/e2e-cc-cl-same-content-sources/source/src/a/util.c": {
+    "blob": "e4e83e17ce866d8c01ae437a52a9e39cffbbf555",
+    "mode": "100644",
+    "bytes": 81
+  },
+  "scenarios/e2e-cc-cl-same-content-sources/source/src/a/util.h": {
+    "blob": "62040029e1852fc578b0518d9ecf2c292cf78735",
+    "mode": "100644",
+    "bytes": 22
+  },
+  "scenarios/e2e-cc-cl-same-content-sources/source/src/b/util.c": {
+    "blob": "e4e83e17ce866d8c01ae437a52a9e39cffbbf555",
+    "mode": "100644",
+    "bytes": 81
+  },
+  "scenarios/e2e-cc-cl-same-content-sources/source/src/b/util.h": {
+    "blob": "62040029e1852fc578b0518d9ecf2c292cf78735",
+    "mode": "100644",
+    "bytes": 22
+  },
+  "scenarios/e2e-cc-cl-xclang-deps/scenario.toml": {
+    "blob": "bdc90cf5ebd013202415a52c666d53ba55d17c4b",
+    "mode": "100644",
+    "bytes": 2293
+  },
+  "scenarios/e2e-cc-cl-xclang-deps/source/Makefile": {
+    "blob": "39a09eb190e2c8922989411dd9b616a7bcde9035",
+    "mode": "100644",
+    "bytes": 793
+  },
+  "scenarios/e2e-cc-cl-xclang-deps/source/a.c": {
+    "blob": "31725babad1fcae58414bfb9b7e4da1d5c232d6e",
+    "mode": "100644",
+    "bytes": 251
+  },
+  "scenarios/e2e-cc-cross-gcc/scenario.toml": {
+    "blob": "813f792a2e7ecbf5d862624bc2226d0e35b01c95",
+    "mode": "100644",
+    "bytes": 997
+  },
+  "scenarios/e2e-cc-cross-gcc/source/Makefile": {
+    "blob": "896347afd319324509313feb18e8288a2b193658",
+    "mode": "100644",
+    "bytes": 563
+  },
+  "scenarios/e2e-cc-cross-gcc/source/src/a.c": {
+    "blob": "4ffede8a16c0e168ad2f3c7f916440615d978304",
+    "mode": "100644",
+    "bytes": 34
+  },
+  "scenarios/e2e-cc-file-macro-oot/scenario.toml": {
+    "blob": "8f990aa408803945aea22a8bce831ed7ff466e3b",
+    "mode": "100644",
+    "bytes": 2927
+  },
+  "scenarios/e2e-cc-file-macro-oot/source/Makefile": {
+    "blob": "4b8adb6e50221d1a7d716206f52877864e3f63e6",
+    "mode": "100644",
+    "bytes": 1131
+  },
+  "scenarios/e2e-cc-file-macro-oot/source/src/base/location.cc": {
+    "blob": "f6fa7fec4f18f1d9a8b13e5a75f0bafc1fa2d844",
+    "mode": "100644",
+    "bytes": 2117
+  },
+  "scenarios/e2e-cc-flag-soup/scenario.toml": {
+    "blob": "14815c0f52d9853f35354cdae99229fbd7453cd3",
+    "mode": "100644",
+    "bytes": 1766
+  },
+  "scenarios/e2e-cc-flag-soup/source/Makefile": {
+    "blob": "b10cea2d6e4085094631cc1b97bf8fbca9b6e9cc",
+    "mode": "100644",
+    "bytes": 1363
+  },
+  "scenarios/e2e-cc-flag-soup/source/a.cpp": {
+    "blob": "a51c49fd912280c11d4d3b60088b6e0d36054327",
+    "mode": "100644",
+    "bytes": 206
+  },
+  "scenarios/e2e-cc-link/scenario.toml": {
+    "blob": "5fe6603efb8c421ca273aee01dc7bc593971a0ce",
+    "mode": "100644",
+    "bytes": 845
+  },
+  "scenarios/e2e-cc-link/source/Makefile": {
+    "blob": "6566d479f1ebb2f83ef3331d4403033c0b42d8a6",
+    "mode": "100644",
+    "bytes": 369
+  },
+  "scenarios/e2e-cc-link/source/src/a.c": {
+    "blob": "774904b6113f320ae18821d1fbbbea6e85857bfe",
+    "mode": "100644",
+    "bytes": 36
+  },
+  "scenarios/e2e-cc-link/source/src/b.c": {
+    "blob": "fe408d3de407334d89d32c5fc9dec11c1bd3f865",
+    "mode": "100644",
+    "bytes": 112
+  },
+  "scenarios/e2e-cc-literal-path/scenario.toml": {
+    "blob": "4d2ed35c8dc3c9c30d864aa06e7f3db7b1bd4449",
+    "mode": "100644",
+    "bytes": 1578
+  },
+  "scenarios/e2e-cc-literal-path/source/Makefile": {
+    "blob": "e966a2e9ca79d9511664e1494a326a4c304d2fa5",
+    "mode": "100644",
+    "bytes": 690
+  },
+  "scenarios/e2e-cc-literal-path/source/src/data.c": {
+    "blob": "fdc9170cdef6fd100b5234a20563649f886acf24",
+    "mode": "100644",
+    "bytes": 48
+  },
+  "scenarios/e2e-cc-literal-path/source/src/main.c": {
+    "blob": "f3d240af489b826631ad1f42856a186237047472",
+    "mode": "100644",
+    "bytes": 610
+  },
+  "scenarios/e2e-cc-memo-after-entry/scenario.toml": {
+    "blob": "44005861f5e8ba857ec4253c26a0ceefee6c4cea",
+    "mode": "100644",
+    "bytes": 2047
+  },
+  "scenarios/e2e-cc-memo-after-entry/source/Makefile": {
+    "blob": "8abb5bc711967ba74da1389ad32e261e9eb7b91e",
+    "mode": "100644",
+    "bytes": 792
+  },
+  "scenarios/e2e-cc-memo-after-entry/source/build/a/util.o": {
+    "blob": "5cae1dfc7ff46b29e6d58d6caf9549c75441d226",
+    "mode": "100644",
+    "bytes": 1784
+  },
+  "scenarios/e2e-cc-memo-after-entry/source/build/b/util.o": {
+    "blob": "5cae1dfc7ff46b29e6d58d6caf9549c75441d226",
+    "mode": "100644",
+    "bytes": 1784
+  },
+  "scenarios/e2e-cc-memo-after-entry/source/build/main.o": {
+    "blob": "ac9a17b15b6226e72a462d85c6d6986332bf870a",
+    "mode": "100644",
+    "bytes": 2216
+  },
+  "scenarios/e2e-cc-memo-after-entry/source/build/tool": {
+    "blob": "2e0378129ae34cc726d0d2913effb266796349ec",
+    "mode": "100755",
+    "bytes": 33992
+  },
+  "scenarios/e2e-cc-memo-after-entry/source/src/main.c": {
+    "blob": "769a3e275806a72b2b97f2adc59b8306008ac02b",
+    "mode": "100644",
+    "bytes": 121
+  },
+  "scenarios/e2e-cc-memo-after-entry/source/src/util.c": {
+    "blob": "d24149d465af596fc356802abb310cc6a3e9d9b3",
+    "mode": "100644",
+    "bytes": 63
+  },
+  "scenarios/e2e-cc-memo-after-entry/source/src/util.h": {
+    "blob": "15837a845fd8185d66179fe05031af3f0088405a",
+    "mode": "100644",
+    "bytes": 22
+  },
+  "scenarios/e2e-cc-multi-source/scenario.toml": {
+    "blob": "f12fdd7239b707c69832d7fd95d0883d0b82bc21",
+    "mode": "100644",
+    "bytes": 1989
+  },
+  "scenarios/e2e-cc-multi-source/source/.gitignore": {
+    "blob": "567609b1234a9b8806c5a05da6c866e480aa148d",
+    "mode": "100644",
+    "bytes": 7
+  },
+  "scenarios/e2e-cc-multi-source/source/Makefile": {
+    "blob": "96000b911308bd801a5273d02adc4af511b2c3d2",
+    "mode": "100644",
+    "bytes": 885
+  },
+  "scenarios/e2e-cc-multi-source/source/src/a.c": {
+    "blob": "255155abd3b9d60e2de39bcc6cd8a5484698595b",
+    "mode": "100644",
+    "bytes": 30
+  },
+  "scenarios/e2e-cc-multi-source/source/src/b.c": {
+    "blob": "450090ead89879b9160f353052530e52cb277d05",
+    "mode": "100644",
+    "bytes": 31
+  },
+  "scenarios/e2e-cc-multi-source/source/src/main.c": {
+    "blob": "abfc6f6985d89b5a143a8d90c88561997ab9dc4f",
+    "mode": "100644",
+    "bytes": 143
+  },
+  "scenarios/e2e-cc-parallel/scenario.toml": {
+    "blob": "0605c6daf21feeece07df7405f80c4b5406ea17d",
+    "mode": "100644",
+    "bytes": 2642
+  },
+  "scenarios/e2e-cc-parallel/source/Makefile": {
+    "blob": "1352c554281c5cd59f142ee2d633302d7ee045cf",
+    "mode": "100644",
+    "bytes": 668
+  },
+  "scenarios/e2e-cc-parallel/source/src/main.c": {
+    "blob": "5228be4f665b44fb8ab5ed302f3e77e36e207970",
+    "mode": "100644",
+    "bytes": 534
+  },
+  "scenarios/e2e-cc-parallel/source/src/u00.c": {
+    "blob": "d40c409d5ff3fc1448e2d7485b765cf84d86252d",
+    "mode": "100644",
+    "bytes": 56
+  },
+  "scenarios/e2e-cc-parallel/source/src/u01.c": {
+    "blob": "13d8cac358b7c58f3b6931c01048dc2bee163fa1",
+    "mode": "100644",
+    "bytes": 56
+  },
+  "scenarios/e2e-cc-parallel/source/src/u02.c": {
+    "blob": "db7d8d90e5fe17e986b26032659b87bb0818cbdf",
+    "mode": "100644",
+    "bytes": 56
+  },
+  "scenarios/e2e-cc-parallel/source/src/u03.c": {
+    "blob": "bb8580feea0b0e1ac71e2a679657ea8cc368fad6",
+    "mode": "100644",
+    "bytes": 56
+  },
+  "scenarios/e2e-cc-parallel/source/src/u04.c": {
+    "blob": "59e163546ca37e33b96284939146f6f65db73a90",
+    "mode": "100644",
+    "bytes": 56
+  },
+  "scenarios/e2e-cc-parallel/source/src/u05.c": {
+    "blob": "766ee8c279cddd6b4c6eb0d6f670e14d5ac39cf8",
+    "mode": "100644",
+    "bytes": 56
+  },
+  "scenarios/e2e-cc-parallel/source/src/u06.c": {
+    "blob": "707383710026698bbf0d45398600781e9d43e593",
+    "mode": "100644",
+    "bytes": 56
+  },
+  "scenarios/e2e-cc-parallel/source/src/u07.c": {
+    "blob": "586e72a7dea819463a4d969f8f0dc5d621af7c49",
+    "mode": "100644",
+    "bytes": 56
+  },
+  "scenarios/e2e-cc-parallel/source/src/u08.c": {
+    "blob": "701c5185ecc5ff87e297585c807576fa768bdcbc",
+    "mode": "100644",
+    "bytes": 56
+  },
+  "scenarios/e2e-cc-parallel/source/src/u09.c": {
+    "blob": "e0a97a287d73a51016e5732b4ca52e3478464027",
+    "mode": "100644",
+    "bytes": 56
+  },
+  "scenarios/e2e-cc-parallel/source/src/u10.c": {
+    "blob": "069626f904ce219371f28084cf7bd4e9e6ae5dd9",
+    "mode": "100644",
+    "bytes": 57
+  },
+  "scenarios/e2e-cc-parallel/source/src/u11.c": {
+    "blob": "9ee8a9bc8753faa57fd7fdf74c98a2a59bac017c",
+    "mode": "100644",
+    "bytes": 57
+  },
+  "scenarios/e2e-cc-response-file/scenario.toml": {
+    "blob": "862430015822672b32ed57de2bf50b75f633a1c7",
+    "mode": "100644",
+    "bytes": 1705
+  },
+  "scenarios/e2e-cc-response-file/source/.gitignore": {
+    "blob": "567609b1234a9b8806c5a05da6c866e480aa148d",
+    "mode": "100644",
+    "bytes": 7
+  },
+  "scenarios/e2e-cc-response-file/source/Makefile": {
+    "blob": "2c05acb11f473f69fe44e5e09fbff341b30901e7",
+    "mode": "100644",
+    "bytes": 796
+  },
+  "scenarios/e2e-cc-response-file/source/args.rsp": {
+    "blob": "105edbdbe56ecdba08dd276b1b276fb05b054eb0",
+    "mode": "100644",
+    "bytes": 34
+  },
+  "scenarios/e2e-cc-response-file/source/src/main.c": {
+    "blob": "2f3e9d45eadc669d70ecb5222e97562fa2299845",
+    "mode": "100644",
+    "bytes": 87
+  },
+  "scenarios/e2e-cc-same-content-sources-parallel/scenario.toml": {
+    "blob": "7a83083e95d9c6c5398f9fc7e1f05c5fd3526321",
+    "mode": "100644",
+    "bytes": 1232
+  },
+  "scenarios/e2e-cc-same-content-sources/scenario.toml": {
+    "blob": "a82c3d89bc2aa8ac2e67c068235c5cb04aac683a",
+    "mode": "100644",
+    "bytes": 1537
+  },
+  "scenarios/e2e-cc-same-content-sources/source/Makefile": {
+    "blob": "0a1b573c4aa405b6dff621510f377aa225b5eea8",
+    "mode": "100644",
+    "bytes": 638
+  },
+  "scenarios/e2e-cc-same-content-sources/source/src/a/util.c": {
+    "blob": "e4e83e17ce866d8c01ae437a52a9e39cffbbf555",
+    "mode": "100644",
+    "bytes": 81
+  },
+  "scenarios/e2e-cc-same-content-sources/source/src/a/util.h": {
+    "blob": "62040029e1852fc578b0518d9ecf2c292cf78735",
+    "mode": "100644",
+    "bytes": 22
+  },
+  "scenarios/e2e-cc-same-content-sources/source/src/b/util.c": {
+    "blob": "e4e83e17ce866d8c01ae437a52a9e39cffbbf555",
+    "mode": "100644",
+    "bytes": 81
+  },
+  "scenarios/e2e-cc-same-content-sources/source/src/b/util.h": {
+    "blob": "62040029e1852fc578b0518d9ecf2c292cf78735",
+    "mode": "100644",
+    "bytes": 22
+  },
+  "scenarios/e2e-cc-same-content-sources/source/src/main.c": {
+    "blob": "15b01a95d68b96af812caf06db196d8da775c65e",
+    "mode": "100644",
+    "bytes": 121
+  },
+  "scenarios/e2e-cmake-file-macro-oot/scenario.toml": {
+    "blob": "7fc913113daad7172f71d6e6f568d72ae249e639",
+    "mode": "100644",
+    "bytes": 2374
+  },
+  "scenarios/e2e-cmake-file-macro-oot/source/CMakeLists.txt": {
+    "blob": "5cb0ab80f0d7dea586b69802d57b125e7820cdf3",
+    "mode": "100644",
+    "bytes": 588
+  },
+  "scenarios/e2e-cmake-file-macro-oot/source/src/base/location.cc": {
+    "blob": "f6fa7fec4f18f1d9a8b13e5a75f0bafc1fa2d844",
+    "mode": "100644",
+    "bytes": 2117
+  },
+  "scenarios/e2e-cmake-ninja-flagset/scenario.toml": {
+    "blob": "28d8890b3fc9cfb70f5596136debf2ac02a28374",
+    "mode": "100644",
+    "bytes": 3388
+  },
+  "scenarios/e2e-cmake-ninja-flagset/source/CMakeLists.txt": {
+    "blob": "cc87f775a4049d14fa195573417924092fb98ea7",
+    "mode": "100644",
+    "bytes": 420
+  },
+  "scenarios/e2e-cmake-ninja-flagset/source/src/main.cpp": {
+    "blob": "e4c1040c48f642837127dcee22173e54039561e7",
+    "mode": "100644",
+    "bytes": 552
+  },
+  "scenarios/e2e-cmake-ninja-flagset/source/version.h.in": {
+    "blob": "827217ab771cc237a6a627195bd9744e92ac1727",
+    "mode": "100644",
+    "bytes": 34
+  },
+  "scenarios/e2e-cmake-out-of-tree/scenario.toml": {
+    "blob": "eb0ef62dbea551324e1e93000f8cb21776edd712",
+    "mode": "100644",
+    "bytes": 2789
+  },
+  "scenarios/e2e-cmake-out-of-tree/source/CMakeLists.txt": {
+    "blob": "a51e0c2b8efb038467db233bf42c576705db374d",
+    "mode": "100644",
+    "bytes": 492
+  },
+  "scenarios/e2e-cmake-out-of-tree/source/src/bar.h": {
+    "blob": "bd26022016aaa2bc2e4efb052922c286c65babb9",
+    "mode": "100644",
+    "bytes": 84
+  },
+  "scenarios/e2e-cmake-out-of-tree/source/src/foo.c": {
+    "blob": "5190225a606e3f175d81cefc22392c0d359c2628",
+    "mode": "100644",
+    "bytes": 139
+  },
+  "scenarios/e2e-cmake-out-of-tree/source/version.h.in": {
+    "blob": "729c999bc6b358330ef2035618e698229d5c17b8",
+    "mode": "100644",
+    "bytes": 48
+  },
+  "scenarios/e2e-cpp-hello/scenario.toml": {
+    "blob": "4606e97df8c1cfd11d225528959b9805e0290e06",
+    "mode": "100644",
+    "bytes": 1938
+  },
+  "scenarios/e2e-cpp-hello/source/.gitignore": {
+    "blob": "567609b1234a9b8806c5a05da6c866e480aa148d",
+    "mode": "100644",
+    "bytes": 7
+  },
+  "scenarios/e2e-cpp-hello/source/Makefile": {
+    "blob": "7071949707150075ed12f2d3f1f2cacb7b112fe6",
+    "mode": "100644",
+    "bytes": 686
+  },
+  "scenarios/e2e-cpp-hello/source/src/bar.hpp": {
+    "blob": "6f3d01cb1d0b68abad3a6c65211d8c694035e943",
+    "mode": "100644",
+    "bytes": 149
+  },
+  "scenarios/e2e-cpp-hello/source/src/foo.cpp": {
+    "blob": "bd92244fdfffaa79c4fbbfca339767bbc58b7b90",
+    "mode": "100644",
+    "bytes": 343
+  },
+  "scenarios/e2e-exclude-c/scenario.toml": {
+    "blob": "b453b1ee74e4d56a0c8fa785e532c093d6aea6ca",
+    "mode": "100644",
+    "bytes": 1026
+  },
+  "scenarios/e2e-exclude-c/source/.kache.toml": {
+    "blob": "ec6e0be6d4dfae2d5e4765eb26cc4d1a74eb1f19",
+    "mode": "100644",
+    "bytes": 32
+  },
+  "scenarios/e2e-exclude-c/source/Makefile": {
+    "blob": "73ee88062e842dcd3174b839c234aa469a6dcc22",
+    "mode": "100644",
+    "bytes": 315
+  },
+  "scenarios/e2e-exclude-c/source/src/foo.c": {
+    "blob": "3cae6e2a90cf02bacd091b03027cc0a25dae6bd6",
+    "mode": "100644",
+    "bytes": 79
+  },
+  "scenarios/e2e-exclude-rust/scenario.toml": {
+    "blob": "44cedea74c3ae384c666143394b30e3b8385afeb",
+    "mode": "100644",
+    "bytes": 1165
+  },
+  "scenarios/e2e-exclude-rust/source/.kache.toml": {
+    "blob": "059c9abedb9f74be54e749f53a455b78e2a494f0",
+    "mode": "100644",
+    "bytes": 34
+  },
+  "scenarios/e2e-exclude-rust/source/Cargo.lock": {
+    "blob": "34cb46cc5543d708b1f6514f52e1cdf48cbfa8d5",
+    "mode": "100644",
+    "bytes": 156
+  },
+  "scenarios/e2e-exclude-rust/source/Cargo.toml": {
+    "blob": "aaf901c7bf3ba3da880a04eb988d73c84a94b55e",
+    "mode": "100644",
+    "bytes": 80
+  },
+  "scenarios/e2e-exclude-rust/source/src/main.rs": {
+    "blob": "6b64b63b0cecdfa2f9dd19304aecb08243b7cce9",
+    "mode": "100644",
+    "bytes": 47
+  },
+  "scenarios/e2e-manifest-dir-runtime-workspace/scenario.toml": {
+    "blob": "208ddc33b3273b75883dd7de78f6c67c3714e8a2",
+    "mode": "100644",
+    "bytes": 693
+  },
+  "scenarios/e2e-manifest-dir-runtime-workspace/source/Cargo.lock": {
+    "blob": "fa53f64675d35dd291535bf8ecf26249dc975e2f",
+    "mode": "100644",
+    "bytes": 229
+  },
+  "scenarios/e2e-manifest-dir-runtime-workspace/source/Cargo.toml": {
+    "blob": "dba655ae6eb746b8408a1f48280eb4016323ac64",
+    "mode": "100644",
+    "bytes": 60
+  },
+  "scenarios/e2e-manifest-dir-runtime-workspace/source/consumer/Cargo.toml": {
+    "blob": "4dc9e38ea14d1c9137ddfd3f9f9d4bf26515030d",
+    "mode": "100644",
+    "bytes": 111
+  },
+  "scenarios/e2e-manifest-dir-runtime-workspace/source/consumer/src/lib.rs": {
+    "blob": "e272ed7f6e586e155cb3f8ab0362386bd7fdff96",
+    "mode": "100644",
+    "bytes": 76
+  },
+  "scenarios/e2e-manifest-dir-runtime-workspace/source/consumer/tests/manifest.rs": {
+    "blob": "eb34f56c696354491b2786f810e8f806a024839f",
+    "mode": "100644",
+    "bytes": 386
+  },
+  "scenarios/e2e-manifest-dir-runtime-workspace/source/helper/Cargo.toml": {
+    "blob": "edb8da21c29dbadbba166fee11468197dd573792",
+    "mode": "100644",
+    "bytes": 88
+  },
+  "scenarios/e2e-manifest-dir-runtime-workspace/source/helper/src/lib.rs": {
+    "blob": "bb31c2413e2893c261ce5247e45f255f859c06ea",
+    "mode": "100644",
+    "bytes": 90
+  },
+  "scenarios/e2e-multi-dep/scenario.toml": {
+    "blob": "3e1a151370dd554059c31f7c4155efb248450d1e",
+    "mode": "100644",
+    "bytes": 4813
+  },
+  "scenarios/e2e-multi-dep/source/Cargo.lock": {
+    "blob": "e2e4f115025c52e3a3a7d8ab978ee915e9f0f7f7",
+    "mode": "100644",
+    "bytes": 2668
+  },
+  "scenarios/e2e-multi-dep/source/Cargo.toml": {
+    "blob": "7a713a6f936ee6592c05c9198ca77f464488efa1",
+    "mode": "100644",
+    "bytes": 429
+  },
+  "scenarios/e2e-multi-dep/source/src/main.rs": {
+    "blob": "694ec9e401a4911d733b8359af3479740cefb3b5",
+    "mode": "100644",
+    "bytes": 328
+  },
+  "scenarios/e2e-out-dir-dual-pattern/scenario.toml": {
+    "blob": "3e1ba4f488261fb07340cd0c2061cc3de11797a1",
+    "mode": "100644",
+    "bytes": 1113
+  },
+  "scenarios/e2e-out-dir-dual-pattern/source/Cargo.lock": {
+    "blob": "5138869e4fdcae4b7fd76519d5f877c9e061de82",
+    "mode": "100644",
+    "bytes": 164
+  },
+  "scenarios/e2e-out-dir-dual-pattern/source/Cargo.toml": {
+    "blob": "b45d320d95e0be353783bea38e99f9a9ab89d05a",
+    "mode": "100644",
+    "bytes": 299
+  },
+  "scenarios/e2e-out-dir-dual-pattern/source/build.rs": {
+    "blob": "e0882026fc0b373876a5dc221fe94168e30be69a",
+    "mode": "100644",
+    "bytes": 528
+  },
+  "scenarios/e2e-out-dir-dual-pattern/source/src/main.rs": {
+    "blob": "abc09470537b53efb6051bca1fdf8e7724e5f8c4",
+    "mode": "100644",
+    "bytes": 362
+  },
+  "scenarios/e2e-out-dir-runtime/scenario.toml": {
+    "blob": "f172ed15e9ef24b72a7318c35377372d0997e524",
+    "mode": "100644",
+    "bytes": 3299
+  },
+  "scenarios/e2e-out-dir-runtime/source/.gitignore": {
+    "blob": "2f7896d1d1365eafb0da03d9fe456fac81408487",
+    "mode": "100644",
+    "bytes": 8
+  },
+  "scenarios/e2e-out-dir-runtime/source/Cargo.lock": {
+    "blob": "013db223ed4891e93a2a1338b25f7873620a2f22",
+    "mode": "100644",
+    "bytes": 159
+  },
+  "scenarios/e2e-out-dir-runtime/source/Cargo.toml": {
+    "blob": "e886440e149bf2bd7c964619d6bb90b5351b7ae4",
+    "mode": "100644",
+    "bytes": 601
+  },
+  "scenarios/e2e-out-dir-runtime/source/build.rs": {
+    "blob": "40e20608dfdbe977cd735cb6c654a479a57bec0b",
+    "mode": "100644",
+    "bytes": 908
+  },
+  "scenarios/e2e-out-dir-runtime/source/src/main.rs": {
+    "blob": "820d1652cbc6b586daf4844b20f126408eabb4ce",
+    "mode": "100644",
+    "bytes": 1381
+  },
+  "scenarios/e2e-rust-c-ffi/scenario.toml": {
+    "blob": "2130f7f2953587e6d3f456ed00317ecdc42457fa",
+    "mode": "100644",
+    "bytes": 4024
+  },
+  "scenarios/e2e-rust-c-ffi/source/.gitignore": {
+    "blob": "2f7896d1d1365eafb0da03d9fe456fac81408487",
+    "mode": "100644",
+    "bytes": 8
+  },
+  "scenarios/e2e-rust-c-ffi/source/Cargo.lock": {
+    "blob": "31ce980b366e72fbf471833c24a1b716e5c2d88a",
+    "mode": "100644",
+    "bytes": 804
+  },
+  "scenarios/e2e-rust-c-ffi/source/Cargo.toml": {
+    "blob": "f30fd9c6f347ef378f7c737b22264da8840f6e09",
+    "mode": "100644",
+    "bytes": 483
+  },
+  "scenarios/e2e-rust-c-ffi/source/build.rs": {
+    "blob": "5cc91f4b50d5af53a67f991a02d1fa881bba0128",
+    "mode": "100644",
+    "bytes": 452
+  },
+  "scenarios/e2e-rust-c-ffi/source/csrc/adder.c": {
+    "blob": "12e8c134e629202d02794782a1eb9dad22378c2c",
+    "mode": "100644",
+    "bytes": 307
+  },
+  "scenarios/e2e-rust-c-ffi/source/src/main.rs": {
+    "blob": "320e443065d5cf249619c322d7fcd3d9a40c8203",
+    "mode": "100644",
+    "bytes": 466
+  },
+  "scenarios/e2e-rust-cascade-file-macro/scenario.toml": {
+    "blob": "c4fe7bb42b2bbdb1c47780482b97d7a6ef7d4469",
+    "mode": "100644",
+    "bytes": 1087
+  },
+  "scenarios/e2e-rust-cascade-file-macro/source/Cargo.lock": {
+    "blob": "5b69f36c2539dc7a9d3c3e78407a19887ce8550e",
+    "mode": "100644",
+    "bytes": 291
+  },
+  "scenarios/e2e-rust-cascade-file-macro/source/Cargo.toml": {
+    "blob": "e45110460e6991084ece19302c5fc7c105c4ef3d",
+    "mode": "100644",
+    "bytes": 81
+  },
+  "scenarios/e2e-rust-cascade-file-macro/source/crates/app/Cargo.toml": {
+    "blob": "ef34ca4a8b1ef584a1ad6ea9613fe164750cabb1",
+    "mode": "100644",
+    "bytes": 100
+  },
+  "scenarios/e2e-rust-cascade-file-macro/source/crates/app/src/main.rs": {
+    "blob": "04d17ba26c9c3e1451551a384c2dac9330ee6553",
+    "mode": "100644",
+    "bytes": 130
+  },
+  "scenarios/e2e-rust-cascade-file-macro/source/crates/leaf/Cargo.toml": {
+    "blob": "f95e415b9149bb219820f2386bf93c93e5d51420",
+    "mode": "100644",
+    "bytes": 59
+  },
+  "scenarios/e2e-rust-cascade-file-macro/source/crates/leaf/src/lib.rs": {
+    "blob": "732da3e6582c6c4ec53b27a4b523cd136ffa04ec",
+    "mode": "100644",
+    "bytes": 486
+  },
+  "scenarios/e2e-rust-cascade-file-macro/source/crates/mid/Cargo.toml": {
+    "blob": "770c4dd782780bad1cab732f96ac0f6a28472ced",
+    "mode": "100644",
+    "bytes": 102
+  },
+  "scenarios/e2e-rust-cascade-file-macro/source/crates/mid/src/lib.rs": {
+    "blob": "d7362f351b09a7648518c9c1c791a9d316fb6d2d",
+    "mode": "100644",
+    "bytes": 259
+  },
+  "scenarios/e2e-rust-cascade-manifest-env/scenario.toml": {
+    "blob": "f42c1de753de38fbc6e382bdc07a7531ebba6725",
+    "mode": "100644",
+    "bytes": 1804
+  },
+  "scenarios/e2e-rust-cascade-manifest-env/source/Cargo.lock": {
+    "blob": "5b69f36c2539dc7a9d3c3e78407a19887ce8550e",
+    "mode": "100644",
+    "bytes": 291
+  },
+  "scenarios/e2e-rust-cascade-manifest-env/source/Cargo.toml": {
+    "blob": "e45110460e6991084ece19302c5fc7c105c4ef3d",
+    "mode": "100644",
+    "bytes": 81
+  },
+  "scenarios/e2e-rust-cascade-manifest-env/source/crates/app/Cargo.toml": {
+    "blob": "ef34ca4a8b1ef584a1ad6ea9613fe164750cabb1",
+    "mode": "100644",
+    "bytes": 100
+  },
+  "scenarios/e2e-rust-cascade-manifest-env/source/crates/app/src/main.rs": {
+    "blob": "04d17ba26c9c3e1451551a384c2dac9330ee6553",
+    "mode": "100644",
+    "bytes": 130
+  },
+  "scenarios/e2e-rust-cascade-manifest-env/source/crates/leaf/Cargo.toml": {
+    "blob": "f95e415b9149bb219820f2386bf93c93e5d51420",
+    "mode": "100644",
+    "bytes": 59
+  },
+  "scenarios/e2e-rust-cascade-manifest-env/source/crates/leaf/src/lib.rs": {
+    "blob": "59a16ae38a770c6afccc8da8f8f30369690bac8c",
+    "mode": "100644",
+    "bytes": 756
+  },
+  "scenarios/e2e-rust-cascade-manifest-env/source/crates/mid/Cargo.toml": {
+    "blob": "770c4dd782780bad1cab732f96ac0f6a28472ced",
+    "mode": "100644",
+    "bytes": 102
+  },
+  "scenarios/e2e-rust-cascade-manifest-env/source/crates/mid/src/lib.rs": {
+    "blob": "d7362f351b09a7648518c9c1c791a9d316fb6d2d",
+    "mode": "100644",
+    "bytes": 259
+  },
+  "scenarios/e2e-rust-check-all-targets/scenario.toml": {
+    "blob": "96672e5bd424b756a1ce1b8bdeedcfc381ed57cb",
+    "mode": "100644",
+    "bytes": 2321
+  },
+  "scenarios/e2e-rust-check-all-targets/source/Cargo.lock": {
+    "blob": "aa71a32d0f136298a0455a70b3feb52bc72aa36e",
+    "mode": "100644",
+    "bytes": 166
+  },
+  "scenarios/e2e-rust-check-all-targets/source/Cargo.toml": {
+    "blob": "c7cb5c99cb979090da096250eb40592cc4922b8e",
+    "mode": "100644",
+    "bytes": 244
+  },
+  "scenarios/e2e-rust-check-all-targets/source/src/lib.rs": {
+    "blob": "12e7e898abd37b3007a380d55d5a0241c9bfcaa7",
+    "mode": "100644",
+    "bytes": 278
+  },
+  "scenarios/e2e-rust-check-all-targets/source/tests/it.rs": {
+    "blob": "0c1e5e927f9faeb6fe4590fb0ea415bd5ea0b1d0",
+    "mode": "100644",
+    "bytes": 289
+  },
+  "scenarios/e2e-rust-check/scenario.toml": {
+    "blob": "5502eda1f7cf4e4c49d4976542ca9e2282ac2893",
+    "mode": "100644",
+    "bytes": 1480
+  },
+  "scenarios/e2e-rust-check/source/Cargo.lock": {
+    "blob": "3bb3dd4486265f377e0f8dd78d37141c57a13f2b",
+    "mode": "100644",
+    "bytes": 371
+  },
+  "scenarios/e2e-rust-check/source/Cargo.toml": {
+    "blob": "c34b565e6f154f655dc97ddad31d654b02746589",
+    "mode": "100644",
+    "bytes": 216
+  },
+  "scenarios/e2e-rust-check/source/src/lib.rs": {
+    "blob": "b73a78014141283bf535f9c811c9191f42293db7",
+    "mode": "100644",
+    "bytes": 238
+  },
+  "scenarios/e2e-rust-cross-tree/scenario.toml": {
+    "blob": "55b1e4852502c3fec939290c9d0c05f9ae92e918",
+    "mode": "100644",
+    "bytes": 1448
+  },
+  "scenarios/e2e-rust-cross-tree/source/Cargo.lock": {
+    "blob": "051bfaa1509be3a96954cfd90a26c3b2ce570d87",
+    "mode": "100644",
+    "bytes": 270
+  },
+  "scenarios/e2e-rust-cross-tree/source/Cargo.toml": {
+    "blob": "f0e8d2b2aba14fdc7447475eaf6734b0207e39e1",
+    "mode": "100644",
+    "bytes": 256
+  },
+  "scenarios/e2e-rust-cross-tree/source/app/Cargo.toml": {
+    "blob": "01046b025b808f88671f58c4058786438306745c",
+    "mode": "100644",
+    "bytes": 283
+  },
+  "scenarios/e2e-rust-cross-tree/source/app/build.rs": {
+    "blob": "25a0b014467a06414c09022665d073e01dc725fc",
+    "mode": "100644",
+    "bytes": 118
+  },
+  "scenarios/e2e-rust-cross-tree/source/app/src/main.rs": {
+    "blob": "01a6054ab7f86e0892a3f8eac7f5bfc7dbc1899a",
+    "mode": "100644",
+    "bytes": 78
+  },
+  "scenarios/e2e-rust-cross-tree/source/cross-tree.sh": {
+    "blob": "383d40157fb123ea391ed74a6616049f7caff22a",
+    "mode": "100644",
+    "bytes": 5719
+  },
+  "scenarios/e2e-rust-cross-tree/source/pm/Cargo.toml": {
+    "blob": "7e6e6e44248100aedb27340ad375fa2066bea8c5",
+    "mode": "100644",
+    "bytes": 296
+  },
+  "scenarios/e2e-rust-cross-tree/source/pm/build.rs": {
+    "blob": "467a1b0c687ce482c30d8c39eef6c96b4a9887a7",
+    "mode": "100644",
+    "bytes": 422
+  },
+  "scenarios/e2e-rust-cross-tree/source/pm/src/lib.rs": {
+    "blob": "b28cc494966850f94942e7f3a203995df3127e3d",
+    "mode": "100644",
+    "bytes": 197
+  },
+  "scenarios/e2e-rust-cross-tree/source/util/Cargo.toml": {
+    "blob": "8f74c03a685c137cc3ae4baaf9129d223630f77f",
+    "mode": "100644",
+    "bytes": 59
+  },
+  "scenarios/e2e-rust-cross-tree/source/util/src/lib.rs": {
+    "blob": "d5a510adcfbccb259e32283f2838645656a36c9c",
+    "mode": "100644",
+    "bytes": 225
+  },
+  "scenarios/e2e-rust-debug-paths/scenario.toml": {
+    "blob": "1b798d4bda0acce5571dcb8d9f3939ae7c8b8f9b",
+    "mode": "100644",
+    "bytes": 3062
+  },
+  "scenarios/e2e-rust-debug-paths/source/Cargo.lock": {
+    "blob": "3cb2f1e892e1fb932cc4bebf2bc6c68eb874bf72",
+    "mode": "100644",
+    "bytes": 377
+  },
+  "scenarios/e2e-rust-debug-paths/source/Cargo.toml": {
+    "blob": "e781cee783776bd6d3ff4d00f579c0e2a80acd8e",
+    "mode": "100644",
+    "bytes": 489
+  },
+  "scenarios/e2e-rust-debug-paths/source/src/lib.rs": {
+    "blob": "2a53a88b3e2286b584035e29b8f05b3fa4b1dca9",
+    "mode": "100644",
+    "bytes": 755
+  },
+  "scenarios/e2e-rust-debug-paths/source/src/main.rs": {
+    "blob": "2bfa8b492f52459b620da142d5781b9c976fa336",
+    "mode": "100644",
+    "bytes": 528
+  },
+  "scenarios/e2e-rust-debug/scenario.toml": {
+    "blob": "23547fc82048d45f706dc0d562333130b36b730e",
+    "mode": "100644",
+    "bytes": 1990
+  },
+  "scenarios/e2e-rust-debug/source/Cargo.lock": {
+    "blob": "1c31b014b0f15d94d44e85dabec8d9dabb982e55",
+    "mode": "100644",
+    "bytes": 371
+  },
+  "scenarios/e2e-rust-debug/source/Cargo.toml": {
+    "blob": "23cfd0de931275470957d4baef73e5ffcc0d7645",
+    "mode": "100644",
+    "bytes": 387
+  },
+  "scenarios/e2e-rust-debug/source/src/main.rs": {
+    "blob": "1552bd1844071a73c388feb45b88e79e0da6c6e8",
+    "mode": "100644",
+    "bytes": 229
+  },
+  "scenarios/e2e-rust-dep-cascade/scenario.toml": {
+    "blob": "f06fb0341a969b0cb13d59eb8730b6520224e577",
+    "mode": "100644",
+    "bytes": 1721
+  },
+  "scenarios/e2e-rust-dep-cascade/source/Cargo.lock": {
+    "blob": "5b69f36c2539dc7a9d3c3e78407a19887ce8550e",
+    "mode": "100644",
+    "bytes": 291
+  },
+  "scenarios/e2e-rust-dep-cascade/source/Cargo.toml": {
+    "blob": "6703c89aa73f780d30e98802d19636d6c619646b",
+    "mode": "100644",
+    "bytes": 441
+  },
+  "scenarios/e2e-rust-dep-cascade/source/crates/app/Cargo.toml": {
+    "blob": "ef34ca4a8b1ef584a1ad6ea9613fe164750cabb1",
+    "mode": "100644",
+    "bytes": 100
+  },
+  "scenarios/e2e-rust-dep-cascade/source/crates/app/src/main.rs": {
+    "blob": "0944f8b78c228343b1125622cbbd5f16f3eac705",
+    "mode": "100644",
+    "bytes": 114
+  },
+  "scenarios/e2e-rust-dep-cascade/source/crates/leaf/Cargo.toml": {
+    "blob": "f95e415b9149bb219820f2386bf93c93e5d51420",
+    "mode": "100644",
+    "bytes": 59
+  },
+  "scenarios/e2e-rust-dep-cascade/source/crates/leaf/src/lib.rs": {
+    "blob": "6bfcb38f3b59f0bec219ce1248715e7cdfbc034f",
+    "mode": "100644",
+    "bytes": 172
+  },
+  "scenarios/e2e-rust-dep-cascade/source/crates/mid/Cargo.toml": {
+    "blob": "770c4dd782780bad1cab732f96ac0f6a28472ced",
+    "mode": "100644",
+    "bytes": 102
+  },
+  "scenarios/e2e-rust-dep-cascade/source/crates/mid/src/lib.rs": {
+    "blob": "12abc283a6a5826acf7fdcfe5a32f9af6757b777",
+    "mode": "100644",
+    "bytes": 112
+  },
+  "scenarios/e2e-rust-dsym/scenario.toml": {
+    "blob": "7fe187e60da6fb0f7f9eb9e2dcc1b12572b4d508",
+    "mode": "100644",
+    "bytes": 2768
+  },
+  "scenarios/e2e-rust-dsym/source/Cargo.lock": {
+    "blob": "60205e2bcf09be031964e5c566526cebeba474a3",
+    "mode": "100644",
+    "bytes": 370
+  },
+  "scenarios/e2e-rust-dsym/source/Cargo.toml": {
+    "blob": "c6cc2e7960ff1e8fbb00fd53cb4b42a3d89669bc",
+    "mode": "100644",
+    "bytes": 349
+  },
+  "scenarios/e2e-rust-dsym/source/examples/demo.rs": {
+    "blob": "bfad7cd4bb7a3c23763944404af13bfd2b639e69",
+    "mode": "100644",
+    "bytes": 96
+  },
+  "scenarios/e2e-rust-dsym/source/src/main.rs": {
+    "blob": "d53cca00cf21471e51827ca109d84ee06385ff1e",
+    "mode": "100644",
+    "bytes": 439
+  },
+  "scenarios/e2e-rust-dsym/source/tests/it.rs": {
+    "blob": "60a215ac88987e6e85fa5863726d873a7b413c2b",
+    "mode": "100644",
+    "bytes": 79
+  },
+  "scenarios/e2e-rust-dsym/source/verify-dsym.sh": {
+    "blob": "859ea3674335d65683ca6d071c7755f7ea7b348c",
+    "mode": "100644",
+    "bytes": 2407
+  },
+  "scenarios/e2e-rust-env-outdir-include/scenario.toml": {
+    "blob": "2b5adc835b606f9b057f1533854d30b5dd1fd900",
+    "mode": "100644",
+    "bytes": 1954
+  },
+  "scenarios/e2e-rust-env-outdir-include/source/Cargo.lock": {
+    "blob": "2479373b80633bde3fc8abf9a683de6127d250e0",
+    "mode": "100644",
+    "bytes": 224
+  },
+  "scenarios/e2e-rust-env-outdir-include/source/Cargo.toml": {
+    "blob": "192b413712e644f7341766bf0838ab16987a2b3c",
+    "mode": "100644",
+    "bytes": 102
+  },
+  "scenarios/e2e-rust-env-outdir-include/source/crates/app/Cargo.toml": {
+    "blob": "b1ee761bfc4c8baa1d89200bd97e9707255da5b0",
+    "mode": "100644",
+    "bytes": 106
+  },
+  "scenarios/e2e-rust-env-outdir-include/source/crates/app/src/main.rs": {
+    "blob": "c55d2054d78e89dc8e56afb20c0ee4d333959fef",
+    "mode": "100644",
+    "bytes": 67
+  },
+  "scenarios/e2e-rust-env-outdir-include/source/crates/genlib/Cargo.toml": {
+    "blob": "90836ed0f7e2e62388249abbf39273949e7f1d85",
+    "mode": "100644",
+    "bytes": 61
+  },
+  "scenarios/e2e-rust-env-outdir-include/source/crates/genlib/build.rs": {
+    "blob": "cd542cd979b60ecb471ec9b6f68ea3d87f384edb",
+    "mode": "100644",
+    "bytes": 421
+  },
+  "scenarios/e2e-rust-env-outdir-include/source/crates/genlib/src/lib.rs": {
+    "blob": "6c48ca54c8d92942b971072be0a4abf4788e0c3e",
+    "mode": "100644",
+    "bytes": 60
+  },
+  "scenarios/e2e-rust-extra-inputs/scenario.toml": {
+    "blob": "e2a8985578a8822c65e1d343f507c56c4f2e6a67",
+    "mode": "100644",
+    "bytes": 3062
+  },
+  "scenarios/e2e-rust-extra-inputs/source/Cargo.lock": {
+    "blob": "73263cca598dda07e64fb731d5c622fc1b023cf4",
+    "mode": "100644",
+    "bytes": 216
+  },
+  "scenarios/e2e-rust-extra-inputs/source/Cargo.toml": {
+    "blob": "5fbfbceb844a7d1f69c3ecbd74a7b4e2925e478a",
+    "mode": "100644",
+    "bytes": 231
+  },
+  "scenarios/e2e-rust-extra-inputs/source/app/Cargo.toml": {
+    "blob": "abf682451d3f8db34c4fb7a8dd4b2b95b01afc88",
+    "mode": "100644",
+    "bytes": 156
+  },
+  "scenarios/e2e-rust-extra-inputs/source/app/data/value.txt": {
+    "blob": "626799f0f85326a8c1fc522db584e86cdfccd51f",
+    "mode": "100644",
+    "bytes": 3
+  },
+  "scenarios/e2e-rust-extra-inputs/source/app/kache.toml": {
+    "blob": "33c5e86fd494a94111b2b28cf37b6cd26b44ab45",
+    "mode": "100644",
+    "bytes": 439
+  },
+  "scenarios/e2e-rust-extra-inputs/source/app/src/main.rs": {
+    "blob": "d2fc987388f15284c1e910535b94d7bd36b79ae7",
+    "mode": "100644",
+    "bytes": 297
+  },
+  "scenarios/e2e-rust-extra-inputs/source/pm/Cargo.toml": {
+    "blob": "78f5e123dc9335555343da416be7aa28a80af396",
+    "mode": "100644",
+    "bytes": 293
+  },
+  "scenarios/e2e-rust-extra-inputs/source/pm/src/lib.rs": {
+    "blob": "d1f00c2b44ea197cfdb8ae2cd1344a14b0653c15",
+    "mode": "100644",
+    "bytes": 1081
+  },
+  "scenarios/e2e-rust-fallback/scenario.toml": {
+    "blob": "0d061e2c882d5b023fe36bc6b0c02db504d02b5d",
+    "mode": "100644",
+    "bytes": 3167
+  },
+  "scenarios/e2e-rust-fallback/source/Cargo.lock": {
+    "blob": "18d30572e1c1ffd3035ea221990e21b90679843a",
+    "mode": "100644",
+    "bytes": 157
+  },
+  "scenarios/e2e-rust-fallback/source/Cargo.toml": {
+    "blob": "d5a3ffca934fb4f7e54b3cd4d3ab777f54aa9900",
+    "mode": "100644",
+    "bytes": 679
+  },
+  "scenarios/e2e-rust-fallback/source/src/main.rs": {
+    "blob": "7c20a01980f6a51b1b7d264739cf5eb46b14f196",
+    "mode": "100644",
+    "bytes": 819
+  },
+  "scenarios/e2e-rust-flag-soup/scenario.toml": {
+    "blob": "13078cfc99f483c0c7acb14bcec8f940c0bea64a",
+    "mode": "100644",
+    "bytes": 1381
+  },
+  "scenarios/e2e-rust-flag-soup/source/Cargo.lock": {
+    "blob": "b1738d7b155e63b1a4cc1c097281573df4a4c93d",
+    "mode": "100644",
+    "bytes": 375
+  },
+  "scenarios/e2e-rust-flag-soup/source/Cargo.toml": {
+    "blob": "6882a18f6006b12483a00268f17682f025c9e14d",
+    "mode": "100644",
+    "bytes": 345
+  },
+  "scenarios/e2e-rust-flag-soup/source/src/main.rs": {
+    "blob": "3bf57ace1a8d206549dc749b5e81e945981d5e3b",
+    "mode": "100644",
+    "bytes": 236
+  },
+  "scenarios/e2e-rust-out-of-tree-target/scenario.toml": {
+    "blob": "f37f8719f43fbbe525b195eebdbfd0e3d8d6e5a2",
+    "mode": "100644",
+    "bytes": 2478
+  },
+  "scenarios/e2e-rust-out-of-tree-target/source/Cargo.lock": {
+    "blob": "32a8cf0e869fa80576f8549feec033e18d95b810",
+    "mode": "100644",
+    "bytes": 162
+  },
+  "scenarios/e2e-rust-out-of-tree-target/source/Cargo.toml": {
+    "blob": "ab9eb145d229dfe27c36e4e4e903c1e9c86ac8c9",
+    "mode": "100644",
+    "bytes": 436
+  },
+  "scenarios/e2e-rust-out-of-tree-target/source/build.rs": {
+    "blob": "fbfa8c67edbf95362df49b36e704ebd03bc1b76e",
+    "mode": "100644",
+    "bytes": 627
+  },
+  "scenarios/e2e-rust-out-of-tree-target/source/src/main.rs": {
+    "blob": "310a1d38b060dc09cc3154ee664ac2ae0a46c0b0",
+    "mode": "100644",
+    "bytes": 418
+  },
+  "scenarios/e2e-rust-parallel-coalesce/scenario.toml": {
+    "blob": "359b70f411feedbbe52af28dd1de3b8d5eabecc1",
+    "mode": "100644",
+    "bytes": 4352
+  },
+  "scenarios/e2e-rust-parallel-coalesce/source/.gitignore": {
+    "blob": "4c7dc2367a63375cc503bb324e0ece577915769a",
+    "mode": "100644",
+    "bytes": 212
+  },
+  "scenarios/e2e-rust-parallel-coalesce/source/Cargo.lock": {
+    "blob": "942664bf4d7821e21d833e85758c26eae468b4b4",
+    "mode": "100644",
+    "bytes": 340
+  },
+  "scenarios/e2e-rust-parallel-coalesce/source/Cargo.toml": {
+    "blob": "a42e99804407e99eeaacc4c06c65626a1409f11f",
+    "mode": "100644",
+    "bytes": 265
+  },
+  "scenarios/e2e-rust-parallel-coalesce/source/app/Cargo.toml": {
+    "blob": "3fee1d82ca632d989de0c3a78ed540bd20c1543e",
+    "mode": "100644",
+    "bytes": 170
+  },
+  "scenarios/e2e-rust-parallel-coalesce/source/app/src/main.rs": {
+    "blob": "786bc5ddc780f19b6ef4f95413a9f0451972296e",
+    "mode": "100644",
+    "bytes": 148
+  },
+  "scenarios/e2e-rust-parallel-coalesce/source/heavy1/Cargo.toml": {
+    "blob": "daba97c919308e5ef52455bce0619d84a37edc5a",
+    "mode": "100644",
+    "bytes": 61
+  },
+  "scenarios/e2e-rust-parallel-coalesce/source/heavy2/Cargo.toml": {
+    "blob": "052a86ad2c508f8b4c075838b5bcd21639896c41",
+    "mode": "100644",
+    "bytes": 61
+  },
+  "scenarios/e2e-rust-parallel-coalesce/source/heavy3/Cargo.toml": {
+    "blob": "658d5ba0f99f3e16a5894dce3e0e2f4f4b61b044",
+    "mode": "100644",
+    "bytes": 61
+  },
+  "scenarios/e2e-rust-parallel-coalesce/source/parallel-build.sh": {
+    "blob": "7fb34451771392c73c1eabce99bb73f7e73bd6d7",
+    "mode": "100644",
+    "bytes": 3344
+  },
+  "scenarios/e2e-rust-predictions-verified/.gitignore": {
+    "blob": "3aab5c5f7a67648bb0f02d55e6e7eb9ec8f3dcba",
+    "mode": "100644",
+    "bytes": 86
+  },
+  "scenarios/e2e-rust-predictions-verified/scenario.toml": {
+    "blob": "96371b0f9cb45b01ed7a82e915f03f9c4494fd9b",
+    "mode": "100644",
+    "bytes": 1250
+  },
+  "scenarios/e2e-rust-predictions-verified/source/Cargo.toml": {
+    "blob": "378a927a735f9714a8fe4eef04b7c96fdcc76918",
+    "mode": "100644",
+    "bytes": 177
+  },
+  "scenarios/e2e-rust-predictions-verified/source/src/a.rs": {
+    "blob": "d37e78a9955b642cab3159e571ac0ee47c64019d",
+    "mode": "100644",
+    "bytes": 44
+  },
+  "scenarios/e2e-rust-predictions-verified/source/src/data.txt": {
+    "blob": "c2981a9931b383b5eb128dc5e3505654ab5269b6",
+    "mode": "100644",
+    "bytes": 8
+  },
+  "scenarios/e2e-rust-predictions-verified/source/src/lib.rs": {
+    "blob": "dcc110c98f5b014feeae97ad8384b0f0ac23cb88",
+    "mode": "100644",
+    "bytes": 273
+  },
+  "scenarios/e2e-rust-predictions/.gitignore": {
+    "blob": "3aab5c5f7a67648bb0f02d55e6e7eb9ec8f3dcba",
+    "mode": "100644",
+    "bytes": 86
+  },
+  "scenarios/e2e-rust-predictions/scenario.toml": {
+    "blob": "3cbbfe7103d4d12d2a7e3b186a7b53d533728518",
+    "mode": "100644",
+    "bytes": 860
+  },
+  "scenarios/e2e-rust-predictions/source/Cargo.toml": {
+    "blob": "378a927a735f9714a8fe4eef04b7c96fdcc76918",
+    "mode": "100644",
+    "bytes": 177
+  },
+  "scenarios/e2e-rust-predictions/source/src/a.rs": {
+    "blob": "d37e78a9955b642cab3159e571ac0ee47c64019d",
+    "mode": "100644",
+    "bytes": 44
+  },
+  "scenarios/e2e-rust-predictions/source/src/data.txt": {
+    "blob": "c2981a9931b383b5eb128dc5e3505654ab5269b6",
+    "mode": "100644",
+    "bytes": 8
+  },
+  "scenarios/e2e-rust-predictions/source/src/lib.rs": {
+    "blob": "dcc110c98f5b014feeae97ad8384b0f0ac23cb88",
+    "mode": "100644",
+    "bytes": 273
+  },
+  "scenarios/e2e-rust-remap-prefix/scenario.toml": {
+    "blob": "fcdb3aea8dd0e89422bed715a280c545f955ab5f",
+    "mode": "100644",
+    "bytes": 2078
+  },
+  "scenarios/e2e-rust-remap-prefix/source/Cargo.lock": {
+    "blob": "c9ce1c01dd25a17cdd93c46512455ac7bfa1c072",
+    "mode": "100644",
+    "bytes": 161
+  },
+  "scenarios/e2e-rust-remap-prefix/source/Cargo.toml": {
+    "blob": "78c625d371fe831d51f09f0b8eb593bb1fa12b9c",
+    "mode": "100644",
+    "bytes": 166
+  },
+  "scenarios/e2e-rust-remap-prefix/source/src/lib.rs": {
+    "blob": "16e4206c7f965a6befc7d528a11dfed759b8aa11",
+    "mode": "100644",
+    "bytes": 345
+  },
+  "scenarios/e2e-rust-remap-prefix/source/src/main.rs": {
+    "blob": "a98b481e59797426068c74a6e1a2eea0da1b55fb",
+    "mode": "100644",
+    "bytes": 65
+  },
+  "scenarios/e2e-rust-sccache/scenario.toml": {
+    "blob": "2f6c91581ad87fedd96e8398d938e23e178da4e6",
+    "mode": "100644",
+    "bytes": 4024
+  },
+  "scenarios/e2e-rust-sccache/source/Cargo.lock": {
+    "blob": "56a4ac0ca9bafc109b7a409feaa055a48c430e27",
+    "mode": "100644",
+    "bytes": 156
+  },
+  "scenarios/e2e-rust-sccache/source/Cargo.toml": {
+    "blob": "a4eaee04cac615e669f3dffc31d292c2733890c6",
+    "mode": "100644",
+    "bytes": 684
+  },
+  "scenarios/e2e-rust-sccache/source/src/main.rs": {
+    "blob": "4208a8f84f4521b0089fbb02b61d5ce5eb6bf1f5",
+    "mode": "100644",
+    "bytes": 881
+  },
+  "scenarios/e2e-rust-symlinked-target/scenario.toml": {
+    "blob": "fdd99621f0b7fbd71fd19cdab9758390a6ab91ae",
+    "mode": "100644",
+    "bytes": 1863
+  },
+  "scenarios/e2e-rust-symlinked-target/source/Cargo.lock": {
+    "blob": "32a8cf0e869fa80576f8549feec033e18d95b810",
+    "mode": "100644",
+    "bytes": 162
+  },
+  "scenarios/e2e-rust-symlinked-target/source/Cargo.toml": {
+    "blob": "ab9eb145d229dfe27c36e4e4e903c1e9c86ac8c9",
+    "mode": "100644",
+    "bytes": 436
+  },
+  "scenarios/e2e-rust-symlinked-target/source/build.rs": {
+    "blob": "fbfa8c67edbf95362df49b36e704ebd03bc1b76e",
+    "mode": "100644",
+    "bytes": 627
+  },
+  "scenarios/e2e-rust-symlinked-target/source/oot-link": {
+    "blob": "1aa8d1e7800ccb883f6547476a32d01b35debe05",
+    "mode": "120000",
+    "bytes": 17
+  },
+  "scenarios/e2e-rust-symlinked-target/source/src/main.rs": {
+    "blob": "310a1d38b060dc09cc3154ee664ac2ae0a46c0b0",
+    "mode": "100644",
+    "bytes": 418
+  },
+  "scenarios/e2e-rust-test-exec/scenario.toml": {
+    "blob": "381b3f09113f58c75428f78b2b4920fd4ad1b0d2",
+    "mode": "100644",
+    "bytes": 2539
+  },
+  "scenarios/e2e-rust-test-exec/source/Cargo.lock": {
+    "blob": "f9be253c40587fd92b87de41c80bd5e4fb3dd1b5",
+    "mode": "100644",
+    "bytes": 158
+  },
+  "scenarios/e2e-rust-test-exec/source/Cargo.toml": {
+    "blob": "38eaebda50bf9bf0c9bb115cc68b619895047e2b",
+    "mode": "100644",
+    "bytes": 236
+  },
+  "scenarios/e2e-rust-test-exec/source/src/lib.rs": {
+    "blob": "fd5647674a38725bcdc73034a4669da0255fd413",
+    "mode": "100644",
+    "bytes": 232
+  },
+  "scenarios/e2e-rust-test-exec/source/tests/e2e.rs": {
+    "blob": "bc983ca8e70c91a4686009e8f4c3226d52b659e1",
+    "mode": "100644",
+    "bytes": 459
+  },
+  "scenarios/e2e-rust-transitive-native/scenario.toml": {
+    "blob": "71399d2564465f23bc16b83d594f8e449881b341",
+    "mode": "100644",
+    "bytes": 1823
+  },
+  "scenarios/e2e-rust-transitive-native/source/Cargo.lock": {
+    "blob": "3a4c752288823eda1e26ca2a036909105a4e2e5e",
+    "mode": "100644",
+    "bytes": 946
+  },
+  "scenarios/e2e-rust-transitive-native/source/Cargo.toml": {
+    "blob": "693752df34df6f0de2e5c8e30939cc2bdb8b30fc",
+    "mode": "100644",
+    "bytes": 209
+  },
+  "scenarios/e2e-rust-transitive-native/source/app/Cargo.toml": {
+    "blob": "ef34ca4a8b1ef584a1ad6ea9613fe164750cabb1",
+    "mode": "100644",
+    "bytes": 100
+  },
+  "scenarios/e2e-rust-transitive-native/source/app/src/main.rs": {
+    "blob": "2546ee0b524a069884355f1aed4c1460b135fe23",
+    "mode": "100644",
+    "bytes": 67
+  },
+  "scenarios/e2e-rust-transitive-native/source/mid/Cargo.toml": {
+    "blob": "4f41c673ad336f9d28973ce13dc0ab4967412d5d",
+    "mode": "100644",
+    "bytes": 106
+  },
+  "scenarios/e2e-rust-transitive-native/source/mid/src/lib.rs": {
+    "blob": "e78588a927bb2bfd55ce878271d01dbcb5849cd5",
+    "mode": "100644",
+    "bytes": 46
+  },
+  "scenarios/e2e-rust-transitive-native/source/native/Cargo.toml": {
+    "blob": "3cc866e1d2a12768698fc2b495fac03097567a68",
+    "mode": "100644",
+    "bytes": 92
+  },
+  "scenarios/e2e-rust-transitive-native/source/native/build.rs": {
+    "blob": "3f062a6b29f35642d028d6a5c2ec059a1c99a409",
+    "mode": "100644",
+    "bytes": 216
+  },
+  "scenarios/e2e-rust-transitive-native/source/native/csrc/value.c": {
+    "blob": "80a9e37c339feb215f15b5f09fd90f4d955973d4",
+    "mode": "100644",
+    "bytes": 38
+  },
+  "scenarios/e2e-rust-transitive-native/source/native/src/lib.rs": {
+    "blob": "ea266ce183121575542bd335744439392dba6ff2",
+    "mode": "100644",
+    "bytes": 109
+  },
+  "scenarios/e2e-rust-workspace/scenario.toml": {
+    "blob": "2aa13d5c5478b64cc13347e3853aab1159ebe995",
+    "mode": "100644",
+    "bytes": 2124
+  },
+  "scenarios/e2e-rust-workspace/source/Cargo.lock": {
+    "blob": "73263cca598dda07e64fb731d5c622fc1b023cf4",
+    "mode": "100644",
+    "bytes": 216
+  },
+  "scenarios/e2e-rust-workspace/source/Cargo.toml": {
+    "blob": "d53cb3840cca04ab2a30ea4ab4a2f73fc6f0f244",
+    "mode": "100644",
+    "bytes": 213
+  },
+  "scenarios/e2e-rust-workspace/source/app/Cargo.toml": {
+    "blob": "abf682451d3f8db34c4fb7a8dd4b2b95b01afc88",
+    "mode": "100644",
+    "bytes": 156
+  },
+  "scenarios/e2e-rust-workspace/source/app/src/main.rs": {
+    "blob": "09966064b273003346f6e11d75fbb751250ea73e",
+    "mode": "100644",
+    "bytes": 167
+  },
+  "scenarios/e2e-rust-workspace/source/pm/Cargo.toml": {
+    "blob": "1ad86116c7df204cd6e84a792521a6b01d40c2ff",
+    "mode": "100644",
+    "bytes": 276
+  },
+  "scenarios/e2e-rust-workspace/source/pm/src/lib.rs": {
+    "blob": "b28cc494966850f94942e7f3a203995df3127e3d",
+    "mode": "100644",
+    "bytes": 197
+  },
+  "scripts/apt/configure-rclone.sh": {
+    "blob": "c74d73bf33db397bb57b2f3ca50a91f0bc2ff09f",
+    "mode": "100755",
+    "bytes": 831
+  },
+  "scripts/apt/download-debs.sh": {
+    "blob": "80ae73168b72ef430415639e281d82005c6b8b49",
+    "mode": "100755",
+    "bytes": 1173
+  },
+  "scripts/apt/generate-repo.sh": {
+    "blob": "e61d7e33c4cd39296626177792abeab0e8944972",
+    "mode": "100755",
+    "bytes": 4637
+  },
+  "scripts/apt/publish.sh": {
+    "blob": "52fc96922bb86c3924d5aaa3e24b3abe732872d5",
+    "mode": "100755",
+    "bytes": 2675
+  },
+  "scripts/apt/smoke-test.sh": {
+    "blob": "49feba7a1a491a6e211f73f7e7ecf51770063021",
+    "mode": "100755",
+    "bytes": 2706
+  },
+  "scripts/apt/validate.sh": {
+    "blob": "f10b4190db573019d5835137102b496786874629",
+    "mode": "100755",
+    "bytes": 2611
+  },
+  "scripts/aur/test-vcs-pkgver.sh": {
+    "blob": "486195500af5cba93dc23c7e86641e493c094671",
+    "mode": "100755",
+    "bytes": 5373
+  },
+  "scripts/aur/vcs-pkgver.sh": {
+    "blob": "3c9d0bbccdb56ea4e966721e3df428c38d9ff9bf",
+    "mode": "100755",
+    "bytes": 1952
+  },
+  "scripts/bench-contention.py": {
+    "blob": "022d523a4d8ba278dc14f443a20f87dd8469739a",
+    "mode": "100644",
+    "bytes": 52247
+  },
+  "scripts/bench-short.py": {
+    "blob": "1d8f4069aec0f31a955e09da3aac32736fca9c33",
+    "mode": "100755",
+    "bytes": 292
+  },
+  "scripts/bench/__init__.py": {
+    "blob": "242caf6b8e32439012b3a4ac42555d0b6bfadf96",
+    "mode": "100644",
+    "bytes": 815
+  },
+  "scripts/bench/engine.py": {
+    "blob": "403101315e21f82ece5262d9a149f2c1852c65b6",
+    "mode": "100644",
+    "bytes": 2318
+  },
+  "scripts/bench/gate_local.py": {
+    "blob": "c76745b032b9986da0b7349a36beb32d80c1c0da",
+    "mode": "100755",
+    "bytes": 9936
+  },
+  "scripts/bench/job_telemetry.py": {
+    "blob": "56afaf3a6f5a7eaf52f022f83674a111be80bf57",
+    "mode": "100644",
+    "bytes": 3167
+  },
+  "scripts/bench/phases.py": {
+    "blob": "565021d1621e2cfaaeaa2c5ed8bbd52b87913191",
+    "mode": "100755",
+    "bytes": 4981
+  },
+  "scripts/bench/report.py": {
+    "blob": "1ed79c28549586c04925496883440323ae569cd8",
+    "mode": "100644",
+    "bytes": 17232
+  },
+  "scripts/bench/short.py": {
+    "blob": "d166ea3339cc88592898499f578b9c65ab01ba28",
+    "mode": "100644",
+    "bytes": 26158
+  },
+  "scripts/bench/stats.py": {
+    "blob": "6baf719d6bf06d1681ab2c0d98a41c4adfa06208",
+    "mode": "100644",
+    "bytes": 8719
+  },
+  "scripts/bench/tests/__init__.py": {
+    "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "mode": "100644",
+    "bytes": 0
+  },
+  "scripts/bench/tests/test_contention_counts.py": {
+    "blob": "4f685fa0fbe10ce7fc7fb508d70f2914cc6ef81a",
+    "mode": "100644",
+    "bytes": 6817
+  },
+  "scripts/bench/tests/test_gate_local.py": {
+    "blob": "b641e2f9576d27ea0c9144fe570254c1628d74ef",
+    "mode": "100755",
+    "bytes": 7577
+  },
+  "scripts/bench/tests/test_job_telemetry.py": {
+    "blob": "63536bdbd565bae102e6c84e950d770662f5688f",
+    "mode": "100644",
+    "bytes": 3340
+  },
+  "scripts/bench/tests/test_phases.py": {
+    "blob": "780a06579c2af61d56854f4f178ef540ebcc3454",
+    "mode": "100755",
+    "bytes": 3353
+  },
+  "scripts/bench/tests/test_short.py": {
+    "blob": "b0c4e3c1f1f0386d460f84bc7f80e38d0256c37f",
+    "mode": "100644",
+    "bytes": 38710
+  },
+  "scripts/check-coverage-scope.sh": {
+    "blob": "b13d0e8c14bd4caf38c748a37f90f531653a5528",
+    "mode": "100755",
+    "bytes": 6799
+  },
+  "scripts/check-docs.sh": {
+    "blob": "06b438a39360ea3952640687996f81656a722c2e",
+    "mode": "100644",
+    "bytes": 4159
+  },
+  "scripts/check-version-consistency.sh": {
+    "blob": "2c2ffaff245dedd70bdb56302004172cfd772d26",
+    "mode": "100755",
+    "bytes": 6645
+  },
+  "scripts/ci-changes.py": {
+    "blob": "68986339b777a1d22da5cacf0e1d68c51aa924f9",
+    "mode": "100755",
+    "bytes": 3994
+  },
+  "scripts/ci-monitor.sh": {
+    "blob": "0bdb8fdb4752c9006c7d5cc9847b2be622230951",
+    "mode": "100755",
+    "bytes": 20351
+  },
+  "scripts/ci/resolve-version.sh": {
+    "blob": "b0bad6c6d0592a09aff1169b3d7f1e8136187ec2",
+    "mode": "100755",
+    "bytes": 3499
+  },
+  "scripts/crates-io.py": {
+    "blob": "30e53e84bbb052d77c0c0b17efcea25f1e9e42f9",
+    "mode": "100644",
+    "bytes": 23953
+  },
+  "scripts/e2e-s3.sh": {
+    "blob": "65b5b5257ff362568efaa7a37496842f647477f7",
+    "mode": "100755",
+    "bytes": 2073
+  },
+  "scripts/install-bench-mbx.sh": {
+    "blob": "c0ce973623df9192fa970f665a948e84147465f5",
+    "mode": "100644",
+    "bytes": 1342
+  },
+  "scripts/mutation-diff.py": {
+    "blob": "e6f053b4a0e462d2746b93e8619c0fec56693a8c",
+    "mode": "100755",
+    "bytes": 6593
+  },
+  "scripts/perf-gate-local.py": {
+    "blob": "6a7dfab1bd4f01db0d97828104b1800364916551",
+    "mode": "100755",
+    "bytes": 302
+  },
+  "scripts/perf-gate-report.py": {
+    "blob": "c4673c987979b69318e69635b202fd13442a7f3c",
+    "mode": "100755",
+    "bytes": 294
+  },
+  "scripts/prefetch-qualification-test.py": {
+    "blob": "810408df8cc91349ee844e4c0224b84261f85ce0",
+    "mode": "100755",
+    "bytes": 53442
+  },
+  "scripts/prefetch-qualification.py": {
+    "blob": "90ad1f856dd8daac9c56ed7c7af24d578006359c",
+    "mode": "100755",
+    "bytes": 60644
+  },
+  "scripts/prefetch_remote.py": {
+    "blob": "5e57731870efed5f613a571e522a5abe13cfb71d",
+    "mode": "100644",
+    "bytes": 9227
+  },
+  "scripts/require-ci-green.sh": {
+    "blob": "986825f666750d7ec764eed150925ab47af24502",
+    "mode": "100755",
+    "bytes": 2591
+  },
+  "scripts/rustfs-start.sh": {
+    "blob": "f8ce823101a18d27782e3d67efc710f8eb7f1c95",
+    "mode": "100755",
+    "bytes": 3223
+  },
+  "scripts/sccache-fallback-check.sh": {
+    "blob": "892342f655d0f5163bc0ed8c5329767de63bb7c6",
+    "mode": "100755",
+    "bytes": 3189
+  },
+  "scripts/test-bench-contention.py": {
+    "blob": "644b7129f4debab0466df99cccb3a94a675841fa",
+    "mode": "100644",
+    "bytes": 38087
+  },
+  "scripts/test-ci-changes.py": {
+    "blob": "9448cc567b4ad925872007f72934f9484fd553a2",
+    "mode": "100755",
+    "bytes": 6378
+  },
+  "scripts/test-crates-io.py": {
+    "blob": "9695dbdf80391fa10d1378f8a76b5f75a6927177",
+    "mode": "100644",
+    "bytes": 6292
+  },
+  "scripts/test-mutation-diff.py": {
+    "blob": "3b816c13a92c7591ca649cbda88bbe7c55e592ec",
+    "mode": "100644",
+    "bytes": 11635
+  },
+  "scripts/test-version-consistency.py": {
+    "blob": "dab6d4900cb40be8da8b6afd379a9414d2474804",
+    "mode": "100644",
+    "bytes": 3570
+  },
+  "scripts/test-with-test-resources.sh": {
+    "blob": "2ec9c22fb87ab3190404d47da4524a1497604fd8",
+    "mode": "100755",
+    "bytes": 2262
+  },
+  "scripts/trace-phases.py": {
+    "blob": "bb3d6eb887fa4b021731d98518fc644f02224f2d",
+    "mode": "100755",
+    "bytes": 294
+  },
+  "scripts/volume-shards-check.py": {
+    "blob": "9ac2b5b482058b31426535ad9e7d7cd635563e3e",
+    "mode": "100644",
+    "bytes": 7758
+  },
+  "scripts/with-test-resources.sh": {
+    "blob": "f636f354f7909601dc98c09ee14ce9862ce202e2",
+    "mode": "100755",
+    "bytes": 2395
+  },
+  "scripts/workspace-members.sh": {
+    "blob": "01a206376b39804f6910cfd265431917de9b85d9",
+    "mode": "100755",
+    "bytes": 1195
+  },
+  "src/args.rs": {
+    "blob": "35aecf25b17294c31b10aff499fe17ab324c90c5",
+    "mode": "100644",
+    "bytes": 110060
+  },
+  "src/blob_heal.rs": {
+    "blob": "e22572bda826f4d2cc088b8b2c2b6f2e8b671fc3",
+    "mode": "100644",
+    "bytes": 30760
+  },
+  "src/build_intent.rs": {
+    "blob": "d07774cc31c6b7152b1078df52e2ef1c084a19c3",
+    "mode": "100644",
+    "bytes": 30014
+  },
+  "src/build_script.rs": {
+    "blob": "6eb3c66362748111ac4c6e7e4bc3713060da3ecc",
+    "mode": "100644",
+    "bytes": 206835
+  },
+  "src/build_script/declarations.rs": {
+    "blob": "af7f47e6395e86ed470e8123704ee1ad27f3b33e",
+    "mode": "100644",
+    "bytes": 5873
+  },
+  "src/build_script/hermetic.rs": {
+    "blob": "67954598ceaea1d12e57e1cce4201d2a94ad3f02",
+    "mode": "100644",
+    "bytes": 54411
+  },
+  "src/build_script/inputs.rs": {
+    "blob": "8de6ac8e64a1cd4867bcf235ebc2cf31bf01ca7b",
+    "mode": "100644",
+    "bytes": 36394
+  },
+  "src/build_script/outside.rs": {
+    "blob": "6b39c745dbd30f1a3069ff13dc5a00ed059c7987",
+    "mode": "100644",
+    "bytes": 45212
+  },
+  "src/build_script_inputs.rs": {
+    "blob": "00fcf66556dc8f79d47c4c345508b76e6ab540f9",
+    "mode": "100644",
+    "bytes": 22294
+  },
+  "src/build_script_inputs/tests.rs": {
+    "blob": "9d9ca5463c530fc86ef3e9cf312f725d3174f2de",
+    "mode": "100644",
+    "bytes": 42294
+  },
+  "src/cache_fs.rs": {
+    "blob": "b34d5ef30f7eb63bbf7ff01e4235d295cd5f9bfb",
+    "mode": "100644",
+    "bytes": 31295
+  },
+  "src/cache_key.rs": {
+    "blob": "c1462f6aceb12827943e4fcc276c2a7fc57a1272",
+    "mode": "100644",
+    "bytes": 403235
+  },
+  "src/cache_key/apple_install_name.rs": {
+    "blob": "bcd0295d0ae4fdce181d69cd5889dc7fd4aa4f49",
+    "mode": "100644",
+    "bytes": 10086
+  },
+  "src/cache_key/tests.rs": {
+    "blob": "31ed3d05d2560e92b6ac6b691f020fe1a643cf6e",
+    "mode": "100644",
+    "bytes": 595225
+  },
+  "src/cache_remote.rs": {
+    "blob": "0b3b1c684f164d5fc702508baa99a81af6effd43",
+    "mode": "100644",
+    "bytes": 14422
+  },
+  "src/cargo_env.rs": {
+    "blob": "a63401bf41bf5136ada602f8c13c413106541621",
+    "mode": "100644",
+    "bytes": 8697
+  },
+  "src/cargo_layout.rs": {
+    "blob": "e89266d158ccc7dc9da208d264a5d2be6fce7119",
+    "mode": "100644",
+    "bytes": 16424
+  },
+  "src/cargo_proxy.rs": {
+    "blob": "08ad568fdc975922a9203f7c9d87bae208fb962d",
+    "mode": "100644",
+    "bytes": 64414
+  },
+  "src/checked_regions.rs": {
+    "blob": "7fa1aad961fb9cddb4abaefafc6285f4faf8e986",
+    "mode": "100644",
+    "bytes": 2680
+  },
+  "src/cli.rs": {
+    "blob": "52ec6934f87dadfc3f6e58bb809e7988b5456db2",
+    "mode": "100644",
+    "bytes": 377863
+  },
+  "src/cli/login.rs": {
+    "blob": "b9a43da896c0b2a7720a2fe01415237da7d735e8",
+    "mode": "100644",
+    "bytes": 15103
+  },
+  "src/cli/miss_diagnosis.rs": {
+    "blob": "b5822cab4cfa52b8ea8008b28f60812cd0d40afe",
+    "mode": "100644",
+    "bytes": 7101
+  },
+  "src/cli/tests.rs": {
+    "blob": "da20100f21367541a13419ed2be1e1a3794d519d",
+    "mode": "100644",
+    "bytes": 295356
+  },
+  "src/compile.rs": {
+    "blob": "621614a9996170d6d7f62c38caa77288955325ff",
+    "mode": "100644",
+    "bytes": 69397
+  },
+  "src/compiler/cc.rs": {
+    "blob": "f6aec6285f13b86e531c2dc29981bc75419821c3",
+    "mode": "100644",
+    "bytes": 333196
+  },
+  "src/compiler/cc/tests.rs": {
+    "blob": "ee560dfdcbe2eeefb14870c557d62c1d3167ac1d",
+    "mode": "100644",
+    "bytes": 308765
+  },
+  "src/compiler/flags.rs": {
+    "blob": "d917deaaa96e3c90543291a12cd70a5b6905e841",
+    "mode": "100644",
+    "bytes": 23160
+  },
+  "src/compiler/mod.rs": {
+    "blob": "4ef9df6dfb7554d61853aaee6e904d58b3e1090c",
+    "mode": "100644",
+    "bytes": 107328
+  },
+  "src/compiler/nvcc.rs": {
+    "blob": "72309cf059ee6f82562bb5dc95ca03d2f5a29caf",
+    "mode": "100644",
+    "bytes": 104088
+  },
+  "src/compiler/platform.rs": {
+    "blob": "c12fb73df49cefabc26c80ec57c0ab3c4735468c",
+    "mode": "100644",
+    "bytes": 45095
+  },
+  "src/compiler/rustc.rs": {
+    "blob": "c52c34e6ff06b5584a2794b92e1315087835355b",
+    "mode": "100644",
+    "bytes": 67524
+  },
+  "src/compiler/rustdoc.rs": {
+    "blob": "5a99ee24849a248cf24e3dd0dd041017814204ac",
+    "mode": "100644",
+    "bytes": 115915
+  },
+  "src/compiler_store.rs": {
+    "blob": "0f18aa793d60014b7f31cea4172061527ebe8cea",
+    "mode": "100644",
+    "bytes": 5036
+  },
+  "src/config.rs": {
+    "blob": "ab93230ad158fc5284b924abc20e66e7d197f465",
+    "mode": "100644",
+    "bytes": 186209
+  },
+  "src/config/tests.rs": {
+    "blob": "9de720866ea899f55f0fb2d8138bca4ec1fe78d4",
+    "mode": "100644",
+    "bytes": 189931
+  },
+  "src/config_tui.rs": {
+    "blob": "fda598c74a5169988e9475e57b0d006ffe35ee50",
+    "mode": "100644",
+    "bytes": 99971
+  },
+  "src/daemon.rs": {
+    "blob": "6d8f08ace816a4e9ec6f534605ae0c6486dd420a",
+    "mode": "100644",
+    "bytes": 402027
+  },
+  "src/daemon/tests.rs": {
+    "blob": "00523a45ebb6d7e5b1872af5881450e1c2aa6e68",
+    "mode": "100644",
+    "bytes": 530301
+  },
+  "src/daemon_control.rs": {
+    "blob": "efe9a4b24b076e918adb3a2784c13131ef4bd50a",
+    "mode": "100644",
+    "bytes": 19921
+  },
+  "src/daemon_lifecycle.rs": {
+    "blob": "188850135296303985ba105df93192c47d8aad41",
+    "mode": "100644",
+    "bytes": 31184
+  },
+  "src/daemon_publish.rs": {
+    "blob": "494aaa4501a4934163ba4717ffebb89544660470",
+    "mode": "100644",
+    "bytes": 77035
+  },
+  "src/demand.rs": {
+    "blob": "c9ecdbcc9e08ef33a1b179b0b847213bfdfde5bb",
+    "mode": "100644",
+    "bytes": 4291
+  },
+  "src/disk_recovery.rs": {
+    "blob": "fc2b927db5f47f2cb76a90e3bf940c33d3b04ab9",
+    "mode": "100644",
+    "bytes": 9084
+  },
+  "src/events.rs": {
+    "blob": "e7130855832850b183249f8dee5c3bdfe1eac5eb",
+    "mode": "100644",
+    "bytes": 128589
+  },
+  "src/explain.rs": {
+    "blob": "57b73dc70f16dbb1b1a150cd9c1e61d136ddf0a4",
+    "mode": "100644",
+    "bytes": 26798
+  },
+  "src/extra_inputs.rs": {
+    "blob": "64da31afd151ac0f96517aed6647b789eddd4cf3",
+    "mode": "100644",
+    "bytes": 184618
+  },
+  "src/fallback.rs": {
+    "blob": "6326ef9892eb52055dfdd4636382c530d7d89348",
+    "mode": "100644",
+    "bytes": 7229
+  },
+  "src/fallback/macos.rs": {
+    "blob": "a5dbee0edebbb151ec19309bb7ddec12c52e7d8f",
+    "mode": "100644",
+    "bytes": 7187
+  },
+  "src/fallback/sandbox.rs": {
+    "blob": "a2ebff047deabd22f67a2f92fae4dbd2cf638763",
+    "mode": "100644",
+    "bytes": 6191
+  },
+  "src/fallback_planner.rs": {
+    "blob": "46a203a46e8c655c5ecef8c3fc1569ab57ffc02c",
+    "mode": "100644",
+    "bytes": 33181
+  },
+  "src/heartbeat.rs": {
+    "blob": "5986894804c5b0cd39fcbe85f3fa402e92ca0fce",
+    "mode": "100644",
+    "bytes": 16794
+  },
+  "src/identity.rs": {
+    "blob": "6b792f83b1c8849e99679b63e56f221db0187b32",
+    "mode": "100644",
+    "bytes": 24734
+  },
+  "src/incremental_policy.rs": {
+    "blob": "cf692bb7dec2821e16d679290b4686e2e5c47a2c",
+    "mode": "100644",
+    "bytes": 96179
+  },
+  "src/index_compact.rs": {
+    "blob": "e000e872ee716d291e6779f37f2b58d012242d39",
+    "mode": "100644",
+    "bytes": 28966
+  },
+  "src/init_shell.rs": {
+    "blob": "8508321711707996b0ca649835e3261286534397",
+    "mode": "100644",
+    "bytes": 25067
+  },
+  "src/key_env.rs": {
+    "blob": "b33e4bf67e5d597a5f9c869028734fedeb01fa1d",
+    "mode": "100644",
+    "bytes": 7720
+  },
+  "src/link_probe.rs": {
+    "blob": "ba06184a57d765a0f8a1c4c59bf97173ba1ac9d0",
+    "mode": "100644",
+    "bytes": 25268
+  },
+  "src/machine.rs": {
+    "blob": "8490c3fd18e13590b5b6a9f6ad0be92ddd99046b",
+    "mode": "100644",
+    "bytes": 15953
+  },
+  "src/main.rs": {
+    "blob": "720b14929888548c12057ff2b899b96b6719948e",
+    "mode": "100644",
+    "bytes": 98342
+  },
+  "src/maintenance.rs": {
+    "blob": "3d2140689898fdb79b978ad9a5b8d2cf569ca258",
+    "mode": "100644",
+    "bytes": 11037
+  },
+  "src/miss_chain.rs": {
+    "blob": "7c0bf22eb69e9f5b85ebd9f624a2855f1c62be81",
+    "mode": "100644",
+    "bytes": 93226
+  },
+  "src/native_archive.rs": {
+    "blob": "4ec42100142dd673feda915fd76753c8925f1c1f",
+    "mode": "100644",
+    "bytes": 149224
+  },
+  "src/native_link_key.rs": {
+    "blob": "baefebaf2eff4abf1b8ddc59a64b5ae7dfa1000b",
+    "mode": "100644",
+    "bytes": 157504
+  },
+  "src/notice.rs": {
+    "blob": "d4ffc34c1e5dfc1d9efe6ceb2452ee0a9b1a7985",
+    "mode": "100644",
+    "bytes": 4000
+  },
+  "src/opcounts.rs": {
+    "blob": "3a1234d6973e99dfd426c1623783193041b2a100",
+    "mode": "100644",
+    "bytes": 12718
+  },
+  "src/otel.rs": {
+    "blob": "540055b865eb11b322283de1bcc18e5bd19ff87a",
+    "mode": "100644",
+    "bytes": 39527
+  },
+  "src/out_dir_alias.rs": {
+    "blob": "aead29c0115e5faf901f85dfbc84bd1d61c31b00",
+    "mode": "100644",
+    "bytes": 82018
+  },
+  "src/path_normalizer.rs": {
+    "blob": "67486103efb7c04ce21a5b6e50ae229721a14326",
+    "mode": "100644",
+    "bytes": 166253
+  },
+  "src/phase_trace.rs": {
+    "blob": "49218168f29dcbc3b4200751d46b1b91a4b54e9f",
+    "mode": "100644",
+    "bytes": 8070
+  },
+  "src/planner_auth.rs": {
+    "blob": "57adc9ef0aeb242cf541063a60fb973c662f8caf",
+    "mode": "100644",
+    "bytes": 34200
+  },
+  "src/planner_client.rs": {
+    "blob": "803c583bbd7ddb9a1d834b32a0b9014fcf9f84cc",
+    "mode": "100644",
+    "bytes": 9380
+  },
+  "src/platform.rs": {
+    "blob": "98f1138d89319088196f760c87faba9617a28729",
+    "mode": "100644",
+    "bytes": 22615
+  },
+  "src/policy.rs": {
+    "blob": "f6cdfbd450887a0ab4bcfb5f2347c39445533d0d",
+    "mode": "100644",
+    "bytes": 9866
+  },
+  "src/prediction_share.rs": {
+    "blob": "0d230b5aa49178ae46abe3d7c07ab1fdc550015b",
+    "mode": "100644",
+    "bytes": 16672
+  },
+  "src/prestage.rs": {
+    "blob": "f0caa2970b7199a0452ae6a794193313e5a0a4ef",
+    "mode": "100644",
+    "bytes": 35941
+  },
+  "src/probe/cache.rs": {
+    "blob": "039021e9bad90a60c1a77c9ac619456cb76d82f4",
+    "mode": "100644",
+    "bytes": 21804
+  },
+  "src/probe/mod.rs": {
+    "blob": "41011fb8477b11ca25de694ab6491e0fb4bfbfda",
+    "mode": "100644",
+    "bytes": 68293
+  },
+  "src/probe/resolve.rs": {
+    "blob": "54f4b9c9e9b0cd73c85070be5ac7d190ff034fc2",
+    "mode": "100644",
+    "bytes": 49359
+  },
+  "src/probe/testdata/clang_cl_windows.txt": {
+    "blob": "68047372df7b27918350a7b078a640841e501155",
+    "mode": "100644",
+    "bytes": 2266
+  },
+  "src/probe/testdata/clang_o2.txt": {
+    "blob": "23787979641e6febf59a60dd183e99b2c8bd673e",
+    "mode": "100644",
+    "bytes": 4096
+  },
+  "src/probe/testdata/clang_o2_gdwarf2.txt": {
+    "blob": "d2042f211b8563354b6d655cd93466766bafb1b6",
+    "mode": "100644",
+    "bytes": 4138
+  },
+  "src/probe/testdata/clang_o2_gdwarf4.txt": {
+    "blob": "317e745f39d72ee3209725b08a98300ac46d9fec",
+    "mode": "100644",
+    "bytes": 4138
+  },
+  "src/probe/testdata/clang_o2_march_native.txt": {
+    "blob": "54f07ad5afeb9dddc2c8c33fedf4a8dbdb804ac8",
+    "mode": "100644",
+    "bytes": 3971
+  },
+  "src/probe/testdata/clang_ubsan_strip_path.txt": {
+    "blob": "12aeea1e48170c2964b55d0208fbf28379b4df56",
+    "mode": "100644",
+    "bytes": 4065
+  },
+  "src/probe/testdata/gcc_o2.txt": {
+    "blob": "8b4dddc4ab245af5ea2e7d1b56484e5e941a2a3b",
+    "mode": "100644",
+    "bytes": 2358
+  },
+  "src/probe/testdata/gcc_o2_march_native.txt": {
+    "blob": "4abe03817352d0a9966b4aa888d6bb491e25b099",
+    "mode": "100644",
+    "bytes": 2751
+  },
+  "src/probe/testdata/gcc_wrapv_param.txt": {
+    "blob": "0e49aec885b8ded82a2a0c433b17f861904f5b56",
+    "mode": "100644",
+    "bytes": 5272
+  },
+  "src/probe_memo.rs": {
+    "blob": "307c651811aab3034b4a42b5f10ff764689cbfc1",
+    "mode": "100644",
+    "bytes": 6935
+  },
+  "src/remote.rs": {
+    "blob": "c08a1bf9861db92ffa2495660939f31cd5a312b8",
+    "mode": "100644",
+    "bytes": 51994
+  },
+  "src/remote_backend.rs": {
+    "blob": "dd4192436049485e68d9cd6806a587283e40b7c7",
+    "mode": "100644",
+    "bytes": 123736
+  },
+  "src/remote_backend/download_memory.rs": {
+    "blob": "3ae2528bed8fa307be9adecdd3a8e5a0daaa79ce",
+    "mode": "100644",
+    "bytes": 5297
+  },
+  "src/remote_backend/oci.rs": {
+    "blob": "59c7b6b16e05538bb5b1137a9f1cfc6e45bf18ed",
+    "mode": "100644",
+    "bytes": 25450
+  },
+  "src/remote_backend/oci/auth.rs": {
+    "blob": "5c82297085fe207b3fc87da5e2b39989f1dac9cc",
+    "mode": "100644",
+    "bytes": 3794
+  },
+  "src/remote_backend/oci/tests.rs": {
+    "blob": "78f3a0db69a5ed103cb4d0936ea8f058b9155c9c",
+    "mode": "100644",
+    "bytes": 59203
+  },
+  "src/remote_backend/oci/transport.rs": {
+    "blob": "35a00417bcf90edb48f546d5ea218ea75e4d612d",
+    "mode": "100644",
+    "bytes": 8944
+  },
+  "src/remote_backend/s3_credentials.rs": {
+    "blob": "20fb7f23cb97247b39a784e7e6b0cecbe8a2a27e",
+    "mode": "100644",
+    "bytes": 18164
+  },
+  "src/remote_backend/s3_credentials/tests.rs": {
+    "blob": "9ae11ee3d6e22d82d2898f4fa42131427af29cbd",
+    "mode": "100644",
+    "bytes": 21205
+  },
+  "src/remote_layout.rs": {
+    "blob": "55777425bfbdaefda0fc17ced5c887cf23946cb5",
+    "mode": "100644",
+    "bytes": 82397
+  },
+  "src/remote_pack.rs": {
+    "blob": "87598ad968992918453328d1c86698173a3373a3",
+    "mode": "100644",
+    "bytes": 50953
+  },
+  "src/remote_plan.rs": {
+    "blob": "febeb537668077c522f586669c83f237069864b9",
+    "mode": "100644",
+    "bytes": 5274
+  },
+  "src/remote_resilience.rs": {
+    "blob": "0b47cb986b2f39ce66311d6a836bae7e90f96dfb",
+    "mode": "100644",
+    "bytes": 71515
+  },
+  "src/report.rs": {
+    "blob": "83a82821e9a6dfd765393975670db6a56905330e",
+    "mode": "100644",
+    "bytes": 158103
+  },
+  "src/report/eviction_evidence.rs": {
+    "blob": "6abfc2f37c9a0d3aab2c09eb6794be7603d91c14",
+    "mode": "100644",
+    "bytes": 4009
+  },
+  "src/report/eviction_evidence/tests.rs": {
+    "blob": "9e07b6af85e41093a38551d9236118eb17409982",
+    "mode": "100644",
+    "bytes": 4763
+  },
+  "src/report/tests.rs": {
+    "blob": "99aeceee54bb53996bb01463fc13a0908f3318e2",
+    "mode": "100644",
+    "bytes": 155192
+  },
+  "src/run_diff.rs": {
+    "blob": "e310151279dadd6a0bd980eb42072f6ca17bd8a2",
+    "mode": "100644",
+    "bytes": 13552
+  },
+  "src/savings.rs": {
+    "blob": "e2292138cc3dcf50a15f9414cb9e5cedaaf2200a",
+    "mode": "100644",
+    "bytes": 9038
+  },
+  "src/savings/tests.rs": {
+    "blob": "8c4aeeb87f3c94f3d114218d6d5d3c6a14256e8c",
+    "mode": "100644",
+    "bytes": 13278
+  },
+  "src/scheduler.rs": {
+    "blob": "651d23161e1604dbde0d86f6342a6d5f82f4bbea",
+    "mode": "100644",
+    "bytes": 119803
+  },
+  "src/scheduler/pressure.rs": {
+    "blob": "d1427fec5d9b42ce706b0c7f279adba4dab266ef",
+    "mode": "100644",
+    "bytes": 9418
+  },
+  "src/service.rs": {
+    "blob": "379640443c20151286d09badf8286163b5a96f0f",
+    "mode": "100644",
+    "bytes": 64535
+  },
+  "src/shards.rs": {
+    "blob": "f74158b6a8923f5a1dac0cbf1335c65675bcbcb8",
+    "mode": "100644",
+    "bytes": 6737
+  },
+  "src/since.rs": {
+    "blob": "952374671f436cb62801fcfe209040d745c1517e",
+    "mode": "100644",
+    "bytes": 8804
+  },
+  "src/store_view.rs": {
+    "blob": "59a0464cf89f43ed7641934296161fbbf2695e1c",
+    "mode": "100644",
+    "bytes": 6923
+  },
+  "src/store_view/tests.rs": {
+    "blob": "50ab382e59586584b1bd6fca893658ab62f46b3c",
+    "mode": "100644",
+    "bytes": 15386
+  },
+  "src/target_cleanup.rs": {
+    "blob": "eabb81e1aa44ef5e7403eef91a3b4b6afb95379a",
+    "mode": "100644",
+    "bytes": 85190
+  },
+  "src/target_dedup.rs": {
+    "blob": "1804c230608b437580d4fa8a3001c40b9eaec145",
+    "mode": "100644",
+    "bytes": 81142
+  },
+  "src/target_liveness.rs": {
+    "blob": "7fa9fb72111d7e9cb5cca648b67fe2c64fb059aa",
+    "mode": "100644",
+    "bytes": 75938
+  },
+  "src/target_seed.rs": {
+    "blob": "6cbc6aa76cbeb853d371b393b4d48cabd79538e2",
+    "mode": "100644",
+    "bytes": 87717
+  },
+  "src/target_seed/placement.rs": {
+    "blob": "6efb7a46496e80a7bf301d9f9f6cc37bb0f457d7",
+    "mode": "100644",
+    "bytes": 10140
+  },
+  "src/target_use.rs": {
+    "blob": "d12f6f99edda62d5d6b983cb1bd040fcdf68ed34",
+    "mode": "100644",
+    "bytes": 7512
+  },
+  "src/term.rs": {
+    "blob": "0e3db4ab8ae875a1ecb7fc9cd463b321f5b34e3a",
+    "mode": "100644",
+    "bytes": 17098
+  },
+  "src/test_runner.rs": {
+    "blob": "4c8a805f14e705b1a0b12583356d6cee13fdf4c5",
+    "mode": "100644",
+    "bytes": 25405
+  },
+  "src/test_runner/delegate.rs": {
+    "blob": "88f3836287cbc7bd310b09945065c6b3f2f2173d",
+    "mode": "100644",
+    "bytes": 43090
+  },
+  "src/test_support.rs": {
+    "blob": "d6a50223dee25539fe6ae5c198bfebcbaa1a8033",
+    "mode": "100644",
+    "bytes": 15590
+  },
+  "src/timeline.rs": {
+    "blob": "1d3938f6c5da878a2a62923e1c204690949b7dec",
+    "mode": "100644",
+    "bytes": 72192
+  },
+  "src/timeline_client.rs": {
+    "blob": "8ed4db93077b8a343a928d77e9d8e495cceeda16",
+    "mode": "100644",
+    "bytes": 9231
+  },
+  "src/toolchain_dylib.rs": {
+    "blob": "8bda634279268d17a2bd41b9030d14cba8f544bb",
+    "mode": "100644",
+    "bytes": 5880
+  },
+  "src/transport.rs": {
+    "blob": "8f9108611966c6750e37670d45792120e4428b93",
+    "mode": "100644",
+    "bytes": 12555
+  },
+  "src/tree_stamp.rs": {
+    "blob": "6048e8e330ef4f61c01e6ac3209d7548ae54ed02",
+    "mode": "100644",
+    "bytes": 28729
+  },
+  "src/tui.rs": {
+    "blob": "73a1b7cfd68664aad9c3a6745b52a716af396f37",
+    "mode": "100644",
+    "bytes": 112291
+  },
+  "src/tui/tests.rs": {
+    "blob": "3c56628fb7f9eac4ff6c672662ffe9076ffc02c1",
+    "mode": "100644",
+    "bytes": 100194
+  },
+  "src/tui_sessions.rs": {
+    "blob": "07210605c4822d0cba769a2747a683ddeb2312af",
+    "mode": "100644",
+    "bytes": 64261
+  },
+  "src/unit_prune.rs": {
+    "blob": "c4626e00c5926f278a01f3715b18232646bf45cf",
+    "mode": "100644",
+    "bytes": 55057
+  },
+  "src/verify_compare.rs": {
+    "blob": "e4a8b2fc5884311e3e71d7a3799a688e117d7811",
+    "mode": "100644",
+    "bytes": 33984
+  },
+  "src/volume_gc.rs": {
+    "blob": "2f96aeae8be15e5cc69986b45e1d27e73fa4d6be",
+    "mode": "100644",
+    "bytes": 6733
+  },
+  "src/worktree_discovery.rs": {
+    "blob": "9aac02cd2f48b546f835e2d508b5f3a2ae4ea22a",
+    "mode": "100644",
+    "bytes": 12395
+  },
+  "src/wrapper.rs": {
+    "blob": "d4b67bc21161e82ce4c22d77fc72bbb1b49c7d9a",
+    "mode": "100644",
+    "bytes": 363755
+  },
+  "src/wrapper/hit.rs": {
+    "blob": "4e468192961226af0b7cca4e43c8615db50fc2b0",
+    "mode": "100644",
+    "bytes": 1757
+  },
+  "src/wrapper/remote.rs": {
+    "blob": "236596bb4ce970877c97e9d63a9eff54ebca6237",
+    "mode": "100644",
+    "bytes": 2628
+  },
+  "src/wrapper/rustc_hit.rs": {
+    "blob": "d51faa05a7f9e6dcd1aeb73f3e6520328c1ef690",
+    "mode": "100644",
+    "bytes": 2253
+  },
+  "src/wrapper/tests.rs": {
+    "blob": "93a46bfe19df49e3851fad65e0b0b4fcaf060b7c",
+    "mode": "100644",
+    "bytes": 415598
+  },
+  "src/wrapper/tests/hit.rs": {
+    "blob": "5acfb51422be0bb616864a0fc31bf524c691034b",
+    "mode": "100644",
+    "bytes": 7497
+  },
+  "src/wrapper/tests/rustc_hit.rs": {
+    "blob": "f8c4c930459f3d26862ea300ef906ae18bee5bb8",
+    "mode": "100644",
+    "bytes": 14777
+  },
+  "src/wrapper_config.rs": {
+    "blob": "843a0524a3d96b9e8f9532475b7cd6c7e69afe7c",
+    "mode": "100644",
+    "bytes": 11498
+  },
+  "test-projects/custom-harness/Cargo.lock": {
+    "blob": "a768de3b687d95fdeb99bf3ac89df89e45f5a99e",
+    "mode": "100644",
+    "bytes": 158
+  },
+  "test-projects/custom-harness/Cargo.toml": {
+    "blob": "857546fc8df7960eec407e20ae0b898598ba194d",
+    "mode": "100644",
+    "bytes": 468
+  },
+  "test-projects/custom-harness/src/lib.rs": {
+    "blob": "432593368f9028b66c60c5f011dd54949c10ca81",
+    "mode": "100644",
+    "bytes": 34
+  },
+  "test-projects/custom-harness/tests/harness.rs": {
+    "blob": "3d8f699a30b569f808c047b701afae97a4997553",
+    "mode": "100644",
+    "bytes": 223
+  },
+  "test-projects/hello-world/Cargo.lock": {
+    "blob": "07ce0fdf86c3a6fb3ff5f39650006b36304fd4ef",
+    "mode": "100644",
+    "bytes": 155
+  },
+  "test-projects/hello-world/Cargo.toml": {
+    "blob": "ecfa4af20a1e2de633ca7231fe430022b9175853",
+    "mode": "100644",
+    "bytes": 153
+  },
+  "test-projects/hello-world/src/main.rs": {
+    "blob": "0a9136cd6c60f318fe417c8858b88e903e8eea21",
+    "mode": "100644",
+    "bytes": 62
+  },
+  "test-projects/stale-check/Cargo.lock": {
+    "blob": "7324f39335d53fa66e41e1194e84ad7defe5b37c",
+    "mode": "100644",
+    "bytes": 155
+  },
+  "test-projects/stale-check/Cargo.toml": {
+    "blob": "013e3222091f7b0619cdf16ec5ba746a495cc357",
+    "mode": "100644",
+    "bytes": 176
+  },
+  "test-projects/stale-check/src/helper.rs": {
+    "blob": "69749e68bc97540a3fa0bb711a14335ae82c7074",
+    "mode": "100644",
+    "bytes": 58
+  },
+  "test-projects/stale-check/src/lib.rs": {
+    "blob": "22f26fe74eb640c6b8676902295070c66480d32e",
+    "mode": "100644",
+    "bytes": 440
+  },
+  "test-projects/stale-check/src/main.rs": {
+    "blob": "78a48608bd849ba58ade4ad83e95e4908886d7a4",
+    "mode": "100644",
+    "bytes": 236
+  },
+  "tests/adaptive_incremental_test.rs": {
+    "blob": "b0136a0bab08d04c4bb7df6e2eaf7ae3c429d8ad",
+    "mode": "100644",
+    "bytes": 38229
+  },
+  "tests/adaptive_incremental_workspace_test.rs": {
+    "blob": "2dda6a915926d3f7e758178ff53650f9ddea3d0b",
+    "mode": "100644",
+    "bytes": 27655
+  },
+  "tests/binstall_metadata_test.rs": {
+    "blob": "7b88a3fd89b301317a343ec086e31606d2a7c61c",
+    "mode": "100644",
+    "bytes": 3673
+  },
+  "tests/build_script_declared_inputs_test.rs": {
+    "blob": "7f68db5bc5be7fc91c64dbb2f7627a339babc9b9",
+    "mode": "100644",
+    "bytes": 20761
+  },
+  "tests/build_script_inputs_test.rs": {
+    "blob": "2567127c9627683d49b199b7932bff3fb9e339a5",
+    "mode": "100644",
+    "bytes": 6218
+  },
+  "tests/build_script_launcher_test.rs": {
+    "blob": "1c4fe81cc40b7e5a24ce826acbec5f276f252808",
+    "mode": "100644",
+    "bytes": 4218
+  },
+  "tests/cache_key_underkeying_test.rs": {
+    "blob": "d62af0bc778ae5f9e8cd2722189b536ac1bce5db",
+    "mode": "100644",
+    "bytes": 32913
+  },
+  "tests/cached_units_regression_test.rs": {
+    "blob": "0fd07491a5d65b517cebf9f30821f63629246f7b",
+    "mode": "100644",
+    "bytes": 63586
+  },
+  "tests/cargo_proxy_test.rs": {
+    "blob": "76aac5faa4b1c98de731055d4f651c6125779975",
+    "mode": "100644",
+    "bytes": 52374
+  },
+  "tests/cc_family_probe_test.rs": {
+    "blob": "50b00673b51de01617abbc5a437acdc473128ca7",
+    "mode": "100644",
+    "bytes": 4774
+  },
+  "tests/cc_passthrough_args_test.rs": {
+    "blob": "a30f2d9c78c8c1c6285103eff5034176b32f2a59",
+    "mode": "100644",
+    "bytes": 22343
+  },
+  "tests/cc_release_regression_test.rs": {
+    "blob": "afb9be7083b0aed55efdb5c09c042edf9a4605dc",
+    "mode": "100644",
+    "bytes": 1782
+  },
+  "tests/cli_commands_test.rs": {
+    "blob": "3340a68bc05f89fdf4398b3030650e42b23a0f27",
+    "mode": "100644",
+    "bytes": 151749
+  },
+  "tests/codegen_backend_test.rs": {
+    "blob": "e11a3379b169e55d0b0965d1d366bf8e6ecbad81",
+    "mode": "100644",
+    "bytes": 3271
+  },
+  "tests/common/mod.rs": {
+    "blob": "bacabc598fd32876a3e285e7953a9e7c0acb0fe4",
+    "mode": "100644",
+    "bytes": 14356
+  },
+  "tests/custom_harness_test.rs": {
+    "blob": "711dff1292bfe57d361514d90df058672ec01dda",
+    "mode": "100644",
+    "bytes": 8560
+  },
+  "tests/eviction_evidence_test.rs": {
+    "blob": "ff718383e3dc2e53a4ea8c4ff65224304cbef7e4",
+    "mode": "100644",
+    "bytes": 2047
+  },
+  "tests/extra_inputs_warm_target_test.rs": {
+    "blob": "b35c9965802d6894778afc6f469f046211bf2b52",
+    "mode": "100644",
+    "bytes": 31823
+  },
+  "tests/fallback_recovery_test.rs": {
+    "blob": "da87d6d6ccc6b552e5aa8f30d3e71782d6b2124f",
+    "mode": "100644",
+    "bytes": 13025
+  },
+  "tests/filesystem_remote_test.rs": {
+    "blob": "21a1927387226b9d45a521224758bec131eaf3e7",
+    "mode": "100644",
+    "bytes": 51303
+  },
+  "tests/fixtures/cc_release_regressions.sh": {
+    "blob": "6b733bd0eddd75d5504c144a228f73e241f02a2f",
+    "mode": "100644",
+    "bytes": 4156
+  },
+  "tests/fixtures/config_editor_legacy.toml": {
+    "blob": "4e491658f03c0ba8b6381d281f109e84ee34e495",
+    "mode": "100644",
+    "bytes": 1816
+  },
+  "tests/fixtures/mock_cc_constant_output.sh": {
+    "blob": "2d2f1acf4ac03120470433674263dc1f6e455d8c",
+    "mode": "100755",
+    "bytes": 202
+  },
+  "tests/fixtures/mock_cc_diagnostics.sh": {
+    "blob": "cff698e5f62033eca3d236687e18bf21458259f1",
+    "mode": "100755",
+    "bytes": 419
+  },
+  "tests/fixtures/mock_cc_lc_all.sh": {
+    "blob": "79a12a3db11306143acb3b231b5e79a42efc00e8",
+    "mode": "100755",
+    "bytes": 363
+  },
+  "tests/fixtures/mock_cc_static.sh": {
+    "blob": "ba68bb9cc123aa56eaa0b7606c3811e3683d741d",
+    "mode": "100755",
+    "bytes": 192
+  },
+  "tests/fixtures/native_archive_fuzz/truncated-member": {
+    "blob": "63f2fc87741397f527c3cceea4cc8cbc0f593b8b",
+    "mode": "100644",
+    "bytes": 10
+  },
+  "tests/host_config_test.rs": {
+    "blob": "f94089e485b7c36b2f65512546d23bc7007dee8a",
+    "mode": "100644",
+    "bytes": 5186
+  },
+  "tests/incremental_passthrough_test.rs": {
+    "blob": "a5c9d7252b5557de43109f2a85bd6a71e4f0cd61",
+    "mode": "100644",
+    "bytes": 18005
+  },
+  "tests/input_prediction_test.rs": {
+    "blob": "e38e8b411480c939c73f116a2a0daf65ff2a98d2",
+    "mode": "100644",
+    "bytes": 77760
+  },
+  "tests/integration_test.rs": {
+    "blob": "ce69a99399c2d7c1b01fe33fd362514e6193ecfb",
+    "mode": "100644",
+    "bytes": 130645
+  },
+  "tests/macos_adaptive_debug_info_test.rs": {
+    "blob": "6d5cd9c216d0ff8b0f50d4c4074c5b5b2b58d0ad",
+    "mode": "100644",
+    "bytes": 10935
+  },
+  "tests/macos_local_network_metadata_test.rs": {
+    "blob": "c4ffae9f0e4ca802a12871a6e616756f6d3521aa",
+    "mode": "100644",
+    "bytes": 1487
+  },
+  "tests/macos_native_install_name_test.rs": {
+    "blob": "9a16e178f9c0262f9c5df813bad05e2f13032848",
+    "mode": "100644",
+    "bytes": 5614
+  },
+  "tests/metadata_streaming_test.rs": {
+    "blob": "3ec070bff0b8933a362cc8abdfcab502ae1e5a18",
+    "mode": "100644",
+    "bytes": 3697
+  },
+  "tests/nvcc_cuda_toolchain_test.rs": {
+    "blob": "03bf14a5aa3d7a23063cace629a5fd4e80719466",
+    "mode": "100644",
+    "bytes": 14144
+  },
+  "tests/out_dir_alias_test.rs": {
+    "blob": "d00c597afe7bb750deef1c16fdcfd975447f1708",
+    "mode": "100644",
+    "bytes": 24217
+  },
+  "tests/proc_macro_env_key_test.rs": {
+    "blob": "391eb6763bfb0a456bd669dc5564d989031ea927",
+    "mode": "100644",
+    "bytes": 9262
+  },
+  "tests/readonly_store_test.rs": {
+    "blob": "c35ca20d8a6ebb84406918e3bdf91cf7fc8ba9db",
+    "mode": "100644",
+    "bytes": 12614
+  },
+  "tests/s3_remote_test.rs": {
+    "blob": "b477cf757b4724851240420e6d7965024b13911f",
+    "mode": "100644",
+    "bytes": 17645
+  },
+  "tests/stale_artifact_test.rs": {
+    "blob": "ad71ea031f76162f22de05ff51209a1db853a5a1",
+    "mode": "100644",
+    "bytes": 24486
+  },
+  "tests/test_runner_test.rs": {
+    "blob": "06e7db8c0723c1818b8b5e9db5c5c250332717c9",
+    "mode": "100644",
+    "bytes": 25618
+  },
+  "tests/unknown_compiler_probe_test.rs": {
+    "blob": "d0856b7e1eff20a631d4d35730bdf1dd05de00e8",
+    "mode": "100644",
+    "bytes": 3142
+  },
+  "tests/workspace_extra_inputs_test.rs": {
+    "blob": "350d6216a6fbe19ec9bac787d9e8cd57e905746d",
+    "mode": "100644",
+    "bytes": 12249
+  },
+  "tests/worktree_depinfo_test.rs": {
+    "blob": "bc6dcc738f957511f2a12e639e6be1ccf0578952",
+    "mode": "100644",
+    "bytes": 6263
+  }
+}

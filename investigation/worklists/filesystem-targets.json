@@ -1,0 +1,670 @@
+{
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "slice": "filesystem-targets",
+  "title": "Filesystem primitives, target lifetime, reclamation and recovery",
+  "primary_paths": [
+    {
+      "path": "crates/kache-fs/Cargo.toml",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "7eca4e6778eeb60044078989032e80200990840e",
+      "bytes": 980,
+      "text_lines": 38,
+      "kind": "config-or-delivery-collateral",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 38,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-fs/LICENSE",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "fbe1a21e6241cd20b4588d34ef46b5273f92edf3",
+      "bytes": 10760,
+      "text_lines": 190,
+      "kind": "license-or-lock-collateral",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "identity-purpose-reference-accounting",
+      "executed_depth": "none",
+      "reading_sections": []
+    },
+    {
+      "path": "crates/kache-fs/README.md",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "96b9f571c22f4de23cd56451e7d68c14756b3c1f",
+      "bytes": 1746,
+      "text_lines": 32,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 32,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-fs/src/apfs.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "b9b85dde227c5c904955ee9b9110c599c07d2e3c",
+      "bytes": 28728,
+      "text_lines": 834,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 834,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-fs/src/apfs_values.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "341d882c213f33722be1084990fb793f45a4af9e",
+      "bytes": 2661,
+      "text_lines": 75,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 75,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-fs/src/copy.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "6569b4264c0b27603e6b137dbd17b4f367d640b7",
+      "bytes": 13638,
+      "text_lines": 371,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 371,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-fs/src/extents.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "0952b29ef25f391e8d61d1b822e6db56a1a3b808",
+      "bytes": 6147,
+      "text_lines": 193,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 193,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-fs/src/fallback.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "9e039bdf114694df05a5f6908a5da0711422ed2f",
+      "bytes": 2558,
+      "text_lines": 91,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 91,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-fs/src/identity.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "5f8776a8de66366b654b4a93cdc2b333289cc2e5",
+      "bytes": 6350,
+      "text_lines": 210,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 210,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-fs/src/ledger.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "0592ba85efec50d9335a51f2c511be26917745d7",
+      "bytes": 4575,
+      "text_lines": 157,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 157,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-fs/src/lib.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "50b6697eb06d3a7783711b7c5082320394e103e6",
+      "bytes": 44443,
+      "text_lines": 1245,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1245,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-fs/src/linux.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "6b6a48b97b83a5c4ae15381cfcf9a5b8d65af710",
+      "bytes": 7647,
+      "text_lines": 242,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 242,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-fs/src/staging.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "925f5cbfe502da44a247da3404f1f60c8576e451",
+      "bytes": 8389,
+      "text_lines": 222,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 222,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/deduplication.mdx",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "c9844b6a07d49d72253bbc4cf5148030ba3612f1",
+      "bytes": 5027,
+      "text_lines": 68,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 68,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/blob_heal.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "e22572bda826f4d2cc088b8b2c2b6f2e8b671fc3",
+      "bytes": 30760,
+      "text_lines": 869,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 869,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/disk_recovery.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "fc2b927db5f47f2cb76a90e3bf940c33d3b04ab9",
+      "bytes": 9084,
+      "text_lines": 252,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 252,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/index_compact.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "e000e872ee716d291e6779f37f2b58d012242d39",
+      "bytes": 28966,
+      "text_lines": 849,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 849,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/link_probe.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "ba06184a57d765a0f8a1c4c59bf97173ba1ac9d0",
+      "bytes": 25268,
+      "text_lines": 675,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 675,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/maintenance.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "3d2140689898fdb79b978ad9a5b8d2cf569ca258",
+      "bytes": 11037,
+      "text_lines": 290,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 290,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/prestage.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "f0caa2970b7199a0452ae6a794193313e5a0a4ef",
+      "bytes": 35941,
+      "text_lines": 913,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 913,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/target_cleanup.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "eabb81e1aa44ef5e7403eef91a3b4b6afb95379a",
+      "bytes": 85190,
+      "text_lines": 2111,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 2111,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/target_dedup.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "1804c230608b437580d4fa8a3001c40b9eaec145",
+      "bytes": 81142,
+      "text_lines": 2330,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 2330,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/target_liveness.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "7fa9fb72111d7e9cb5cca648b67fe2c64fb059aa",
+      "bytes": 75938,
+      "text_lines": 2059,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 2059,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/target_seed.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "6cbc6aa76cbeb853d371b393b4d48cabd79538e2",
+      "bytes": 87717,
+      "text_lines": 2280,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 2280,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/target_seed/placement.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "6efb7a46496e80a7bf301d9f9f6cc37bb0f457d7",
+      "bytes": 10140,
+      "text_lines": 309,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 309,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/target_use.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "d12f6f99edda62d5d6b983cb1bd040fcdf68ed34",
+      "bytes": 7512,
+      "text_lines": 216,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 216,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/unit_prune.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "c4626e00c5926f278a01f3715b18232646bf45cf",
+      "bytes": 55057,
+      "text_lines": 1415,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1415,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/volume_gc.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "2f96aeae8be15e5cc69986b45e1d27e73fa4d6be",
+      "bytes": 6733,
+      "text_lines": 175,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 175,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/worktree_discovery.rs",
+      "primary_slice": "filesystem-targets",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "9aac02cd2f48b546f835e2d508b5f3a2ae4ea22a",
+      "bytes": 12395,
+      "text_lines": 374,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 374,
+          "state": "queued"
+        }
+      ]
+    }
+  ],
+  "reading_batches": [
+    {
+      "id": "filesystem-primitives",
+      "paths": [
+        "crates/kache-fs/Cargo.toml",
+        "crates/kache-fs/LICENSE",
+        "crates/kache-fs/README.md",
+        "crates/kache-fs/src/apfs.rs",
+        "crates/kache-fs/src/apfs_values.rs",
+        "crates/kache-fs/src/copy.rs",
+        "crates/kache-fs/src/extents.rs",
+        "crates/kache-fs/src/fallback.rs",
+        "crates/kache-fs/src/identity.rs",
+        "crates/kache-fs/src/ledger.rs",
+        "crates/kache-fs/src/lib.rs",
+        "crates/kache-fs/src/linux.rs",
+        "crates/kache-fs/src/staging.rs"
+      ],
+      "text_lines": 3900,
+      "review_state": "queued"
+    },
+    {
+      "id": "targets-recovery-and-maintenance",
+      "paths": [
+        "docs/deduplication.mdx",
+        "src/blob_heal.rs",
+        "src/disk_recovery.rs",
+        "src/index_compact.rs",
+        "src/link_probe.rs",
+        "src/maintenance.rs",
+        "src/prestage.rs",
+        "src/target_cleanup.rs",
+        "src/target_dedup.rs",
+        "src/target_liveness.rs",
+        "src/target_seed.rs",
+        "src/target_seed/placement.rs",
+        "src/target_use.rs",
+        "src/unit_prune.rs",
+        "src/volume_gc.rs",
+        "src/worktree_discovery.rs"
+      ],
+      "text_lines": 15185,
+      "review_state": "queued"
+    }
+  ],
+  "obligations": [
+    "Trace entry and blob lifecycle through metadata validation, hash memoization, SQLite/index state, staged writes, atomic publication, failed restore, entry deletion and blob reclamation.",
+    "Review reflink/hardlink/copy choices, carrier leases, reader/writer mutation isolation, executable bits, readonly stores, cross-volume fallback, symlinks, concurrent processes and crash/partial-write ordering.",
+    "Trace target cleanup, deduplication, seeding, liveness and recovery so user files and active artifacts remain safe; distinguish measured physical space from logical counters.",
+    "Restrict primary statements to this exact sub-scope path list; inspect declared neighboring seams as consultation, with no double primary ownership."
+  ],
+  "contracts": [
+    {
+      "id": "blob-references",
+      "path": "docs/deduplication.mdx",
+      "line": 16,
+      "quote": "Entries refer to blobs through metadata and the SQLite index. Identical bytes share one blob even when they came from different cache keys. Garbage collection removes a blob only after no entry needs it.",
+      "primary_slice": "filesystem-targets"
+    },
+    {
+      "id": "restore-isolation",
+      "path": "docs/deduplication.mdx",
+      "line": 26,
+      "quote": "C/C++ objects and the files a cached build script wrote are cloned onto their own inode or copied, never hardlinked.",
+      "primary_slice": "filesystem-targets"
+    }
+  ],
+  "owned_interactions": [
+    {
+      "id": "store-fs-target-isolation",
+      "primary_slice": "filesystem-targets",
+      "consult_slice": "store-core",
+      "contract": "kache-fs clone/copy/identity and target lifetime/reclamation \u2194 store publication/link/carrier leases and blob references"
+    }
+  ],
+  "consult_interactions": [
+    {
+      "id": "guardrail-domain-oracles",
+      "primary_slice": "guardrails",
+      "consult_slice": "all",
+      "contract": "kache-e2e/scripts/CI/scenario oracles \u2194 each domain-specific test; real compiler/process/remote observations and meaningful failure discrimination"
+    }
+  ],
+  "sampling_needs": [
+    "APFS can run locally; Linux/Windows reflink, cgroup and file permission paths require platform-specific source review and declared runtime limits.",
+    "Crash/failure injection and multi-process interleavings are sampled, with exact chosen cut points recorded.",
+    "Read every assigned production path in full. Large dedicated test suites may be sampled only with named ranges/cases and exact omissions in the report."
+  ],
+  "expected_coverage_report": "Record every path as fully read, sampled with bounds, or pending. Mapped is not reviewed. Fully read production/framework/configuration paths and explicitly record runtime sampling."
+}

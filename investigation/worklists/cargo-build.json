@@ -1,0 +1,1132 @@
+{
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "slice": "cargo-build",
+  "title": "Cargo, build scripts, incremental, fallback and test reuse",
+  "primary_paths": [
+    {
+      "path": "crates/kache-shims/Cargo.toml",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "55f905793bc0999a1f432297e8d3fa8144b47e8a",
+      "bytes": 787,
+      "text_lines": 26,
+      "kind": "config-or-delivery-collateral",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 26,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-shims/README.md",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "4cbaa0612d2be5be208dabccdecacdcfbb98274d",
+      "bytes": 1606,
+      "text_lines": 25,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 25,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-shims/proptest-regressions/select/tests.txt",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "91ade7daa6425fc5735d70c52a34330dbf1ef49f",
+      "bytes": 1352,
+      "text_lines": 11,
+      "kind": "config-or-delivery-collateral",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 11,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-shims/src/farm.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "d06bad4b7c1182be4d70b01b9e01cafa048cc2c6",
+      "bytes": 17603,
+      "text_lines": 550,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 550,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-shims/src/farm/tests.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "b0d29384271c86cb9403a939263e6c8fe4249b49",
+      "bytes": 31290,
+      "text_lines": 990,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 990,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-shims/src/fs.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "652164923457d372dbfe25a50d9faeae85e09631",
+      "bytes": 7303,
+      "text_lines": 229,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 229,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-shims/src/lib.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "0174d94a9da31729caa1ba1296a12d23a33c97cb",
+      "bytes": 449,
+      "text_lines": 15,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 15,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-shims/src/select.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "ba5609603bfe7208ba34a14fd2f43caa5f7ebdd0",
+      "bytes": 19368,
+      "text_lines": 578,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 578,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "crates/kache-shims/src/select/tests.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "976d64b40c3189845b4e72b3c1a9d49f098d2e94",
+      "bytes": 35890,
+      "text_lines": 1030,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1030,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/how-it-works/build-scripts.mdx",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "112bbe6359ebb9ce8928634504168823db9fa59c",
+      "bytes": 16448,
+      "text_lines": 284,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 284,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "launcher/build_script.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "d3cc7b61d95f30d98c8d37f5b80863c9b0fb834a",
+      "bytes": 9993,
+      "text_lines": 261,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 261,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/build_script.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "6eb3c66362748111ac4c6e7e4bc3713060da3ecc",
+      "bytes": 206835,
+      "text_lines": 5063,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 5063,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/build_script/declarations.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "af7f47e6395e86ed470e8123704ee1ad27f3b33e",
+      "bytes": 5873,
+      "text_lines": 163,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 163,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/build_script/hermetic.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "67954598ceaea1d12e57e1cce4201d2a94ad3f02",
+      "bytes": 54411,
+      "text_lines": 1412,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1412,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/build_script/inputs.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "8de6ac8e64a1cd4867bcf235ebc2cf31bf01ca7b",
+      "bytes": 36394,
+      "text_lines": 981,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 981,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/build_script/outside.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "6b39c745dbd30f1a3069ff13dc5a00ed059c7987",
+      "bytes": 45212,
+      "text_lines": 1243,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1243,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/build_script_inputs.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "00fcf66556dc8f79d47c4c345508b76e6ab540f9",
+      "bytes": 22294,
+      "text_lines": 598,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 598,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/build_script_inputs/tests.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "9d9ca5463c530fc86ef3e9cf312f725d3174f2de",
+      "bytes": 42294,
+      "text_lines": 1193,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1193,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/cargo_env.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "a63401bf41bf5136ada602f8c13c413106541621",
+      "bytes": 8697,
+      "text_lines": 259,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 259,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/cargo_layout.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "e89266d158ccc7dc9da208d264a5d2be6fce7119",
+      "bytes": 16424,
+      "text_lines": 441,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 441,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/cargo_proxy.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "08ad568fdc975922a9203f7c9d87bae208fb962d",
+      "bytes": 64414,
+      "text_lines": 1780,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1780,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/fallback.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "6326ef9892eb52055dfdd4636382c530d7d89348",
+      "bytes": 7229,
+      "text_lines": 231,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 231,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/fallback/macos.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "a5dbee0edebbb151ec19309bb7ddec12c52e7d8f",
+      "bytes": 7187,
+      "text_lines": 207,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 207,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/fallback/sandbox.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "a2ebff047deabd22f67a2f92fae4dbd2cf638763",
+      "bytes": 6191,
+      "text_lines": 194,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 194,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/incremental_policy.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "cf692bb7dec2821e16d679290b4686e2e5c47a2c",
+      "bytes": 96179,
+      "text_lines": 2531,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 2531,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/out_dir_alias.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "aead29c0115e5faf901f85dfbc84bd1d61c31b00",
+      "bytes": 82018,
+      "text_lines": 2174,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 2174,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/test_runner.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "4c8a805f14e705b1a0b12583356d6cee13fdf4c5",
+      "bytes": 25405,
+      "text_lines": 715,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 715,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/test_runner/delegate.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "88f3836287cbc7bd310b09945065c6b3f2f2173d",
+      "bytes": 43090,
+      "text_lines": 1163,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1163,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "test-projects/custom-harness/Cargo.lock",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "a768de3b687d95fdeb99bf3ac89df89e45f5a99e",
+      "bytes": 158,
+      "text_lines": 7,
+      "kind": "license-or-lock-collateral",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "identity-purpose-reference-accounting",
+      "executed_depth": "none",
+      "reading_sections": []
+    },
+    {
+      "path": "test-projects/custom-harness/Cargo.toml",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "857546fc8df7960eec407e20ae0b898598ba194d",
+      "bytes": 468,
+      "text_lines": 15,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 15,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "test-projects/custom-harness/src/lib.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "432593368f9028b66c60c5f011dd54949c10ca81",
+      "bytes": 34,
+      "text_lines": 3,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 3,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "test-projects/custom-harness/tests/harness.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "3d8f699a30b569f808c047b701afae97a4997553",
+      "bytes": 223,
+      "text_lines": 7,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 7,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "test-projects/hello-world/Cargo.lock",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "07ce0fdf86c3a6fb3ff5f39650006b36304fd4ef",
+      "bytes": 155,
+      "text_lines": 7,
+      "kind": "license-or-lock-collateral",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "identity-purpose-reference-accounting",
+      "executed_depth": "none",
+      "reading_sections": []
+    },
+    {
+      "path": "test-projects/hello-world/Cargo.toml",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "ecfa4af20a1e2de633ca7231fe430022b9175853",
+      "bytes": 153,
+      "text_lines": 7,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 7,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "test-projects/hello-world/src/main.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "0a9136cd6c60f318fe417c8858b88e903e8eea21",
+      "bytes": 62,
+      "text_lines": 3,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 3,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "test-projects/stale-check/Cargo.lock",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "7324f39335d53fa66e41e1194e84ad7defe5b37c",
+      "bytes": 155,
+      "text_lines": 7,
+      "kind": "license-or-lock-collateral",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "identity-purpose-reference-accounting",
+      "executed_depth": "none",
+      "reading_sections": []
+    },
+    {
+      "path": "test-projects/stale-check/Cargo.toml",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "013e3222091f7b0619cdf16ec5ba746a495cc357",
+      "bytes": 176,
+      "text_lines": 10,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 10,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "test-projects/stale-check/src/helper.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "69749e68bc97540a3fa0bb711a14335ae82c7074",
+      "bytes": 58,
+      "text_lines": 3,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 3,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "test-projects/stale-check/src/lib.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "22f26fe74eb640c6b8676902295070c66480d32e",
+      "bytes": 440,
+      "text_lines": 27,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 27,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "test-projects/stale-check/src/main.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "78a48608bd849ba58ade4ad83e95e4908886d7a4",
+      "bytes": 236,
+      "text_lines": 10,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 10,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/adaptive_incremental_test.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "b0136a0bab08d04c4bb7df6e2eaf7ae3c429d8ad",
+      "bytes": 38229,
+      "text_lines": 1065,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1065,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/adaptive_incremental_workspace_test.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "2dda6a915926d3f7e758178ff53650f9ddea3d0b",
+      "bytes": 27655,
+      "text_lines": 710,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 710,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/build_script_declared_inputs_test.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "7f68db5bc5be7fc91c64dbb2f7627a339babc9b9",
+      "bytes": 20761,
+      "text_lines": 552,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 552,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/build_script_inputs_test.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "2567127c9627683d49b199b7932bff3fb9e339a5",
+      "bytes": 6218,
+      "text_lines": 188,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 188,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/build_script_launcher_test.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "1c4fe81cc40b7e5a24ce826acbec5f276f252808",
+      "bytes": 4218,
+      "text_lines": 127,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 127,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/cargo_proxy_test.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "76aac5faa4b1c98de731055d4f651c6125779975",
+      "bytes": 52374,
+      "text_lines": 1365,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1365,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/custom_harness_test.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "711dff1292bfe57d361514d90df058672ec01dda",
+      "bytes": 8560,
+      "text_lines": 224,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 224,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/fallback_recovery_test.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "da87d6d6ccc6b552e5aa8f30d3e71782d6b2124f",
+      "bytes": 13025,
+      "text_lines": 377,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 377,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/incremental_passthrough_test.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "a5c9d7252b5557de43109f2a85bd6a71e4f0cd61",
+      "bytes": 18005,
+      "text_lines": 522,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 522,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/out_dir_alias_test.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "d00c597afe7bb750deef1c16fdcfd975447f1708",
+      "bytes": 24217,
+      "text_lines": 683,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 683,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/test_runner_test.rs",
+      "primary_slice": "cargo-build",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "06e7db8c0723c1818b8b5e9db5c5c250332717c9",
+      "bytes": 25618,
+      "text_lines": 719,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 719,
+          "state": "queued"
+        }
+      ]
+    }
+  ],
+  "reading_batches": [
+    {
+      "id": "build-script-execution-and-declarations",
+      "paths": [
+        "launcher/build_script.rs",
+        "src/build_script.rs",
+        "src/build_script/declarations.rs",
+        "src/build_script/hermetic.rs",
+        "src/build_script/inputs.rs",
+        "src/build_script/outside.rs",
+        "src/build_script_inputs.rs",
+        "src/build_script_inputs/tests.rs"
+      ],
+      "text_lines": 10914,
+      "review_state": "queued"
+    },
+    {
+      "id": "cargo-incremental-fallback-test-and-shims",
+      "paths": [
+        "crates/kache-shims/Cargo.toml",
+        "crates/kache-shims/README.md",
+        "crates/kache-shims/proptest-regressions/select/tests.txt",
+        "crates/kache-shims/src/farm.rs",
+        "crates/kache-shims/src/farm/tests.rs",
+        "crates/kache-shims/src/fs.rs",
+        "crates/kache-shims/src/lib.rs",
+        "crates/kache-shims/src/select.rs",
+        "crates/kache-shims/src/select/tests.rs",
+        "docs/how-it-works/build-scripts.mdx",
+        "src/cargo_env.rs",
+        "src/cargo_layout.rs",
+        "src/cargo_proxy.rs",
+        "src/fallback.rs",
+        "src/fallback/macos.rs",
+        "src/fallback/sandbox.rs",
+        "src/incremental_policy.rs",
+        "src/out_dir_alias.rs",
+        "src/test_runner.rs",
+        "src/test_runner/delegate.rs",
+        "test-projects/custom-harness/Cargo.lock",
+        "test-projects/custom-harness/Cargo.toml",
+        "test-projects/custom-harness/src/lib.rs",
+        "test-projects/custom-harness/tests/harness.rs",
+        "test-projects/hello-world/Cargo.lock",
+        "test-projects/hello-world/Cargo.toml",
+        "test-projects/hello-world/src/main.rs",
+        "test-projects/stale-check/Cargo.lock",
+        "test-projects/stale-check/Cargo.toml",
+        "test-projects/stale-check/src/helper.rs",
+        "test-projects/stale-check/src/lib.rs",
+        "test-projects/stale-check/src/main.rs",
+        "tests/adaptive_incremental_test.rs",
+        "tests/adaptive_incremental_workspace_test.rs",
+        "tests/build_script_declared_inputs_test.rs",
+        "tests/build_script_inputs_test.rs",
+        "tests/build_script_launcher_test.rs",
+        "tests/cargo_proxy_test.rs",
+        "tests/custom_harness_test.rs",
+        "tests/fallback_recovery_test.rs",
+        "tests/incremental_passthrough_test.rs",
+        "tests/out_dir_alias_test.rs",
+        "tests/test_runner_test.rs"
+      ],
+      "text_lines": 20071,
+      "review_state": "queued"
+    }
+  ],
+  "obligations": [
+    "Trace Cargo shim and wrapper chains, argument/environment overrides, manifest/target/Cargo-home identities, build directory isolation, inherited jobserver behavior and compile/test child lifetimes.",
+    "Trace build-script installation, launch fallback, declared file/environment inputs, package walks, hermetic out directories, replayed outputs outside OUT_DIR, symlinks, permissions and paths across relocation.",
+    "Trace adaptive incremental state, seed-to-incremental transitions, explicit user controls, fallback wrappers and test-result reuse; inspect cancellation, stdout drains and side effects under isolated fixtures.",
+    "Restrict primary statements to this exact sub-scope path list; inspect declared neighboring seams as consultation, with no double primary ownership."
+  ],
+  "contracts": [
+    {
+      "id": "build-rerun",
+      "path": "docs/how-it-works/build-scripts.mdx",
+      "line": 36,
+      "quote": "Kache reuses Cargo's own rule for when a build script must rerun. A recorded run",
+      "primary_slice": "cargo-build"
+    },
+    {
+      "id": "build-local-only",
+      "path": "docs/how-it-works/build-scripts.mdx",
+      "line": 91,
+      "quote": "Entries stay in the local store: `kache sync` never uploads them.",
+      "primary_slice": "cargo-build"
+    }
+  ],
+  "owned_interactions": [
+    {
+      "id": "compiler-build-inputs",
+      "primary_slice": "cargo-build",
+      "consult_slice": "rust-wrapper",
+      "contract": "build_script_inputs/extra_inputs/incremental_policy \u2192 Rust key/prediction decisions; declarations and mutation validation"
+    }
+  ],
+  "consult_interactions": [
+    {
+      "id": "dispatch-cargo-launcher",
+      "primary_slice": "cli-config",
+      "consult_slice": "cargo-build",
+      "contract": "src/main.rs dispatch \u2192 cargo_proxy/build_script/test_runner; argv/environment ownership"
+    },
+    {
+      "id": "target-cargo-incremental",
+      "primary_slice": "store-core",
+      "consult_slice": "cargo-build",
+      "contract": "target liveness/cleanup/seeding \u2194 Cargo build dirs/incremental/out-dir aliases; active readers and persistent artifacts"
+    },
+    {
+      "id": "guardrail-domain-oracles",
+      "primary_slice": "guardrails",
+      "consult_slice": "all",
+      "contract": "kache-e2e/scripts/CI/scenario oracles \u2194 each domain-specific test; real compiler/process/remote observations and meaningful failure discrimination"
+    }
+  ],
+  "sampling_needs": [
+    "Build-script arbitrary external probes/side effects need declared scope; fixture subprocesses and cancellation paths can be exercised without real homes.",
+    "Cargo and Rust version combinations need explicit tested versions; no general compatibility claim from one installed toolchain.",
+    "Read every assigned production path in full. Large dedicated test suites may be sampled only with named ranges/cases and exact omissions in the report."
+  ],
+  "expected_coverage_report": "Record every path as fully read, sampled with bounds, or pending. Mapped is not reviewed. Fully read production/framework/configuration paths and explicitly record runtime sampling."
+}

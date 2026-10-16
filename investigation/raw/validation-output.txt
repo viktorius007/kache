@@ -1,0 +1,1 @@
+PASS: exact pinned inventory, unique primary worklists, owned seams, citations and frontier closure; four malformed discriminators rejected

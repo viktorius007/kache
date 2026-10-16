@@ -1,0 +1,15 @@
+project: Users-viktor-Developer-github-kache-investigations-coordinator
+total_nodes: 26827
+total_edges: 149258
+boundaries: 10  (cols: from to calls)
+  cli config 66
+  blob_heal kache-store 33
+  cli test_support 23
+  bench list 18
+  blob_heal maintenance 12
+  config_tui config 12
+  bench-contention list 10
+  bench-contention str 9
+  remote_backend config 8
+  remote_backend remote_layout 8
+

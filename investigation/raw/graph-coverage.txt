@@ -1,0 +1,33 @@
+project: Users-viktor-Developer-github-kache-investigations-coordinator
+signal: best_effort
+indexed_at: 2026-10-11T05:36:35Z
+metadata:
+  generation: 2026-10-11T05:36:35Z
+  index_mode: full
+  recorded_at: 2026-10-11T05:36:36Z
+  recording_status: complete
+  ignored_files_stored: 17
+  ignored_files_total: 17
+  hash_records_complete: true
+  coverage_version: 17
+  generation_matches: true
+semantic_coverage:
+  rust:
+    status: semantic_partial
+    reasons: 3
+      - binding_oracle_unavailable
+      - expanded_calls_unavailable
+      - impl_relationships_unavailable
+    note: "Rust CALLS, expanded calls, IMPLEMENTS, and OVERRIDE facts may be omitted according to the listed semantic gaps."
+paths: 0
+path_total: 0
+path_returned: 0
+path_has_more: false
+scopes: 1  (cols: requested_scope scope semantic_status semantic_reasons total returned truncated entries status)
+  . . semantic_partial "[\"binding_oracle_unavailable\",\"expanded_calls_unavailable\",\"impl_relationships_unavailable\"]" 27 27 false "[{\"path\":\".cargo\",\"kind\":\"not_indexed_dir\",\"detail\":\"excluded subtree\"},{\"path\":\"assets/clean.gif\",\"kind\":\"not_indexed_file\",\"detail\":\"ignored-suffix\"},{\"path\":\"assets/demo-36381adc.gif\",\"kind\":\"not_indexed_file\",\"detail\":\"ignored-suffix\"},{\"path\":\"assets/demo-36381adc.png\",\"kind\":\"not_indexed_file\",\"detail\":\"ignored-suffix\"},{\"path\":\"assets/demo.gif\",\"kind\":\"not_indexed_file\",\"detail\":\"ignored-suffix\"},{\"path\":\"assets/demo.png\",\"kind\":\"not_indexed_file\",\"detail\":\"ignored-suffix\"},{\"path\":\"assets/init.gif\",\"kind\":\"not_indexed_file\",\"detail\":\"ignored-suffix\"},{\"path\":\"assets/monitor-9dd7cee8.gif\",\"kind\":\"not_indexed_file\",\"detail\":\"ignored-suffix\"},{\"path\":\"assets/monitor-9dd7cee8.png\",\"kind\":\"not_indexed_file\",\"detail\":\"ignored-suffix\"},{\"path\":\"assets/monitor.gif\",\"kind\":\"not_indexed_file\",\"detail\":\"ignored-suffix\"},{\"path\":\"assets/monitor.png\",\"kind\":\"not_indexed_file\",\"detail\":\"ignored-suffix\"},{\"path\":\"assets/store-worktrees.svg\",\"kind\":\"not_indexed_file\",\"detail\":\"ignored-suffix\"},{\"path\":\"assets/why-miss.gif\",\"kind\":\"not_indexed_file\",\"detail\":\"ignored-suffix\"},{\"path\":\"assets/worktree-cost.svg\",\"kind\":\"not_indexed_file\",\"detail\":\"ignored-suffix\"},{\"path\":\"packaging/charts/kache-service/templates/deployment.yaml\",\"kind\":\"parse_partial\",\"ranges\":[{\"start\":1,\"end\":7}]},{\"path\":\"packaging/charts/kache-service/templates/ingress.yaml\",\"kind\":\"parse_partial\",\"ranges\":[{\"start\":1,\"end\":1}]},{\"path\":\"packaging/charts/kache-service/templates/pvc.yaml\",\"kind\":\"parse_partial\",\"ranges\":[{\"start\":1,\"end\":1}]},{\"path\":\"packaging/charts/kache-service/templates/rbac.yaml\",\"kind\":\"parse_partial\",\"ranges\":[{\"start\":1,\"end\":1}]},{\"path\":\"packaging/charts/kache-service/templates/service.yaml\",\"kind\":\"parse_partial\",\"ranges\":[{\"start\":1,\"end\":7}]},{\"path\":\"scenarios/e2e-cc-asm-incbin/source/src/blob.S\",\"kind\":\"parse_partial\",\"ranges\":[{\"start\":1,\"end\":1},{\"start\":3,\"end\":3},{\"start\":6,\"end\":6},{\"start\":9,\"end\":9},{\"start\":10,\"end\":10},{\"start\":13,\"end\":13},{\"start\":14,\"end\":14}]},{\"path\":\"scenarios/e2e-cc-memo-after-entry/source/build/a/util.o\",\"kind\":\"not_indexed_file\",\"detail\":\"ignored-suffix\"},{\"path\":\"scenarios/e2e-cc-memo-after-entry/source/build/b/util.o\",\"kind\":\"not_indexed_file\",\"detail\":\"ignored-suffix\"},{\"path\":\"scenarios/e2e-cc-memo-after-entry/source/build/main.o\",\"kind\":\"not_indexed_file\",\"detail\":\"ignored-suffix\"},{\"path\":\"scenarios/e2e-rust-symlinked-target/source/oot-link\",\"kind\":\"not_indexed_file\",\"detail\":\"symlink\"},{\"path\":\"scripts/test-with-test-resources.sh\",\"kind\":\"parse_partial\",\"ranges\":[{\"start\":22,\"end\":22}]},{\"path\":\"scripts/with-test-resources.sh\",\"kind\":\"parse_partial\",\"ranges\":[{\"start\":24,\"end\":24},{\"start\":68,\"end\":68},{\"start\":71,\"end\":71}]},{\"path\":\"tests/fixtures/mock_cc_diagnostics.sh\",\"kind\":\"parse_partial\",\"ranges\":[{\"start\":9,\"end\":9}]}]" known_gaps
+scope_total: 27
+scope_returned: 27
+scope_truncated: false
+has_more: false
+caveat: "Best-effort signal only. No recorded issue does not prove graph or source completeness; read flagged source and qualify claims when metadata is changed or unavailable."
+

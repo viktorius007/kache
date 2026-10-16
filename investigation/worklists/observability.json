@@ -1,0 +1,535 @@
+{
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "slice": "observability",
+  "title": "Events, timelines, statistics, diagnostics, reports and terminal UI",
+  "primary_paths": [
+    {
+      "path": "docs/commands/cli.schema.json",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "6e3a4162ec018b0887c8f7f38dad94f9cad18538",
+      "bytes": 1397,
+      "text_lines": 39,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 39,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/commands/meta.json",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "cf78015ec7da6f84f32741ca9f86510ecb0f4c0f",
+      "bytes": 52,
+      "text_lines": 4,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 4,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/commands/reference.mdx",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "329d2c109a795e2c4b01b107fa677c9b52c60e4e",
+      "bytes": 44951,
+      "text_lines": 557,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 557,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/commands/report.schema.json",
+      "primary_slice": "observability",
+      "mode": "100755",
+      "git_type": "blob",
+      "blob": "b29f8f4a2c929a221325bafd04ab7d1c2b8241bf",
+      "bytes": 28381,
+      "text_lines": 663,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 663,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/monitor.mdx",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "414b7ff5e27e3d1aac8602b186b9c0098fa04276",
+      "bytes": 8344,
+      "text_lines": 84,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 84,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/events.rs",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "e7130855832850b183249f8dee5c3bdfe1eac5eb",
+      "bytes": 128589,
+      "text_lines": 3219,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 3219,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/explain.rs",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "57b73dc70f16dbb1b1a150cd9c1e61d136ddf0a4",
+      "bytes": 26798,
+      "text_lines": 700,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 700,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/miss_chain.rs",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "7c0bf22eb69e9f5b85ebd9f624a2855f1c62be81",
+      "bytes": 93226,
+      "text_lines": 2284,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 2284,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/otel.rs",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "540055b865eb11b322283de1bcc18e5bd19ff87a",
+      "bytes": 39527,
+      "text_lines": 1145,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1145,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/phase_trace.rs",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "49218168f29dcbc3b4200751d46b1b91a4b54e9f",
+      "bytes": 8070,
+      "text_lines": 230,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 230,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/report.rs",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "83a82821e9a6dfd765393975670db6a56905330e",
+      "bytes": 158103,
+      "text_lines": 4302,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 4302,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/report/eviction_evidence.rs",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "6abfc2f37c9a0d3aab2c09eb6794be7603d91c14",
+      "bytes": 4009,
+      "text_lines": 94,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 94,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/report/eviction_evidence/tests.rs",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "9e07b6af85e41093a38551d9236118eb17409982",
+      "bytes": 4763,
+      "text_lines": 113,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 113,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/report/tests.rs",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "99aeceee54bb53996bb01463fc13a0908f3318e2",
+      "bytes": 155192,
+      "text_lines": 4243,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 4243,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/run_diff.rs",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "e310151279dadd6a0bd980eb42072f6ca17bd8a2",
+      "bytes": 13552,
+      "text_lines": 404,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 404,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/savings.rs",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "e2292138cc3dcf50a15f9414cb9e5cedaaf2200a",
+      "bytes": 9038,
+      "text_lines": 254,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 254,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/savings/tests.rs",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "8c4aeeb87f3c94f3d114218d6d5d3c6a14256e8c",
+      "bytes": 13278,
+      "text_lines": 353,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 353,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/since.rs",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "952374671f436cb62801fcfe209040d745c1517e",
+      "bytes": 8804,
+      "text_lines": 247,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 247,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/term.rs",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "0e3db4ab8ae875a1ecb7fc9cd463b321f5b34e3a",
+      "bytes": 17098,
+      "text_lines": 538,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 538,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/timeline.rs",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "1d3938f6c5da878a2a62923e1c204690949b7dec",
+      "bytes": 72192,
+      "text_lines": 1919,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1919,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/tui.rs",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "73a1b7cfd68664aad9c3a6745b52a716af396f37",
+      "bytes": 112291,
+      "text_lines": 3103,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 3103,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/tui/tests.rs",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "3c56628fb7f9eac4ff6c672662ffe9076ffc02c1",
+      "bytes": 100194,
+      "text_lines": 2888,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 2888,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/tui_sessions.rs",
+      "primary_slice": "observability",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "07210605c4822d0cba769a2747a683ddeb2312af",
+      "bytes": 64261,
+      "text_lines": 1629,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1629,
+          "state": "queued"
+        }
+      ]
+    }
+  ],
+  "reading_batches": [
+    {
+      "id": "dispatch-commands-installed-services-and-contracts",
+      "paths": [
+        "docs/commands/cli.schema.json",
+        "docs/commands/meta.json",
+        "docs/commands/reference.mdx",
+        "docs/commands/report.schema.json",
+        "docs/monitor.mdx"
+      ],
+      "text_lines": 1347,
+      "review_state": "queued"
+    },
+    {
+      "id": "events-reports-and-terminal",
+      "paths": [
+        "src/events.rs",
+        "src/explain.rs",
+        "src/miss_chain.rs",
+        "src/otel.rs",
+        "src/phase_trace.rs",
+        "src/report.rs",
+        "src/report/eviction_evidence.rs",
+        "src/report/eviction_evidence/tests.rs",
+        "src/report/tests.rs",
+        "src/run_diff.rs",
+        "src/savings.rs",
+        "src/savings/tests.rs",
+        "src/since.rs",
+        "src/term.rs",
+        "src/timeline.rs",
+        "src/tui.rs",
+        "src/tui/tests.rs",
+        "src/tui_sessions.rs"
+      ],
+      "text_lines": 27665,
+      "review_state": "queued"
+    }
+  ],
+  "obligations": [
+    "Trace main dispatch for CLI, compiler shim, build-script launcher, Cargo shim and test runner; command parsing, environment/config precedence, defaults, migration and path derivation must compose with owning domains.",
+    "Review init/doctor/clean/sync/reporting/service-install operations for isolated fixture correctness, machine-readable output/schema consistency, failure exit status and handling of stale/missing installed binaries.",
+    "Trace event/timeline/stat aggregation, TUI and report behavior against actual emitted semantics; investigate only external consequences relevant to integrity, reuse, resources and operations.",
+    "Restrict primary statements to this exact sub-scope path list; inspect declared neighboring seams as consultation, with no double primary ownership."
+  ],
+  "contracts": [],
+  "owned_interactions": [
+    {
+      "id": "cli-observable-contract",
+      "primary_slice": "observability",
+      "consult_slice": "cli-config",
+      "contract": "CLI flags/config and command dispatch \u2194 events, reports, explain, statistics, schemas and terminal output"
+    }
+  ],
+  "consult_interactions": [
+    {
+      "id": "guardrail-domain-oracles",
+      "primary_slice": "guardrails",
+      "consult_slice": "all",
+      "contract": "kache-e2e/scripts/CI/scenario oracles \u2194 each domain-specific test; real compiler/process/remote observations and meaningful failure discrimination"
+    }
+  ],
+  "sampling_needs": [
+    "Use isolated HOME/config/runtime paths. Actual launchd/systemd/Task Scheduler modifications are unauthorized; review generated service artifacts and source.",
+    "Terminal interactivity and unsupported platform branches require explicit read-vs-executed reporting.",
+    "Read every assigned production path in full. Large dedicated test suites may be sampled only with named ranges/cases and exact omissions in the report."
+  ],
+  "expected_coverage_report": "Record every path as fully read, sampled with bounds, or pending. Mapped is not reviewed. Fully read production/framework/configuration paths and explicitly record runtime sampling."
+}

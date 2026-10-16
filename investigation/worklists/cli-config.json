@@ -1,0 +1,686 @@
+{
+  "baseline_commit": "4ee0f9e2b9673aa16f29c9c7e39bf8d0152671d9",
+  "slice": "cli-config",
+  "title": "CLI dispatch, configuration, shims and installed services",
+  "primary_paths": [
+    {
+      "path": "docs/compatibility.mdx",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "553073f3ecc1b3342b39b99bf89b615a0c821b73",
+      "bytes": 1628,
+      "text_lines": 16,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 16,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/getting-started/comparison.mdx",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "c8402cae29f1d6865abc2a224125a33529ee4f81",
+      "bytes": 6010,
+      "text_lines": 96,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 96,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/getting-started/configuration.mdx",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "49b2991a3b00f7e8fbe7c6480b5946918dafcafa",
+      "bytes": 65826,
+      "text_lines": 637,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 637,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/getting-started/installation.mdx",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "0437de4f003678aef72db550f3fe133576020252",
+      "bytes": 5680,
+      "text_lines": 154,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 154,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/getting-started/meta.json",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "d9cacb1ba3adf6cc1d41ea91121a71f8c788699f",
+      "bytes": 215,
+      "text_lines": 14,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 14,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/getting-started/quick-start.mdx",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "2411a1a025d4836ec139da199e5927f418648c1f",
+      "bytes": 8701,
+      "text_lines": 126,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 126,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/getting-started/troubleshooting.mdx",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "690acb32002b70269406bc1e764e2a899a8a1dc9",
+      "bytes": 5666,
+      "text_lines": 131,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 131,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/how-it-works/architecture.mdx",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "215bdc063d7c61ec36ef99343e86bdcf0d3e7c40",
+      "bytes": 7560,
+      "text_lines": 95,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 95,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/how-it-works/meta.json",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "a351da276923fe255edb73270b32b6e068dcf790",
+      "bytes": 119,
+      "text_lines": 9,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 9,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/index.mdx",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "7619e0408476027270d13e9a2f76e8a6c358f15b",
+      "bytes": 4003,
+      "text_lines": 78,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 78,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "docs/meta.json",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "17bca7eeb373fadb53fd61aafaae24856ea6b3c7",
+      "bytes": 259,
+      "text_lines": 17,
+      "kind": "contract-doc-or-ci",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 17,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/cli.rs",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "52ec6934f87dadfc3f6e58bb809e7988b5456db2",
+      "bytes": 377863,
+      "text_lines": 10293,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 6000,
+          "state": "queued"
+        },
+        {
+          "start_line": 6001,
+          "end_line": 10293,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/cli/login.rs",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "b9a43da896c0b2a7720a2fe01415237da7d735e8",
+      "bytes": 15103,
+      "text_lines": 412,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 412,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/cli/miss_diagnosis.rs",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "b5822cab4cfa52b8ea8008b28f60812cd0d40afe",
+      "bytes": 7101,
+      "text_lines": 178,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 178,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/cli/tests.rs",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "da20100f21367541a13419ed2be1e1a3794d519d",
+      "bytes": 295356,
+      "text_lines": 8350,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 6000,
+          "state": "queued"
+        },
+        {
+          "start_line": 6001,
+          "end_line": 8350,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/config.rs",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "ab93230ad158fc5284b924abc20e66e7d197f465",
+      "bytes": 186209,
+      "text_lines": 4324,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 4324,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/config/tests.rs",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "9de720866ea899f55f0fb2d8138bca4ec1fe78d4",
+      "bytes": 189931,
+      "text_lines": 5364,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 5364,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/config_tui.rs",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "fda598c74a5169988e9475e57b0d006ffe35ee50",
+      "bytes": 99971,
+      "text_lines": 2857,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 2857,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/init_shell.rs",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "8508321711707996b0ca649835e3261286534397",
+      "bytes": 25067,
+      "text_lines": 642,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 642,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/main.rs",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "720b14929888548c12057ff2b899b96b6719948e",
+      "bytes": 98342,
+      "text_lines": 2711,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 2711,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/notice.rs",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "d4ffc34c1e5dfc1d9efe6ceb2452ee0a9b1a7985",
+      "bytes": 4000,
+      "text_lines": 131,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 131,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/platform.rs",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "98f1138d89319088196f760c87faba9617a28729",
+      "bytes": 22615,
+      "text_lines": 584,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 584,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/service.rs",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "379640443c20151286d09badf8286163b5a96f0f",
+      "bytes": 64535,
+      "text_lines": 1867,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 1867,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "src/wrapper_config.rs",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "843a0524a3d96b9e8f9532475b7cd6c7e69afe7c",
+      "bytes": 11498,
+      "text_lines": 350,
+      "kind": "source-or-script",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 350,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/cli_commands_test.rs",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "3340a68bc05f89fdf4398b3030650e42b23a0f27",
+      "bytes": 151749,
+      "text_lines": 4237,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 4237,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/fixtures/config_editor_legacy.toml",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "4e491658f03c0ba8b6381d281f109e84ee34e495",
+      "bytes": 1816,
+      "text_lines": 73,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 73,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/host_config_test.rs",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "f94089e485b7c36b2f65512546d23bc7007dee8a",
+      "bytes": 5186,
+      "text_lines": 149,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 149,
+          "state": "queued"
+        }
+      ]
+    },
+    {
+      "path": "tests/macos_local_network_metadata_test.rs",
+      "primary_slice": "cli-config",
+      "mode": "100644",
+      "git_type": "blob",
+      "blob": "c4ffae9f0e4ca802a12871a6e616756f6d3521aa",
+      "bytes": 1487,
+      "text_lines": 35,
+      "kind": "test-or-fixture",
+      "review_state": "mapped-unreviewed",
+      "expected_depth": "full-text-contract-and-risk-review",
+      "executed_depth": "none",
+      "reading_sections": [
+        {
+          "start_line": 1,
+          "end_line": 35,
+          "state": "queued"
+        }
+      ]
+    }
+  ],
+  "reading_batches": [
+    {
+      "id": "configuration",
+      "paths": [
+        "docs/getting-started/configuration.mdx",
+        "src/config.rs",
+        "src/config/tests.rs",
+        "src/config_tui.rs",
+        "src/wrapper_config.rs"
+      ],
+      "text_lines": 13532,
+      "review_state": "queued"
+    },
+    {
+      "id": "dispatch-commands-installed-services-and-contracts",
+      "paths": [
+        "docs/compatibility.mdx",
+        "docs/getting-started/comparison.mdx",
+        "docs/getting-started/installation.mdx",
+        "docs/getting-started/meta.json",
+        "docs/getting-started/quick-start.mdx",
+        "docs/getting-started/troubleshooting.mdx",
+        "docs/how-it-works/architecture.mdx",
+        "docs/how-it-works/meta.json",
+        "docs/index.mdx",
+        "docs/meta.json",
+        "src/cli.rs",
+        "src/cli/login.rs",
+        "src/cli/miss_diagnosis.rs",
+        "src/cli/tests.rs",
+        "src/init_shell.rs",
+        "src/main.rs",
+        "src/notice.rs",
+        "src/platform.rs",
+        "src/service.rs",
+        "tests/cli_commands_test.rs",
+        "tests/fixtures/config_editor_legacy.toml",
+        "tests/host_config_test.rs",
+        "tests/macos_local_network_metadata_test.rs"
+      ],
+      "text_lines": 30398,
+      "review_state": "queued"
+    }
+  ],
+  "obligations": [
+    "Trace main dispatch for CLI, compiler shim, build-script launcher, Cargo shim and test runner; command parsing, environment/config precedence, defaults, migration and path derivation must compose with owning domains.",
+    "Review init/doctor/clean/sync/reporting/service-install operations for isolated fixture correctness, machine-readable output/schema consistency, failure exit status and handling of stale/missing installed binaries.",
+    "Trace event/timeline/stat aggregation, TUI and report behavior against actual emitted semantics; investigate only external consequences relevant to integrity, reuse, resources and operations.",
+    "Restrict primary statements to this exact sub-scope path list; inspect declared neighboring seams as consultation, with no double primary ownership."
+  ],
+  "contracts": [],
+  "owned_interactions": [
+    {
+      "id": "dispatch-compiler",
+      "primary_slice": "cli-config",
+      "consult_slice": "rust-wrapper",
+      "contract": "src/main.rs dispatch \u2192 compiler detection/wrapper.run; disabled/reentrant/direct invocation and exit propagation"
+    },
+    {
+      "id": "dispatch-cargo-launcher",
+      "primary_slice": "cli-config",
+      "consult_slice": "cargo-build",
+      "contract": "src/main.rs dispatch \u2192 cargo_proxy/build_script/test_runner; argv/environment ownership"
+    },
+    {
+      "id": "telemetry-schema",
+      "primary_slice": "cli-config",
+      "consult_slice": "planner-service",
+      "contract": "events/report/timeline \u2194 kache-core timeline and timeline_client/server ingest; schema, counters, bounded retention"
+    }
+  ],
+  "consult_interactions": [
+    {
+      "id": "daemon-service-config",
+      "primary_slice": "remote-daemon",
+      "consult_slice": "cli-config",
+      "contract": "Config/socket paths/service environment \u2194 daemon control/replacement; read-only credential lifetime and readiness"
+    },
+    {
+      "id": "auth-login-client",
+      "primary_slice": "planner-service",
+      "consult_slice": "cli-config",
+      "contract": "cli/login + config \u2194 planner_auth/client/server auth; credential origin and trusted endpoint binding"
+    },
+    {
+      "id": "package-runtime",
+      "primary_slice": "guardrails",
+      "consult_slice": "cli-config",
+      "contract": "Cargo metadata/build.rs/install assets/scripts/Helm/Nix \u2194 service/config/shim behavior; installed artifacts and version contracts"
+    },
+    {
+      "id": "guardrail-domain-oracles",
+      "primary_slice": "guardrails",
+      "consult_slice": "all",
+      "contract": "kache-e2e/scripts/CI/scenario oracles \u2194 each domain-specific test; real compiler/process/remote observations and meaningful failure discrimination"
+    },
+    {
+      "id": "cli-observable-contract",
+      "primary_slice": "observability",
+      "consult_slice": "cli-config",
+      "contract": "CLI flags/config and command dispatch \u2194 events, reports, explain, statistics, schemas and terminal output"
+    }
+  ],
+  "sampling_needs": [
+    "Use isolated HOME/config/runtime paths. Actual launchd/systemd/Task Scheduler modifications are unauthorized; review generated service artifacts and source.",
+    "Terminal interactivity and unsupported platform branches require explicit read-vs-executed reporting.",
+    "Read every assigned production path in full. Large dedicated test suites may be sampled only with named ranges/cases and exact omissions in the report."
+  ],
+  "expected_coverage_report": "Record every path as fully read, sampled with bounds, or pending. Mapped is not reviewed. Fully read production/framework/configuration paths and explicitly record runtime sampling."
+}
