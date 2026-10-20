@@ -469,13 +469,18 @@ fn rustc_host(cwd: &Path, flags: &[String]) -> Option<(String, Vec<HostCfg>)> {
     Some((host, parse_host_cfg(&run(&args)?)))
 }
 
+/// This process's environment, without the variables that are not UTF-8.
+pub(crate) fn utf8_vars() -> Vec<(String, String)> {
+    std::env::vars_os()
+        .filter_map(|(name, value)| Some((name.into_string().ok()?, value.into_string().ok()?)))
+        .collect()
+}
+
 /// The words to put before the test binary: the project's runner when the
 /// exported variable hid one, else nothing. An error means the test must
 /// not run.
 pub(crate) fn prefix() -> Result<Vec<OsString>, String> {
-    let vars = std::env::vars_os()
-        .filter_map(|(name, value)| Some((name.into_string().ok()?, value.into_string().ok()?)))
-        .collect::<Vec<_>>();
+    let vars = utf8_vars();
     let var = |name: &str| {
         vars.iter()
             .find(|(key, _)| key == name)

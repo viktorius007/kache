@@ -137,6 +137,8 @@ On Unix, `kache init` turns it on for every project unless you pass `--no-shell`
 
 It reaches every process started from a shell that reads that file, including coding agents launched from a terminal. A value you set earlier in the file is kept.
 
+Test binaries do not inherit the variable, just as they inherit no runner from Cargo's configuration. A library that starts binaries the way Cargo does, such as assert_cmd's `cargo_bin`, therefore starts them directly rather than through the test runner. A binary without Cargo's hash, such as one `cargo run` starts, keeps the variable, so the tests it starts are paced.
+
 Cargo ranks the variable above a project's own `[target.<triple>]` or `[target.'cfg(..)']` runner, so the test runner looks that runner up and runs the test binary under it. A project that tests under `sudo -E` or an emulator keeps doing so. Cargo reads configuration from the directory it was started in, which a test binary is not told, so the lookup reads `.cargo/config.toml` upward from both the package directory and `$PWD`, plus the files they `include` and `$CARGO_HOME/config.toml`. `cfg` runners are matched against `rustc --print cfg` with the `--cfg` flags from `RUSTFLAGS`.
 
 When the test runner cannot tell which runner Cargo would have used, the test fails with `cannot tell which runner Cargo would use` and the reason. That happens when:
