@@ -14,7 +14,7 @@ fork's `tools/sync-patched` branch.
 gh auth login
 gh repo clone viktorius007/kache && cd kache
 git config user.name "…" && git config user.email "…"   # merge commits need one
-mkdir -p local && for f in sync-patched extra-branches README.md; do
+mkdir -p local && for f in sync-patched extra-branches skip-prs README.md; do
   git show origin/tools/sync-patched:local/$f > local/$f; done && chmod +x local/sync-patched
 local/sync-patched
 ```
@@ -50,6 +50,20 @@ local/sync-patched --resolve  # repeat until nothing stops
 normal run, so rerere replays the resolution on every later sync. Resolving by hand
 with a plain `git merge`, or on top of a different set of PRs, records a resolution
 no later run matches.
+
+## When upstream replaces a PR
+
+The maintainer usually lands a reworked copy of a PR and closes the original a day
+or two later. Until then the original is still open and conflicts with its own
+replacement. Put its number in `local/skip-prs` (with a `#` note) rather than
+resolving that conflict; remove the line once the PR is closed.
+
+To build a PR from a local branch before it is pushed (a fresh rebase, say), add
+`<number> <branch>` to `local/pr-overrides`. Delete the line after pushing: the PR
+then carries the same commits.
+
+If `gh` is logged out, the PR list comes from GitHub's public API; everything but
+`--push` still works.
 
 ## Other options
 

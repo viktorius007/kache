@@ -1,1 +1,2 @@
 fix/test-runner-own-var
+chore/toolchain-latest  # newest stable Rust instead of upstream's pin

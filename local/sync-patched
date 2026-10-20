@@ -69,7 +69,10 @@ trap report_timings EXIT
 for tool in git gh cargo just; do
   command -v "$tool" >/dev/null || die "$tool is not on PATH (see local/README.md)"
 done
-gh auth status >/dev/null 2>&1 || die "gh is not logged in; run: gh auth login"
+if ! gh auth status >/dev/null 2>&1; then
+  [ "$push" = 0 ] || die "gh is not logged in, so --push cannot authenticate; run: gh auth login"
+  echo "WARNING: gh is not logged in (gh auth login); continuing without it" >&2
+fi
 
 cd "$REPO"
 git var GIT_COMMITTER_IDENT >/dev/null 2>&1 ||
@@ -144,8 +147,32 @@ if [ -n "$(git status --porcelain)" ]; then
   fi
 fi
 
-prs=$(gh pr list -R "$UPSTREAM" --author "$AUTHOR" --state open --limit 200 \
-  --json number,title --jq 'sort_by(.number) | .[] | "\(.number)\t\(.title)"')
+list_open_prs() {
+  if gh auth status >/dev/null 2>&1; then
+    gh pr list -R "$UPSTREAM" --author "$AUTHOR" --state open --limit 200 \
+      --json number,title --jq 'sort_by(.number) | .[] | "\(.number)\t\(.title)"'
+  else
+    # Public API, unauthenticated: enough to build, not to push.
+    echo "sync-patched: gh is not logged in; listing PRs through the public API" >&2
+    curl -fsS "https://api.github.com/search/issues?per_page=100&q=repo:$UPSTREAM+author:$AUTHOR+type:pr+state:open" |
+      python3 -I -c 'import json, sys
+for i in sorted(json.load(sys.stdin)["items"], key=lambda i: i["number"]):
+    print("%d\t%s" % (i["number"], i["title"]))'
+  fi
+}
+prs=$(list_open_prs) || die "could not list open PRs"
+# local/skip-prs: PRs left out of the build, one number per line, `#` comments.
+# For a PR upstream already replaced with its own reworked commit: merging the
+# original on top of its replacement only conflicts.
+if [ -f "$REPO/local/skip-prs" ]; then
+  skip_prs=$(sed 's/#.*//; s/[^0-9]//g; /^$/d' "$REPO/local/skip-prs")
+  for number in $skip_prs; do
+    if grep -q "^$number"$'\t' <<<"$prs"; then
+      echo "skipping #$number (local/skip-prs)"
+      prs=$(grep -v "^$number"$'\t' <<<"$prs")
+    fi
+  done
+fi
 refspecs=$(cut -f1 <<<"$prs" | sed 's#.*#+refs/pull/&/head:refs/remotes/pr/&#')
 # shellcheck disable=SC2086
 phase "fetch upstream" git fetch -q "$up" main $refspecs
@@ -199,7 +226,17 @@ merge_all() {
   local number title branch rev
   while IFS=$'\t' read -r number title; do
     [ -n "$number" ] || continue
-    try_merge "pr/$number" "Merge #$number: $title" "#$number" || return 0
+    rev="pr/$number"
+    # local/pr-overrides: `<number> <branch>` merges a local branch in place of the
+    # PR, e.g. a rebase not pushed yet. Delete the line once the PR has it.
+    if [ -f "$REPO/local/pr-overrides" ]; then
+      branch=$(awk -v n="$number" '$1 == n { print $2; exit }' "$REPO/local/pr-overrides")
+      if [ -n "$branch" ]; then
+        rev=$branch
+        echo "#$number from local branch $branch (local/pr-overrides)"
+      fi
+    fi
+    try_merge "$rev" "Merge #$number: $title" "#$number" || return 0
   done <<<"$prs"
 
   # Fix branches that have no PR yet, one per line in local/extra-branches.
@@ -256,10 +293,30 @@ check_tmpdir() {
 if [ "$check" = 1 ]; then
   TMPDIR=$(check_tmpdir)
   export TMPDIR
+  # The tests are not hermetic against the machine's own kache setup:
+  # - `kache init` shims (cc, rustdoc) on PATH make fixture builds run kache inside
+  #   kache, which logs its own events and turns expected hits into passthroughs.
+  # - the user's Cargo config ($CARGO_HOME/config.toml from `kache init`: a shared
+  #   build.build-dir, kache as wrapper, HOST_CC) leaks into fixture builds, which
+  #   expect Cargo's defaults: a fresh target dir means fresh compiles. Check with
+  #   an empty config, as CI does, over the same registry and git checkouts.
+  PATH=$(printf '%s' "$PATH" | tr ':' '\n' | grep -v '/kache/shims$' | paste -sd: -)
+  export PATH
+  local_cargo=${CARGO_HOME:-$HOME/.cargo}
+  check_cargo="$STATE/check-cargo-home"
+  mkdir -p "$check_cargo"
+  for entry in "$local_cargo"/*; do
+    case "$(basename "$entry")" in config | config.toml) continue ;; esac
+    ln -sfn "$entry" "$check_cargo/$(basename "$entry")"
+  done
+  rm -f "$check_cargo/config" "$check_cargo/config.toml"
+  user_cargo_home=${CARGO_HOME-unset}
+  export CARGO_HOME="$check_cargo"
   # The recipes `just check` depends on, one at a time so each is timed.
   for recipe in fmt-check lint test-resource-guard-check test; do
     phase "just $recipe" just "$recipe"
   done
+  if [ "$user_cargo_home" = unset ]; then unset CARGO_HOME; else export CARGO_HOME="$user_cargo_home"; fi
 fi
 
 # --- install --------------------------------------------------------------------
