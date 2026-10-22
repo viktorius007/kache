@@ -2382,23 +2382,57 @@ mod tests {
         let mut child = spawn_fixture(dir.path(), "scheduler::tests::permit_owner_child_fixture");
         wait_ready(dir.path(), &mut child);
 
-        let scheduler = test_scheduler(dir.path(), 1);
-        let started = std::time::Instant::now();
-        let permit_wait_before = crate::opcounts::permit_wait_ms();
-        let permit = scheduler.acquire_permit(1);
-        assert!(
-            permit.is_some(),
-            "parent must acquire the slot after the child exits"
-        );
-        assert!(
-            started.elapsed() >= Duration::from_millis(50),
-            "parent must have waited for the child-held slot"
-        );
-        assert!(
-            crate::opcounts::permit_wait_ms() >= permit_wait_before + 50,
-            "the wait must be attributed to permit_wait_ms"
-        );
+        // The child holds the only slot until `release` exists and writes
+        // `released` just before letting go. The gate opens only from a poll
+        // that found the slot held, so a slot granted before the child let go
+        // finds no marker. The timeout bounds only the failure case.
+        let scheduler = Scheduler::open_with(
+            dir.path(),
+            1,
+            Duration::from_secs(60),
+            Duration::from_millis(10),
+        )
+        .unwrap();
+        let release = dir.path().join("release");
+        let slots = scheduler.wait_for_permit(0..1, |waited| {
+            if waited && !release.exists() {
+                fs::write(&release, b"go").unwrap();
+            }
+            1
+        });
+        let found_held = release.exists();
+        let granted_after_release = dir.path().join("released").exists();
+        fs::write(&release, b"go").unwrap();
         let _ = child.wait();
+        assert!(
+            slots.is_some(),
+            "parent must acquire the slot once the child lets go"
+        );
+        assert!(found_held, "the first poll must find the child's slot held");
+        assert!(
+            granted_after_release,
+            "the slot must be granted only after the child released it"
+        );
+    }
+
+    #[test]
+    fn a_blocked_permit_wait_is_attributed_to_permit_wait_ms() {
+        let dir = temp_cache();
+        let holder = test_scheduler(dir.path(), 1);
+        let _held = holder
+            .acquire_permit(1)
+            .expect("a free pool grants at once");
+        // The wait gives up only once this has elapsed, so the attributed
+        // time cannot be shorter. The scope keeps sibling tests' waits out.
+        let timeout = Duration::from_millis(20);
+        let waiter =
+            Scheduler::open_with(dir.path(), 1, timeout, Duration::from_millis(5)).unwrap();
+        let _scope = crate::opcounts::InvocationScope::enter(std::time::Instant::now());
+        assert!(waiter.acquire_permit(1).is_none(), "the only slot is held");
+        assert!(
+            crate::opcounts::permit_wait_ms() >= 20,
+            "the whole wait must be attributed to permit_wait_ms"
+        );
     }
 
     #[test]
@@ -2714,9 +2748,15 @@ mod tests {
         let scheduler =
             Scheduler::open_with(&root, 1, Duration::from_secs(30), Duration::from_millis(10))
                 .unwrap();
-        let _permit = scheduler.acquire_permit(1).expect("fixture permit");
+        let permit = scheduler.acquire_permit(1).expect("fixture permit");
         fs::write(root.join("lock-ready"), b"ready").unwrap();
-        std::thread::sleep(Duration::from_millis(300));
+        // The deadline only bounds a parent that never opens the gate.
+        let deadline = std::time::Instant::now() + Duration::from_secs(60);
+        while !root.join("release").exists() && std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        fs::write(root.join("released"), b"released").unwrap();
+        drop(permit);
     }
 
     const BUDGET: Duration = Duration::from_millis(300);
