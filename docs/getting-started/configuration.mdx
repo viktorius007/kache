@@ -658,6 +658,8 @@ Every GC driver (the daemon's sweep and its eviction after an upload, the auto-G
 | `KACHE_LOG_FILE` | none | CLI/daemon: `kache=info`; wrapper: off | File tracing filter and wrapper opt-in. The file is `~/Library/Logs/kache/kache.log` on macOS and `kache.log` in the default store directory elsewhere, even when `KACHE_CACHE_DIR` or `cache.local_store` moves the store. A process that starts while it is over 5 MiB truncates it |
 | `KACHE_EVENT_ROOT` | none | detected | Root attached to events for report filtering |
 | `KACHE_PAGER` | none | platform pager | Pager command for `kache list` |
+| `KACHE_REAL_CARGO` | none | unset | Absolute path of the Cargo that `kache cargo` and the `cargo` shim run. Unset: `$CARGO_HOME/bin/cargo` (or `~/.cargo/bin/cargo`), then `PATH` |
+| `KACHE_CARGO_PROXY_MAX_DEPTH` | none | `16` | Kache Cargo proxies allowed above one another. The proxy at this depth exits with status 117 and names the chain, in `KACHE_CARGO_PROXY_DEPTH` and `KACHE_CARGO_PROXY_CHAIN`, that led to it |
 | `KACHE_MAX_DIAGNOSTICS_BYTES` | none | unset | Cap, in bytes, on the compiler diagnostics stored with an entry. Unset stores them in full, so a hit replays exactly what the compile printed. Above the cap they are truncated with a marker |
 
 Compiler event writes wait up to 5 ms to acquire the log lock, then omit the

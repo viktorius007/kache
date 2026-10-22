@@ -54,7 +54,6 @@ mod prediction_share;
 mod prestage;
 mod probe;
 mod probe_memo;
-mod process_ancestry;
 mod remote;
 mod remote_backend;
 mod remote_layout;
@@ -577,6 +576,9 @@ fn report_main_error(error: &anyhow::Error) -> u8 {
         return 0;
     }
     eprintln!("{} {error:#}", term::paint("error:", term::Style::Error));
+    if cargo_proxy::is_refused(error) {
+        return cargo_proxy::PROXY_REFUSED_EXIT as u8;
+    }
     1
 }
 

@@ -173,11 +173,10 @@ pub fn hermetic_command(
         .env_remove("KACHE_ACTIVE")
         .env_remove("KACHE_UNSTABLE")
         .env_remove("KACHE_INCREMENTAL_SEED_FROM")
-        // Set when this test's own `cargo` was a kache proxy; a proxy that
-        // inherits them would judge this test's processes as part of a chain.
+        // Set when this test's own `cargo` was a kache proxy; a child that
+        // inherits them starts its depth above zero.
         .env_remove("KACHE_CARGO_PROXY_DEPTH")
         .env_remove("KACHE_CARGO_PROXY_CHAIN")
-        .env_remove("KACHE_CARGO_PROXY_NESTING")
         .env_remove("KACHE_S3_BUCKET")
         .env_remove("KACHE_S3_ENDPOINT")
         .env_remove("KACHE_S3_REGION")

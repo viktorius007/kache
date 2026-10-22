@@ -8627,7 +8627,16 @@ fn migrate(purge_sccache: bool) -> Result<()> {
                 println!("Uninstalling sccache via cargo...");
                 let status =
                     crate::cargo_proxy::cargo_command(crate::cargo_proxy::CargoRoute::Command)
-                        .and_then(|mut cargo| Ok(cargo.args(["uninstall", "sccache"]).status()?));
+                        .and_then(|mut cargo| {
+                            let status = cargo.args(["uninstall", "sccache"]).status()?;
+                            crate::cargo_proxy::refusal_below(&status, &[])?;
+                            Ok(status)
+                        });
+                if let Err(error) = &status
+                    && crate::cargo_proxy::is_refused(error)
+                {
+                    crate::cargo_proxy::exit_refused(error);
+                }
                 if status.map(|s| s.success()).unwrap_or(false) {
                     actions.push("Uninstalled sccache (cargo uninstall)".into());
                 }
@@ -9491,6 +9500,7 @@ fn workspace_filter(manifest_path: Option<&str>) -> Option<std::collections::Has
     manifest_path
         .map(|mp| match get_workspace_crate_names(mp) {
             Ok(names) => names.into_iter().collect(),
+            Err(e) if crate::cargo_proxy::is_refused(&e) => crate::cargo_proxy::exit_refused(&e),
             Err(e) => {
                 eprintln!("warning: cargo metadata failed for {mp}: {e}");
                 std::collections::HashSet::new()
@@ -9500,6 +9510,9 @@ fn workspace_filter(manifest_path: Option<&str>) -> Option<std::collections::Has
             if std::path::Path::new("Cargo.toml").exists() {
                 match get_workspace_crate_names("Cargo.toml") {
                     Ok(names) => Some(names.into_iter().collect()),
+                    Err(e) if crate::cargo_proxy::is_refused(&e) => {
+                        crate::cargo_proxy::exit_refused(&e)
+                    }
                     Err(e) => {
                         eprintln!("warning: cargo metadata failed: {e}");
                         None
@@ -9519,6 +9532,7 @@ fn get_workspace_crate_names(manifest_path: &str) -> Result<Vec<String>> {
         .arg(manifest_path)
         .output()
         .context("running cargo metadata")?;
+    crate::cargo_proxy::refusal_below(&output.status, &output.stderr)?;
 
     if !output.status.success() {
         anyhow::bail!(

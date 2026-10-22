@@ -210,6 +210,12 @@ pub(crate) fn failure_exit(error: &anyhow::Error) -> Option<(&'static str, i32)>
     if error.chain().any(|cause| cause.is::<InvalidArguments>()) {
         return Some(("invalid_arguments", 2));
     }
+    if crate::cargo_proxy::is_refused(error) {
+        return Some((
+            "cargo_proxy_refused",
+            crate::cargo_proxy::PROXY_REFUSED_EXIT,
+        ));
+    }
     Some(("command_failed", 1))
 }
 

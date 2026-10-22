@@ -41,6 +41,9 @@ enum DiscoveryFailure {
     /// The compiled package lies outside the workspace, and its target
     /// directory does not name the workspace either.
     NoWorkspace,
+    /// `cargo metadata` reached a kache cargo proxy that was refused at its
+    /// nesting bound; nothing else is tried.
+    ProxyRefused,
 }
 
 /// `cargo` is the real Cargo, never a name to look up on PATH: a `cargo`
@@ -207,6 +210,8 @@ fn discover_workspace_for(
             Ok(discovery) => return Ok(discovery),
             // The budget is shared: nothing is left for the next candidate.
             Err(DiscoveryFailure::Timeout) => return Err(DiscoveryFailure::Timeout),
+            // Another candidate would reach the same refused proxy.
+            Err(DiscoveryFailure::ProxyRefused) => return Err(DiscoveryFailure::ProxyRefused),
             Err(_) => {}
         }
     }
@@ -429,6 +434,9 @@ fn run_bounded(
     match received {
         Ok((_, true)) => Err(DiscoveryFailure::TooLarge),
         Ok((kept, false)) if status.success() => Ok(kept),
+        _ if status.code() == Some(crate::cargo_proxy::PROXY_REFUSED_EXIT) => {
+            Err(DiscoveryFailure::ProxyRefused)
+        }
         _ => Err(DiscoveryFailure::Exit),
     }
 }
@@ -1220,6 +1228,32 @@ printf '{"workspace_root":"%s/project","packages":[{"name":"%s"}]}' "$CLIENT_ROO
             1,
             "the shared budget was spent on the first manifest"
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_refused_proxy_ends_discovery_without_trying_other_manifests() {
+        let (first, second) = two_manifest_dirs();
+        let bin = tempfile::tempdir().unwrap();
+        let log = bin.path().join("calls");
+        let cargo = fake_cargo(
+            bin.path(),
+            &format!(
+                "echo x >> '{}'\nexit {}",
+                log.display(),
+                crate::cargo_proxy::PROXY_REFUSED_EXIT
+            ),
+        );
+
+        let result = discover_workspace(
+            Some(cargo.as_os_str()),
+            soon(10_000),
+            None,
+            Some(first.path()),
+            Some(second.path()),
+        );
+        assert_eq!(result.err(), Some(DiscoveryFailure::ProxyRefused));
+        assert_eq!(calls(&log), 1, "discovery ran Cargo again after a refusal");
     }
 
     #[cfg(unix)]
