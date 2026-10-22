@@ -1787,16 +1787,25 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn handing_off_without_a_socket_declines_at_once() {
+    fn handing_off_without_a_socket_declines_without_connecting() {
         let dir = tempfile::tempdir().unwrap();
         let config = crate::test_support::test_config(dir.path().join("cache"));
+        // A connection is only attempted after the receipt is written beside
+        // the snapshots, and dropping the receipt removes the snapshot
+        // directory once it is empty. This one surviving shows no receipt and
+        // so no connection attempt.
+        let snapshots = dir.path().join("handoff");
+        std::fs::create_dir(&snapshots).unwrap();
         let request = PublishCcRequest {
             client_epoch: 0,
             client_version: None,
             cache_key: "k".repeat(64),
             crate_name: "a.c".to_string(),
             target: String::new(),
-            files: Vec::new(),
+            files: vec![HandoffFile {
+                path: snapshots.join("a.o").to_string_lossy().into_owned(),
+                store_name: "a.o".to_string(),
+            }],
             stdout: String::new(),
             stderr: String::new(),
             compile_time_ms: 1,
@@ -1804,9 +1813,10 @@ mod tests {
             event: crate::events::BuildEvent::new_for_test("a.c", crate::events::EventResult::Miss),
             memo: None,
         };
-        let started = std::time::Instant::now();
-        let outcome = hand_off_cc_publish(&config, &request);
-        assert!(matches!(outcome, Handoff::Declined(reason) if reason.contains("socket")));
-        assert!(started.elapsed() < Duration::from_millis(100));
+        assert_eq!(
+            hand_off_cc_publish(&config, &request),
+            Handoff::Declined("no daemon socket".to_string())
+        );
+        assert!(snapshots.is_dir(), "no receipt, so no connection attempt");
     }
 }
