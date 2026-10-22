@@ -1,0 +1,46 @@
+Merge upstream/main (a37fb5ff) into the patched line
+
+Upstream squash-merged six of the local fixes (#1630, #1632, #1633,
+#1638, #1653, #1654). Where a conflict came from one of those fixes,
+the upstream version is taken: it carries the local change plus later
+review edits. Every local patch upstream has not absorbed is kept.
+
+Conflicts and resolutions:
+
+- Cargo.toml: both kept. Local tokio test-util dev-dependency
+  (c87b5da0) plus upstream's kache-config and kache-protocol
+  test-support dev-dependencies (#1639).
+- src/args.rs (3 hunks): upstream. Local 7e365b45 (key cached
+  diagnostics by format) is superseded by #1632, which also records
+  diagnostic_arg_indices.
+- src/cache_key/tests.rs (2 hunks): hunk 1 upstream (#1632 supersedes
+  9c810d76 and adds the implicit-diagnostics namespace assertion).
+  Hunk 2 both: the local OUT_DIR include-proof tests (5ae056ad,
+  11593847, e748d6d3, 3e000aa1, 202b2cc8) and upstream's
+  concurrent_key_env_snapshots test (#1639).
+- src/cli.rs: upstream. Local 345cf913 (sync.lock polled with
+  try_acquire) is superseded by #1633, which takes the same sync.lock
+  with a blocking StoreLock::acquire.
+- src/compiler/cc.rs (7 hunks): upstream. Local 49606063 (key
+  __has_include probe names) is superseded by #1638, which keys every
+  probe candidate path and memoizes the scan.
+- src/compiler/cc/tests.rs (2 hunks): upstream. #1638 carries every
+  local probe test (a1c3fff5, 541e7754, 2cf443ff, 95c21c1d, b1dda300).
+- src/compiler/rustc.rs (2 hunks): upstream. Local d81c8fa7 and
+  5abe8669 are superseded by #1653, which also refuses asm, llvm-ir,
+  llvm-bc and mir destinations.
+- src/compiler/rustdoc.rs (5 hunks): upstream. Local aaf2ec6d and its
+  tests (9c76a1a3, 970b40c1, 1f7720a5) are superseded by #1654, which
+  adds role-aware visits and the invocation environment. The local
+  environment-macro passthrough (24a9f845) and attribute include scan
+  (433cf13d) merged without conflict and are kept.
+- tests/cc_passthrough_args_test.rs: upstream. #1638 carries fb007810,
+  f939a003 and 6e122f44.
+- tests/metadata_streaming_test.rs: upstream. #1632 and #1653 carry
+  1661931c and f0139fe5; upstream's copy uses common::scratch_dir().
+- tests/rustdoc_nested_module_test.rs (add/add): upstream. #1654
+  carries 271ae0a3 and 6c8d22ab; upstream's copy uses
+  common::scratch_dir().
+
+The local toolchain pin (1.99.1, 0e964af4) and CACHE_KEY_VERSION 33
+(bd2fdab5) merged without conflict.
