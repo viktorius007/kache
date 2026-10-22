@@ -13,6 +13,8 @@ fn cargo_from_path(root: &Path, dirs: &[PathBuf]) -> Output {
         .args(["cargo", "--", "--version"])
         .current_dir(root)
         .env("PATH", std::env::join_paths(dirs).unwrap())
+        // A Cargo home without Cargo, so PATH is what finds it.
+        .env("CARGO_HOME", root.join("cargo-home"))
         .env_remove("CARGO")
         .env_remove("KACHE_REAL_CARGO")
         .output()

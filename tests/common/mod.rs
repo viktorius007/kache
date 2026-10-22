@@ -170,6 +170,10 @@ pub fn hermetic_command(
         .env_remove("KACHE_ACTIVE")
         .env_remove("KACHE_UNSTABLE")
         .env_remove("KACHE_INCREMENTAL_SEED_FROM")
+        // Set when this test's own `cargo` was a kache proxy; a proxy that
+        // inherits it only runs Cargo.
+        .env_remove("KACHE_CARGO_PROXY_DEPTH")
+        .env_remove("KACHE_CARGO_PROXY_CHAIN")
         .env_remove("RUSTC_WRAPPER")
         .env_remove("CARGO_BUILD_RUSTC_WRAPPER")
         // Cargo sets kache's own OUT_DIR on the test process (kache has a

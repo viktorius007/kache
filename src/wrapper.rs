@@ -8871,7 +8871,11 @@ fn explain_miss_diff(
 /// its own compile (kunobi-ninja/kache#698).
 fn maybe_trigger_prefetch(config: &Config, args: &RustcArgs) {
     maybe_trigger_prefetch_with(config, args, now_epoch_secs(), || {
-        crate::build_intent::discover(Some(args))
+        let cargo =
+            crate::cargo_proxy::real_cargo_program(crate::cargo_proxy::CargoRoute::WithoutPath)
+                .map_err(|error| tracing::debug!("build intent: no Cargo for discovery: {error:#}"))
+                .ok();
+        crate::build_intent::discover(Some(args), cargo.as_deref())
     });
 }
 

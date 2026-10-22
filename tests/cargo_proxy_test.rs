@@ -75,6 +75,7 @@ fn cargo_shim_holds_target_lease_for_whole_test() {
         .env("READY", &ready)
         .env("GO", &go)
         .env("TARGET", &target)
+        .env("CARGO_HOME", dir.path().join("cargo-home"))
         .env_remove("KACHE_REAL_CARGO")
         .spawn()
         .unwrap();
@@ -148,6 +149,7 @@ fn cargo_shim_says_it_waits_for_target_cleanup_unless_quiet() {
             .env("PATH", path)
             .env("STARTED", &started)
             .env("KACHE_LOG", "off")
+            .env("CARGO_HOME", dir.path().join("cargo-home"))
             .env_remove("KACHE_REAL_CARGO")
             .stdout(std::fs::File::create(&stdout).unwrap())
             .stderr(std::fs::File::create(&stderr).unwrap());
@@ -440,7 +442,8 @@ fn versioned_fake_cargo(path: &Path, version: &str) {
         format!(
             "#!/bin/sh\ncase \"$*\" in\n  \
                  '+new -V') echo 'cargo 1.91.0 (0000000 2025-10-10)' ;;\n  \
-                 *-V) echo 'cargo {version} (0000000 2020-01-01)' ;;\n  \
+                 *-V) [ -n \"$KACHE_CARGO_PROXY_DEPTH\" ] || exit 9\n    \
+                      echo 'cargo {version} (0000000 2020-01-01)' ;;\n  \
                  *) printf '%s' \"$*\" > \"$KACHE_TEST_CAPTURE\" ;;\n\
              esac\n"
         ),
@@ -476,6 +479,7 @@ fn build_dir_override_needs_a_cargo_that_knows_the_key() {
             .arg("cargo")
             .arg("--")
             .args(args)
+            .env_remove("KACHE_CARGO_PROXY_DEPTH")
             .current_dir(&project)
             .env("HOME", &home)
             .env("CARGO_HOME", home.join(".cargo"))
@@ -552,6 +556,7 @@ fn non_utf8_cargo_argument_passes_through_without_cli_panic() {
         .args(["cargo", "--", "build"])
         .arg(OsString::from_vec(vec![b'f', b'o', 0x80]))
         .env("KACHE_REAL_CARGO", &fake_cargo)
+        .env_remove("KACHE_CARGO_PROXY_DEPTH")
         .output()
         .unwrap();
 
@@ -611,6 +616,7 @@ fn configured_build_dir_reaches_cargo_without_proxy_override() {
     let output = Command::new(KACHE_BIN)
         .args(["cargo", "--", "build"])
         .current_dir(&project)
+        .env_remove("KACHE_CARGO_PROXY_DEPTH")
         .env("HOME", &home)
         .env("CARGO_HOME", home.join(".cargo"))
         .env("KACHE_REAL_CARGO", &fake_cargo)
@@ -1362,4 +1368,174 @@ fn receipt_cleanup_preserves_units_in_unobserved_profiles() {
         receipt_target_files(&fixture.target.join("release")),
         before
     );
+}
+
+/// A `cargo` that forwards to the kache under test, as a repository self-test
+/// once did with the shim it captured through `command -v cargo`. Every call
+/// appends a line to `log`.
+fn forwarding_cargo(dir: &Path, log: &Path) -> std::path::PathBuf {
+    let stub = dir.join("cargo");
+    kache_fs::testutil::write_executable(
+        &stub,
+        format!(
+            "#!/bin/sh\necho x >> '{}'\nexec '{KACHE_BIN}' cargo \"$@\"\n",
+            log.display()
+        ),
+    );
+    stub
+}
+
+fn forwarded_calls(log: &Path) -> usize {
+    std::fs::read_to_string(log).map_or(0, |log| log.lines().count())
+}
+
+/// `kache cargo metadata` in a fresh package, with only `bin` on PATH.
+fn metadata_through(dir: &Path, bin: &Path) -> Command {
+    let project = dir.join("project");
+    std::fs::create_dir_all(project.join("src")).unwrap();
+    std::fs::write(
+        project.join("Cargo.toml"),
+        "[package]\nname = \"proxy_loop_fixture\"\nversion = \"0.1.0\"\nedition = \"2024\"\n",
+    )
+    .unwrap();
+    std::fs::write(project.join("src/lib.rs"), "").unwrap();
+    let mut command = hermetic_command(KACHE_BIN, &dir.join("cache"), None);
+    command
+        .args(["cargo", "metadata", "--format-version", "1", "--no-deps"])
+        .current_dir(&project)
+        .env("PATH", bin)
+        .env("KACHE_LOG", "off")
+        .env_remove("CARGO")
+        .env_remove("KACHE_REAL_CARGO");
+    command
+}
+
+/// Wait at most 10 s, then kill the whole process group: a loop forks faster
+/// than its leader can be reaped.
+fn output_within_ten_seconds(mut command: Command) -> Output {
+    use std::os::unix::process::CommandExt;
+    let mut child = command
+        .process_group(0)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while child.try_wait().unwrap().is_none() {
+        if Instant::now() > deadline {
+            let _ = Command::new("kill")
+                .args(["-KILL", &format!("-{}", child.id())])
+                .status();
+            let _ = child.wait();
+            panic!("kache cargo was still running after 10 s");
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    child.wait_with_output().unwrap()
+}
+
+#[test]
+fn cargo_proxy_reached_again_through_a_cargo_wrapper_stops_and_names_it() {
+    let dir = tempfile::tempdir().unwrap();
+    let bin = dir.path().join("bin");
+    std::fs::create_dir_all(&bin).unwrap();
+    let log = dir.path().join("calls");
+    let stub = forwarding_cargo(&bin, &log);
+
+    let mut command = metadata_through(dir.path(), &bin);
+    // No Cargo outside PATH, and a bare name, so every level finds the wrapper.
+    command
+        .env("CARGO_HOME", dir.path().join("cargo-home"))
+        .env("KACHE_REAL_CARGO", "cargo");
+    let output = output_within_ten_seconds(command);
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(!output.status.success(), "{stderr}");
+    assert!(stderr.contains("KACHE_CARGO_PROXY_DEPTH=3"), "{stderr}");
+    assert!(
+        stderr.contains(&format!("{KACHE_BIN} ran {}", stub.display())),
+        "{stderr}"
+    );
+    assert_eq!(forwarded_calls(&log), 3, "{stderr}");
+}
+
+#[test]
+fn cargo_proxy_runs_cargo_from_its_home_before_a_cargo_wrapper_on_path() {
+    let dir = tempfile::tempdir().unwrap();
+    let bin = dir.path().join("bin");
+    let cargo_home = dir.path().join("cargo-home");
+    std::fs::create_dir_all(&bin).unwrap();
+    std::fs::create_dir_all(cargo_home.join("bin")).unwrap();
+    std::os::unix::fs::symlink(env!("CARGO"), cargo_home.join("bin/cargo")).unwrap();
+    let log = dir.path().join("calls");
+    forwarding_cargo(&bin, &log);
+
+    let mut command = metadata_through(dir.path(), &bin);
+    command.env("CARGO_HOME", &cargo_home);
+    let output = output_within_ten_seconds(command);
+
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let metadata: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(metadata["packages"][0]["name"], "proxy_loop_fixture");
+    assert_eq!(forwarded_calls(&log), 0, "the wrapper on PATH was run");
+}
+
+/// The shim inside a Cargo tree a proxy started runs Cargo from Cargo's home
+/// directly, one level deeper, and never the `cargo` on PATH.
+#[test]
+fn cargo_shim_reentered_runs_cargo_from_its_home_one_level_deeper() {
+    let dir = tempfile::tempdir().unwrap();
+    let shims = dir.path().join("shims");
+    let on_path = dir.path().join("on-path");
+    let cargo_home = dir.path().join("cargo-home");
+    let seen = dir.path().join("seen");
+    for path in [&shims, &on_path, &cargo_home.join("bin")] {
+        std::fs::create_dir_all(path).unwrap();
+    }
+    std::os::unix::fs::symlink(KACHE_BIN, shims.join("cargo")).unwrap();
+    kache_fs::testutil::write_executable(&on_path.join("cargo"), "#!/bin/sh\nexit 12\n");
+    kache_fs::testutil::write_executable(
+        &cargo_home.join("bin/cargo"),
+        "#!/bin/sh\nprintf '%s|%s' \"$KACHE_CARGO_PROXY_DEPTH\" \"$*\" > \"$SEEN\"\n",
+    );
+    let path = std::env::join_paths([&shims, &on_path]).unwrap();
+
+    let mut command = hermetic_command(shims.join("cargo"), &dir.path().join("cache"), None);
+    let output = command
+        .args(["build", "-q"])
+        .env("PATH", &path)
+        .env("CARGO_HOME", &cargo_home)
+        .env("SEEN", &seen)
+        .env("KACHE_LOG", "off")
+        .env("KACHE_CARGO_PROXY_DEPTH", "1")
+        .env_remove("CARGO")
+        .env_remove("KACHE_REAL_CARGO")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(std::fs::read_to_string(&seen).unwrap(), "2|build -q");
+
+    let refused = hermetic_command(shims.join("cargo"), &dir.path().join("cache"), None)
+        .arg("build")
+        .env("PATH", &path)
+        .env("CARGO_HOME", &cargo_home)
+        .env("SEEN", dir.path().join("not-run"))
+        .env("KACHE_CARGO_PROXY_DEPTH", "3")
+        .output()
+        .unwrap();
+    assert!(!refused.status.success());
+    assert!(
+        String::from_utf8_lossy(&refused.stderr).contains("KACHE_CARGO_PROXY_DEPTH=3"),
+        "{}",
+        String::from_utf8_lossy(&refused.stderr)
+    );
+    assert!(!dir.path().join("not-run").exists());
 }

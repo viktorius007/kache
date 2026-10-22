@@ -38,19 +38,28 @@ enum DiscoveryFailure {
     Parse,
 }
 
-pub fn discover(args: Option<&RustcArgs>) -> Option<BuildIntent> {
+/// `cargo` is the real Cargo, never a name to look up on PATH: a `cargo`
+/// there may be a wrapper that leads back to Kache. Without one, only a
+/// `Cargo.lock` can supply the workspace.
+pub fn discover(args: Option<&RustcArgs>, cargo: Option<&Path>) -> Option<BuildIntent> {
     let manifest_dir = std::env::var_os("CARGO_MANIFEST_DIR").map(PathBuf::from);
     let cwd = std::env::current_dir().ok();
-    discover_with_context(args, manifest_dir.as_deref(), cwd.as_deref())
+    discover_with_context(
+        args,
+        cargo.map(Path::as_os_str),
+        manifest_dir.as_deref(),
+        cwd.as_deref(),
+    )
 }
 
 fn discover_with_context(
     args: Option<&RustcArgs>,
+    cargo: Option<&OsStr>,
     manifest_dir: Option<&Path>,
     cwd: Option<&Path>,
 ) -> Option<BuildIntent> {
     let discovery = match discover_workspace(
-        OsStr::new("cargo"),
+        cargo,
         Instant::now() + METADATA_BUDGET,
         args,
         manifest_dir,
@@ -133,7 +142,7 @@ fn load_cargo_lock_deps(lock_path: &Path) -> Option<Vec<(String, String)>> {
 /// found, else from `cargo` (the program named by `cargo`) run against each
 /// candidate manifest in turn, all before `deadline`.
 fn discover_workspace(
-    cargo: &OsStr,
+    cargo: Option<&OsStr>,
     deadline: Instant,
     args: Option<&RustcArgs>,
     manifest_dir: Option<&Path>,
@@ -150,6 +159,7 @@ fn discover_workspace(
         });
     }
 
+    let cargo = cargo.ok_or(DiscoveryFailure::Spawn)?;
     for manifest_path in candidate_manifest_paths(args, manifest_dir, cwd) {
         match run_cargo_metadata(cargo, Some(&manifest_path), deadline) {
             Ok(discovery) => return Ok(discovery),
@@ -243,6 +253,9 @@ fn run_cargo_metadata(
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::null());
+    // A `cargo` wrapper this reaches then finds a proxy marker, and runs
+    // Cargo instead of discovering again.
+    crate::cargo_proxy::mark_started_cargo(&mut command, Path::new(cargo));
 
     if let Some(path) = manifest_path {
         command.arg("--manifest-path").arg(path);
@@ -433,7 +446,7 @@ mod tests {
         ])
         .unwrap();
 
-        let intent = discover_with_context(Some(&args), Some(root), Some(root))
+        let intent = discover_with_context(Some(&args), None, Some(root), Some(root))
             .expect("discover should resolve the workspace");
         assert!(intent.crate_names.contains(&"app".to_string()));
         assert!(intent.crate_names.contains(&"dep".to_string()));
@@ -447,7 +460,7 @@ mod tests {
 
     #[test]
     fn discover_entrypoint_never_returns_an_empty_default_intent() {
-        let intent = discover(None).expect("the Kache workspace should be discoverable");
+        let intent = discover(None, None).expect("the Kache workspace should be discoverable");
         assert!(
             intent.crate_names.iter().any(|name| name == "kache"),
             "expected the current workspace packages, got {:?}",
@@ -477,7 +490,7 @@ mod tests {
         ])
         .unwrap();
 
-        let intent = discover_with_context(Some(&args), Some(root), Some(root)).unwrap();
+        let intent = discover_with_context(Some(&args), None, Some(root), Some(root)).unwrap();
         assert!(!intent.crate_names.contains(&"unrelated".to_string()));
     }
 
@@ -685,6 +698,28 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
+    fn the_metadata_cargo_is_marked_as_started_by_kache() {
+        let dir = tempfile::tempdir().unwrap();
+        let depth = dir.path().join("depth");
+        let cargo = fake_cargo(
+            dir.path(),
+            &format!(
+                "printf '%s' \"$KACHE_CARGO_PROXY_DEPTH\" > '{}'\n\
+                 echo '{{\"workspace_root\":\"/ws\",\"packages\":[{{\"name\":\"app\"}}]}}'",
+                depth.display()
+            ),
+        );
+
+        run_cargo_metadata(cargo.as_os_str(), None, soon(10_000)).unwrap();
+        let depth = std::fs::read_to_string(depth).unwrap();
+        assert!(
+            depth.parse::<u32>().is_ok_and(|depth| depth >= 1),
+            "marker: {depth:?}"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
     fn a_hanging_cargo_is_killed_at_the_deadline() {
         let dir = tempfile::tempdir().unwrap();
         let pid_file = dir.path().join("pid");
@@ -807,7 +842,7 @@ mod tests {
         );
 
         let result = discover_workspace(
-            cargo.as_os_str(),
+            Some(cargo.as_os_str()),
             soon(2000),
             None,
             Some(first.path()),
@@ -833,7 +868,7 @@ mod tests {
         );
 
         let result = discover_workspace(
-            cargo.as_os_str(),
+            Some(cargo.as_os_str()),
             soon(10_000),
             None,
             Some(first.path()),
@@ -848,7 +883,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         write_lock(dir.path(), &[]);
         let result = discover_workspace(
-            OsStr::new("no-such-cargo-should-not-run"),
+            Some(OsStr::new("no-such-cargo-should-not-run")),
             Instant::now() + Duration::from_secs(10),
             None,
             Some(dir.path()),
