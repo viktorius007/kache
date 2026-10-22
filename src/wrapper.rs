@@ -8872,7 +8872,7 @@ fn explain_miss_diff(
 fn maybe_trigger_prefetch(config: &Config, args: &RustcArgs) {
     maybe_trigger_prefetch_with(config, args, now_epoch_secs(), || {
         let cargo =
-            crate::cargo_proxy::real_cargo_program(crate::cargo_proxy::CargoRoute::WithoutPath)
+            crate::cargo_proxy::real_cargo_program(crate::cargo_proxy::CargoRoute::Discovery)
                 .map_err(|error| tracing::debug!("build intent: no Cargo for discovery: {error:#}"))
                 .ok();
         crate::build_intent::discover(Some(args), cargo.as_deref())

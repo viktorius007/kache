@@ -123,7 +123,11 @@ fn cargo_shim_says_it_waits_for_target_cleanup_unless_quiet() {
         }
         std::fs::write(project.join("Cargo.toml"), "[workspace]\n").unwrap();
         std::os::unix::fs::symlink(KACHE_BIN, shims.join("cargo")).unwrap();
-        kache_fs::testutil::write_executable(&real.join("cargo"), "#!/bin/sh\n: > \"$STARTED\"\n");
+        // The shim asks for Cargo's version before it waits; only the build counts.
+        kache_fs::testutil::write_executable(
+            &real.join("cargo"),
+            "#!/bin/sh\ncase \"$*\" in *-V) exit 1 ;; esac\n: > \"$STARTED\"\n",
+        );
         // Held the way `kache clean` and the daemon hold it while they delete.
         let cleanup = std::fs::OpenOptions::new()
             .read(true)
@@ -441,7 +445,7 @@ fn versioned_fake_cargo(path: &Path, version: &str) {
         path,
         format!(
             "#!/bin/sh\ncase \"$*\" in\n  \
-                 '+new -V') echo 'cargo 1.91.0 (0000000 2025-10-10)' ;;\n  \
+                 '+new '*-V) echo 'cargo 1.91.0 (0000000 2025-10-10)' ;;\n  \
                  *-V) [ -n \"$KACHE_CARGO_PROXY_DEPTH\" ] || exit 9\n    \
                       echo 'cargo {version} (0000000 2020-01-01)' ;;\n  \
                  *) printf '%s' \"$*\" > \"$KACHE_TEST_CAPTURE\" ;;\n\
@@ -453,16 +457,20 @@ fn versioned_fake_cargo(path: &Path, version: &str) {
 #[test]
 fn build_dir_override_needs_a_cargo_that_knows_the_key() {
     let isolated = "--config build.build-dir=\"{workspace-root}/target\"";
+    let reset = "--config env.KACHE_CARGO_PROXY_DEPTH.value=\"\" \
+                 --config env.KACHE_CARGO_PROXY_DEPTH.force=true \
+                 --config env.KACHE_CARGO_PROXY_CHAIN.value=\"\" \
+                 --config env.KACHE_CARGO_PROXY_CHAIN.force=true";
     for (args, version, expected) in [
         // Before 1.63 Cargo rejects `--config`; before 1.91 it warns about the
         // unknown key. Both ignored the exported variable this replaced.
         (&["build"][..], "1.62.1", "build".to_string()),
-        (&["build"], "1.90.0", "build".to_string()),
-        (&["build"], "1.91.0", format!("{isolated} build")),
+        (&["build"], "1.90.0", format!("{reset} build")),
+        (&["build"], "1.91.0", format!("{reset} {isolated} build")),
         (
             &["+new", "check"],
             "1.62.1",
-            format!("+new {isolated} check"),
+            format!("+new {reset} {isolated} check"),
         ),
         (&["build"], "unknown", "build".to_string()),
     ] {
@@ -1443,10 +1451,10 @@ fn cargo_proxy_reached_again_through_a_cargo_wrapper_stops_and_names_it() {
     let stub = forwarding_cargo(&bin, &log);
 
     let mut command = metadata_through(dir.path(), &bin);
-    // No Cargo outside PATH, and a bare name, so every level finds the wrapper.
+    // The wrapper named as the real Cargo, so every level runs it again.
     command
         .env("CARGO_HOME", dir.path().join("cargo-home"))
-        .env("KACHE_REAL_CARGO", "cargo");
+        .env("KACHE_REAL_CARGO", &stub);
     let output = output_within_ten_seconds(command);
 
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -1456,7 +1464,9 @@ fn cargo_proxy_reached_again_through_a_cargo_wrapper_stops_and_names_it() {
         stderr.contains(&format!("{KACHE_BIN} ran {}", stub.display())),
         "{stderr}"
     );
-    assert_eq!(forwarded_calls(&log), 3, "{stderr}");
+    // Each level below the bound runs the wrapper twice, for `cargo -V` and
+    // for the command: 2 + 4 + 8.
+    assert_eq!(forwarded_calls(&log), 14, "{stderr}");
 }
 
 #[test]
@@ -1484,8 +1494,9 @@ fn cargo_proxy_runs_cargo_from_its_home_before_a_cargo_wrapper_on_path() {
     assert_eq!(forwarded_calls(&log), 0, "the wrapper on PATH was run");
 }
 
-/// The shim inside a Cargo tree a proxy started runs Cargo from Cargo's home
-/// directly, one level deeper, and never the `cargo` on PATH.
+/// The shim a `cargo` wrapper led back to runs Cargo from Cargo's home
+/// directly, one level deeper: never the `cargo` on PATH, and never the
+/// enclosing build's `CARGO`.
 #[test]
 fn cargo_shim_reentered_runs_cargo_from_its_home_one_level_deeper() {
     let dir = tempfile::tempdir().unwrap();
@@ -1498,6 +1509,8 @@ fn cargo_shim_reentered_runs_cargo_from_its_home_one_level_deeper() {
     }
     std::os::unix::fs::symlink(KACHE_BIN, shims.join("cargo")).unwrap();
     kache_fs::testutil::write_executable(&on_path.join("cargo"), "#!/bin/sh\nexit 12\n");
+    let enclosing = dir.path().join("enclosing-cargo");
+    kache_fs::testutil::write_executable(&enclosing, "#!/bin/sh\n: > \"$SEEN.enclosing\"\n");
     kache_fs::testutil::write_executable(
         &cargo_home.join("bin/cargo"),
         "#!/bin/sh\nprintf '%s|%s' \"$KACHE_CARGO_PROXY_DEPTH\" \"$*\" > \"$SEEN\"\n",
@@ -1512,7 +1525,7 @@ fn cargo_shim_reentered_runs_cargo_from_its_home_one_level_deeper() {
         .env("SEEN", &seen)
         .env("KACHE_LOG", "off")
         .env("KACHE_CARGO_PROXY_DEPTH", "1")
-        .env_remove("CARGO")
+        .env("CARGO", &enclosing)
         .env_remove("KACHE_REAL_CARGO")
         .output()
         .unwrap();
@@ -1522,6 +1535,10 @@ fn cargo_shim_reentered_runs_cargo_from_its_home_one_level_deeper() {
         String::from_utf8_lossy(&output.stderr)
     );
     assert_eq!(std::fs::read_to_string(&seen).unwrap(), "2|build -q");
+    assert!(
+        !dir.path().join("seen.enclosing").exists(),
+        "the enclosing CARGO ran"
+    );
 
     let refused = hermetic_command(shims.join("cargo"), &dir.path().join("cache"), None)
         .arg("build")
@@ -1538,4 +1555,117 @@ fn cargo_shim_reentered_runs_cargo_from_its_home_one_level_deeper() {
         String::from_utf8_lossy(&refused.stderr)
     );
     assert!(!dir.path().join("not-run").exists());
+}
+
+/// A proxied `cargo run` whose program runs `cargo build` through PATH: Cargo
+/// empties the marker for the program, so the nested `kache cargo` is a first
+/// entry with its own build-dir isolation, not a re-entry.
+#[test]
+fn cargo_proxy_nested_under_a_proxied_cargo_run_takes_the_ordinary_route() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    let home = root.join("home");
+    let host = root.join("host");
+    let guest = root.join("guest");
+    let path_bin = root.join("path-bin");
+    let log = root.join("cargo-log");
+    let marker = root.join("program-marker");
+    for path in [
+        &home.join(".cargo"),
+        &host.join("src"),
+        &guest.join("src"),
+        &path_bin,
+    ] {
+        std::fs::create_dir_all(path).unwrap();
+    }
+    std::fs::write(
+        guest.join("Cargo.toml"),
+        "[package]\nname = \"proxy_nested_guest\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\n[workspace]\n",
+    )
+    .unwrap();
+    std::fs::write(guest.join("src/lib.rs"), "").unwrap();
+    std::fs::write(
+        host.join("Cargo.toml"),
+        "[package]\nname = \"proxy_nested_host\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\n[workspace]\n",
+    )
+    .unwrap();
+    std::fs::write(
+        host.join("src/main.rs"),
+        format!(
+            "fn main() {{\n    \
+                 let marker = std::env::var_os(\"KACHE_CARGO_PROXY_DEPTH\");\n    \
+                 std::fs::write({marker:?}, format!(\"{{marker:?}}\")).unwrap();\n    \
+                 let status = std::process::Command::new(\"cargo\")\n        \
+                     .args([\"build\", \"-q\", \"--manifest-path\", {manifest:?}])\n        \
+                     .status()\n        \
+                     .unwrap();\n    \
+                 assert!(status.success(), \"nested cargo failed\");\n\
+             }}\n",
+            manifest = guest.join("Cargo.toml"),
+        ),
+    )
+    .unwrap();
+    // The real Cargo, logging the marker and arguments of every launch.
+    let real = root.join("logging-cargo");
+    kache_fs::testutil::write_executable(
+        &real,
+        format!(
+            "#!/bin/sh\nprintf '%s|%s\\n' \"${{KACHE_CARGO_PROXY_DEPTH-unset}}\" \"$*\" >> '{}'\n\
+             exec '{}' \"$@\"\n",
+            log.display(),
+            env!("CARGO"),
+        ),
+    );
+    // `cargo` on PATH is `kache cargo`.
+    kache_fs::testutil::write_executable(
+        &path_bin.join("cargo"),
+        format!("#!/bin/sh\nexec '{KACHE_BIN}' cargo -- \"$@\"\n"),
+    );
+    let toolchain = Path::new(env!("CARGO")).parent().unwrap();
+    let path = std::env::join_paths([
+        path_bin.as_path(),
+        toolchain,
+        Path::new("/usr/bin"),
+        Path::new("/bin"),
+    ])
+    .unwrap();
+
+    let mut command = proxied_cargo(&home, &root.join("cache"), &root.join("target"));
+    let output = command
+        .args(["cargo", "--", "run", "-q"])
+        .current_dir(&host)
+        .env("PATH", path)
+        .env("KACHE_REAL_CARGO", &real)
+        .env_remove("RUSTC_WRAPPER")
+        .output()
+        .unwrap();
+    let log = std::fs::read_to_string(&log).unwrap_or_default();
+    assert!(
+        output.status.success(),
+        "{}\n{log}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert_eq!(std::fs::read_to_string(&marker).unwrap(), "Some(\"\")");
+    let nested = log
+        .lines()
+        .find(|line| {
+            line.ends_with(&format!(
+                "build -q --manifest-path {}",
+                guest.join("Cargo.toml").display()
+            ))
+        })
+        .unwrap_or_else(|| panic!("no nested build in:\n{log}"));
+    assert!(
+        nested.starts_with("1|"),
+        "nested build was a re-entry: {nested}"
+    );
+    assert!(
+        nested.contains("--config build.build-dir="),
+        "nested build lost build-dir isolation: {nested}"
+    );
+    assert!(
+        guest.join("target/debug/.fingerprint").is_dir(),
+        "the nested build's intermediates are not in its own worktree"
+    );
 }

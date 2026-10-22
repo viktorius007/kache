@@ -8484,9 +8484,9 @@ fn migrate(purge_sccache: bool) -> Result<()> {
 
             if resolved_sccache.starts_with(resolved_cargo_bin) {
                 println!("Uninstalling sccache via cargo...");
-                let status = std::process::Command::new("cargo")
-                    .args(["uninstall", "sccache"])
-                    .status();
+                let status =
+                    crate::cargo_proxy::cargo_command(crate::cargo_proxy::CargoRoute::Command)
+                        .and_then(|mut cargo| Ok(cargo.args(["uninstall", "sccache"]).status()?));
                 if status.map(|s| s.success()).unwrap_or(false) {
                     actions.push("Uninstalled sccache (cargo uninstall)".into());
                 }
@@ -9377,7 +9377,7 @@ fn workspace_filter(manifest_path: Option<&str>) -> Option<std::collections::Has
 
 /// Parse `cargo metadata` to get workspace package names.
 fn get_workspace_crate_names(manifest_path: &str) -> Result<Vec<String>> {
-    let output = std::process::Command::new("cargo")
+    let output = crate::cargo_proxy::cargo_command(crate::cargo_proxy::CargoRoute::Command)?
         .args(["metadata", "--format-version", "1", "--no-deps"])
         .arg("--manifest-path")
         .arg(manifest_path)

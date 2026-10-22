@@ -106,7 +106,10 @@ pub(crate) fn run_shim(cargo_args: Vec<OsString>) -> Result<()> {
     }
     let cargo = real_cargo_program(CargoRoute::Shim)?;
     let mut command = Command::new(&cargo);
-    command.args(&cargo_args);
+    command.args(cargo_invocation_args(
+        &cargo_args,
+        &marker_reset_config(cargo_version(&cargo, &cargo_args, Path::new("."))),
+    ));
     level.mark(&mut command, &argv0(), &cargo);
     crate::target_seed::configure_cargo_seed(&mut command, &cargo_args, false);
     run_cargo_with_target_protection(command, &cargo)
@@ -177,12 +180,13 @@ fn run_with_source(cargo_args: Vec<OsString>) -> Result<()> {
         }
     }
 
-    let overrides = cargo_overrides(rustflags.as_deref(), isolate_build_dir, || {
-        cargo_version(&cargo, &cargo_args, &cwd)
-    });
+    let version = cargo_version(&cargo, &cargo_args, &cwd);
+    let overrides = cargo_overrides(rustflags.as_deref(), isolate_build_dir, || version);
+    let mut config = marker_reset_config(version);
+    config.extend(overrides.config.iter().cloned());
     let mut command = Command::new(&cargo);
     command
-        .args(cargo_invocation_args(&cargo_args, &overrides.config))
+        .args(cargo_invocation_args(&cargo_args, &config))
         .current_dir(&cwd);
     mark_started_cargo(&mut command, &cargo);
     if let Some(flags) = &overrides.encoded_rustflags {
@@ -229,16 +233,17 @@ fn cargo_command_label<'a>(args: impl IntoIterator<Item = &'a OsStr>) -> String 
 }
 
 /// Set in the environment of every Cargo a proxy starts: how many proxies
-/// are above it.
+/// are above it. Cargo empties it for what it starts in turn
+/// ([`marker_reset_config`]), so only a proxy reached without a real Cargo
+/// in between finds it set.
 const PROXY_DEPTH_ENV: &str = "KACHE_CARGO_PROXY_DEPTH";
 /// One `<argv[0]> ran <cargo>` entry per proxy above, joined by
 /// [`PROXY_CHAIN_SEPARATOR`], for the error that ends a loop.
 const PROXY_CHAIN_ENV: &str = "KACHE_CARGO_PROXY_CHAIN";
 const PROXY_CHAIN_SEPARATOR: &str = "\x1f";
-/// Proxies above this one that are still tolerated. A build script or test
-/// that runs `cargo` through PATH, inside a build a proxy started, re-enters
-/// once per level of nesting; a `cargo` wrapper that forwards back to Kache
-/// re-enters on every hop.
+/// `cargo` wrapper hops back to a proxy that are still tolerated. A wrapper
+/// that forwards to Kache re-enters on every hop; Cargo nested under a real
+/// Cargo starts again from zero.
 const MAX_PROXY_DEPTH: u32 = 2;
 
 /// Where this proxy sits in a chain of proxies, from its environment.
@@ -258,9 +263,10 @@ impl ProxyLevel {
         )
     }
 
-    /// An unreadable depth still means a proxy set it.
+    /// An empty depth is Cargo's reset (see [`marker_reset_config`]) and
+    /// means no proxy; an unreadable one still means a proxy set it.
     fn from_env(depth: Option<&OsStr>, chain: Option<&OsStr>) -> Self {
-        let Some(depth) = depth else {
+        let Some(depth) = depth.filter(|depth| !depth.is_empty()) else {
             return Self::default();
         };
         let chain = chain.map(OsStr::to_string_lossy).unwrap_or_default();
@@ -274,9 +280,8 @@ impl ProxyLevel {
         }
     }
 
-    /// Reached from inside a Cargo tree a proxy started, through something
-    /// that is not Cargo: a `cargo` wrapper, or Cargo's descendants running
-    /// `cargo` through PATH.
+    /// Reached from a proxy without a real Cargo in between, which empties
+    /// the marker for everything it starts: a `cargo` wrapper led back here.
     fn reentered(&self) -> bool {
         self.depth > 0
     }
@@ -295,18 +300,45 @@ impl ProxyLevel {
         if self.depth <= MAX_PROXY_DEPTH {
             return Ok(());
         }
+        bail!(
+            "kache's cargo proxy was re-entered {depth} times ({PROXY_DEPTH_ENV}={depth}, \
+             limit {MAX_PROXY_DEPTH}): a `cargo` that is not Cargo leads back to kache.{hops}\n\
+             Set KACHE_REAL_CARGO to the real Cargo, or remove the wrapper that forwards \
+             to kache",
+            depth = self.depth,
+            hops = self.hops(argv0, "refused"),
+        )
+    }
+
+    /// Each proxy above, then this one and what it did.
+    fn hops(&self, argv0: &str, outcome: &str) -> String {
         let mut hops = String::new();
         for entry in &self.chain {
             hops.push_str(&format!("\n  {entry}"));
         }
-        bail!(
-            "kache's cargo proxy was re-entered {depth} times ({PROXY_DEPTH_ENV}={depth}, \
-             limit {MAX_PROXY_DEPTH}): a `cargo` that is not Cargo leads back to kache.{hops}\n  \
-             {argv0} refused\nSet KACHE_REAL_CARGO to the real Cargo, or remove the \
-             wrapper that forwards to kache",
-            depth = self.depth,
-        )
+        hops.push_str(&format!("\n  {argv0} {outcome}"));
+        hops
     }
+}
+
+/// `--config` values that make Cargo empty the proxy marker in everything
+/// it starts, so a proxy reached through Cargo is a first entry again. `force`
+/// is needed because the marker is already set in Cargo's own environment.
+/// Cargo before 1.63, or one whose version is unknown, rejects `--config`;
+/// its descendants keep the marker.
+fn marker_reset_config(version: Option<CargoVersion>) -> Vec<String> {
+    if !cargo_at_least(version, CONFIG_ARGUMENT_CARGO) {
+        return Vec::new();
+    }
+    [PROXY_DEPTH_ENV, PROXY_CHAIN_ENV]
+        .iter()
+        .flat_map(|name| {
+            [
+                format!("env.{name}.value=\"\""),
+                format!("env.{name}.force=true"),
+            ]
+        })
+        .collect()
 }
 
 /// How this process was started, for [`ProxyLevel`]'s chain.
@@ -324,15 +356,25 @@ pub(crate) fn mark_started_cargo(command: &mut Command, cargo: &Path) {
     ProxyLevel::current().mark(command, &argv0(), cargo);
 }
 
-/// Run Cargo for a proxy that another proxy's Cargo tree reached. Nothing
-/// that could start Cargo again runs first: no PATH lookup, no config
-/// inspection, no target protection.
+/// Run Cargo for a proxy that a `cargo` wrapper led back to. Nothing that
+/// could start the wrapper again runs first: no PATH lookup, no config
+/// inspection, no target protection. Cargo still empties the marker for what
+/// it starts.
 fn run_reentered(cargo_args: &[OsString], level: &ProxyLevel) -> Result<()> {
-    level.check(&argv0())?;
-    let cargo = real_cargo_program(CargoRoute::WithoutPath)?;
+    let argv0 = argv0();
+    level.check(&argv0)?;
+    let cargo = real_cargo_program(CargoRoute::Reentered).with_context(|| {
+        format!(
+            "kache's cargo proxy was reached through a `cargo` wrapper:{}",
+            level.hops(&argv0, "found no Cargo outside PATH")
+        )
+    })?;
     let mut command = Command::new(&cargo);
-    command.args(cargo_args);
-    level.mark(&mut command, &argv0(), &cargo);
+    command.args(cargo_invocation_args(
+        cargo_args,
+        &marker_reset_config(cargo_version(&cargo, cargo_args, Path::new("."))),
+    ));
+    level.mark(&mut command, &argv0, &cargo);
     exec_cargo(command, &cargo)
 }
 
@@ -356,55 +398,85 @@ fn exec_cargo(mut command: Command, cargo: &Path) -> Result<()> {
 /// Which sources may name the real Cargo.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum CargoRoute {
-    /// `kache cargo`.
+    /// `kache cargo`, and Kache's own commands that run Cargo.
     Command,
     /// The `cargo` link in Kache's shim directory. `CARGO` there is the
     /// toolchain binary of an enclosing build, which would ignore a
     /// `+toolchain` argument and the project's toolchain file.
     Shim,
-    /// Where a `cargo` found on PATH could lead back to Kache: a re-entered
-    /// proxy, and workspace discovery under the rustc wrapper.
-    WithoutPath,
+    /// A proxy a `cargo` wrapper led back to: as the shim, and never PATH,
+    /// which holds the wrapper.
+    Reentered,
+    /// Workspace discovery under the rustc wrapper, whose `CARGO` is the
+    /// Cargo running the build. Never PATH.
+    Discovery,
 }
 
-/// What the environment says about where the real Cargo is.
+impl CargoRoute {
+    fn trusts_cargo_variable(self) -> bool {
+        matches!(self, Self::Command | Self::Discovery)
+    }
+
+    fn searches_path(self) -> bool {
+        matches!(self, Self::Command | Self::Shim)
+    }
+}
+
+/// What the environment says about where the real Cargo is. Empty values
+/// count as unset.
 #[derive(Debug, Default)]
 struct CargoEnvironment {
     real_cargo: Option<OsString>,
-    cargo: Option<PathBuf>,
+    cargo: Option<OsString>,
     cargo_home: Option<PathBuf>,
     home: Option<PathBuf>,
 }
 
 impl CargoEnvironment {
     fn current() -> Self {
+        let var = |name| std::env::var_os(name).filter(|value| !value.is_empty());
         Self {
-            real_cargo: std::env::var_os("KACHE_REAL_CARGO"),
-            cargo: std::env::var_os("CARGO").map(PathBuf::from),
-            cargo_home: std::env::var_os("CARGO_HOME").map(PathBuf::from),
+            real_cargo: var("KACHE_REAL_CARGO"),
+            cargo: var("CARGO"),
+            cargo_home: var("CARGO_HOME").map(PathBuf::from),
             home: dirs::home_dir(),
         }
     }
 }
 
+/// `value` of `name` as a path, which must be absolute: a bare name would be
+/// looked up on PATH, where a `cargo` wrapper may lead back to Kache.
+fn absolute_cargo_variable(name: &str, value: &OsStr) -> Result<PathBuf> {
+    let path = PathBuf::from(value);
+    if !path.is_absolute() {
+        bail!("{name}={value:?} is not an absolute path; set it to the real Cargo's full path");
+    }
+    Ok(path)
+}
+
 /// The program to run as Cargo, before [`resolve_cargo_program`] checks it:
-/// `KACHE_REAL_CARGO`; `CARGO` as Cargo sets it for its children; the
-/// toolchain proxy in Cargo's home, which selects a toolchain without PATH;
-/// and only then `search_path`. `is_kache` rejects a candidate that is this
-/// executable under another name.
+/// `KACHE_REAL_CARGO`; `CARGO` as Cargo sets it for its children, on routes
+/// that trust it; the toolchain launcher in Cargo's home, which selects a
+/// toolchain without PATH; and `search_path` last, on routes that search
+/// PATH. `is_kache` rejects a candidate that is this executable under
+/// another name.
 fn real_cargo_candidate(
     env: &CargoEnvironment,
     route: CargoRoute,
     is_kache: impl Fn(&Path) -> bool,
     search_path: impl FnOnce() -> Option<PathBuf>,
-) -> Option<OsString> {
+) -> Result<Option<PathBuf>> {
     if let Some(program) = &env.real_cargo {
-        return Some(program.clone());
+        return absolute_cargo_variable("KACHE_REAL_CARGO", program).map(Some);
     }
-    let from_cargo = env
-        .cargo
-        .clone()
-        .filter(|cargo| route != CargoRoute::Shim && cargo.is_absolute() && !is_kache(cargo));
+    if route.trusts_cargo_variable()
+        && let Some(cargo) = &env.cargo
+    {
+        let cargo = absolute_cargo_variable("CARGO", cargo)?;
+        if !is_kache(&cargo) {
+            return Ok(Some(cargo));
+        }
+    }
     let from_cargo_home = || {
         let home = env
             .cargo_home
@@ -415,14 +487,7 @@ fn real_cargo_candidate(
             .join(format!("cargo{}", std::env::consts::EXE_SUFFIX));
         (cargo.is_file() && !is_kache(&cargo)).then_some(cargo)
     };
-    from_cargo
-        .or_else(from_cargo_home)
-        .or_else(|| {
-            (route != CargoRoute::WithoutPath)
-                .then(search_path)
-                .flatten()
-        })
-        .map(PathBuf::into_os_string)
+    Ok(from_cargo_home().or_else(|| route.searches_path().then(search_path).flatten()))
 }
 
 /// The real Cargo for `route`, never this executable.
@@ -433,10 +498,20 @@ pub(crate) fn real_cargo_program(route: CargoRoute) -> Result<PathBuf> {
         route,
         |path| is_kache(path, kache.as_deref()),
         || crate::compiler::shim::resolve_real_compiler_from_env("cargo"),
-    )
-    .context("finding the real Cargo; set KACHE_REAL_CARGO to its path")?;
+    )?
+    .context("finding the real Cargo; set KACHE_REAL_CARGO to its full path")?;
     let cwd = std::env::current_dir().context("resolving the Cargo working directory")?;
     resolve_cargo_program(&program, &cwd)
+}
+
+/// A command that runs the real Cargo for `route`, marked as started here.
+/// Cargo's `[env]` reset is left out: it needs `--config`, which Cargo before
+/// 1.63 rejects, and these commands start nothing but Cargo itself.
+pub(crate) fn cargo_command(route: CargoRoute) -> Result<Command> {
+    let cargo = real_cargo_program(route)?;
+    let mut command = Command::new(&cargo);
+    mark_started_cargo(&mut command, &cargo);
+    Ok(command)
 }
 
 fn kache_identity() -> Option<PathBuf> {
@@ -733,17 +808,13 @@ fn replay_rendered_cargo_diagnostic(line: &[u8]) {
     }
 }
 
-fn resolve_cargo_program(program: &OsStr, cwd: &Path) -> Result<PathBuf> {
-    let path = Path::new(program);
-    let executable = match program.to_str() {
-        Some(program) => crate::compiler::resolve_program_on_path(program),
-        None => Some(path.to_path_buf()),
-    }
-    .with_context(|| format!("resolving Cargo program {program:?}"))?;
-    let executable = if executable.is_absolute() {
-        executable
+/// `program` is a path, never a name to look up: relative only when
+/// `CARGO_HOME` or a PATH entry is.
+fn resolve_cargo_program(program: &Path, cwd: &Path) -> Result<PathBuf> {
+    let executable = if program.is_absolute() {
+        program.to_path_buf()
     } else {
-        cwd.join(executable)
+        cwd.join(program)
     };
     executable
         .canonicalize()
@@ -944,11 +1015,17 @@ fn cargo_at_least(version: Option<CargoVersion>, minimum: CargoVersion) -> bool 
 /// launcher and toolchain selector.
 fn cargo_version(cargo: &Path, cargo_args: &[OsString], cwd: &Path) -> Option<CargoVersion> {
     let (selector, _) = split_toolchain_selector(cargo_args);
+    let mut args = selector.to_vec();
+    args.push("-V".into());
     let mut command = Command::new(cargo);
     mark_started_cargo(&mut command, cargo);
+    // A Cargo that rejects `--config` fails here. Its version is then
+    // unknown, which every caller treats as too old for `--config` anyway.
     let output = command
-        .args(selector)
-        .arg("-V")
+        .args(cargo_invocation_args(
+            &args,
+            &marker_reset_config(Some(CONFIG_ARGUMENT_CARGO)),
+        ))
         .current_dir(cwd)
         .stdin(Stdio::null())
         .stderr(Stdio::null())
@@ -1965,7 +2042,7 @@ mod tests {
         std::os::unix::fs::symlink(&target, &launcher).unwrap();
 
         assert_eq!(
-            resolve_cargo_program(launcher.as_os_str(), dir.path()).unwrap(),
+            resolve_cargo_program(&launcher, dir.path()).unwrap(),
             launcher
         );
     }
@@ -1980,8 +2057,20 @@ mod tests {
         cargo
     }
 
-    fn candidate(env: &CargoEnvironment, route: CargoRoute) -> Option<OsString> {
-        real_cargo_candidate(env, route, |_| false, || Some("/path/cargo".into()))
+    const ROUTES: [CargoRoute; 4] = [
+        CargoRoute::Command,
+        CargoRoute::Shim,
+        CargoRoute::Reentered,
+        CargoRoute::Discovery,
+    ];
+
+    /// An absolute path no test creates.
+    fn absolute(name: &str) -> PathBuf {
+        std::env::temp_dir().join("kache-no-such-dir").join(name)
+    }
+
+    fn candidate(env: &CargoEnvironment, route: CargoRoute) -> Option<PathBuf> {
+        real_cargo_candidate(env, route, |_| false, || Some(absolute("path-cargo"))).unwrap()
     }
 
     #[test]
@@ -1989,69 +2078,113 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         cargo_in(dir.path());
         let env = CargoEnvironment {
-            real_cargo: Some("chosen".into()),
-            cargo: Some("/toolchain/cargo".into()),
+            real_cargo: Some(absolute("chosen").into()),
+            cargo: Some(absolute("toolchain-cargo").into()),
             cargo_home: Some(dir.path().to_path_buf()),
             home: None,
         };
-        for route in [
-            CargoRoute::Command,
-            CargoRoute::Shim,
-            CargoRoute::WithoutPath,
-        ] {
-            assert_eq!(candidate(&env, route), Some("chosen".into()), "{route:?}");
+        for route in ROUTES {
+            assert_eq!(
+                candidate(&env, route),
+                Some(absolute("chosen")),
+                "{route:?}"
+            );
         }
     }
 
     #[test]
-    fn cargo_from_cargo_comes_before_cargo_home_except_in_the_shim() {
-        let dir = tempfile::tempdir().unwrap();
-        let home_cargo = cargo_in(dir.path());
-        let env = CargoEnvironment {
-            cargo: Some("/toolchain/cargo".into()),
-            cargo_home: Some(dir.path().to_path_buf()),
-            ..CargoEnvironment::default()
-        };
-        assert_eq!(
-            candidate(&env, CargoRoute::Command),
-            Some("/toolchain/cargo".into())
-        );
-        assert_eq!(
-            candidate(&env, CargoRoute::WithoutPath),
-            Some("/toolchain/cargo".into())
-        );
-        assert_eq!(
-            candidate(&env, CargoRoute::Shim),
-            Some(home_cargo.into_os_string())
-        );
+    fn a_relative_or_bare_override_is_an_error_naming_it_on_every_route() {
+        for value in ["cargo", "bin/cargo"] {
+            let env = CargoEnvironment {
+                real_cargo: Some(value.into()),
+                cargo: Some(absolute("toolchain-cargo").into()),
+                ..CargoEnvironment::default()
+            };
+            for route in ROUTES {
+                let searched = std::cell::Cell::new(false);
+                let error = real_cargo_candidate(
+                    &env,
+                    route,
+                    |_| false,
+                    || {
+                        searched.set(true);
+                        None
+                    },
+                )
+                .unwrap_err()
+                .to_string();
+                assert!(error.contains("KACHE_REAL_CARGO="), "{route:?}: {error}");
+                assert!(!searched.get(), "{route:?} searched PATH for {value}");
+            }
+        }
     }
 
     #[test]
-    fn a_relative_or_kache_cargo_variable_is_passed_over() {
+    fn a_relative_cargo_variable_is_an_error_where_cargo_is_trusted() {
         let dir = tempfile::tempdir().unwrap();
         let home_cargo = cargo_in(dir.path());
-        let relative = CargoEnvironment {
+        let env = CargoEnvironment {
             cargo: Some("cargo".into()),
             cargo_home: Some(dir.path().to_path_buf()),
             ..CargoEnvironment::default()
         };
-        assert_eq!(
-            candidate(&relative, CargoRoute::Command),
-            Some(home_cargo.clone().into_os_string())
-        );
+        for route in [CargoRoute::Command, CargoRoute::Discovery] {
+            let error = real_cargo_candidate(&env, route, |_| false, || None)
+                .unwrap_err()
+                .to_string();
+            assert!(error.contains("CARGO=\"cargo\""), "{route:?}: {error}");
+        }
+        for route in [CargoRoute::Shim, CargoRoute::Reentered] {
+            assert_eq!(
+                candidate(&env, route),
+                Some(home_cargo.clone()),
+                "{route:?}"
+            );
+        }
+    }
 
-        let kache = CargoEnvironment {
-            cargo: Some("/kache".into()),
+    #[test]
+    fn cargo_variable_comes_before_cargo_home_only_where_it_is_trusted() {
+        let dir = tempfile::tempdir().unwrap();
+        let home_cargo = cargo_in(dir.path());
+        let env = CargoEnvironment {
+            cargo: Some(absolute("toolchain-cargo").into()),
+            cargo_home: Some(dir.path().to_path_buf()),
+            ..CargoEnvironment::default()
+        };
+        for route in [CargoRoute::Command, CargoRoute::Discovery] {
+            assert_eq!(
+                candidate(&env, route),
+                Some(absolute("toolchain-cargo")),
+                "{route:?}"
+            );
+        }
+        for route in [CargoRoute::Shim, CargoRoute::Reentered] {
+            assert_eq!(
+                candidate(&env, route),
+                Some(home_cargo.clone()),
+                "{route:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_kache_cargo_variable_is_passed_over() {
+        let dir = tempfile::tempdir().unwrap();
+        let home_cargo = cargo_in(dir.path());
+        let env = CargoEnvironment {
+            cargo: Some(absolute("kache").into()),
             cargo_home: Some(dir.path().to_path_buf()),
             ..CargoEnvironment::default()
         };
         let found = real_cargo_candidate(
-            &kache,
+            &env,
             CargoRoute::Command,
-            |path| path == Path::new("/kache"),
+            |path| path == absolute("kache"),
             || None,
-        );
-        assert_eq!(found, Some(home_cargo.into_os_string()));
+        )
+        .unwrap();
+        assert_eq!(found, Some(home_cargo));
     }
 
     #[test]
@@ -2064,10 +2197,7 @@ mod tests {
             home: Some(dir.path().join("user")),
             ..CargoEnvironment::default()
         };
-        assert_eq!(
-            candidate(&env, CargoRoute::Shim),
-            Some(home_cargo.into_os_string())
-        );
+        assert_eq!(candidate(&env, CargoRoute::Shim), Some(home_cargo));
     }
 
     #[test]
@@ -2078,10 +2208,7 @@ mod tests {
             home: Some(dir.path().to_path_buf()),
             ..CargoEnvironment::default()
         };
-        assert_eq!(
-            candidate(&env, CargoRoute::Shim),
-            Some(user_cargo.into_os_string())
-        );
+        assert_eq!(candidate(&env, CargoRoute::Reentered), Some(user_cargo));
     }
 
     #[test]
@@ -2096,7 +2223,7 @@ mod tests {
         };
         assert_eq!(
             candidate(&env, CargoRoute::Command),
-            Some("/path/cargo".into())
+            Some(absolute("path-cargo"))
         );
     }
 
@@ -2112,37 +2239,53 @@ mod tests {
             &env,
             CargoRoute::Shim,
             |path| path == home_cargo,
-            || Some("/path/cargo".into()),
-        );
-        assert_eq!(found, Some("/path/cargo".into()));
+            || Some(absolute("path-cargo")),
+        )
+        .unwrap();
+        assert_eq!(found, Some(absolute("path-cargo")));
     }
 
     #[test]
-    fn path_is_searched_last_and_never_without_path() {
+    fn path_is_searched_last_and_only_by_the_command_and_the_shim() {
         let env = CargoEnvironment {
-            cargo_home: Some("/no/such/cargo-home".into()),
+            cargo_home: Some(absolute("cargo-home")),
             ..CargoEnvironment::default()
         };
         assert_eq!(
             candidate(&env, CargoRoute::Shim),
-            Some("/path/cargo".into())
+            Some(absolute("path-cargo"))
         );
         assert_eq!(
             candidate(&env, CargoRoute::Command),
-            Some("/path/cargo".into())
+            Some(absolute("path-cargo"))
         );
-        let searched = std::cell::Cell::new(false);
-        let found = real_cargo_candidate(
-            &env,
-            CargoRoute::WithoutPath,
-            |_| false,
-            || {
-                searched.set(true);
-                Some("/path/cargo".into())
-            },
+        for route in [CargoRoute::Reentered, CargoRoute::Discovery] {
+            let searched = std::cell::Cell::new(false);
+            let found = real_cargo_candidate(
+                &env,
+                route,
+                |_| false,
+                || {
+                    searched.set(true);
+                    Some(absolute("path-cargo"))
+                },
+            )
+            .unwrap();
+            assert_eq!(found, None, "{route:?}");
+            assert!(!searched.get(), "{route:?} searched PATH");
+        }
+    }
+
+    #[test]
+    fn a_relative_cargo_program_is_taken_from_the_working_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("bin")).unwrap();
+        std::fs::write(dir.path().join("bin/cargo"), "").unwrap();
+        assert_eq!(
+            resolve_cargo_program(Path::new("bin/cargo"), dir.path()).unwrap(),
+            dir.path().join("bin/cargo")
         );
-        assert_eq!(found, None);
-        assert!(!searched.get(), "PATH was searched");
+        assert!(resolve_cargo_program(Path::new("cargo"), dir.path()).is_err());
     }
 
     #[cfg(unix)]
@@ -2235,10 +2378,37 @@ mod tests {
     }
 
     #[test]
-    fn bare_cargo_program_resolves_through_path() {
-        let resolved = resolve_cargo_program(OsStr::new("cargo"), Path::new(".")).unwrap();
-        assert!(resolved.is_absolute(), "resolved Cargo path: {resolved:?}");
-        assert!(resolved.is_file(), "resolved Cargo path: {resolved:?}");
+    fn an_emptied_marker_is_no_marker() {
+        let level = ProxyLevel::from_env(Some(OsStr::new("")), Some(OsStr::new("")));
+        assert_eq!(level, ProxyLevel::default());
+        assert!(!level.reentered());
+    }
+
+    #[test]
+    fn cargo_that_takes_config_empties_the_marker_for_what_it_starts() {
+        assert_eq!(
+            marker_reset_config(Some((1, 63))),
+            [
+                "env.KACHE_CARGO_PROXY_DEPTH.value=\"\"",
+                "env.KACHE_CARGO_PROXY_DEPTH.force=true",
+                "env.KACHE_CARGO_PROXY_CHAIN.value=\"\"",
+                "env.KACHE_CARGO_PROXY_CHAIN.force=true",
+            ]
+        );
+        assert!(marker_reset_config(Some((1, 62))).is_empty());
+        assert!(marker_reset_config(None).is_empty());
+    }
+
+    #[test]
+    fn hops_end_with_this_proxy_and_what_it_did() {
+        let level = ProxyLevel {
+            depth: 1,
+            chain: vec!["a ran w".into()],
+        };
+        assert_eq!(
+            level.hops("/bin/kache", "found no Cargo outside PATH"),
+            "\n  a ran w\n  /bin/kache found no Cargo outside PATH"
+        );
     }
 
     #[test]
