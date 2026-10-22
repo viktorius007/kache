@@ -10,7 +10,7 @@ just check
 
 That is fmt, clippy `-D warnings`, and the workspace tests. Do not open the PR until it exits 0.
 
-Every check runs on your own machine; this fork does not use GitHub Actions. Before merging into `patched`, run `just pr`: it is `just check` plus `just mutants-diff` over your changed lines, the same scope upstream's CI would run. A 16-core Linux box finishes the mutation lane in well under an hour; a red run prints the missed mutants, so add the test that kills each one and rerun. Windows is not part of the gate: check it only when a change is being prepared for an upstream pull request, with `build-cycle-standard/kit/check-windows-cross.sh` (a local cross-compile that needs `mingw-w64`); macOS is checked with `just check` on a Mac.
+Every check runs on your own machine; this fork does not use GitHub Actions. Before merging into `patched`, run `just pr`: it is `just check` plus `just mutants-diff` over your changed lines, the same scope upstream's CI would run. A 16-core Linux box finishes the mutation lane in well under an hour; a red run prints the missed mutants, so add the test that kills each one and rerun. Windows is not part of the gate: check it only when a change is being prepared for an upstream pull request, with `~/.claude/scripts/rust/check-windows-cross.sh` (a local cross-compile that needs `mingw-w64`); macOS is checked with `just check` on a Mac.
 
 For the mutation lane:
 
