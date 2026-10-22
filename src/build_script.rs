@@ -5850,7 +5850,24 @@ mod tests {
             std::fs::create_dir_all(unit).unwrap();
             let executable = unit.join(name);
             std::os::unix::fs::symlink(&printer, &executable).unwrap();
-            install(&executable).unwrap();
+            // A launcher this process wrote fails to exec with ETXTBSY while a
+            // sibling test's fork still holds the write descriptor. Installing
+            // from a child leaves this process none to hand on.
+            let output = std::process::Command::new(&printer)
+                .args([
+                    LAUNCHER_INSTALLER,
+                    "--exact",
+                    "--nocapture",
+                    "--test-threads=1",
+                ])
+                .env(LAUNCHER_INSTALLER, &executable)
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
             let (_, pinned) = launch_record(unit);
             std::fs::remove_file(&pinned).unwrap();
             std::os::unix::fs::symlink(&printer, &pinned).unwrap();
@@ -5914,6 +5931,20 @@ mod tests {
             stdout.write_all(b"=").unwrap();
             stdout.write_all(value.as_bytes()).unwrap();
             stdout.write_all(b"\n").unwrap();
+        }
+    }
+
+    #[cfg(unix)]
+    const LAUNCHER_INSTALLER: &str = "build_script::tests::launcher_installer";
+
+    /// Installs the launcher over the path in `LAUNCHER_INSTALLER` when
+    /// `the_launcher_finds_the_pinned_kache_in_either_layout` runs this binary
+    /// in a child process. A no-op in a normal test run.
+    #[cfg(unix)]
+    #[test]
+    fn launcher_installer() {
+        if let Some(executable) = std::env::var_os(LAUNCHER_INSTALLER) {
+            install(Path::new(&executable)).unwrap();
         }
     }
 
