@@ -10,9 +10,9 @@ just check
 
 That is fmt, clippy `-D warnings`, and the workspace tests. Do not open the PR until it exits 0.
 
-Mutants run in CI, not on your machine. Open the PR as a draft; the `Mutation testing (diff k/n)` shards test every changed Rust line in parallel on Linux runners and finish in well under an hour. A red shard prints the missed mutants in its log and uploads them as `missed.txt` in its `mutation-diff-report-<k>` artifact; add the test that kills each one, push, and mark the PR ready when every shard is green. A laptop running the same diff at one to three jobs takes hours and the load makes the fixture-based tests flake.
+Every check runs on your own machine; this fork does not use GitHub Actions. Before merging into `patched`, run `just pr`: it is `just check` plus `just mutants-diff` over your changed lines, the same scope upstream's CI would run. A 16-core Linux box finishes the mutation lane in well under an hour; a red run prints the missed mutants, so add the test that kills each one and rerun. Windows is not part of the gate: check it only when a change is being prepared for an upstream pull request, with `build-cycle-standard/kit/check-windows-cross.sh` (a local cross-compile that needs `mingw-w64`); macOS is checked with `just check` on a Mac.
 
-`just pr` still exists for a Linux box with cores to spare: it is `just check` plus `just mutants-diff` against `origin/main`, the same scope CI runs. If you use it:
+For the mutation lane:
 
 ```sh
 cargo install --locked cargo-mutants --version 27.1.0
