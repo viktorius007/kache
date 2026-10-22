@@ -264,23 +264,45 @@ impl ProxyLevel {
     /// The chain from the environment, unless a real Cargo ran between its
     /// newest proxy and this process: then this is a first entry.
     fn current() -> Self {
-        let level = Self::from_env(
+        Self::from_env(
             std::env::var_os(PROXY_DEPTH_ENV).as_deref(),
             std::env::var_os(PROXY_CHAIN_ENV).as_deref(),
             std::env::var_os(PROXY_NESTING_ENV).as_deref(),
-        );
+        )
+        .unless_through_cargo(
+            crate::process_ancestry::process,
+            std::env::var_os("CARGO").as_deref(),
+        )
+    }
+
+    /// The chain in a compiler invocation's environment, which may belong to
+    /// another process than this one: its ancestry says nothing, and only its
+    /// `CARGO` can show that a real Cargo ran.
+    fn for_invocation(env: &crate::invocation::InvocationEnv) -> Self {
+        Self::from_env(
+            env.var_os(PROXY_DEPTH_ENV).as_deref(),
+            env.var_os(PROXY_CHAIN_ENV).as_deref(),
+            env.var_os(PROXY_NESTING_ENV).as_deref(),
+        )
+        .unless_through_cargo(|_| None, env.var_os("CARGO").as_deref())
+    }
+
+    /// This chain, or a first entry when a real Cargo ran since its newest
+    /// proxy.
+    fn unless_through_cargo(
+        self,
+        process: impl Fn(u32) -> Option<(u32, Option<PathBuf>)>,
+        cargo: Option<&OsStr>,
+    ) -> Self {
         let kache = kache_identity();
-        if level.reentered()
-            && level.reached_through_cargo(
-                std::process::id(),
-                crate::process_ancestry::process,
-                std::env::var_os("CARGO").as_deref(),
-                |path| is_kache(path, kache.as_deref()),
-            )
+        if self.reentered()
+            && self.reached_through_cargo(std::process::id(), process, cargo, |path| {
+                is_kache(path, &kache)
+            })
         {
-            return Self::first(level.nesting);
+            return Self::first(self.nesting);
         }
-        level
+        self
     }
 
     fn first(nesting: u32) -> Self {
@@ -482,6 +504,16 @@ pub(crate) fn mark_started_cargo(command: &mut Command, cargo: &Path) {
     ProxyLevel::current().mark(command, &argv0(), std::process::id(), cargo);
 }
 
+/// [`mark_started_cargo`] for a command built from a compiler invocation's
+/// environment `env`.
+pub(crate) fn mark_started_cargo_for(
+    command: &mut Command,
+    cargo: &Path,
+    env: &crate::invocation::InvocationEnv,
+) {
+    ProxyLevel::for_invocation(env).mark(command, &argv0(), std::process::id(), cargo);
+}
+
 /// Run Cargo for a proxy that a `cargo` wrapper led back to. Nothing that
 /// could start the wrapper again runs first: no PATH lookup, no config
 /// inspection, no target protection.
@@ -554,6 +586,21 @@ struct CargoEnvironment {
 }
 
 impl CargoEnvironment {
+    /// The same from a compiler invocation's environment, with a relative
+    /// `CARGO_HOME` taken from its working directory.
+    fn for_invocation(env: &crate::invocation::InvocationEnv) -> Self {
+        let var = |name| env.var_os(name).filter(|value| !value.is_empty());
+        Self {
+            real_cargo: var("KACHE_REAL_CARGO"),
+            cargo: var("CARGO"),
+            cargo_home: var("CARGO_HOME").map(|home| {
+                env.resolve(Path::new(&home))
+                    .unwrap_or_else(|| PathBuf::from(home))
+            }),
+            home: env.home_dir().map(Path::to_path_buf),
+        }
+    }
+
     fn current() -> Self {
         let var = |name| std::env::var_os(name).filter(|value| !value.is_empty());
         Self {
@@ -617,7 +664,7 @@ pub(crate) fn real_cargo_program(route: CargoRoute) -> Result<PathBuf> {
     let program = real_cargo_candidate(
         &CargoEnvironment::current(),
         route,
-        |path| is_kache(path, kache.as_deref()),
+        |path| is_kache(path, &kache),
         || crate::compiler::shim::resolve_real_compiler_from_env("cargo"),
     )?
     .context("finding the real Cargo; set KACHE_REAL_CARGO to its full path")?;
@@ -633,15 +680,43 @@ pub(crate) fn cargo_command(route: CargoRoute) -> Result<Command> {
     Ok(command)
 }
 
-fn kache_identity() -> Option<PathBuf> {
-    std::env::current_exe()
-        .ok()
-        .and_then(|path| path.canonicalize().ok())
+/// The real Cargo for workspace discovery in the compiler invocation `env`,
+/// which may be another process's: its `KACHE_REAL_CARGO`, its `CARGO`, then
+/// its Cargo home. Never PATH.
+pub(crate) fn discovery_cargo(env: &crate::invocation::InvocationEnv) -> Result<PathBuf> {
+    let kache = kache_identity();
+    let program = real_cargo_candidate(
+        &CargoEnvironment::for_invocation(env),
+        CargoRoute::Discovery,
+        |path| is_kache(path, &kache),
+        || None,
+    )?
+    .context("finding the real Cargo; set KACHE_REAL_CARGO to its full path")?;
+    let cwd = env
+        .cwd()
+        .context("the compiler invocation has no working directory")?;
+    resolve_cargo_program(&program, cwd)
 }
 
-/// Whether `path` is the executable `kache` canonicalises to.
-fn is_kache(path: &Path, kache: Option<&Path>) -> bool {
-    kache.is_some() && path.canonicalize().ok().as_deref() == kache
+/// This executable and the kache frontend it belongs to, canonicalised.
+fn kache_identity() -> Vec<PathBuf> {
+    let mut identity = Vec::new();
+    for path in [
+        std::env::current_exe(),
+        crate::platform::frontend_executable(),
+    ] {
+        if let Ok(path) = path.and_then(|path| path.canonicalize())
+            && !identity.contains(&path)
+        {
+            identity.push(path);
+        }
+    }
+    identity
+}
+
+/// Whether `path` canonicalises to one of `kache`'s executables.
+fn is_kache(path: &Path, kache: &[PathBuf]) -> bool {
+    path.canonicalize().is_ok_and(|path| kache.contains(&path))
 }
 
 /// Maximum retained Cargo protocol line. Longer stdout still reaches the user,
@@ -938,7 +1013,7 @@ fn resolve_cargo_program(program: &Path, cwd: &Path) -> Result<PathBuf> {
     executable
         .canonicalize()
         .with_context(|| format!("resolving Cargo program {program:?}"))?;
-    if is_kache(&executable, kache_identity().as_deref()) {
+    if is_kache(&executable, &kache_identity()) {
         bail!(
             "resolved Cargo program {:?} points back to kache; set KACHE_REAL_CARGO to the real Cargo binary",
             program
@@ -2412,9 +2487,12 @@ mod tests {
         std::os::unix::fs::symlink(&kache, dir.path().join("cargo")).unwrap();
         let identity = kache.canonicalize().unwrap();
 
-        assert!(is_kache(&dir.path().join("cargo"), Some(&identity)));
-        assert!(!is_kache(&other, Some(&identity)));
-        assert!(!is_kache(&dir.path().join("missing"), None));
+        assert!(is_kache(
+            &dir.path().join("cargo"),
+            std::slice::from_ref(&identity)
+        ));
+        assert!(!is_kache(&other, std::slice::from_ref(&identity)));
+        assert!(!is_kache(&dir.path().join("missing"), &[]));
     }
 
     #[test]
@@ -2665,6 +2743,63 @@ mod tests {
         // above it does not count.
         let rows = table(&[(10, 6, "/k"), (6, 1, "/t/cargo")]);
         assert_eq!(between(10, Some(10), &rows, named_cargo), Between::NoCargo);
+    }
+
+    fn invocation(vars: &[(&str, &OsStr)], cwd: &Path) -> crate::invocation::InvocationEnv {
+        crate::invocation::InvocationEnv::from_parts(
+            vars.iter().map(|(key, value)| (*key, value.to_os_string())),
+            Some(cwd.to_path_buf()),
+            None,
+            std::env::temp_dir(),
+        )
+    }
+
+    #[test]
+    fn an_invocation_chain_is_decided_by_the_invocations_cargo_alone() {
+        let dir = tempfile::tempdir().unwrap();
+        let toolchain = absolute("toolchain-cargo");
+        let chain = [
+            ("KACHE_CARGO_PROXY_DEPTH", OsStr::new("1")),
+            ("KACHE_CARGO_PROXY_CHAIN", OsStr::new("7 /k ran /w")),
+            ("KACHE_CARGO_PROXY_NESTING", OsStr::new("3")),
+        ];
+        let without_cargo = ProxyLevel::for_invocation(&invocation(&chain, dir.path()));
+        assert_eq!(without_cargo.depth, 1);
+        assert_eq!(without_cargo.chain, ["7 /k ran /w"]);
+
+        let mut vars = chain.to_vec();
+        vars.push(("CARGO", toolchain.as_os_str()));
+        let env = invocation(&vars, dir.path());
+        assert_eq!(ProxyLevel::for_invocation(&env), ProxyLevel::first(3));
+
+        let mut command = Command::new("cargo");
+        mark_started_cargo_for(&mut command, Path::new("/c"), &env);
+        assert_eq!(marker(&command, PROXY_DEPTH_ENV), Some(Some("1".into())));
+        assert_eq!(marker(&command, PROXY_NESTING_ENV), Some(Some("4".into())));
+        assert_eq!(marker(&command, "CARGO"), Some(None));
+    }
+
+    #[test]
+    fn discovery_takes_cargo_from_the_invocation_with_its_cargo_home_in_its_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().canonicalize().unwrap();
+        let home_cargo = cargo_in(&root.join("client-home"));
+        let env = invocation(&[("CARGO_HOME", OsStr::new("client-home"))], &root);
+        assert_eq!(discovery_cargo(&env).unwrap(), home_cargo);
+
+        let named = root.join("named-cargo");
+        std::fs::write(&named, "").unwrap();
+        let env = invocation(
+            &[
+                ("CARGO_HOME", OsStr::new("client-home")),
+                ("CARGO", named.as_os_str()),
+            ],
+            &root,
+        );
+        assert_eq!(discovery_cargo(&env).unwrap(), named);
+
+        let bare = invocation(&[("KACHE_REAL_CARGO", OsStr::new("cargo"))], &root);
+        assert!(discovery_cargo(&bare).is_err());
     }
 
     #[test]

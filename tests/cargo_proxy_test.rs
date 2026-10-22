@@ -41,6 +41,7 @@ fn cargo_shim_holds_target_lease_for_whole_test() {
     let project = dir.path().join("project");
     let target = project.join("target");
     let cache = dir.path().join("cache");
+    let _daemon = common::DaemonGuard::new(env!("CARGO_BIN_EXE_kache"), &cache);
     let shims = dir.path().join("shims");
     let real = dir.path().join("real");
     let ready = dir.path().join("ready");
@@ -113,6 +114,7 @@ fn cargo_shim_says_it_waits_for_target_cleanup_unless_quiet() {
         let dir = tempfile::tempdir().unwrap();
         let project = dir.path().join("project");
         let cache = dir.path().join("cache");
+        let _daemon = common::DaemonGuard::new(env!("CARGO_BIN_EXE_kache"), &cache);
         let shims = dir.path().join("shims");
         let real = dir.path().join("real");
         let started = dir.path().join("started");
@@ -198,6 +200,7 @@ fn canonical_cargo_home_alias_keeps_existing_cargo_unit_fresh() {
     let project = home.join("work/project");
     let cargo_home = home.join(".cargo");
     let cache = dir.path().join("cache");
+    let _daemon = common::DaemonGuard::new(env!("CARGO_BIN_EXE_kache"), &cache);
     let cold_target = dir.path().join("target-cold");
     std::fs::create_dir_all(project.join("src")).unwrap();
     std::fs::create_dir_all(&cargo_home).unwrap();
@@ -283,6 +286,7 @@ fn collapsed_rustflags_stay_out_of_the_environment_cargo_passes_on() {
     let home = root.join("home");
     let cargo_home = home.join(".cargo");
     let cache = root.join("cache");
+    let _daemon = common::DaemonGuard::new(env!("CARGO_BIN_EXE_kache"), &cache);
     let plain = home.join("plain/project");
     let aliased = home.join("aliased/project");
     std::fs::create_dir_all(&cargo_home).unwrap();
@@ -336,6 +340,7 @@ fn worktree_build_dir_stays_out_of_nested_cargo_builds() {
     let root = dir.path().canonicalize().unwrap();
     let home = root.join("home");
     let cache = root.join("cache");
+    let _daemon = common::DaemonGuard::new(env!("CARGO_BIN_EXE_kache"), &cache);
     let guest = root.join("guest");
     let host = root.join("host");
     let nested_target = root.join("nested-target");
@@ -407,6 +412,7 @@ fn collapsed_single_use_rustc_option_passes_cargo_target_probe() {
     let home = root.join("home");
     let cargo_home = home.join(".cargo");
     let cache = root.join("cache");
+    let _daemon = common::DaemonGuard::new(env!("CARGO_BIN_EXE_kache"), &cache);
     let project = home.join("work/project");
     std::fs::create_dir_all(&cargo_home).unwrap();
     std::fs::create_dir_all(&cache).unwrap();
@@ -511,6 +517,7 @@ fn explicit_rustflags_keep_their_cargo_precedence() {
     let project = home.join("work/project");
     let cargo_home = home.join(".cargo");
     let cache = dir.path().join("cache");
+    let _daemon = common::DaemonGuard::new(env!("CARGO_BIN_EXE_kache"), &cache);
     let target = dir.path().join("target");
     std::fs::create_dir_all(project.join("src")).unwrap();
     std::fs::create_dir_all(&cargo_home).unwrap();
@@ -681,6 +688,7 @@ fn cargo_proxy_isolates_fingerprints_while_sharing_final_target_and_kache() {
     let dir = tempfile::tempdir().unwrap();
     let home = dir.path().join("home");
     let cache = dir.path().join("cache");
+    let _daemon = common::DaemonGuard::new(env!("CARGO_BIN_EXE_kache"), &cache);
     let shared_target = dir.path().join("shared-target");
     let worktree_a = dir.path().join("worktree-a");
     let worktree_b = dir.path().join("worktree-b");
@@ -758,6 +766,7 @@ fn receipt_cleanup_removes_old_feature_units_and_keeps_next_check_fresh() {
     let project = dir.path().join("project");
     let target = project.join("target");
     let cache = dir.path().join("cache");
+    let _daemon = common::DaemonGuard::new(env!("CARGO_BIN_EXE_kache"), &cache);
     std::fs::create_dir_all(project.join("src")).unwrap();
     std::fs::create_dir_all(home.join(".cargo")).unwrap();
     std::fs::write(
@@ -877,6 +886,7 @@ impl ReceiptAcceptance {
         let project = dir.path().join("project");
         let target = project.join("target");
         let cache = dir.path().join("cache");
+        let _daemon = common::DaemonGuard::new(env!("CARGO_BIN_EXE_kache"), &cache);
         let dependency = dir.path().join("external-dependency");
         let script_input = dir.path().join("external-input.txt");
         std::fs::create_dir_all(project.join("src")).unwrap();
@@ -1455,7 +1465,9 @@ fn cargo_proxy_reached_again_through_a_cargo_wrapper_stops_and_names_it() {
     assert!(!output.status.success(), "{stderr}");
     assert!(stderr.contains("KACHE_CARGO_PROXY_DEPTH=3"), "{stderr}");
     assert!(
-        stderr.contains(&format!("{KACHE_BIN} ran {}", stub.display())),
+        // Each hop is named by the process that ran it: the engine the
+        // `kache` frontend execs.
+        stderr.contains(&format!("kache-engine ran {}", stub.display())),
         "{stderr}"
     );
     assert_eq!(forwarded_calls(&log), 3, "{stderr}");

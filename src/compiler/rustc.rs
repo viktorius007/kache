@@ -20,8 +20,9 @@ use super::{
 };
 
 pub const RUSTC_ID: CompilerId = CompilerId::new("rustc");
-pub const ADAPTER: CompilerAdapter =
-    CompilerAdapter::new(RUSTC_ID, "Rust compiler", RustcCompiler::recognizes);
+pub const ADAPTER: CompilerAdapter = CompilerAdapter::new(RUSTC_ID, "Rust compiler", |args, _| {
+    RustcCompiler::recognizes(args)
+});
 
 /// Map a rustc `--crate-type` to the [`ArtifactKind`] of the artifact it
 /// produces.
@@ -61,15 +62,29 @@ pub fn crate_type_produces_metadata(crate_type: &str) -> bool {
     !matches!(crate_type, "bin" | "cdylib" | "staticlib")
 }
 
-#[derive(Default)]
 pub struct RustcCompiler {
     base_dirs: Vec<String>,
     incremental_bootstrap: bool,
+    invocation_env: crate::invocation::InvocationEnv,
+}
+
+impl Default for RustcCompiler {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl RustcCompiler {
     pub fn new() -> Self {
-        Self::default()
+        Self::new_for(&crate::invocation::InvocationEnv::capture())
+    }
+
+    pub(crate) fn new_for(env: &crate::invocation::InvocationEnv) -> Self {
+        Self {
+            base_dirs: Vec::new(),
+            incremental_bootstrap: false,
+            invocation_env: env.clone(),
+        }
     }
 
     pub fn with_base_dirs(mut self, base_dirs: Vec<String>) -> Self {
@@ -135,7 +150,7 @@ impl RustcCompiler {
 
     /// Execute a caller-visible compile, forwarding metadata readiness to Cargo.
     pub(crate) fn execute_streaming(&self, parsed: &RustcArgs) -> Result<CompileResult> {
-        self.execute_with_metadata_sink(parsed, Some(&mut std::io::stderr()))
+        self.execute_with_metadata_sink(parsed, Some(&mut crate::invocation::io::stderr()))
     }
 
     fn execute_with_metadata_sink(
@@ -169,7 +184,7 @@ impl RustcCompiler {
             compile::IncrementalMode::Strip,
             None,
             LinkLane::Cache,
-            Some(&mut std::io::stderr()),
+            Some(&mut crate::invocation::io::stderr()),
             Some(on_dep_info),
         )
     }
@@ -191,7 +206,7 @@ impl RustcCompiler {
             },
             None,
             LinkLane::Adaptive,
-            Some(&mut std::io::stderr()),
+            Some(&mut crate::invocation::io::stderr()),
             None,
         )
     }
@@ -212,7 +227,7 @@ impl RustcCompiler {
             },
             None,
             LinkLane::Adaptive,
-            Some(&mut std::io::stderr()),
+            Some(&mut crate::invocation::io::stderr()),
             Some(on_dep_info),
         )
     }
@@ -225,6 +240,16 @@ impl RustcCompiler {
         parsed: &RustcArgs,
         isolated_args: &[String],
     ) -> Result<CompileResult> {
+        self.execute_portable_incremental(parsed, isolated_args, None)
+    }
+
+    pub(crate) fn execute_portable_incremental(
+        &self,
+        parsed: &RustcArgs,
+        isolated_args: &[String],
+        on_dep_info: Option<&mut dyn FnMut() -> bool>,
+    ) -> Result<CompileResult> {
+        let mut stderr = crate::invocation::io::stderr();
         self.execute_with_args(
             parsed,
             isolated_args,
@@ -233,8 +258,14 @@ impl RustcCompiler {
             },
             Some(true),
             LinkLane::Passthrough,
-            Some(&mut std::io::stderr()),
-            None,
+            // An injected bootstrap attempt may be retried with the caller's
+            // environment. Do not expose diagnostics from a discarded attempt.
+            if self.incremental_bootstrap {
+                None
+            } else {
+                Some(&mut stderr)
+            },
+            on_dep_info,
         )
     }
 
@@ -251,13 +282,17 @@ impl RustcCompiler {
     ) -> Result<CompileResult> {
         // The invocation and key must use the same path-normalization rules.
         let workspace_root = parsed.path_normalization_root();
-        let path_normalizer = crate::path_normalizer::PathNormalizer::from_env(workspace_root)
-            .with_target_dir(parsed.target_dir().as_deref())
-            .with_base_dirs(&self.base_dirs)
-            .with_rust_src_rule(
-                crate::cache_key::get_rustc_sysroot(parsed).as_deref(),
-                crate::cache_key::get_rustc_commit_hash(&parsed.rustc).as_deref(),
-            );
+        let path_normalizer = crate::path_normalizer::PathNormalizer::from_invocation(
+            workspace_root,
+            &self.invocation_env,
+        )
+        .with_target_dir(parsed.target_dir().as_deref())
+        .with_base_dirs(&self.base_dirs)
+        .with_rust_src_rule(
+            crate::cache_key::get_rustc_sysroot_for(parsed, &self.invocation_env).as_deref(),
+            crate::cache_key::get_rustc_commit_hash_for(&parsed.rustc, &self.invocation_env)
+                .as_deref(),
+        );
         let skip_remap = skip_remap_override.unwrap_or_else(|| parsed.skip_path_remap());
         let injected: Vec<String> = [
             macos_oso_prefix_flag(parsed, all_args, lane),
@@ -272,6 +307,7 @@ impl RustcCompiler {
             Cow::Owned([all_args, injected.as_slice()].concat())
         };
         compile::run_rustc(
+            &self.invocation_env,
             &parsed.rustc,
             parsed.inner_rustc.as_deref(),
             compiler_args.as_ref(),
@@ -298,11 +334,14 @@ impl Compiler for RustcCompiler {
     }
 
     fn parse(&self, args: &[String]) -> Result<RustcArgs> {
-        RustcArgs::parse(args)
+        RustcArgs::parse_for(args, &self.invocation_env)
     }
 
     fn refuse_reasons(&self, parsed: &RustcArgs) -> Vec<RefuseReason> {
-        let build_script_out_dir = std::env::var_os("OUT_DIR").map(std::path::PathBuf::from);
+        let build_script_out_dir = self
+            .invocation_env
+            .var_os("OUT_DIR")
+            .map(std::path::PathBuf::from);
         rustc_refuse_reasons(parsed, build_script_out_dir.as_deref())
     }
 
@@ -310,7 +349,8 @@ impl Compiler for RustcCompiler {
     /// The trait returns only the key, as it does for cc and nvcc; the
     /// wrapper keys rustc through [`RustcCompiler::cache_key_in`].
     fn cache_key(&self, parsed: &RustcArgs, ctx: &KeyCtx<'_, '_>) -> Result<String> {
-        self.cache_key_in(parsed, ctx, &KeyEnv::capture()).0
+        self.cache_key_in(parsed, ctx, &KeyEnv::from_invocation(ctx.invocation_env))
+            .0
     }
 
     fn execute(&self, parsed: &RustcArgs) -> Result<CompileResult> {
@@ -354,7 +394,12 @@ fn finish_key(parsed: &RustcArgs, ctx: &KeyCtx<'_, '_>, key: String) -> String {
         Some(digest) => crate::cache_key::fold_labeled(key, "build_script_inputs", digest),
         None => key,
     };
-    let key = crate::cache_key::apply_key_env_vars(key, ctx.key_env_vars, crate_name);
+    let key = crate::cache_key::apply_key_env_vars_in(
+        key,
+        ctx.key_env_vars,
+        crate_name,
+        ctx.invocation_env,
+    );
     crate::cache_key::apply_key_salt(key, ctx.key_salt, crate_name)
 }
 
@@ -922,7 +967,9 @@ mod tests {
     #[test]
     fn refuse_reasons_refuses_explicit_emit_destinations_but_allows_defaults() {
         let compiler = RustcCompiler::new();
-        for kind in ["metadata", "link", "obj", "dep-info"] {
+        for kind in [
+            "metadata", "link", "obj", "dep-info", "asm", "llvm-ir", "llvm-bc", "mir",
+        ] {
             for separated in [false, true] {
                 let mut args = s(&["rustc", "src/lib.rs", "--crate-name", "foo"]);
                 let emit = format!("metadata,{kind}=custom/artifact");
@@ -968,6 +1015,38 @@ mod tests {
             ]))
             .unwrap();
         assert!(compiler.refuse_reasons(&parsed).is_empty());
+    }
+
+    #[test]
+    fn explicit_emit_destinations_follow_the_invocation_snapshot() {
+        let dir = tempfile::tempdir().unwrap();
+        let env = crate::invocation::InvocationEnv::from_parts(
+            std::iter::empty::<(&str, &str)>(),
+            Some(dir.path().to_path_buf()),
+            None,
+            dir.path().to_path_buf(),
+        );
+        let compiler = RustcCompiler::new_for(&env);
+        let response = dir.path().join("rustc.args");
+        for (emit, explicit) in [("metadata=custom.rmeta", true), ("metadata,link", false)] {
+            std::fs::write(
+                &response,
+                format!("lib.rs\n--crate-name=fixture\n--crate-type=rlib\n--emit={emit}\n"),
+            )
+            .unwrap();
+            let parsed = compiler.parse(&s(&["rustc", "@rustc.args"])).unwrap();
+            assert_eq!(parsed.explicit_emit_output, explicit);
+            assert_eq!(parsed.invocation_env().cwd(), Some(dir.path()));
+            assert_eq!(
+                compiler
+                    .refuse_reasons(&parsed)
+                    .iter()
+                    .any(|reason| matches!(reason,
+                        RefuseReason::Unsupported(detail) if detail.contains("explicit --emit")
+                    )),
+                explicit,
+            );
+        }
     }
 
     #[test]
@@ -1427,10 +1506,14 @@ mod tests {
             ]);
 
             let bundle = out_dir.join("foo.dSYM");
-            let output = super::super::platform::debug_bundle_command(&binary, &bundle)
-                .unwrap()
-                .output()
-                .unwrap();
+            let output = super::super::platform::debug_bundle_command_for(
+                &binary,
+                &bundle,
+                &crate::invocation::InvocationEnv::capture(),
+            )
+            .unwrap()
+            .output()
+            .unwrap();
             let stderr = String::from_utf8_lossy(&output.stderr);
             assert!(output.status.success(), "{layout}: {stderr}");
             assert!(
@@ -1693,6 +1776,7 @@ mod tests {
         let file_hasher = crate::cache_key::FileHasher::new();
         let path_normalizer = crate::path_normalizer::PathNormalizer::empty();
         let ctx = KeyCtx {
+            invocation_env: &crate::invocation::InvocationEnv::capture(),
             file_hasher: &file_hasher,
             path_normalizer: &path_normalizer,
             cache_dir: dir.path(),
@@ -1726,6 +1810,7 @@ mod tests {
         let file_hasher = crate::cache_key::FileHasher::new();
         let path_normalizer = crate::path_normalizer::PathNormalizer::empty();
         let base = KeyCtx {
+            invocation_env: &crate::invocation::InvocationEnv::capture(),
             file_hasher: &file_hasher,
             path_normalizer: &path_normalizer,
             cache_dir: std::path::Path::new("/cache"),
@@ -1790,6 +1875,7 @@ mod tests {
         let file_hasher = crate::cache_key::FileHasher::new();
         let path_normalizer = crate::path_normalizer::PathNormalizer::empty();
         let ctx = KeyCtx {
+            invocation_env: &crate::invocation::InvocationEnv::capture(),
             file_hasher: &file_hasher,
             path_normalizer: &path_normalizer,
             cache_dir: dir.path(),

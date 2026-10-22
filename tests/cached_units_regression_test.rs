@@ -222,10 +222,12 @@ fn results_for<'a>(events: &'a [Value], crate_name: &str) -> Vec<&'a str> {
 }
 
 struct Fixture {
+    _daemon: common::DaemonGuard,
     _dirs: Vec<TempDir>,
     workspace: PathBuf,
     home: PathBuf,
     cache: PathBuf,
+    targets: TempDir,
 }
 
 fn fixture() -> Fixture {
@@ -240,20 +242,32 @@ fn fixture_from(write: fn(&Path)) -> Fixture {
     write(workspace.path());
     std::fs::create_dir_all(home.path().join(".cargo")).unwrap();
     Fixture {
+        _daemon: common::DaemonGuard::new(env!("CARGO_BIN_EXE_kache"), cache.path()),
         workspace: workspace.path().to_path_buf(),
         home: home.path().to_path_buf(),
         cache: cache.path().to_path_buf(),
+        targets: TempDir::new().unwrap(),
         _dirs: vec![workspace, home, cache],
     }
 }
 
 fn target(fixture: &Fixture, name: &str) -> PathBuf {
-    let dir = fixture.cache.parent().unwrap().join(format!(
-        "kache-target-{}-{name}",
-        fixture.cache.file_name().unwrap().to_string_lossy()
-    ));
+    let dir = fixture.targets.path().join(name);
     let _ = std::fs::remove_dir_all(&dir);
     dir
+}
+
+#[test]
+fn fixture_target_directories_are_removed_when_the_fixture_drops() {
+    let dir = {
+        let fixture = fixture();
+        let dir = target(&fixture, "cold");
+        assert!(!dir.starts_with(&fixture.workspace));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("artifact"), b"compiled").unwrap();
+        dir
+    };
+    assert!(!dir.exists());
 }
 
 /// Two `cargo check`s of the same workspace at once, each with its own
@@ -328,6 +342,84 @@ fn concurrent_jobs_share_one_store_without_repeating_a_compile() {
         assert_eq!(number(event, "compiler_runs"), 0, "{event}");
     }
     assert_eq!(results_for(&events, "build_script_run"), vec!["local_hit"]);
+}
+
+/// Independent checkouts must share cold compiles, including workspace
+/// units that expand proc macros and binaries that invoke the linker.
+#[test]
+fn concurrent_checkouts_compile_each_cache_key_once() {
+    concurrent_checkout_builds(false);
+}
+
+#[test]
+fn concurrent_checkouts_keep_changed_sources_separate() {
+    concurrent_checkout_builds(true);
+}
+
+fn concurrent_checkout_builds(changed_source: bool) {
+    let fx = fixture();
+    let second = TempDir::new().unwrap();
+    write_workspace(second.path());
+    let workspaces = [fx.workspace.as_path(), second.path()];
+    for (index, workspace) in workspaces.into_iter().enumerate() {
+        let extra = usize::from(changed_source) * index;
+        std::fs::write(
+            workspace.join("app/src/main.rs"),
+            format!("fn main() {{ println!(\"{{}}\", app::answer() + {extra}); }}\n"),
+        )
+        .unwrap();
+        let status = Command::new(env!("CARGO"))
+            .args(["generate-lockfile", "--offline"])
+            .current_dir(workspace)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        common::settle_writes(&[workspace]);
+    }
+    let targets = [
+        target(&fx, "first-checkout"),
+        target(&fx, "second-checkout"),
+    ];
+    let mark = event_count(&fx.cache);
+    let children: Vec<_> = workspaces
+        .into_iter()
+        .zip(&targets)
+        .map(|(workspace, target)| {
+            cargo("build", workspace, &fx.home, &fx.cache, target, &[])
+                .args(["--offline", "--locked"])
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::piped())
+                .spawn()
+                .unwrap()
+        })
+        .collect();
+    for child in children {
+        let output = child.wait_with_output().unwrap();
+        assert!(
+            output.status.success(),
+            "cargo build failed:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    let events = events_since(&fx.cache, mark);
+    let mut runs = std::collections::BTreeMap::new();
+    for event in &events {
+        let key = field(event, "cache_key");
+        if !key.is_empty() {
+            *runs.entry(key).or_insert(0) += number(event, "compiler_runs");
+        }
+    }
+    assert!(runs.values().any(|runs| *runs == 1), "{events:?}");
+    assert!(
+        runs.values().all(|runs| *runs <= 1),
+        "checkouts repeated a compile for the same key: {runs:?}\n{events:?}"
+    );
+    for (index, target) in targets.iter().enumerate() {
+        let output = Command::new(target.join("debug/app")).output().unwrap();
+        assert!(output.status.success());
+        let expected = (47 + usize::from(changed_source) * index).to_string();
+        assert_eq!(String::from_utf8(output.stdout).unwrap().trim(), expected);
+    }
 }
 
 /// A miss with no closure record and no remote keys from the compile's own
@@ -845,9 +937,11 @@ fn links_metadata_reaches_dependent_build_scripts_whatever_its_spelling() {
     }
     std::fs::create_dir_all(home.path().join(".cargo")).unwrap();
     let fx = Fixture {
+        _daemon: common::DaemonGuard::new(env!("CARGO_BIN_EXE_kache"), cache.path()),
         workspace: root.to_path_buf(),
         home: home.path().to_path_buf(),
         cache: cache.path().to_path_buf(),
+        targets: TempDir::new().unwrap(),
         _dirs: vec![workspace, home, cache],
     };
 

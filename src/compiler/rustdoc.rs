@@ -12,19 +12,21 @@
 //! and hashing it would miss on the next identical run. Source environment
 //! macros pass through until compiler environment dependencies are tracked.
 
+use crate::invocation::process::CommandExt as _;
 use anyhow::{Context, Result};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitStatus};
-use std::sync::Mutex;
+use std::process::ExitStatus;
 
 use super::{ArtifactKind, Compiler, CompilerAdapter, CompilerId, KeyCtx, RefuseReason};
+use crate::invocation::InvocationEnv;
 use crate::store::StoreHashExt;
 
 pub const RUSTDOC_ID: CompilerId = CompilerId::new("rustdoc");
-pub const ADAPTER: CompilerAdapter =
-    CompilerAdapter::new(RUSTDOC_ID, "rustdoc", RustdocCompiler::recognizes);
+pub const ADAPTER: CompilerAdapter = CompilerAdapter::new(RUSTDOC_ID, "rustdoc", |args, _| {
+    RustdocCompiler::recognizes(args)
+});
 
 const ARCHIVE_NAME: &str = "docs.tar";
 
@@ -40,6 +42,7 @@ pub enum RustdocMode {
 
 #[derive(Debug, Clone, Default)]
 pub struct RustdocArgs {
+    invocation_env: InvocationEnv,
     pub program: String,
     pub rest: Vec<String>,
     pub mode: RustdocMode,
@@ -58,6 +61,57 @@ pub struct RustdocArgs {
     pub keyed: Vec<String>,
     /// `-L` kinds (`dependency`, `native`, `dir`) without the directory.
     pub library_kinds: Vec<String>,
+}
+
+impl RustdocArgs {
+    fn resolve_path(&self, path: &Path) -> Result<PathBuf> {
+        self.invocation_env
+            .resolve(path)
+            .context("rustdoc path requires the invocation working directory")
+    }
+
+    /// Resolve filesystem selections while retaining the compiler's raw argv.
+    fn rooted_paths(&self) -> Result<Self> {
+        let mut rooted = self.clone();
+        rooted.out_dir = self
+            .out_dir
+            .as_deref()
+            .map(|path| self.resolve_path(path))
+            .transpose()?;
+        rooted.parts_out_dir = self
+            .parts_out_dir
+            .as_deref()
+            .map(|path| self.resolve_path(path))
+            .transpose()?;
+        rooted.dep_info = self
+            .dep_info
+            .as_deref()
+            .map(|path| self.resolve_path(path))
+            .transpose()?;
+        rooted.include_parts_dirs = self
+            .include_parts_dirs
+            .iter()
+            .map(|path| self.resolve_path(path))
+            .collect::<Result<_>>()?;
+        rooted.html_files = self
+            .html_files
+            .iter()
+            .map(|path| self.resolve_path(path))
+            .collect::<Result<_>>()?;
+        rooted.externs = self
+            .externs
+            .iter()
+            .map(|(name, path)| {
+                Ok((
+                    name.clone(),
+                    path.as_deref()
+                        .map(|path| self.resolve_path(path))
+                        .transpose()?,
+                ))
+            })
+            .collect::<Result<_>>()?;
+        Ok(rooted)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -98,7 +152,7 @@ impl Compiler for RustdocCompiler {
     }
 
     fn parse(&self, args: &[String]) -> Result<RustdocArgs> {
-        Ok(parse_args(args))
+        Ok(parse_args_for(args, &InvocationEnv::capture()))
     }
 
     fn refuse_reasons(&self, parsed: &RustdocArgs) -> Vec<RefuseReason> {
@@ -106,14 +160,27 @@ impl Compiler for RustdocCompiler {
     }
 
     fn cache_key(&self, parsed: &RustdocArgs, ctx: &KeyCtx<'_, '_>) -> Result<String> {
-        let version = rustdoc_version(&parsed.program)?;
+        let version = crate::probe::probe_for(
+            ctx.cache_dir,
+            &RustdocProber,
+            &crate::probe::ProbeRequest {
+                compiler: &parsed.program,
+                args: &[],
+                key_args: &[],
+                per_tu_paths: &[],
+                windows_aware: false,
+            },
+            &parsed.invocation_env,
+        )?
+        .version_line;
         let base = cache_key_with(parsed, &version, None)?;
         let label = parsed.crate_name.as_deref().unwrap_or("doc-merge");
-        Ok(finish_rustdoc_key(
+        Ok(finish_rustdoc_key_in(
             base,
             label,
             ctx.key_env_vars,
             ctx.key_salt,
+            ctx.invocation_env,
         ))
     }
 
@@ -177,6 +244,7 @@ pub(crate) fn cache_key_with(
     version: &str,
     salt: Option<&str>,
 ) -> Result<String> {
+    let parsed = &parsed.rooted_paths()?;
     let mut hasher = blake3::Hasher::new();
     hasher.update(b"rustdoc\0");
     hasher.update(version.as_bytes());
@@ -196,7 +264,7 @@ pub(crate) fn cache_key_with(
         hasher.update(kind.as_bytes());
         hasher.update(b"\0");
     }
-    for record in source_records(&parsed.sources)? {
+    for record in source_records(&parsed.sources, &parsed.invocation_env)? {
         if record.relative == "." {
             continue;
         }
@@ -253,13 +321,30 @@ fn hash_file_bytes(hasher: &mut blake3::Hasher, path: &Path) -> Result<()> {
 
 /// Env vars, then the salt. Empty env vars leave the key unchanged. The salt
 /// sees the env fold, matching rustc.
+#[cfg(test)]
 fn finish_rustdoc_key(
     base: String,
     label: &str,
     key_env_vars: &[String],
     salt: Option<&str>,
 ) -> String {
-    let keyed = crate::cache_key::apply_key_env_vars(base, key_env_vars, label);
+    finish_rustdoc_key_in(
+        base,
+        label,
+        key_env_vars,
+        salt,
+        &crate::invocation::InvocationEnv::capture(),
+    )
+}
+
+fn finish_rustdoc_key_in(
+    base: String,
+    label: &str,
+    key_env_vars: &[String],
+    salt: Option<&str>,
+    env: &crate::invocation::InvocationEnv,
+) -> String {
+    let keyed = crate::cache_key::apply_key_env_vars_in(base, key_env_vars, label, env);
     crate::cache_key::apply_key_salt(keyed, salt, label)
 }
 
@@ -274,26 +359,29 @@ struct SourceRecord {
 /// Crate inputs in a stable order.
 ///
 /// `mod name;` and `#[path = "rel"] mod name;` are followed even when a `cfg`
-/// would drop them. A `mod` inside an inline `mod name { ... }` is resolved
-/// under that name. A missing file is skipped. A file that exists but cannot
+/// would drop them. An implicit `foo.rs` module resolves children under
+/// `foo/`; `mod.rs`, crate roots and explicit paths keep their directory.
+/// A `mod` inside an inline `mod name { ... }` is resolved under that name.
+/// A file loaded in both implicit and explicit roles is scanned in both
+/// contexts but enters the key once. A missing file is skipped. A file that exists but cannot
 /// be read is an error, and the invocation is not cached. `include!`,
 /// `include_str!`, and `include_bytes!` count only with a string literal;
 /// anything else is an error. Dep-info is not read here.
-fn source_records(sources: &[PathBuf]) -> Result<Vec<SourceRecord>> {
+fn source_records(sources: &[PathBuf], env: &InvocationEnv) -> Result<Vec<SourceRecord>> {
     let Some(primary) = sources.first() else {
         return Ok(Vec::new());
     };
-    let crate_dir = lexical_absolute(primary.parent().unwrap_or(Path::new("")));
+    let crate_dir = lexical_absolute_for(primary.parent().unwrap_or(Path::new("")), env)?;
     let mut seen = BTreeSet::new();
     let mut files = Vec::new();
     for source in sources {
-        collect_source(
-            &lexical_absolute(source),
+        collect_source_for(
+            source,
             &crate_dir,
             true,
             false,
-            &mut seen,
-            &mut files,
+            (&mut seen, &mut files),
+            env,
         )?;
     }
     files.sort_by(|left, right| left.relative.cmp(&right.relative));
@@ -306,16 +394,38 @@ fn source_records(sources: &[PathBuf]) -> Result<Vec<SourceRecord>> {
     Ok(records)
 }
 
+#[cfg(test)]
 fn collect_source(
     path: &Path,
     crate_dir: &Path,
     required: bool,
     module_file: bool,
-    seen: &mut BTreeSet<PathBuf>,
+    seen: &mut BTreeSet<(PathBuf, bool)>,
     out: &mut Vec<SourceRecord>,
 ) -> Result<()> {
-    let absolute = lexical_absolute(path);
-    if !seen.insert(absolute.clone()) {
+    collect_source_for(
+        path,
+        crate_dir,
+        required,
+        module_file,
+        (seen, out),
+        &InvocationEnv::capture(),
+    )
+}
+
+fn collect_source_for(
+    path: &Path,
+    crate_dir: &Path,
+    required: bool,
+    module_file: bool,
+    (seen, out): (&mut BTreeSet<(PathBuf, bool)>, &mut Vec<SourceRecord>),
+    env: &InvocationEnv,
+) -> Result<()> {
+    let absolute = lexical_absolute_for(path, env)?;
+    // The same file can be both `mod foo;` and `#[path = "foo.rs"] mod alias;`.
+    // Their children have different roots, so cycle detection needs the role.
+    let first_visit = !seen.contains(&(absolute.clone(), !module_file));
+    if !seen.insert((absolute.clone(), module_file)) {
         return Ok(());
     }
     match std::fs::metadata(&absolute) {
@@ -338,11 +448,13 @@ fn collect_source(
     }
     let bytes = std::fs::read(&absolute)
         .with_context(|| format!("reading {} for the rustdoc cache key", absolute.display()))?;
-    let relative = relative_label(crate_dir, &absolute);
-    out.push(SourceRecord {
-        relative,
-        paths: vec![absolute.to_string_lossy().into_owned()],
-    });
+    if first_visit {
+        let relative = relative_label(crate_dir, &absolute);
+        out.push(SourceRecord {
+            relative,
+            paths: vec![absolute.to_string_lossy().into_owned()],
+        });
+    }
     let parent = absolute.parent().unwrap_or(Path::new(""));
     // An implicit foo.rs module owns foo/ for children; explicit paths keep the parent.
     let module_dir = if module_file && absolute.file_name() != Some(std::ffi::OsStr::new("mod.rs"))
@@ -354,12 +466,12 @@ fn collect_source(
     for found in scan_rust(&bytes)? {
         match found {
             Found::Include(rel) => {
-                collect_source(&parent.join(rel), crate_dir, false, false, seen, out)?;
+                collect_source_for(&parent.join(rel), crate_dir, false, false, (seen, out), env)?;
             }
             Found::Module { path, name } => {
                 let dir = if path.is_some() { parent } else { &module_dir };
-                if let Some(next) = resolve_module(dir, path.as_deref(), &name)? {
-                    collect_source(&next, crate_dir, false, path.is_none(), seen, out)?;
+                if let Some(next) = resolve_module_for(dir, path.as_deref(), &name, env)? {
+                    collect_source_for(&next, crate_dir, false, path.is_none(), (seen, out), env)?;
                 }
             }
         }
@@ -367,7 +479,17 @@ fn collect_source(
     Ok(())
 }
 
+#[cfg(test)]
 fn resolve_module(dir: &Path, path: Option<&str>, name: &str) -> Result<Option<PathBuf>> {
+    resolve_module_for(dir, path, name, &InvocationEnv::capture())
+}
+
+fn resolve_module_for(
+    dir: &Path,
+    path: Option<&str>,
+    name: &str,
+    env: &InvocationEnv,
+) -> Result<Option<PathBuf>> {
     let candidates = if let Some(path) = path {
         vec![dir.join(path)]
     } else {
@@ -377,8 +499,11 @@ fn resolve_module(dir: &Path, path: Option<&str>, name: &str) -> Result<Option<P
         ]
     };
     for candidate in candidates {
+        let candidate = env
+            .resolve(&candidate)
+            .context("resolving rustdoc module path")?;
         match std::fs::metadata(&candidate) {
-            Ok(meta) if meta.is_file() => return Ok(Some(lexical_absolute(&candidate))),
+            Ok(meta) if meta.is_file() => return Ok(Some(lexical_absolute_for(&candidate, env)?)),
             Ok(_) => continue,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
             Err(error) => {
@@ -391,14 +516,13 @@ fn resolve_module(dir: &Path, path: Option<&str>, name: &str) -> Result<Option<P
     Ok(None)
 }
 
+#[cfg(test)]
 fn lexical_absolute(path: &Path) -> PathBuf {
-    let absolute = if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        std::env::current_dir()
-            .map(|cwd| cwd.join(path))
-            .unwrap_or_else(|_| path.to_path_buf())
-    };
+    lexical_absolute_for(path, &InvocationEnv::capture()).unwrap()
+}
+
+fn lexical_absolute_for(path: &Path, env: &InvocationEnv) -> Result<PathBuf> {
+    let absolute = env.resolve(path).context("resolving rustdoc source path")?;
     let mut cleaned = PathBuf::new();
     for component in absolute.components() {
         match component {
@@ -412,9 +536,9 @@ fn lexical_absolute(path: &Path) -> PathBuf {
         }
     }
     if cleaned.as_os_str().is_empty() {
-        PathBuf::from(".")
+        Ok(PathBuf::from("."))
     } else {
-        cleaned
+        Ok(cleaned)
     }
 }
 
@@ -900,8 +1024,14 @@ fn collect_files(out: &mut Vec<(String, PathBuf)>, root: &Path, dir: &Path) -> R
     Ok(())
 }
 
+#[cfg(test)]
 fn parse_args(args: &[String]) -> RustdocArgs {
+    RustdocCompiler.parse(args).unwrap()
+}
+
+fn parse_args_for(args: &[String], env: &InvocationEnv) -> RustdocArgs {
     let mut parsed = RustdocArgs {
+        invocation_env: env.clone(),
         program: args.first().cloned().unwrap_or_default(),
         rest: args.get(1..).unwrap_or(&[]).to_vec(),
         ..RustdocArgs::default()
@@ -1185,31 +1315,49 @@ fn remap_to(value: &str) -> Option<&str> {
     value.split_once('=').map(|(_, to)| to)
 }
 
-fn rustdoc_version(program: &str) -> Result<String> {
-    static CACHE: Mutex<BTreeMap<String, String>> = Mutex::new(BTreeMap::new());
-    if let Some(hit) = CACHE
-        .lock()
-        .ok()
-        .and_then(|cache| cache.get(program).cloned())
-    {
-        return Ok(hit);
+struct RustdocProber;
+
+impl crate::probe::Prober for RustdocProber {
+    fn id(&self) -> &'static str {
+        "rustdoc"
     }
-    let output = Command::new(program)
-        .arg("-Vv")
-        .output()
-        .with_context(|| format!("running {program} -Vv"))?;
-    if !output.status.success() {
-        anyhow::bail!("{program} -Vv failed");
+
+    fn probe(&self, req: &crate::probe::ProbeRequest<'_>) -> Result<crate::probe::ResolvedConfig> {
+        self.probe_for(req, &InvocationEnv::capture())
     }
-    let text = String::from_utf8_lossy(&output.stdout);
-    let line = text.lines().next().unwrap_or("").trim().to_string();
-    if line.is_empty() {
-        anyhow::bail!("{program} -Vv produced no version");
+
+    fn probe_for(
+        &self,
+        req: &crate::probe::ProbeRequest<'_>,
+        env: &InvocationEnv,
+    ) -> Result<crate::probe::ResolvedConfig> {
+        let program = req.compiler;
+        let output = env
+            .command(program)?
+            .arg("-Vv")
+            .invocation_output()
+            .with_context(|| format!("running {program} -Vv"))?;
+        if !output.status.success() {
+            anyhow::bail!("{program} -Vv failed");
+        }
+        let text = String::from_utf8_lossy(&output.stdout);
+        let line = text.lines().next().unwrap_or("").trim().to_string();
+        if line.is_empty() {
+            anyhow::bail!("{program} -Vv produced no version");
+        }
+        Ok(crate::probe::ResolvedConfig {
+            schema_version: crate::probe::PROBE_SCHEMA_VERSION,
+            prober: self.id().to_owned(),
+            compiler_name: Path::new(program)
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned(),
+            version_line: line,
+            resolved_tokens: None,
+            host_version_line: None,
+        })
     }
-    if let Ok(mut cache) = CACHE.lock() {
-        cache.insert(program.to_string(), line.clone());
-    }
-    Ok(line)
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -1310,9 +1458,11 @@ fn strip_root(path: &str, root: &str) -> Option<String> {
 }
 
 fn spawn(parsed: &RustdocArgs) -> Result<std::process::Output> {
-    Command::new(&parsed.program)
+    parsed
+        .invocation_env
+        .command(&parsed.program)?
         .args(&parsed.rest)
-        .output()
+        .invocation_output()
         .with_context(|| format!("running {}", parsed.program))
 }
 
@@ -1441,7 +1591,8 @@ pub(crate) fn rewrite_bytes(input: &[u8], replacements: &[(Vec<u8>, Vec<u8>)]) -
 }
 
 fn restore_bundle(parsed: &RustdocArgs, bundle: &Bundle) -> Result<()> {
-    let current = source_records(&parsed.sources)?;
+    let parsed = &parsed.rooted_paths()?;
+    let current = source_records(&parsed.sources, &parsed.invocation_env)?;
     let rewrites = source_rewrites(&bundle.sources, &current);
     if let Some(out_dir) = &parsed.out_dir {
         for (rel, bytes) in &bundle.out_files {
@@ -1481,13 +1632,22 @@ fn write_file(path: &Path, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
+#[cfg(all(test, unix))]
 pub fn run(config: &crate::config::Config, args: &[String]) -> Result<i32> {
-    let parsed = RustdocCompiler.parse(args)?;
+    run_for(config, args, &InvocationEnv::capture())
+}
+
+pub(crate) fn run_for(
+    config: &crate::config::Config,
+    args: &[String],
+    env: &InvocationEnv,
+) -> Result<i32> {
+    let parsed = parse_args_for(args, env);
     let crate_name = parsed
         .crate_name
         .clone()
         .unwrap_or_else(|| "doc-merge".to_string());
-    let root = event_root();
+    let root = event_root_for(env);
     let start = std::time::Instant::now();
     if let Some(reason) = refusal(&parsed) {
         let code = passthrough(&parsed)?;
@@ -1500,7 +1660,10 @@ pub fn run(config: &crate::config::Config, args: &[String]) -> Result<i32> {
         );
         return Ok(code);
     }
-    let store = match crate::store::Store::open(config) {
+    let store = match crate::store::Store::open_with_options(
+        config,
+        crate::store::StoreOptions::from_env(|name| env.var(name).ok()),
+    ) {
         Ok(store) => store,
         Err(error) => {
             let code = passthrough(&parsed)?;
@@ -1514,9 +1677,10 @@ pub fn run(config: &crate::config::Config, args: &[String]) -> Result<i32> {
             return Ok(code);
         }
     };
-    let file_hasher = store.file_hasher();
+    let file_hasher = store.file_hasher_for(env);
     let path_normalizer = crate::path_normalizer::PathNormalizer::empty();
     let ctx = KeyCtx {
+        invocation_env: env,
         file_hasher: &file_hasher,
         path_normalizer: &path_normalizer,
         cache_dir: &config.cache_dir,
@@ -1552,8 +1716,8 @@ pub fn run(config: &crate::config::Config, args: &[String]) -> Result<i32> {
         replay(
             &meta.stdout,
             &meta.stderr,
-            std::io::stdout(),
-            std::io::stderr(),
+            crate::invocation::io::stdout(),
+            crate::invocation::io::stderr(),
         );
         log_result(
             config,
@@ -1577,8 +1741,8 @@ pub fn run(config: &crate::config::Config, args: &[String]) -> Result<i32> {
                 replay(
                     &meta.stdout,
                     &meta.stderr,
-                    std::io::stdout(),
-                    std::io::stderr(),
+                    crate::invocation::io::stdout(),
+                    crate::invocation::io::stderr(),
                 );
                 log_result(
                     config,
@@ -1592,7 +1756,7 @@ pub fn run(config: &crate::config::Config, args: &[String]) -> Result<i32> {
             }
         }
         crate::store::BuildClaim::Contended => {
-            let waited = match store.wait_for_committed(&cache_key) {
+            let waited = match crate::invocation::wait_for_committed(&store, &cache_key, None) {
                 Ok(waited) => waited,
                 Err(error) => {
                     return pass_store(config, &parsed, &root, &crate_name, start, &error);
@@ -1611,8 +1775,8 @@ pub fn run(config: &crate::config::Config, args: &[String]) -> Result<i32> {
                 replay(
                     &meta.stdout,
                     &meta.stderr,
-                    std::io::stdout(),
-                    std::io::stderr(),
+                    crate::invocation::io::stdout(),
+                    crate::invocation::io::stderr(),
                 );
                 log_result(
                     config,
@@ -1680,7 +1844,12 @@ fn compile_and_store(
     let output = spawn(parsed)?;
     let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
     let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
-    replay(&stdout, &stderr, std::io::stdout(), std::io::stderr());
+    replay(
+        &stdout,
+        &stderr,
+        crate::invocation::io::stdout(),
+        crate::invocation::io::stderr(),
+    );
     let code = exit_code(&output.status);
     if code != 0 {
         return Ok(Compiled {
@@ -1697,7 +1866,17 @@ fn compile_and_store(
             });
         }
     };
-    if store_bundle(store, cache_key, crate_name, &bundle, &stdout, &stderr).is_err() {
+    if store_bundle(
+        store,
+        cache_key,
+        crate_name,
+        &bundle,
+        &stdout,
+        &stderr,
+        parsed.invocation_env.temp_dir(),
+    )
+    .is_err()
+    {
         return Ok(Compiled {
             exit_code: 0,
             stored: false,
@@ -1716,6 +1895,7 @@ fn compile_and_store(
 /// stay out: `--merge=none` reads `out/<crate>/` and `out/src/<crate>/`, and
 /// finalize reads only the files in the output root.
 fn files_written(parsed: &RustdocArgs) -> Result<Bundle> {
+    let parsed = &parsed.rooted_paths()?;
     let out_files = match (&parsed.mode, &parsed.out_dir) {
         (RustdocMode::Crate, Some(dir)) => crate_output_files(dir, parsed.crate_name.as_deref())?,
         (RustdocMode::Finalize, Some(dir)) => top_level_files(dir)?,
@@ -1732,7 +1912,7 @@ fn files_written(parsed: &RustdocArgs) -> Result<Bundle> {
             Some(path) if path.is_file() => Some(std::fs::read(path)?),
             _ => None,
         },
-        sources: source_records(&parsed.sources)?,
+        sources: source_records(&parsed.sources, &parsed.invocation_env)?,
     })
 }
 
@@ -1812,9 +1992,10 @@ fn store_bundle(
     bundle: &Bundle,
     stdout: &str,
     stderr: &str,
+    temp_dir: &Path,
 ) -> Result<()> {
     let bytes = pack(bundle)?;
-    let tmp = tempfile::NamedTempFile::new()?;
+    let tmp = tempfile::NamedTempFile::new_in(temp_dir)?;
     std::fs::write(tmp.path(), &bytes)?;
     store.put_with_compile_time_independent(
         cache_key,
@@ -1871,19 +2052,19 @@ fn passthrough(parsed: &RustdocArgs) -> Result<i32> {
     replay(
         &String::from_utf8_lossy(&output.stdout),
         &String::from_utf8_lossy(&output.stderr),
-        std::io::stdout(),
-        std::io::stderr(),
+        crate::invocation::io::stdout(),
+        crate::invocation::io::stderr(),
     );
     Ok(exit_code(&output.status))
 }
 
-fn event_root() -> String {
-    if let Some(root) = std::env::var_os("KACHE_EVENT_ROOT")
+fn event_root_for(env: &InvocationEnv) -> String {
+    if let Some(root) = env.var_os("KACHE_EVENT_ROOT")
         && !root.is_empty()
     {
         return root.to_string_lossy().into_owned();
     }
-    std::env::current_dir()
+    env.cwd()
         .map(|path| path.to_string_lossy().into_owned())
         .unwrap_or_default()
 }
@@ -2369,7 +2550,7 @@ mod tests {
         std::fs::write(root.join("renamed.rs"), "mod child;\n").unwrap();
         std::fs::write(root.join("child.rs"), "pub fn thing() {}\n").unwrap();
         std::fs::write(root.join("renamed/child.rs"), "pub fn decoy() {}\n").unwrap();
-        let records = source_records(&[root.join("lib.rs")]).unwrap();
+        let records = source_records(&[root.join("lib.rs")], &InvocationEnv::capture()).unwrap();
         let names: Vec<_> = records
             .iter()
             .map(|record| record.relative.as_str())
@@ -2385,7 +2566,7 @@ mod tests {
         std::fs::write(root.join("lib.rs"), "mod foo;\n").unwrap();
         std::fs::write(root.join("foo/mod.rs"), "mod child;\n").unwrap();
         std::fs::write(root.join("foo/child.rs"), "pub fn thing() {}\n").unwrap();
-        let records = source_records(&[root.join("lib.rs")]).unwrap();
+        let records = source_records(&[root.join("lib.rs")], &InvocationEnv::capture()).unwrap();
         let names: Vec<_> = records
             .iter()
             .map(|record| record.relative.as_str())
@@ -2409,7 +2590,7 @@ mod tests {
         for file in ["child.rs", "note.txt", "renamed.rs"] {
             std::fs::write(root.join(file), "pub fn decoy() {}\n").unwrap();
         }
-        let records = source_records(&[root.join("entry.rs")]).unwrap();
+        let records = source_records(&[root.join("entry.rs")], &InvocationEnv::capture()).unwrap();
         let names: Vec<_> = records
             .iter()
             .map(|record| record.relative.as_str())
@@ -2425,6 +2606,108 @@ mod tests {
                 "note.txt",
                 "renamed.rs"
             ]
+        );
+    }
+
+    #[test]
+    fn one_source_in_implicit_and_explicit_modules_keys_both_child_roots() {
+        for root_source in [
+            "mod foo; #[path = \"foo.rs\"] mod alias;\n",
+            "#[path = \"foo.rs\"] mod alias; mod foo;\n",
+        ] {
+            let dir = tempfile::tempdir().unwrap();
+            let root = dir.path();
+            std::fs::create_dir(root.join("foo")).unwrap();
+            let lib = root.join("lib.rs");
+            std::fs::write(&lib, root_source).unwrap();
+            std::fs::write(root.join("foo.rs"), "mod child;\n").unwrap();
+            for child in ["child.rs", "foo/child.rs"] {
+                std::fs::write(root.join(child), "pub fn thing() {}\n").unwrap();
+            }
+            let env = InvocationEnv::from_parts(
+                std::iter::empty::<(&str, &str)>(),
+                Some(root.to_path_buf()),
+                None,
+                root.to_path_buf(),
+            );
+            let records = source_records(&[PathBuf::from("lib.rs")], &env).unwrap();
+            let names: Vec<_> = records
+                .iter()
+                .map(|record| record.relative.as_str())
+                .collect();
+            assert_eq!(names, [".", "child.rs", "foo.rs", "foo/child.rs", "lib.rs"]);
+            let parsed = parse_args_for(
+                &argv(&[
+                    "rustdoc",
+                    "--merge=none",
+                    "--crate-name=roles",
+                    "lib.rs",
+                    "-o",
+                    "out",
+                    "--parts-out-dir",
+                    "parts",
+                ]),
+                &env,
+            );
+            let original = cache_key_with(&parsed, "v", None).unwrap();
+            for child in ["child.rs", "foo/child.rs"] {
+                std::fs::write(root.join(child), "pub fn changed() {}\n").unwrap();
+                assert_ne!(
+                    original,
+                    cache_key_with(&parsed, "v", None).unwrap(),
+                    "{root_source:?} omitted {child}",
+                );
+                std::fs::write(root.join(child), "pub fn thing() {}\n").unwrap();
+                assert_eq!(original, cache_key_with(&parsed, "v", None).unwrap());
+            }
+        }
+    }
+
+    #[test]
+    fn role_aware_visits_terminate_alias_cycles_without_duplicate_records() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        std::fs::create_dir(root.join("foo")).unwrap();
+        std::fs::write(root.join("lib.rs"), "mod foo;\n").unwrap();
+        std::fs::write(
+            root.join("foo.rs"),
+            "#[path = \"foo.rs\"] mod cycle; mod child;\n",
+        )
+        .unwrap();
+        for child in ["child.rs", "foo/child.rs"] {
+            std::fs::write(root.join(child), "pub fn thing() {}\n").unwrap();
+        }
+        let records = source_records(&[root.join("lib.rs")], &InvocationEnv::capture()).unwrap();
+        let names: Vec<_> = records
+            .iter()
+            .map(|record| record.relative.as_str())
+            .collect();
+        assert_eq!(names, [".", "child.rs", "foo.rs", "foo/child.rs", "lib.rs"]);
+    }
+
+    #[test]
+    fn implicit_modules_keep_inline_children_and_mod_rs_fallbacks() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        std::fs::create_dir_all(root.join("foo/inline/leaf")).unwrap();
+        std::fs::write(root.join("lib.rs"), "mod foo;\n").unwrap();
+        std::fs::write(root.join("foo.rs"), "mod inline { mod leaf; }\n").unwrap();
+        std::fs::write(root.join("foo/inline/leaf/mod.rs"), "mod child;\n").unwrap();
+        std::fs::write(root.join("foo/inline/leaf/child.rs"), "pub fn thing() {}\n").unwrap();
+        let records = source_records(&[root.join("lib.rs")], &InvocationEnv::capture()).unwrap();
+        let names: Vec<_> = records
+            .iter()
+            .map(|record| record.relative.as_str())
+            .collect();
+        assert_eq!(
+            names,
+            [
+                ".",
+                "foo.rs",
+                "foo/inline/leaf/child.rs",
+                "foo/inline/leaf/mod.rs",
+                "lib.rs",
+            ],
         );
     }
 
@@ -3361,6 +3644,182 @@ mod tests {
         assert_eq!(compiled.exit_code, 0);
         assert_eq!(compiled.stdout, "out\n");
         assert_eq!(compiled.stderr, "err\n");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn concurrent_rustdoc_clients_keep_sources_outputs_and_archives_in_their_own_directory() {
+        let first = tempfile::tempdir().unwrap();
+        let second = tempfile::tempdir().unwrap();
+        let barrier = std::sync::Barrier::new(2);
+        std::thread::scope(|threads| {
+            for (root, client) in [(first.path(), "first"), (second.path(), "second")] {
+                for dir in ["bin", "src", "deps", "tmp", "doc/demo", "parts"] {
+                    std::fs::create_dir_all(root.join(dir)).unwrap();
+                }
+                std::fs::write(
+                    root.join("src/lib.rs"),
+                    "mod child; pub const V: &str = include_str!(\"data.txt\");\n",
+                )
+                .unwrap();
+                std::fs::write(root.join("src/child.rs"), format!("// {client}\n")).unwrap();
+                std::fs::write(root.join("src/data.txt"), client).unwrap();
+                std::fs::write(root.join("deps/libdep.rlib"), client).unwrap();
+                std::fs::write(root.join("header.html"), client).unwrap();
+                kache_fs::testutil::write_executable(
+                    &root.join("bin/rustdoc"),
+                    "#!/bin/sh\nprintf '%s' \"$CLIENT\" > doc/demo/index.html\nprintf '{}' > parts/demo.json\nprintf 'doc: src/lib.rs\\n' > output.d\nprintf '%s' \"$CLIENT\"\n",
+                );
+                let barrier = &barrier;
+                threads.spawn(move || {
+                    let env = InvocationEnv::from_parts(
+                        [("PATH", "bin:/usr/bin:/bin"), ("CLIENT", client)],
+                        Some(root.to_owned()),
+                        None,
+                        root.join("tmp"),
+                    );
+                    let parsed = parse_args_for(
+                        &argv(&[
+                            "rustdoc",
+                            "--crate-name",
+                            "demo",
+                            "src/lib.rs",
+                            "-o",
+                            "doc",
+                            "--parts-out-dir",
+                            "parts",
+                            "--emit=html-non-static-files,dep-info=output.d",
+                            "--merge=none",
+                            "--html-in-header",
+                            "header.html",
+                            "--extern",
+                            "dep=deps/libdep.rlib",
+                        ]),
+                        &env,
+                    );
+                    barrier.wait();
+                    let key = cache_key_with(&parsed, "version", None).unwrap();
+                    let result = RustdocCompiler.execute(&parsed).unwrap();
+                    assert_eq!(result.exit_code, 0, "{}", result.stderr);
+                    assert_eq!(result.stdout, client);
+                    let bundle = files_written(&parsed).unwrap();
+                    assert_eq!(
+                        bundle.out_files,
+                        [("demo/index.html".to_owned(), client.as_bytes().to_vec())]
+                    );
+                    assert!(
+                        bundle
+                            .sources
+                            .iter()
+                            .flat_map(|record| &record.paths)
+                            .all(|path| Path::new(path).starts_with(root))
+                    );
+                    for file in ["doc/demo/index.html", "parts/demo.json", "output.d"] {
+                        std::fs::remove_file(root.join(file)).unwrap();
+                    }
+                    let config = crate::test_support::test_config(root.join("cache"));
+                    let store = crate::store::Store::open_with_options(
+                        &config,
+                        crate::store::StoreOptions::from_env(|_| None),
+                    )
+                    .unwrap();
+                    store_bundle(
+                        &store,
+                        &key,
+                        "demo",
+                        &bundle,
+                        &result.stdout,
+                        &result.stderr,
+                        env.temp_dir(),
+                    )
+                    .unwrap();
+                    let meta = store.get(&key).unwrap().unwrap();
+                    restore_meta(&store, &parsed, &meta).unwrap();
+                    assert_eq!(
+                        std::fs::read_to_string(root.join("doc/demo/index.html")).unwrap(),
+                        client
+                    );
+                    assert_eq!(std::fs::read(root.join("parts/demo.json")).unwrap(), b"{}");
+                    assert_eq!(
+                        std::fs::read(root.join("output.d")).unwrap(),
+                        b"doc: src/lib.rs\n"
+                    );
+                    assert_eq!(cache_key_with(&parsed, "version", None).unwrap(), key);
+                    assert_eq!(std::fs::read_dir(root.join("tmp")).unwrap().count(), 0);
+                });
+            }
+        });
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rustdoc_version_memo_tracks_client_selection_and_rejects_failed_or_empty_probes() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        std::fs::write(root.join("lib.rs"), "pub fn value() {}\n").unwrap();
+        kache_fs::testutil::write_executable(
+            &root.join("rustdoc"),
+            "#!/bin/sh\nprintf x >> probe-count\nprintf '%s\\n' \"$DOC_VERSION\"\nexit \"${PROBE_EXIT:-0}\"\n",
+        );
+        let mut env = InvocationEnv::from_parts(
+            [("DOC_VERSION", "rustdoc first")],
+            Some(root.to_owned()),
+            None,
+            root.to_owned(),
+        );
+        env.set("PATH", root.as_os_str());
+        let config = crate::test_support::test_config(root.join("cache"));
+        let key = |env: &InvocationEnv| {
+            let parsed = parse_args_for(&argv(&["rustdoc", "--crate-name", "demo", "lib.rs"]), env);
+            let hasher = crate::cache_key::FileHasher::new_for(env);
+            let normalizer = crate::path_normalizer::PathNormalizer::empty();
+            RustdocCompiler.cache_key(
+                &parsed,
+                &KeyCtx {
+                    invocation_env: env,
+                    file_hasher: &hasher,
+                    path_normalizer: &normalizer,
+                    cache_dir: &config.cache_dir,
+                    key_salt: None,
+                    key_env_vars: &[],
+                    extra_inputs_digest: None,
+                    build_script_inputs_digest: None,
+                },
+            )
+        };
+        let first = key(&env).unwrap();
+        assert_eq!(key(&env).unwrap(), first);
+        let resolved = crate::probe::probe_for(
+            &config.cache_dir,
+            &RustdocProber,
+            &crate::probe::ProbeRequest {
+                compiler: "rustdoc",
+                args: &[],
+                key_args: &[],
+                per_tu_paths: &[],
+                windows_aware: false,
+            },
+            &env,
+        )
+        .unwrap();
+        assert_eq!(resolved.prober, "rustdoc");
+        assert_eq!(resolved.version_line, "rustdoc first");
+        assert_eq!(std::fs::read(root.join("probe-count")).unwrap(), b"x");
+        let mut other = env.clone();
+        other.set("DOC_VERSION", "rustdoc second");
+        assert_ne!(key(&other).unwrap(), first);
+        assert_eq!(std::fs::read(root.join("probe-count")).unwrap(), b"xx");
+        assert_eq!(key(&env).unwrap(), first);
+        other.set("DOC_VERSION", "");
+        assert!(
+            key(&other)
+                .unwrap_err()
+                .to_string()
+                .contains("produced no version")
+        );
+        other.set("DOC_VERSION", "rustdoc second");
+        other.set("PROBE_EXIT", "3");
+        assert!(key(&other).unwrap_err().to_string().contains("-Vv failed"));
     }
 
     #[cfg(unix)]
