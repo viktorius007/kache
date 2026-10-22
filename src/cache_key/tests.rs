@@ -11851,7 +11851,7 @@ fn rust_keys_reject_the_legacy_explicit_emit_recipe() {
         host_target_triple(),
     );
     let mut expected = blake3::Hasher::new();
-    expected.update(b"key_version:32\nemit_placement.v1:");
+    expected.update(b"key_version:33\nemit_placement.v1:");
     expected.update(&14_u64.to_le_bytes());
     expected.update(b"compiler-owned");
     expected.update(identity.as_bytes());
@@ -11859,8 +11859,8 @@ fn rust_keys_reject_the_legacy_explicit_emit_recipe() {
     let compiler = &fields["compiler"];
     assert_eq!(compiler, &expected.finalize().to_hex()[..16]);
 
-    // Deleting only the emit marker must restore this unsafe schema-32 prefix.
-    let legacy = format!("key_version:32\n{identity}");
+    // Deleting only the emit marker must restore this unsafe schema-33 prefix.
+    let legacy = format!("key_version:33\n{identity}");
     let legacy_compiler = blake3::hash(legacy.as_bytes()).to_hex();
     assert_ne!(
         compiler,
