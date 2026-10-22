@@ -918,13 +918,10 @@ edition = "2021"
         "adding kache.toml cannot invoke a wrapper Cargo already considers Fresh"
     );
 
-    let clean = Command::new("cargo")
+    let clean = common::cargo_command()
         .args(["clean", "--package", "extra-input-warm-target"])
         .current_dir(bootstrap_project.path())
         .env("CARGO_TARGET_DIR", bootstrap_target.path())
-        .env_remove("RUSTC_WRAPPER")
-        .env_remove("CARGO_BUILD_RUSTC_WRAPPER")
-        .env_remove("RUSTC_WORKSPACE_WRAPPER")
         .output()
         .unwrap();
     assert!(

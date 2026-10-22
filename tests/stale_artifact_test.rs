@@ -108,7 +108,7 @@ fn stale_cache_hit_baseline() {
     println!("Store entries after first build: {entries_after_first}");
 
     // Clean target (force cargo to re-invoke rustc through kache)
-    let _ = std::process::Command::new("cargo")
+    let _ = common::cargo_command()
         .args(["clean"])
         .current_dir(project.path())
         .env("CARGO_TARGET_DIR", target_dir.path())
@@ -149,7 +149,7 @@ fn stale_invalidates_on_crate_root_edit() {
     std::fs::write(&lib_rs, content.replace("\"v1\"", "\"v2\"")).unwrap();
 
     // Clean and rebuild
-    let _ = std::process::Command::new("cargo")
+    let _ = common::cargo_command()
         .args(["clean"])
         .current_dir(project.path())
         .env("CARGO_TARGET_DIR", target_dir.path())
@@ -191,7 +191,7 @@ fn stale_invalidates_on_module_edit() {
     )
     .unwrap();
 
-    let _ = std::process::Command::new("cargo")
+    let _ = common::cargo_command()
         .args(["clean"])
         .current_dir(project.path())
         .env("CARGO_TARGET_DIR", target_dir.path())
@@ -237,7 +237,7 @@ fn stale_invalidates_on_new_module() {
     let content = content.replace("\"v1\"", "extra::extra_value()");
     std::fs::write(&lib_rs, content).unwrap();
 
-    let _ = std::process::Command::new("cargo")
+    let _ = common::cargo_command()
         .args(["clean"])
         .current_dir(project.path())
         .env("CARGO_TARGET_DIR", target_dir.path())
@@ -272,7 +272,7 @@ fn stale_invalidates_on_feature_change() {
     assert_eq!(out1, "v1.helper-v1.default.debug.plain");
 
     // Clean and rebuild WITH --features fancy
-    let _ = std::process::Command::new("cargo")
+    let _ = common::cargo_command()
         .args(["clean"])
         .current_dir(project.path())
         .env("CARGO_TARGET_DIR", target_dir.path())
@@ -308,7 +308,7 @@ fn stale_invalidates_on_rustflags_change() {
     let count1 = store_entry_count(cache_dir.path());
 
     // Clean and rebuild with different RUSTFLAGS
-    let _ = std::process::Command::new("cargo")
+    let _ = common::cargo_command()
         .args(["clean"])
         .current_dir(project.path())
         .env("CARGO_TARGET_DIR", target_dir.path())
@@ -411,7 +411,7 @@ fn stale_recovers_from_corrupted_artifact() {
     assert!(deleted, "should have found and deleted a blob in the store");
 
     // Clean and rebuild — kache should detect the missing file and recompile
-    let _ = std::process::Command::new("cargo")
+    let _ = common::cargo_command()
         .args(["clean"])
         .current_dir(project.path())
         .env("CARGO_TARGET_DIR", target_dir.path())
@@ -508,7 +508,7 @@ fn stale_invalidates_on_env_change() {
     assert_eq!(out1, "v1.helper-v1.default.debug.plain");
 
     // Clean and rebuild WITH env var set
-    let _ = std::process::Command::new("cargo")
+    let _ = common::cargo_command()
         .args(["clean"])
         .current_dir(project.path())
         .env("CARGO_TARGET_DIR", target_dir.path())
@@ -543,7 +543,7 @@ fn stale_invalidates_on_coverage_flag() {
     let count1 = store_entry_count(cache_dir.path());
 
     // Clean and rebuild with coverage instrumentation
-    let _ = std::process::Command::new("cargo")
+    let _ = common::cargo_command()
         .args(["clean"])
         .current_dir(project.path())
         .env("CARGO_TARGET_DIR", target_dir.path())
@@ -639,7 +639,7 @@ fn unrestorable_cache_entry_falls_back_to_recompile() {
     );
 
     // Force cargo to re-invoke rustc through kache against the broken cache.
-    let _ = std::process::Command::new("cargo")
+    let _ = common::cargo_command()
         .args(["clean"])
         .current_dir(project.path())
         .env("CARGO_TARGET_DIR", target_dir.path())

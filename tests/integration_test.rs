@@ -616,7 +616,7 @@ fn test_wrapper_hello_world() {
     }
 
     // Clean and rebuild (should be cache hits)
-    let _ = std::process::Command::new("cargo")
+    let _ = common::cargo_command()
         .args(["clean"])
         .current_dir(&test_project)
         .env("CARGO_TARGET_DIR", target_dir.path())

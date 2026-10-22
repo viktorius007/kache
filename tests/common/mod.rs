@@ -69,7 +69,7 @@ fn bootstrap_kache() -> Result<PathBuf, String> {
         return Ok(PathBuf::from(env!("CARGO_BIN_EXE_kache")));
     }
     let target_dir = bootstrap_target_dir();
-    let output = std::process::Command::new("cargo")
+    let output = cargo_command()
         .args([
             "build",
             "--bin",
@@ -81,8 +81,6 @@ fn bootstrap_kache() -> Result<PathBuf, String> {
             "--config",
             "build.rustc-wrapper=\"\"",
         ])
-        .env_remove("RUSTC_WRAPPER")
-        .env_remove("CARGO_BUILD_RUSTC_WRAPPER")
         .output()
         .map_err(|e| format!("failed to spawn cargo to build kache: {e}"))?;
 
@@ -132,6 +130,143 @@ pub fn scan(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 }
 "#;
 
+/// The parts of the developer's Cargo home a fixture build shares: downloaded
+/// crates, git checkouts, and installed subcommands.
+const SHARED_CARGO_HOME_ENTRIES: [&str; 3] = ["registry", "git", "bin"];
+
+/// Variables through which the environment, or the `[env]` table of the
+/// developer's Cargo config that ran this test, installs a wrapper or moves
+/// build output. A test that wants one sets it on its own command.
+const USER_BUILD_VARIABLES: [&str; 10] = [
+    "RUSTC_WRAPPER",
+    "CARGO_BUILD_RUSTC_WRAPPER",
+    "RUSTC_WORKSPACE_WRAPPER",
+    "CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER",
+    "RUSTDOC",
+    "CARGO_BUILD_RUSTDOC",
+    "CARGO_BUILD_BUILD_DIR",
+    "HOST_CC",
+    "HOST_CXX",
+    "CC_KNOWN_WRAPPER_CUSTOM",
+];
+
+/// Prefix of the variables that override a Cargo profile, such as a
+/// developer's `CARGO_PROFILE_DEV_DEBUG=line-tables-only`. Fixtures assert
+/// what Cargo's default profiles compile.
+const USER_PROFILE_PREFIX: &str = "CARGO_PROFILE_";
+
+static CONFIG_FREE_CARGO_HOME: OnceLock<Option<PathBuf>> = OnceLock::new();
+
+/// A Cargo home with no `config.toml` whose registry, git and bin entries link
+/// to the developer's own, so fixtures reuse every download.
+///
+/// Fixtures assert Cargo's default layout: output under their own target dir,
+/// rustc unwrapped unless the test installs kache. `$CARGO_HOME/config.toml`
+/// applies to every project on the machine, so a global `build.build-dir` or
+/// `build.rustc-wrapper` would move the output or wrap the compile. Cargo reads
+/// config and caches from the same home, so only a second home separates them.
+///
+/// One directory next to the bootstrap build, refreshed by each test process.
+/// `None` where links cannot be made (Windows without the symlink privilege):
+/// the child then keeps the inherited home, as before this existed.
+fn config_free_cargo_home() -> Option<&'static Path> {
+    CONFIG_FREE_CARGO_HOME
+        .get_or_init(|| {
+            let real = home::cargo_home().expect("locating the developer's Cargo home");
+            let isolated = bootstrap_target_dir().with_file_name("kache-test-cargo-home");
+            let linked = std::fs::create_dir_all(&isolated).and_then(|()| {
+                SHARED_CARGO_HOME_ENTRIES.iter().try_for_each(|entry| {
+                    link_shared_entry(&real.join(entry), &isolated.join(entry))
+                })
+            });
+            match linked {
+                Ok(()) => Some(isolated),
+                Err(error) if cfg!(windows) => {
+                    eprintln!(
+                        "fixture Cargo keeps the inherited CARGO_HOME: linking {} failed: {error}",
+                        isolated.display()
+                    );
+                    None
+                }
+                Err(error) => panic!(
+                    "linking {} to the caches in {}: {error}",
+                    isolated.display(),
+                    real.display()
+                ),
+            }
+        })
+        .as_deref()
+}
+
+/// Points `link` at `target`. A missing `target` is skipped, so Cargo creates
+/// that entry inside the isolated home instead of following a dangling link.
+fn link_shared_entry(target: &Path, link: &Path) -> std::io::Result<()> {
+    let links_to_target = || std::fs::read_link(link).is_ok_and(|current| current == target);
+    if !target.is_dir() || links_to_target() {
+        return Ok(());
+    }
+    // A link from a run under another Cargo home; a real directory stays and
+    // fails the link below.
+    let _ = std::fs::remove_file(link).or_else(|_| std::fs::remove_dir(link));
+    #[cfg(unix)]
+    let created = std::os::unix::fs::symlink(target, link);
+    #[cfg(windows)]
+    let created = std::os::windows::fs::symlink_dir(target, link);
+    match created {
+        // Another test binary linked it first.
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists && links_to_target() => {
+            Ok(())
+        }
+        created => created,
+    }
+}
+
+/// `PATH` without kache's toolchain shim directories (those holding the
+/// `.kache-shims` marker), so a `cargo` or `cc` a fixture runs is the real one.
+fn path_without_kache_shims() -> Option<std::ffi::OsString> {
+    let path = std::env::var_os("PATH")?;
+    let kept = std::env::split_paths(&path)
+        .filter(|dir| !dir.join(kache_shims::farm::MARKER).is_file())
+        .collect::<Vec<_>>();
+    Some(std::env::join_paths(kept).expect("PATH entries came from PATH"))
+}
+
+/// Cuts `command` off from the developer's Cargo configuration and toolchain
+/// wrappers: a config-free `CARGO_HOME`, none of [`USER_BUILD_VARIABLES`] or
+/// the inherited profile overrides, and no kache shim directory on `PATH`.
+/// Later `env` calls on the command win, so a test that installs a wrapper, a
+/// home or a shim directory still can.
+#[allow(dead_code)]
+pub fn isolate_from_user_cargo(command: &mut Command) -> &mut Command {
+    for variable in USER_BUILD_VARIABLES {
+        command.env_remove(variable);
+    }
+    for (variable, _) in std::env::vars_os() {
+        if variable
+            .to_str()
+            .is_some_and(|name| name.starts_with(USER_PROFILE_PREFIX))
+        {
+            command.env_remove(variable);
+        }
+    }
+    if let Some(home) = config_free_cargo_home() {
+        command.env("CARGO_HOME", home);
+    }
+    if let Some(path) = path_without_kache_shims() {
+        command.env("PATH", path);
+    }
+    command
+}
+
+/// A `cargo` that reads none of the developer's Cargo configuration; see
+/// [`isolate_from_user_cargo`].
+#[allow(dead_code)]
+pub fn cargo_command() -> Command {
+    let mut command = Command::new("cargo");
+    isolate_from_user_cargo(&mut command);
+    command
+}
+
 /// Keeps tests off the developer's real `~/.config/kache/config.toml`.
 pub fn isolated_config_path(cache_dir: &Path) -> PathBuf {
     cache_dir.join("config.toml")
@@ -144,9 +279,10 @@ pub fn isolated_config_path(cache_dir: &Path) -> PathBuf {
 /// environment can point that elsewhere: kache-action exports
 /// `KACHE_RUNTIME_DIR`, a build that runs the suite through the wrapper leaves
 /// `KACHE_ACTIVE`, `KACHE_SOCKET_PATH`, and `KACHE_EVENT_ROOT` behind, and a
-/// developer dogfooding Kache has `RUSTC_WRAPPER` configured. All of those
-/// are pinned or cleared here, before the caller adds its own wrapper and
-/// overrides; a later `env` call on the same key wins.
+/// developer dogfooding Kache has `RUSTC_WRAPPER` or a global Cargo config
+/// ([`isolate_from_user_cargo`]). All of those are pinned or cleared here,
+/// before the caller adds its own wrapper and overrides; a later `env` call on
+/// the same key wins.
 /// Remote selectors are cleared so a cold daemon cannot inherit runner settings.
 ///
 /// `config` pins `KACHE_CONFIG`. `None` unsets it so the child discovers its
@@ -184,13 +320,12 @@ pub fn hermetic_command(
         .env_remove("KACHE_S3_PROFILE")
         .env_remove("KACHE_S3_USER_AGENT")
         .env_remove("KACHE_LOCAL_ONLY")
-        .env_remove("RUSTC_WRAPPER")
-        .env_remove("CARGO_BUILD_RUSTC_WRAPPER")
         // Cargo sets kache's own OUT_DIR on the test process (kache has a
         // build script). A child compile would inherit it and look like a
         // unit with an OUT_DIR.
         .env_remove("OUT_DIR")
         .env("KACHE_HOST_CONFIG", "");
+    isolate_from_user_cargo(&mut command);
     match config {
         Some(path) => command.env("KACHE_CONFIG", path),
         None => command.env_remove("KACHE_CONFIG"),
