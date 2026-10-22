@@ -4,6 +4,8 @@ use std::time::{Duration, Instant};
 
 use crate::args::RustcArgs;
 use crate::identity;
+use crate::invocation::InvocationEnv;
+use crate::invocation::process::CommandExt as _;
 use kache_core::BuildIntent;
 
 struct WorkspaceDiscovery {
@@ -36,25 +38,43 @@ enum DiscoveryFailure {
     TooLarge,
     /// The output was not the expected JSON, or named no packages.
     Parse,
+    /// The compiled package lies outside the workspace, and its target
+    /// directory does not name the workspace either.
+    NoWorkspace,
 }
 
 pub fn discover(args: Option<&RustcArgs>) -> Option<BuildIntent> {
-    let manifest_dir = std::env::var_os("CARGO_MANIFEST_DIR").map(PathBuf::from);
-    let cwd = std::env::current_dir().ok();
-    discover_with_context(args, manifest_dir.as_deref(), cwd.as_deref())
+    let env = args
+        .map(|args| args.invocation_env().clone())
+        .unwrap_or_else(InvocationEnv::capture);
+    let manifest_dir = env
+        .var_os("CARGO_MANIFEST_DIR")
+        .and_then(|dir| env.resolve(Path::new(&dir)));
+    discover_with_context_for(args, manifest_dir.as_deref(), env.cwd(), &env)
 }
 
+#[cfg(test)]
 fn discover_with_context(
     args: Option<&RustcArgs>,
     manifest_dir: Option<&Path>,
     cwd: Option<&Path>,
 ) -> Option<BuildIntent> {
-    let discovery = match discover_workspace(
+    discover_with_context_for(args, manifest_dir, cwd, &InvocationEnv::capture())
+}
+
+fn discover_with_context_for(
+    args: Option<&RustcArgs>,
+    manifest_dir: Option<&Path>,
+    cwd: Option<&Path>,
+    env: &InvocationEnv,
+) -> Option<BuildIntent> {
+    let discovery = match discover_workspace_for(
         OsStr::new("cargo"),
         Instant::now() + METADATA_BUDGET,
         args,
         manifest_dir,
         cwd,
+        env,
     ) {
         Ok(discovery) => discovery,
         Err(failure) => {
@@ -67,7 +87,8 @@ fn discover_with_context(
         return None;
     }
 
-    let namespace = std::env::var("KACHE_NAMESPACE")
+    let namespace = env
+        .var("KACHE_NAMESPACE")
         .ok()
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty());
@@ -132,12 +153,31 @@ fn load_cargo_lock_deps(lock_path: &Path) -> Option<Vec<(String, String)>> {
 /// The workspace this compile belongs to: from `Cargo.lock` when one is
 /// found, else from `cargo` (the program named by `cargo`) run against each
 /// candidate manifest in turn, all before `deadline`.
+#[cfg(test)]
 fn discover_workspace(
     cargo: &OsStr,
     deadline: Instant,
     args: Option<&RustcArgs>,
     manifest_dir: Option<&Path>,
     cwd: Option<&Path>,
+) -> Result<WorkspaceDiscovery, DiscoveryFailure> {
+    discover_workspace_for(
+        cargo,
+        deadline,
+        args,
+        manifest_dir,
+        cwd,
+        &InvocationEnv::capture(),
+    )
+}
+
+fn discover_workspace_for(
+    cargo: &OsStr,
+    deadline: Instant,
+    args: Option<&RustcArgs>,
+    manifest_dir: Option<&Path>,
+    cwd: Option<&Path>,
+    env: &InvocationEnv,
 ) -> Result<WorkspaceDiscovery, DiscoveryFailure> {
     let lock_path = find_lock_path(args, manifest_dir, cwd);
     if let Some(lock_path) = lock_path.as_ref() {
@@ -151,7 +191,7 @@ fn discover_workspace(
     }
 
     for manifest_path in candidate_manifest_paths(args, manifest_dir, cwd) {
-        match run_cargo_metadata(cargo, Some(&manifest_path), deadline) {
+        match run_cargo_metadata_for(cargo, Some(&manifest_path), deadline, env) {
             Ok(discovery) => return Ok(discovery),
             // The budget is shared: nothing is left for the next candidate.
             Err(DiscoveryFailure::Timeout) => return Err(DiscoveryFailure::Timeout),
@@ -159,7 +199,29 @@ fn discover_workspace(
         }
     }
 
-    run_cargo_metadata(cargo, None, deadline)
+    // A bare `cargo metadata` would run in that package's directory.
+    if args.is_some_and(|args| compiles_outside_workspace(args, cwd)) {
+        return Err(DiscoveryFailure::NoWorkspace);
+    }
+    run_cargo_metadata_for(cargo, None, deadline, env)
+}
+
+/// Cargo runs registry, git and outside path packages from their own directory,
+/// with an absolute source below it. Their bundled lock is not the build lock.
+/// A workspace package can also name a source outside the workspace; its cwd
+/// still identifies that package and must remain a discovery candidate.
+fn compiles_outside_workspace(args: &RustcArgs, cwd: Option<&Path>) -> bool {
+    args.source_file.as_deref().is_some_and(|source| {
+        source.is_absolute()
+            && cwd.is_none_or(|cwd| {
+                source.starts_with(cwd)
+                    || source
+                        .canonicalize()
+                        .ok()
+                        .zip(cwd.canonicalize().ok())
+                        .is_some_and(|(source, cwd)| source.starts_with(cwd))
+            })
+    })
 }
 
 fn crate_names_from_lock(lock_path: &Path) -> Option<Vec<String>> {
@@ -195,6 +257,38 @@ fn candidate_roots(
     cwd: Option<&Path>,
 ) -> Vec<PathBuf> {
     let mut roots = Vec::new();
+    if let Some(args) = args
+        && compiles_outside_workspace(args, cwd)
+    {
+        // Only the target directory, possibly nested below `<workspace>/target`,
+        // can name the workspace of such a package. An external target may
+        // sit below an unrelated manifest; its lock must contain this package.
+        let package = manifest_dir.or(cwd).and_then(|dir| {
+            std::fs::read_to_string(dir.join("Cargo.toml"))
+                .ok()?
+                .parse::<toml::Table>()
+                .ok()?
+                .get("package")?
+                .get("name")?
+                .as_str()
+                .map(str::to_owned)
+        });
+        if let Some(root) = args.workspace_root().and_then(|parent| {
+            parent
+                .ancestors()
+                .find(|dir| dir.join("Cargo.toml").is_file())
+                .filter(|dir| {
+                    package.as_ref().is_some_and(|package| {
+                        crate_names_from_lock(&dir.join("Cargo.lock"))
+                            .is_some_and(|names| names.contains(package))
+                    })
+                })
+                .map(Path::to_path_buf)
+        }) {
+            roots.push(root);
+        }
+        return roots;
+    }
     if let (Some(args), Some(cwd)) = (args, cwd)
         && let Some(root) = args.verified_workspace_root(cwd)
     {
@@ -230,12 +324,22 @@ fn candidate_manifest_paths(
     candidates
 }
 
+#[cfg(test)]
 fn run_cargo_metadata(
     cargo: &OsStr,
     manifest_path: Option<&Path>,
     deadline: Instant,
 ) -> Result<WorkspaceDiscovery, DiscoveryFailure> {
-    let mut command = std::process::Command::new(cargo);
+    run_cargo_metadata_for(cargo, manifest_path, deadline, &InvocationEnv::capture())
+}
+
+fn run_cargo_metadata_for(
+    cargo: &OsStr,
+    manifest_path: Option<&Path>,
+    deadline: Instant,
+    env: &InvocationEnv,
+) -> Result<WorkspaceDiscovery, DiscoveryFailure> {
+    let mut command = env.command(cargo).map_err(|_| DiscoveryFailure::Spawn)?;
     command
         .args(["metadata", "--format-version", "1", "--no-deps"])
         .env_remove("RUSTC_WRAPPER")
@@ -250,13 +354,6 @@ fn run_cargo_metadata(
 
     let stdout = run_bounded(command, deadline, METADATA_OUTPUT_CAP)?;
     parse_metadata_packages(&stdout).ok_or(DiscoveryFailure::Parse)
-}
-
-/// What the two watcher threads of [`run_bounded`] report.
-enum ChildEvent {
-    /// All of stdout, and whether it passed the cap.
-    Output(Vec<u8>, bool),
-    Exit(Option<std::process::ExitStatus>),
 }
 
 /// Whether `more` bytes still fit after `kept` under `cap`.
@@ -275,55 +372,49 @@ fn run_bounded(
 ) -> Result<Vec<u8>, DiscoveryFailure> {
     use std::io::Read;
 
-    crate::platform::configure_process_group(&mut command);
-    let mut child = command.spawn().map_err(|_| DiscoveryFailure::Spawn)?;
-    let pid = child.id();
+    let mut child = command
+        .invocation_spawn_in_group_with_io(kache_protocol::execution::windows::Stdio::STDOUT)
+        .map_err(|_| DiscoveryFailure::Spawn)?;
     let Some(mut stdout) = child.stdout.take() else {
-        crate::platform::kill_process_group(pid);
-        let _ = child.wait();
         return Err(DiscoveryFailure::Spawn);
     };
-
     let (tx, rx) = std::sync::mpsc::channel();
-    let tx_output = tx.clone();
-    std::thread::spawn(move || {
+    let reader = std::thread::spawn(move || {
         let mut kept = Vec::new();
         let mut overflowed = false;
         let mut chunk = [0u8; 8192];
         loop {
             match stdout.read(&mut chunk) {
                 Ok(0) | Err(_) => break,
-                Ok(n) if fits_output_cap(kept.len(), n, cap) => {
-                    kept.extend_from_slice(&chunk[..n]);
-                }
+                Ok(n) if fits_output_cap(kept.len(), n, cap) => kept.extend_from_slice(&chunk[..n]),
                 Ok(_) => overflowed = true,
             }
         }
-        let _ = tx_output.send(ChildEvent::Output(kept, overflowed));
+        let _ = tx.send((kept, overflowed));
     });
-    std::thread::spawn(move || {
-        let _ = tx.send(ChildEvent::Exit(child.wait().ok()));
-    });
-
-    let mut output = None;
-    let mut exit = None;
-    while output.is_none() || exit.is_none() {
-        let remaining = deadline.saturating_duration_since(Instant::now());
-        match rx.recv_timeout(remaining) {
-            Ok(ChildEvent::Output(kept, overflowed)) => output = Some((kept, overflowed)),
-            Ok(ChildEvent::Exit(status)) => exit = Some(status),
-            Err(_) => break,
-        }
+    let received = rx.recv_timeout(deadline.saturating_duration_since(Instant::now()));
+    if received.is_err() {
+        let _ = child.kill();
+        let _ = child.wait();
+        let _ = reader.join();
+        return Err(DiscoveryFailure::Timeout);
     }
-
-    match (output, exit) {
-        (Some((_, true)), Some(_)) => Err(DiscoveryFailure::TooLarge),
-        (Some((kept, false)), Some(Some(status))) if status.success() => Ok(kept),
-        (Some(_), Some(_)) => Err(DiscoveryFailure::Exit),
-        _ => {
-            crate::platform::kill_process_group(pid);
-            Err(DiscoveryFailure::Timeout)
+    let _ = reader.join();
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(5)),
+            _ => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(DiscoveryFailure::Timeout);
+            }
         }
+    };
+    match received {
+        Ok((_, true)) => Err(DiscoveryFailure::TooLarge),
+        Ok((kept, false)) if status.success() => Ok(kept),
+        _ => Err(DiscoveryFailure::Exit),
     }
 }
 
@@ -581,6 +672,170 @@ mod tests {
         assert_eq!(found, ws.path().join("Cargo.lock"));
     }
 
+    /// A published crate unpacked the way Cargo unpacks registry sources,
+    /// shipping a `Cargo.lock` of its own. Returns the crate's directory.
+    fn registry_crate_with_own_lock(cargo_home: &Path) -> PathBuf {
+        let package = cargo_home.join("registry/src/index.example.org-0000/small-dep-1.0.0");
+        std::fs::create_dir_all(package.join("src")).unwrap();
+        std::fs::write(
+            package.join("Cargo.toml"),
+            "[package]\nname = \"small-dep\"\nversion = \"1.0.0\"\nedition = \"2021\"\n",
+        )
+        .unwrap();
+        std::fs::write(package.join("src/lib.rs"), "").unwrap();
+        write_lock(&package, &[("small-dep", "1.0.0")]);
+        package
+    }
+
+    /// The rustc invocation Cargo makes for a package outside the workspace:
+    /// the source file is absolute, and the working directory is the package.
+    fn rustc_args_for_package_outside_workspace(
+        package: &Path,
+        out_dir: &Path,
+        target: Option<&str>,
+    ) -> RustcArgs {
+        let mut argv = vec![
+            "rustc".to_string(),
+            "--crate-name".to_string(),
+            "small_dep".to_string(),
+            package.join("src/lib.rs").to_string_lossy().into_owned(),
+            "--out-dir".to_string(),
+            out_dir.to_string_lossy().into_owned(),
+        ];
+        if let Some(target) = target {
+            argv.extend(["--target".to_string(), target.to_string()]);
+        }
+        RustcArgs::parse(&argv).unwrap()
+    }
+
+    #[test]
+    fn a_registry_dependency_with_its_own_lock_reports_the_workspace_lock() {
+        let ws = scaffold_workspace();
+        write_lock(
+            ws.path(),
+            &[("app", "0.1.0"), ("dep", "0.1.0"), ("small-dep", "1.0.0")],
+        );
+        let cargo_home = tempfile::tempdir().unwrap();
+        let package = registry_crate_with_own_lock(cargo_home.path());
+        let workspace_lock = ws.path().join("Cargo.lock");
+
+        for (out_dir, target) in [
+            ("target/debug/deps", None),
+            ("target/job_a/debug/deps", None),
+            (
+                "target/job_a/x86_64-unknown-linux-gnu/debug/deps",
+                Some("x86_64-unknown-linux-gnu"),
+            ),
+        ] {
+            let out_dir = ws.path().join(out_dir);
+            std::fs::create_dir_all(&out_dir).unwrap();
+            let args = rustc_args_for_package_outside_workspace(&package, &out_dir, target);
+
+            let intent = discover_with_context(Some(&args), Some(&package), Some(&package))
+                .unwrap_or_else(|| panic!("no workspace for {}", out_dir.display()));
+            assert_eq!(
+                intent.lock_path.as_deref(),
+                Some(workspace_lock.to_string_lossy().as_ref()),
+                "{}",
+                out_dir.display()
+            );
+            assert_eq!(
+                intent.identity_key,
+                identity::identity_key(
+                    &workspace_lock,
+                    &identity::target_from_rustc_args(&args),
+                    &identity::profile_from_rustc_args(&args),
+                )
+            );
+        }
+    }
+
+    #[test]
+    fn a_registry_dependency_without_a_workspace_target_finds_no_workspace() {
+        let external = tempfile::tempdir().unwrap();
+        // The nearest manifest is unrelated, even though its target layout
+        // looks like Cargo's default. Do not fall through to host ancestors.
+        std::fs::write(external.path().join("Cargo.toml"), "[workspace]\n").unwrap();
+        write_lock(external.path(), &[("unrelated", "9.9.9")]);
+        let out_dir = external.path().join("target/debug/deps");
+        std::fs::create_dir_all(&out_dir).unwrap();
+        let cargo_home = tempfile::tempdir().unwrap();
+        let package = registry_crate_with_own_lock(cargo_home.path());
+        let args = rustc_args_for_package_outside_workspace(&package, &out_dir, None);
+
+        let result = discover_workspace(
+            OsStr::new("no-such-cargo-should-not-run"),
+            Instant::now() + Duration::from_secs(10),
+            Some(&args),
+            Some(&package),
+            Some(&package),
+        );
+        assert_eq!(result.err(), Some(DiscoveryFailure::NoWorkspace));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_registry_source_alias_does_not_restore_the_packages_bundled_lock() {
+        let ws = scaffold_workspace();
+        write_lock(ws.path(), &[("app", "0.1.0"), ("small-dep", "1.0.0")]);
+        let cargo_home = tempfile::tempdir().unwrap();
+        let package = registry_crate_with_own_lock(cargo_home.path());
+        let alias_dir = tempfile::tempdir().unwrap();
+        let alias = alias_dir.path().join("cargo-home");
+        std::os::unix::fs::symlink(cargo_home.path(), &alias).unwrap();
+        let alias_package = alias.join(package.strip_prefix(cargo_home.path()).unwrap());
+        let out_dir = ws.path().join("target/debug/deps");
+        std::fs::create_dir_all(&out_dir).unwrap();
+        let args = rustc_args_for_package_outside_workspace(&alias_package, &out_dir, None);
+        let physical_package = package.canonicalize().unwrap();
+        let lock = find_lock_path(Some(&args), Some(&alias_package), Some(&physical_package));
+        assert_eq!(lock, Some(ws.path().join("Cargo.lock")));
+    }
+
+    #[test]
+    fn a_workspace_target_with_an_external_source_keeps_its_workspace_lock() {
+        let ws = scaffold_workspace();
+        write_lock(ws.path(), &[("app", "0.1.0"), ("dep", "0.1.0")]);
+        let shared_source = tempfile::tempdir().unwrap();
+        std::fs::create_dir(shared_source.path().join("src")).unwrap();
+        std::fs::write(shared_source.path().join("src/lib.rs"), "").unwrap();
+        let external_target = tempfile::tempdir().unwrap();
+        let out_dir = external_target.path().join("target/debug/deps");
+        std::fs::create_dir_all(&out_dir).unwrap();
+        // Cargo's path_args falls back to the package cwd when a target's
+        // source, such as an explicit [[bin]].path, is outside the workspace.
+        let args = rustc_args_for_package_outside_workspace(shared_source.path(), &out_dir, None);
+        let intent = discover_with_context(Some(&args), Some(ws.path()), Some(ws.path()))
+            .expect("the package cwd still identifies the build workspace");
+        assert_eq!(
+            intent.lock_path.as_deref(),
+            Some(ws.path().join("Cargo.lock").to_string_lossy().as_ref())
+        );
+    }
+
+    #[test]
+    fn dependency_source_classification_does_not_depend_on_lint_capping() {
+        let ws = scaffold_workspace();
+        write_lock(ws.path(), &[("app", "0.1.0"), ("small-dep", "1.0.0")]);
+        let cargo_home = tempfile::tempdir().unwrap();
+        let package = registry_crate_with_own_lock(cargo_home.path());
+        let out_dir = ws.path().join("target/debug/deps");
+        std::fs::create_dir_all(&out_dir).unwrap();
+        for extra in [vec![], vec!["--cap-lints", "allow"]] {
+            let initial = rustc_args_for_package_outside_workspace(&package, &out_dir, None);
+            let mut argv = vec!["rustc".to_owned()];
+            argv.extend(initial.all_args);
+            argv.extend(extra.into_iter().map(str::to_owned));
+            let args = RustcArgs::parse(&argv).unwrap();
+            let intent = discover_with_context(Some(&args), Some(&package), Some(&package))
+                .expect("a dependency uses the build lock even with verbose Cargo output");
+            assert_eq!(
+                intent.lock_path.as_deref(),
+                Some(ws.path().join("Cargo.lock").to_string_lossy().as_ref())
+            );
+        }
+    }
+
     #[test]
     fn cargo_metadata_discovers_a_workspace_without_a_lockfile() {
         let ws = scaffold_workspace();
@@ -679,8 +934,114 @@ mod tests {
     }
 
     #[cfg(unix)]
+    #[test]
+    fn concurrent_discovery_uses_each_compilers_cargo_and_environment() {
+        let first = tempfile::tempdir().unwrap();
+        let second = tempfile::tempdir().unwrap();
+        let barrier = std::sync::Barrier::new(2);
+        std::thread::scope(|threads| {
+            for (directory, name) in [(first.path(), "first"), (second.path(), "second")] {
+                let barrier = &barrier;
+                threads.spawn(move || {
+                    barrier.wait();
+                    let root = directory.canonicalize().unwrap();
+                    let bin = root.join("bin");
+                    std::fs::create_dir_all(&bin).unwrap();
+                    std::fs::create_dir_all(root.join("project/src")).unwrap();
+                    std::fs::write(
+                        root.join("project/Cargo.toml"),
+                        "[package]\nname='fixture'\nversion='0.0.0'\n",
+                    )
+                    .unwrap();
+                    std::fs::write(root.join("project/src/lib.rs"), "").unwrap();
+                    let cargo = fake_cargo(
+                        &bin,
+                        r#"
+[ "$PWD" = "$CLIENT_ROOT" ] || exit 21
+[ -z "$RUSTC_WRAPPER$RUSTC_WORKSPACE_WRAPPER" ] || exit 22
+printf '%s' "$CLIENT" > metadata-owner
+printf '{"workspace_root":"%s/project","packages":[{"name":"%s"}]}' "$CLIENT_ROOT" "$CLIENT"
+"#,
+                    );
+                    std::fs::rename(cargo, bin.join("cargo")).unwrap();
+                    let env = InvocationEnv::from_parts(
+                        [
+                            ("PATH", bin.into_os_string()),
+                            ("CARGO_MANIFEST_DIR", "project".into()),
+                            ("KACHE_NAMESPACE", name.into()),
+                            ("PROFILE", name.into()),
+                            ("CLIENT", name.into()),
+                            ("CLIENT_ROOT", root.clone().into_os_string()),
+                            ("RUSTC_WRAPPER", "must-not-run".into()),
+                            ("RUSTC_WORKSPACE_WRAPPER", "must-not-run".into()),
+                        ],
+                        Some(root.clone()),
+                        None,
+                        root.clone(),
+                    );
+                    let args = RustcArgs::parse_for(
+                        &[
+                            "rustc".into(),
+                            "--crate-name".into(),
+                            name.into(),
+                            "project/src/lib.rs".into(),
+                            "--crate-type".into(),
+                            "lib".into(),
+                        ],
+                        &env,
+                    )
+                    .unwrap();
+                    let discovered = discover(Some(&args)).unwrap();
+                    assert_eq!(discovered.crate_names, [name]);
+                    assert_eq!(discovered.namespace.as_deref(), Some(name));
+                    assert_eq!(identity::profile_from_rustc_args(&args), name);
+                    assert_eq!(
+                        std::fs::read_to_string(root.join("metadata-owner")).unwrap(),
+                        name
+                    );
+                });
+            }
+        });
+    }
+
+    #[cfg(unix)]
     fn soon(millis: u64) -> Instant {
         Instant::now() + Duration::from_millis(millis)
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn cargo_metadata_waits_for_exit_after_stdout_eof_and_enforces_its_deadline() {
+        let dir = tempfile::tempdir().unwrap();
+        let cargo = fake_cargo(
+            dir.path(),
+            "printf '%s' \"$METADATA_JSON\"\nexec 1>&-\nexec sleep \"$METADATA_DELAY\"",
+        );
+        let mut env = InvocationEnv::from_parts(
+            [
+                (
+                    "METADATA_JSON",
+                    r#"{"workspace_root":"/workspace","packages":[{"name":"early-eof"}]}"#,
+                ),
+                ("METADATA_DELAY", "1"),
+                ("PATH", env!("PATH")),
+            ],
+            Some(dir.path().to_owned()),
+            None,
+            dir.path().to_owned(),
+        );
+        let discovered = run_cargo_metadata_for(cargo.as_os_str(), None, soon(3000), &env).unwrap();
+        assert_eq!(discovered.crate_names, ["early-eof"]);
+        assert_eq!(
+            discovered.workspace_root.as_deref(),
+            Some(Path::new("/workspace"))
+        );
+
+        env.set("METADATA_DELAY", "5");
+        assert_eq!(
+            run_cargo_metadata_for(cargo.as_os_str(), None, soon(3000), &env).err(),
+            Some(DiscoveryFailure::Timeout)
+        );
     }
 
     #[cfg(unix)]

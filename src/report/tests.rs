@@ -603,6 +603,7 @@ fn write_test_events(dir: &std::path::Path) -> Config {
         clean_incremental: true,
         preserve_incremental: false,
         adaptive_incremental: true,
+        seed_incremental: true,
         incremental_seed_from: None,
         unstable: Default::default(),
         event_log_max_size: 10 * 1024 * 1024,
@@ -1985,6 +1986,7 @@ fn test_missing_transfer_data() {
         clean_incremental: true,
         preserve_incremental: false,
         adaptive_incremental: true,
+        seed_incremental: true,
         incremental_seed_from: None,
         unstable: Default::default(),
         event_log_max_size: 10 * 1024 * 1024,
@@ -2087,6 +2089,7 @@ fn test_suggestion_high_miss_share() {
         clean_incremental: true,
         preserve_incremental: false,
         adaptive_incremental: true,
+        seed_incremental: true,
         incremental_seed_from: None,
         unstable: Default::default(),
         event_log_max_size: 10 * 1024 * 1024,
@@ -2188,6 +2191,7 @@ fn test_suggestion_high_hit_overhead() {
         clean_incremental: true,
         preserve_incremental: false,
         adaptive_incremental: true,
+        seed_incremental: true,
         incremental_seed_from: None,
         unstable: Default::default(),
         event_log_max_size: 10 * 1024 * 1024,
@@ -2290,6 +2294,7 @@ fn test_suggestion_network_download_failures_and_fanout() {
         clean_incremental: true,
         preserve_incremental: false,
         adaptive_incremental: true,
+        seed_incremental: true,
         incremental_seed_from: None,
         unstable: Default::default(),
         event_log_max_size: 10 * 1024 * 1024,
@@ -2397,6 +2402,7 @@ fn test_suggestion_network_latency_thresholds() {
         clean_incremental: true,
         preserve_incremental: false,
         adaptive_incremental: true,
+        seed_incremental: true,
         incremental_seed_from: None,
         unstable: Default::default(),
         event_log_max_size: 10 * 1024 * 1024,
@@ -2907,6 +2913,7 @@ fn test_empty_report() {
         clean_incremental: true,
         preserve_incremental: false,
         adaptive_incremental: true,
+        seed_incremental: true,
         incremental_seed_from: None,
         unstable: Default::default(),
         event_log_max_size: 10 * 1024 * 1024,
@@ -3390,6 +3397,7 @@ fn report_counts_each_download_transfer_format() {
         clean_incremental: true,
         preserve_incremental: false,
         adaptive_incremental: true,
+        seed_incremental: true,
         incremental_seed_from: None,
         unstable: Default::default(),
         event_log_max_size: 10 * 1024 * 1024,
@@ -4684,4 +4692,47 @@ fn markdown_headlines_count_passthrough_compiles() {
             "{rendered}"
         );
     }
+}
+
+#[test]
+fn a_windowed_report_counts_archived_events_without_claiming_they_are_lost() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut config = write_test_events(dir.path());
+    let log = config.event_log_path();
+    events::clear_events(&log).unwrap();
+    let mut hit = test_event(
+        "archived",
+        EventResult::LocalHit,
+        40,
+        250,
+        10,
+        "archive-key",
+    );
+    hit.session_id = "rotated-build".to_string();
+    for _ in 0..40 {
+        events::log_event(&log, &hit).unwrap();
+    }
+    config.event_log_max_size = std::fs::metadata(&log).unwrap().len() / 2;
+    events::rotate_events_if_needed(&log, config.event_log_max_size, 5, &config.cache_dir).unwrap();
+    assert!(events::read_events(&log).unwrap().len() < 40);
+
+    let report = generate_report(&config, SinceWindow::DEFAULT, 10).unwrap();
+    assert_eq!(report.summary.local_hits, 40);
+    assert_eq!(report.all_events.len(), 40);
+    assert!(
+        report
+            .suggestions
+            .iter()
+            .any(|notice| notice.contains("counts include retained archives"))
+    );
+    assert!(
+        !report
+            .suggestions
+            .iter()
+            .any(|notice| notice.contains("counts above are incomplete"))
+    );
+    assert!(
+        rotation_cut_notice(config.event_log_max_size, true)
+            .contains("counts above are incomplete")
+    );
 }

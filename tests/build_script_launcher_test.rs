@@ -82,7 +82,12 @@ fn a_relative_kache_symlink_installs_an_executable_pin() {
     let bin = fixture.path().join("bin");
     fs::create_dir_all(&cell).unwrap();
     fs::create_dir(&bin).unwrap();
-    fs::hard_link(env!("CARGO_BIN_EXE_kache"), cell.join("kache")).unwrap();
+    fs::copy(env!("CARGO_BIN_EXE_kache"), cell.join("kache")).unwrap();
+    fs::copy(
+        env!("CARGO_BIN_EXE_kache-engine"),
+        cell.join("kache-engine"),
+    )
+    .unwrap();
     let symlink = bin.join("kache");
     std::os::unix::fs::symlink("../Cellar/kache/1/bin/kache", &symlink).unwrap();
     let output = fixture.compile(&symlink);

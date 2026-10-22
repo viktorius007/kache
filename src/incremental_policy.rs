@@ -1,11 +1,12 @@
 //! Conservative policy for isolated incremental rustc passthroughs.
 //!
-//! A normal cache hit is always preferred. After a build of a Cargo unit (a
+//! An unchanged checkout checks the artifact cache. After a build of a Cargo unit (a
 //! hit or a miss) and a later miss in the same target where only
 //! source/extern key groups changed, however far apart, the miss may seed a
 //! private incremental directory. Successful seeds enable a small, time-bounded run
 //! of early passthroughs before Kache probes the cache again. An explicit crate force-list can request the same managed
-//! directory without the learning step. Every decision is target-local and
+//! directory without the learning step. A changed primary source can also
+//! prepare a compatible donor before key discovery. Every decision is target-local and
 //! protected by a cross-process lock held for the complete compiler invocation.
 //!
 //! A compile error keeps the private state. rustc compiles in a copy of its
@@ -21,7 +22,10 @@ use std::fs::{self, File, OpenOptions};
 use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+mod cleanup;
 mod worktree_seed;
+pub(crate) use cleanup::{preview_stale, prune_stale};
+pub(crate) use worktree_seed::compiler_supports_automatic_seed;
 
 /// Sibling of Cargo's `<profile>/incremental` that holds every managed unit.
 const AUTO_ROOT: &str = "incremental.kache-auto";
@@ -36,6 +40,7 @@ const MAX_STATE_BYTES: u64 = 64 * 1024;
 /// One standard Cargo unit that is safe to manage automatically.
 #[derive(Clone, Debug)]
 pub(crate) struct AdaptiveUnit {
+    source_file: Option<PathBuf>,
     original_incremental: PathBuf,
     policy_guard: Vec<u8>,
     unit_key: String,
@@ -172,6 +177,9 @@ struct Observation {
     stable: String,
     sources_externs: String,
     at_secs: u64,
+    /// A cheap edit signal for a private compile, never an artifact key.
+    #[serde(default)]
+    primary_source: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -252,6 +260,10 @@ impl AdaptiveUnit {
         let unit_key = unit_key(args, original_incremental, policy_guard);
         let unit_dir = profile.join(AUTO_ROOT).join(POLICY_VERSION).join(&unit_key);
         Some(Self {
+            source_file: args
+                .source_file
+                .as_ref()
+                .and_then(|path| args.invocation_env().resolve(path)),
             original_incremental: original_incremental.clone(),
             policy_guard: policy_guard.to_vec(),
             state_path: unit_dir.join("state.json"),
@@ -270,6 +282,74 @@ impl AdaptiveUnit {
     /// Try an intentional passthrough without teaching or activating policy.
     pub(crate) fn try_immediate(&self) -> Option<Lease> {
         self.try_immediate_at(now_secs())
+    }
+
+    /// A changed primary source can select a private compile before dep-info
+    /// discovery. The caller must import a compatible donor or cancel this
+    /// lease with CompileError before running any compiler.
+    pub(crate) fn try_source_changed_seed(&self) -> Option<Lease> {
+        if definitely_missing(&self.state_path) {
+            return None;
+        }
+        let current = self.primary_source_fingerprint()?;
+        let lock = self.lock()?;
+        let previous = match self.load_state() {
+            LoadedState::Valid(state) if !state.in_flight && state.phase == Phase::Learning => {
+                state
+            }
+            _ => return None,
+        };
+        let mut observation = previous.observation.clone()?;
+        if observation.primary_source.as_deref()? == current {
+            return None;
+        }
+        observation.primary_source = Some(current);
+        let now = now_secs();
+        observation.at_secs = now;
+        if !ensure_real_directory(&self.rustc_dir)
+            || !worktree_seed::empty_directory(&self.rustc_dir)
+        {
+            return None;
+        }
+        let busy = DiskState {
+            schema: STATE_SCHEMA,
+            unit_key: self.unit_key.clone(),
+            phase: Phase::Seed,
+            observation: Some(observation.clone()),
+            active_leases: 0,
+            last_used_secs: now,
+            in_flight: true,
+        };
+        if !self.store_state(&busy, true) {
+            return None;
+        }
+        Some(Lease {
+            unit: self.clone(),
+            kind: LeaseKind::Seed,
+            completion: Completion::Seed {
+                observation,
+                previous,
+            },
+            worktree_seed_key: None,
+            worktree_bootstrap: false,
+            _lock: lock,
+        })
+    }
+
+    fn primary_source_fingerprint(&self) -> Option<String> {
+        let mut input = File::open(self.source_file.as_ref()?).ok()?;
+        if !input.metadata().ok()?.is_file() {
+            return None;
+        }
+        let mut hash = blake3::Hasher::new();
+        hash.update_reader(&mut input).ok()?;
+        Some(hash.finalize().to_hex().to_string())
+    }
+
+    fn observation(&self, fingerprint: &KeyFingerprint, now: u64) -> Observation {
+        let mut observation = fingerprint.at(now);
+        observation.primary_source = self.primary_source_fingerprint();
+        observation
     }
 
     /// On a normal cache miss, try to seed or renew incremental state.
@@ -458,7 +538,7 @@ impl AdaptiveUnit {
             return None;
         }
 
-        let observation = fingerprint.at(now);
+        let observation = self.observation(&fingerprint, now);
         let busy = DiskState {
             schema: STATE_SCHEMA,
             unit_key: self.unit_key.clone(),
@@ -508,7 +588,7 @@ impl AdaptiveUnit {
             schema: STATE_SCHEMA,
             unit_key: self.unit_key.clone(),
             phase: Phase::Learning,
-            observation: Some(fingerprint.at(now)),
+            observation: Some(self.observation(&fingerprint, now)),
             active_leases: 0,
             last_used_secs: now,
             in_flight: false,
@@ -594,17 +674,87 @@ impl AdaptiveUnit {
         LoadedState::Valid(state)
     }
 
-    /// Write `state`. Lease writes and the reset marker are `durable`; an
-    /// observation is not, since it is written only after [`reset_locked`]
-    /// removed the private rustc state.
+    /// In-flight and reset markers are durable before any compiler or cleanup
+    /// runs. Losing a completion recovers that marker and discards the graph.
+    /// Observations follow a reset that already removed the private state.
     fn store_state(&self, state: &DiskState, durable: bool) -> bool {
         if !valid_state(state, &self.unit_key) || unsafe_file(&self.state_path) {
             return false;
         }
+        #[cfg(unix)]
+        if durable && state.in_flight && self.publish_in_flight_record() {
+            return true;
+        }
         let Ok(bytes) = serde_json::to_vec(state) else {
             return false;
         };
-        crate::atomic::atomic_replace_deferrable(&self.state_path, &bytes, durable).is_ok()
+        let stored =
+            crate::atomic::atomic_replace_deferrable(&self.state_path, &bytes, durable).is_ok();
+        #[cfg(unix)]
+        if !state.in_flight {
+            let _ = self.prepare_in_flight_record();
+        }
+        stored
+    }
+
+    /// Prepare immutable marker bytes while recording an ordinary build.
+    /// Publishing another link then needs only a directory flush. A live
+    /// lease retains its observation and counters in Completion; recovery
+    /// discards any in-flight graph before consulting those fields.
+    #[cfg(unix)]
+    fn prepare_in_flight_record(&self) -> Option<PathBuf> {
+        use std::os::unix::fs::PermissionsExt;
+
+        let path = self.unit_dir.join("in-flight.json");
+        let bytes = serde_json::to_vec(&self.in_flight_marker()).ok()?;
+        if fs::symlink_metadata(&path)
+            .is_err_and(|error| error.kind() == std::io::ErrorKind::NotFound)
+        {
+            let _ = crate::atomic::atomic_write_and_replace_with(
+                &path,
+                true,
+                |stage| {
+                    fs::write(stage, &bytes)?;
+                    fs::set_permissions(stage, fs::Permissions::from_mode(0o400))?;
+                    Ok(())
+                },
+                |_| Ok(()),
+            );
+        }
+        let metadata = fs::symlink_metadata(&path).ok()?;
+        if !metadata.is_file()
+            || !metadata.permissions().readonly()
+            || metadata.len() != bytes.len() as u64
+        {
+            return None;
+        }
+        if fs::read(&path).ok()? != bytes {
+            return None;
+        }
+        Some(path)
+    }
+
+    #[cfg(unix)]
+    fn publish_in_flight_record(&self) -> bool {
+        let Some(source) = self.prepare_in_flight_record() else {
+            return false;
+        };
+        let Ok(stage) = tempfile::Builder::new()
+            .prefix("in-flight-")
+            .tempdir_in(&self.unit_dir)
+        else {
+            return false;
+        };
+        let linked = stage.path().join("state.json");
+        if fs::hard_link(source, &linked).is_err() {
+            return false;
+        }
+        if fs::rename(linked, &self.state_path).is_err() {
+            return false;
+        }
+        // Marker data was flushed when created. The new state.json entry
+        // must be durable before the caller starts rustc or removes a graph.
+        crate::atomic::fsync_dir(&self.unit_dir).is_ok()
     }
 
     /// The state every lease resets, written before private rustc state is
@@ -656,7 +806,7 @@ impl Lease {
             return false;
         }
 
-        let observation = fingerprint.at(now);
+        let observation = self.unit.observation(&fingerprint, now);
         let busy = DiskState {
             schema: STATE_SCHEMA,
             unit_key: self.unit.unit_key.clone(),
@@ -752,7 +902,9 @@ impl Lease {
         };
 
         let kept = match next {
-            Some(state) if self.unit.store_state(&state, true) => true,
+            // The durable busy marker already protects this graph. A lost
+            // completion must reset it, so no second flush is needed here.
+            Some(state) if self.unit.store_state(&state, false) => true,
             None => remove_path_safely(&self.unit.state_path),
             Some(_) => {
                 reset_locked(&self.unit);
@@ -773,6 +925,7 @@ impl KeyFingerprint {
             stable: self.stable.clone(),
             sources_externs: self.sources_externs.clone(),
             at_secs,
+            primary_source: None,
         }
     }
 }
@@ -842,7 +995,11 @@ fn valid_state(state: &DiskState, unit_key: &str) -> bool {
     if let Some(observation) = &state.observation
         && (!valid_hex_digest(&observation.cache_key)
             || !valid_hex_digest(&observation.stable)
-            || !valid_hex_digest(&observation.sources_externs))
+            || !valid_hex_digest(&observation.sources_externs)
+            || observation
+                .primary_source
+                .as_deref()
+                .is_some_and(|hash| !valid_hex_digest(hash)))
     {
         return false;
     }
@@ -872,7 +1029,7 @@ fn unit_key(args: &RustcArgs, original_incremental: &Path, policy_guard: &[u8]) 
         }
         None => fold(&mut hasher, b"no-inner"),
     }
-    for argument in strip_incremental_refs(&args.all_args) {
+    for argument in strip_incremental_refs(args.args_without_diagnostic_presentation()) {
         fold(&mut hasher, argument.as_bytes());
     }
     fold(
@@ -942,9 +1099,9 @@ fn strip_incremental(args: &[String]) -> Vec<String> {
     strip_incremental_refs(args).into_iter().cloned().collect()
 }
 
-fn strip_incremental_refs(args: &[String]) -> Vec<&String> {
-    let mut stripped = Vec::with_capacity(args.len());
-    let mut arguments = args.iter().peekable();
+fn strip_incremental_refs<'a>(args: impl IntoIterator<Item = &'a String>) -> Vec<&'a String> {
+    let mut arguments = args.into_iter().peekable();
+    let mut stripped = Vec::with_capacity(arguments.size_hint().1.unwrap_or_default());
     while let Some(argument) = arguments.next() {
         if argument.starts_with("-Cincremental=") || argument.starts_with("--codegen=incremental=")
         {
@@ -1109,7 +1266,12 @@ mod tests {
     }
 
     fn write_state(unit: &AdaptiveUnit, state: &DiskState) {
-        fs::write(&unit.state_path, serde_json::to_vec(state).unwrap()).unwrap();
+        crate::atomic::atomic_replace_deferrable(
+            &unit.state_path,
+            &serde_json::to_vec(state).unwrap(),
+            false,
+        )
+        .unwrap();
     }
 
     fn activate(unit: &AdaptiveUnit, at: u64) {
@@ -1123,6 +1285,142 @@ mod tests {
             .unwrap();
         fs::write(lease.unit.rustc_dir.join("dep-graph.bin"), b"seed").unwrap();
         assert!(lease.finish_at(CompileOutcome::Success, at + 2));
+    }
+
+    #[test]
+    fn primary_source_uses_the_invocation_directory() {
+        let (temp, args, _) = fixture();
+        let argv: Vec<_> = std::iter::once(args.rustc.to_string_lossy().into_owned())
+            .chain(args.all_args.clone())
+            .collect();
+        for cwd in [Some(temp.path().to_owned()), None] {
+            let env = crate::invocation::InvocationEnv::from_parts(
+                [("CARGO_PRIMARY_PACKAGE", "1")],
+                cwd.clone(),
+                None,
+                temp.path().to_owned(),
+            );
+            let parsed = RustcArgs::parse_for(&argv, &env).unwrap();
+            let unit = AdaptiveUnit::eligible(&parsed, b"").unwrap();
+            assert_eq!(unit.source_file, cwd.map(|path| path.join("src/lib.rs")));
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn leases_reuse_prepared_in_flight_bytes_and_keep_completions_private() {
+        use std::os::unix::fs::MetadataExt;
+
+        let (_temp, _args, unit) = fixture();
+        teach(&unit, 100);
+        let record = unit.unit_dir.join("in-flight.json");
+        let metadata = fs::metadata(&record).unwrap();
+        assert!(metadata.permissions().readonly());
+        let inode = metadata.ino();
+        let bytes = fs::read(&record).unwrap();
+        let lease = unit
+            .try_seed_at(
+                &cache_key("second"),
+                &fields("stable", "source-b", "extern-a"),
+                101,
+            )
+            .unwrap();
+        assert_eq!(fs::metadata(&unit.state_path).unwrap().ino(), inode);
+        assert!(read_state(&unit).in_flight);
+        fs::write(unit.rustc_dir.join("dep-graph.bin"), b"seed").unwrap();
+        assert!(lease.finish_at(CompileOutcome::Success, 102));
+        assert_ne!(fs::metadata(&unit.state_path).unwrap().ino(), inode);
+        for at in [103, 105] {
+            let lease = unit.try_active_at(at).unwrap();
+            assert_eq!(fs::metadata(&unit.state_path).unwrap().ino(), inode);
+            assert!(lease.finish_at(CompileOutcome::Success, at + 1));
+        }
+        assert_eq!(fs::read(record).unwrap(), bytes);
+        let completed = read_state(&unit);
+        assert!(!completed.in_flight);
+        assert_eq!(completed.phase, Phase::Active);
+        assert_eq!(completed.active_leases, 2);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn malformed_in_flight_records_keep_the_original_durable_write_path() {
+        use std::os::unix::fs::PermissionsExt;
+
+        for defect in ["directory", "symlink", "writable", "size", "content"] {
+            let (temp, _args, unit) = fixture();
+            teach(&unit, 100);
+            let record = unit.unit_dir.join("in-flight.json");
+            let valid = fs::read(&record).unwrap();
+            fs::remove_file(&record).unwrap();
+            let foreign = temp.path().join("foreign.json");
+            fs::write(&foreign, &valid).unwrap();
+            match defect {
+                "directory" => fs::create_dir(&record).unwrap(),
+                "symlink" => std::os::unix::fs::symlink(&foreign, &record).unwrap(),
+                _ => {
+                    let mut bytes = valid.clone();
+                    if defect == "size" {
+                        bytes.push(b' ');
+                    }
+                    if defect == "content" {
+                        bytes[0] = b'x';
+                    }
+                    fs::write(&record, bytes).unwrap();
+                    fs::set_permissions(
+                        &record,
+                        fs::Permissions::from_mode(if defect == "writable" {
+                            0o600
+                        } else {
+                            0o400
+                        }),
+                    )
+                    .unwrap();
+                }
+            }
+            let lease = unit
+                .try_seed_at(
+                    &cache_key("second"),
+                    &fields("stable", "source-b", "extern-a"),
+                    101,
+                )
+                .unwrap();
+            let state = read_state(&unit);
+            assert!(state.in_flight, "{defect}");
+            assert_eq!(state.phase, Phase::Seed, "{defect}");
+            assert!(state.observation.is_some(), "{defect}");
+            assert_eq!(fs::read(foreign).unwrap(), valid);
+            assert!(lease.finish_at(CompileOutcome::CompileError, 102));
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_failed_directory_flush_falls_back_to_flushing_the_full_record() {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+
+        if unsafe { libc::geteuid() } == 0 {
+            return;
+        }
+        let (_temp, _args, unit) = fixture();
+        teach(&unit, 100);
+        let record = unit.unit_dir.join("in-flight.json");
+        let inode = fs::metadata(record).unwrap().ino();
+        // Write/search permit linking and renaming; read is needed to open
+        // the directory for its flush. Restore access before any assertion.
+        fs::set_permissions(&unit.unit_dir, fs::Permissions::from_mode(0o300)).unwrap();
+        let lease = unit.try_seed_at(
+            &cache_key("second"),
+            &fields("stable", "source-b", "extern-a"),
+            101,
+        );
+        fs::set_permissions(&unit.unit_dir, fs::Permissions::from_mode(0o700)).unwrap();
+        let lease = lease.unwrap();
+        assert_ne!(fs::metadata(&unit.state_path).unwrap().ino(), inode);
+        let state = read_state(&unit);
+        assert_eq!(state.phase, Phase::Seed);
+        assert!(state.in_flight);
+        assert!(lease.finish_at(CompileOutcome::CompileError, 102));
     }
 
     #[test]
@@ -1140,9 +1438,14 @@ mod tests {
         assert!(real_directory(&unit.rustc_dir));
         assert_eq!(fs::read_dir(&unit.rustc_dir).unwrap().count(), 0);
         let busy = read_state(&unit);
-        assert_eq!(busy.phase, Phase::Learning);
         assert!(busy.in_flight);
-        assert_eq!(busy.observation.unwrap().cache_key, cache_key("first"));
+        let Completion::DeferredSeed { previous } = &lease.completion else {
+            panic!("expected deferred seed");
+        };
+        assert_eq!(
+            previous.observation.as_ref().unwrap().cache_key,
+            cache_key("first")
+        );
         let rewritten = lease.compiler_args(&args);
         assert!(rewritten.contains(&format!("incremental={}", unit.rustc_dir.display())));
         assert_eq!(
@@ -1309,11 +1612,10 @@ mod tests {
             102,
         ));
         let seed = read_state(&unit);
-        assert_eq!(seed.phase, Phase::Seed);
         assert!(seed.in_flight);
-        assert_eq!(seed.active_leases, 0);
-        assert_eq!(seed.last_used_secs, 102);
-        let observation = seed.observation.unwrap();
+        let Completion::Seed { observation, .. } = &lease.completion else {
+            panic!("expected qualified seed");
+        };
         assert_eq!(observation.cache_key, cache_key("second"));
         assert_eq!(observation.at_secs, 102);
         assert!(matches!(lease.completion, Completion::Seed { .. }));
@@ -1690,6 +1992,345 @@ mod tests {
     }
 
     #[test]
+    fn diagnostic_presentation_reuses_one_incremental_unit_and_keeps_compiler_argv() {
+        let (_temp, args, unit) = fixture();
+        for (flag, value) in [
+            ("--diagnostic-width", "100"),
+            ("--diagnostic-width", "160"),
+            ("--error-format", "json"),
+            ("--json", "diagnostic-rendered-ansi,artifacts"),
+            ("--color", "always"),
+        ] {
+            for presentation in [
+                vec![format!("{flag}={value}")],
+                vec![flag.into(), value.into()],
+            ] {
+                let mut argv = vec![args.rustc.to_string_lossy().into_owned()];
+                argv.extend(args.all_args.clone());
+                argv.extend(presentation.clone());
+                let mut changed = RustcArgs::parse(&argv).unwrap();
+                changed.path_normalize_disabled = args.path_normalize_disabled;
+                let same = AdaptiveUnit::eligible(&changed, b"").unwrap();
+                assert_eq!(same.unit_dir, unit.unit_dir, "{presentation:?}");
+                assert_eq!(changed.diagnostic_flags, [format!("{flag}={value}")]);
+                let lease = unit.try_immediate_at(100).unwrap();
+                let forwarded = lease.compiler_args(&changed);
+                assert!(forwarded.ends_with(&presentation), "{forwarded:?}");
+                fs::write(lease.unit.rustc_dir.join("graph.bin"), b"graph").unwrap();
+                assert!(lease.finish_at(CompileOutcome::Success, 101));
+            }
+        }
+        for extra in [
+            vec!["--cfg", "feature=\"other\""],
+            vec!["-C", "opt-level=2"],
+            vec!["-D", "warnings"],
+            vec!["--target", "other-target"],
+        ] {
+            let mut changed = args.clone();
+            changed
+                .all_args
+                .extend(extra.iter().map(|arg| arg.to_string()));
+            assert_ne!(
+                AdaptiveUnit::eligible(&changed, b"").unwrap().unit_dir,
+                unit.unit_dir
+            );
+        }
+    }
+
+    #[test]
+    fn formatting_spellings_inside_other_option_values_still_distinguish_units() {
+        let (_temp, args, _) = fixture();
+        for (flag, first, second) in [
+            ("--remap-path-prefix", "--color=/first", "--color=/second"),
+            ("--remap-path-prefix", "--json=/first", "--json=/second"),
+        ] {
+            let parse = |value: &str| {
+                let mut argv = vec![args.rustc.to_string_lossy().into_owned()];
+                argv.extend(args.all_args.clone());
+                argv.extend([flag.to_string(), value.to_string()]);
+                let mut parsed = RustcArgs::parse(&argv).unwrap();
+                parsed.path_normalize_disabled = args.path_normalize_disabled;
+                parsed
+            };
+            let first = AdaptiveUnit::eligible(&parse(first), b"").unwrap();
+            let second = AdaptiveUnit::eligible(&parse(second), b"").unwrap();
+            assert_ne!(first.unit_key, second.unit_key, "{flag}");
+        }
+    }
+
+    fn stale_graph(unit: &AdaptiveUnit, last_used: u64) -> Vec<u8> {
+        teach(unit, last_used);
+        fs::create_dir(&unit.rustc_dir).unwrap();
+        fs::write(unit.rustc_dir.join("graph.bin"), b"payload").unwrap();
+        filetime::set_file_mtime(
+            &unit.unit_dir,
+            filetime::FileTime::from_unix_time(last_used as i64, 0),
+        )
+        .unwrap();
+        fs::read(&unit.state_path).unwrap()
+    }
+
+    #[test]
+    fn stale_graph_cleanup_previews_then_reclaims_data_and_keeps_the_lock_inode() {
+        let (temp, _args, unit) = fixture();
+        let before = stale_graph(&unit, 100);
+        let cache = temp.path().join("cache");
+        let target = temp.path().join("target");
+        let window = std::time::Duration::from_secs(10);
+        let at = UNIX_EPOCH + std::time::Duration::from_secs(110);
+        let preview = preview_stale(&target, window, at);
+        assert_eq!(preview.units, 1);
+        assert_eq!(preview.bytes, before.len() as u64 + 7);
+        assert!(!cache.exists(), "preview must not create a reservation");
+        assert_eq!(fs::read(&unit.state_path).unwrap(), before);
+        assert_eq!(
+            fs::read(unit.rustc_dir.join("graph.bin")).unwrap(),
+            b"payload"
+        );
+        let old_lock = File::open(&unit.lock_path).unwrap();
+        let removed = prune_stale(&cache, &target, window, at);
+        assert_eq!(removed, preview);
+        assert!(!unit.rustc_dir.exists());
+        assert!(!unit.state_path.exists());
+        assert!(unit.lock_path.is_file());
+        old_lock.try_lock().unwrap();
+        assert!(
+            unit.lock().is_none(),
+            "cleanup must preserve the lock inode"
+        );
+        old_lock.unlock().unwrap();
+        let lease = unit.try_immediate_at(111).expect("unit can be used again");
+        fs::write(lease.unit.rustc_dir.join("rebuilt.bin"), b"rebuilt").unwrap();
+        assert!(lease.finish_at(CompileOutcome::Success, 112));
+        assert_eq!(prune_stale(&cache, &target, window, at).units, 0);
+        assert_eq!(
+            fs::read(unit.rustc_dir.join("rebuilt.bin")).unwrap(),
+            b"rebuilt"
+        );
+    }
+
+    #[test]
+    fn managed_graph_cleanup_protects_recent_future_busy_and_unknown_state() {
+        for protected in [
+            "recent-directory",
+            "recent-clock",
+            "future-directory",
+            "future-clock",
+            "unit-lock",
+            "cargo-lock",
+            "cargo-command",
+            "missing-lock",
+            "corrupt",
+        ] {
+            let (temp, _args, unit) = fixture();
+            stale_graph(&unit, 100);
+            let target = temp.path().join("target");
+            let mut held = None;
+            let mut cargo = None;
+            let mut command = None;
+            match protected {
+                "recent-directory" | "future-directory" => {
+                    let seconds = if protected == "recent-directory" {
+                        109
+                    } else {
+                        111
+                    };
+                    filetime::set_file_mtime(
+                        &unit.unit_dir,
+                        filetime::FileTime::from_unix_time(seconds, 0),
+                    )
+                    .unwrap();
+                }
+                "recent-clock" | "future-clock" => {
+                    let mut state = read_state(&unit);
+                    state.last_used_secs = if protected == "recent-clock" {
+                        109
+                    } else {
+                        111
+                    };
+                    write_state(&unit, &state);
+                }
+                "unit-lock" => held = Some(unit.lock().unwrap()),
+                "cargo-lock" => {
+                    cargo = Some(crate::unit_prune::hold(&target.join("debug")).unwrap())
+                }
+                "cargo-command" => {
+                    command = Some(
+                        crate::target_use::shared(
+                            &temp.path().join("cache"),
+                            "test cargo",
+                            &mut Vec::new(),
+                        )
+                        .unwrap(),
+                    );
+                }
+                "missing-lock" => {
+                    fs::remove_file(&unit.lock_path).unwrap();
+                    filetime::set_file_mtime(
+                        &unit.unit_dir,
+                        filetime::FileTime::from_unix_time(100, 0),
+                    )
+                    .unwrap();
+                    assert_eq!(
+                        preview_stale(
+                            &target,
+                            std::time::Duration::from_secs(10),
+                            UNIX_EPOCH + std::time::Duration::from_secs(110)
+                        )
+                        .units,
+                        0
+                    );
+                }
+                "corrupt" => fs::write(&unit.state_path, b"unknown schema").unwrap(),
+                _ => unreachable!(),
+            }
+            let before = fs::read(&unit.state_path).unwrap();
+            let result = prune_stale(
+                &temp.path().join("cache"),
+                &target,
+                std::time::Duration::from_secs(10),
+                UNIX_EPOCH + std::time::Duration::from_secs(110),
+            );
+            assert_eq!(result.units, 0, "{protected}");
+            assert_eq!(
+                fs::read(unit.rustc_dir.join("graph.bin")).unwrap(),
+                b"payload",
+                "{protected}"
+            );
+            assert_eq!(fs::read(&unit.state_path).unwrap(), before, "{protected}");
+            if protected == "missing-lock" {
+                assert!(
+                    !unit.lock_path.exists(),
+                    "cleanup must not invent a missing lock"
+                );
+            }
+            drop((held, cargo, command));
+        }
+    }
+
+    #[test]
+    fn idle_immediate_graphs_without_state_or_cargo_fingerprints_are_reclaimed() {
+        let (temp, _args, unit) = fixture();
+        let lease = unit.try_immediate_at(100).unwrap();
+        fs::write(unit.rustc_dir.join("graph.bin"), b"payload").unwrap();
+        assert!(lease.finish_at(CompileOutcome::Success, 101));
+        assert!(!unit.state_path.exists());
+        filetime::set_file_mtime(&unit.unit_dir, filetime::FileTime::from_unix_time(100, 0))
+            .unwrap();
+        let result = prune_stale(
+            &temp.path().join("cache"),
+            &temp.path().join("target"),
+            std::time::Duration::from_secs(10),
+            UNIX_EPOCH + std::time::Duration::from_secs(110),
+        );
+        assert_eq!(result.units, 1);
+        assert_eq!(result.bytes, 7);
+        assert!(!unit.rustc_dir.exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn managed_graph_cleanup_does_not_follow_symlinked_roots_units_or_graphs() {
+        use std::os::unix::fs::symlink;
+        for component in ["target", "auto-root", "unit", "graph"] {
+            let (temp, _args, unit) = fixture();
+            stale_graph(&unit, 100);
+            let target = temp.path().join("target");
+            let path = match component {
+                "target" => target.clone(),
+                "auto-root" => target.join("debug").join(AUTO_ROOT),
+                "unit" => unit.unit_dir.clone(),
+                "graph" => unit.rustc_dir.clone(),
+                _ => unreachable!(),
+            };
+            let outside = temp.path().join("outside");
+            fs::rename(&path, &outside).unwrap();
+            symlink(&outside, &path).unwrap();
+            filetime::set_file_mtime(&unit.unit_dir, filetime::FileTime::from_unix_time(100, 0))
+                .unwrap();
+            let window = std::time::Duration::from_secs(10);
+            let at = UNIX_EPOCH + std::time::Duration::from_secs(110);
+            assert_eq!(preview_stale(&target, window, at).units, 0, "{component}");
+            let result = prune_stale(&temp.path().join("cache"), &target, window, at);
+            assert_eq!(result.units, 0, "{component}");
+            assert!(path.symlink_metadata().unwrap().file_type().is_symlink());
+            assert!(outside.is_dir());
+            let payload = if component == "target" {
+                outside
+                    .join("debug")
+                    .join(AUTO_ROOT)
+                    .join(POLICY_VERSION)
+                    .join(&unit.unit_key)
+                    .join("rustc/graph.bin")
+            } else if component == "graph" {
+                outside.join("graph.bin")
+            } else if component == "unit" {
+                outside.join("rustc/graph.bin")
+            } else {
+                outside
+                    .join(POLICY_VERSION)
+                    .join(&unit.unit_key)
+                    .join("rustc/graph.bin")
+            };
+            assert_eq!(fs::read(payload).unwrap(), b"payload");
+        }
+    }
+
+    #[test]
+    fn managed_cleanup_handles_cross_targets_and_ignores_unowned_layouts() {
+        for layout in ["cross-target", "unknown-key", "target-root"] {
+            let (temp, _args, unit) = fixture();
+            stale_graph(&unit, 100);
+            let target = temp.path().join("target");
+            let graph = match layout {
+                "cross-target" => {
+                    let triple = target.join("x86_64-unknown-test");
+                    fs::create_dir(&triple).unwrap();
+                    fs::rename(target.join("debug"), triple.join("debug")).unwrap();
+                    triple
+                        .join("debug")
+                        .join(AUTO_ROOT)
+                        .join(POLICY_VERSION)
+                        .join(&unit.unit_key)
+                        .join("rustc")
+                }
+                "unknown-key" => {
+                    fs::remove_file(&unit.state_path).unwrap();
+                    let unowned = unit.unit_dir.with_file_name("notes");
+                    fs::rename(&unit.unit_dir, &unowned).unwrap();
+                    filetime::set_file_mtime(&unowned, filetime::FileTime::from_unix_time(100, 0))
+                        .unwrap();
+                    unowned.join("rustc")
+                }
+                "target-root" => {
+                    fs::rename(target.join("debug").join(AUTO_ROOT), target.join(AUTO_ROOT))
+                        .unwrap();
+                    target
+                        .join(AUTO_ROOT)
+                        .join(POLICY_VERSION)
+                        .join(&unit.unit_key)
+                        .join("rustc")
+                }
+                _ => unreachable!(),
+            };
+            let window = std::time::Duration::from_secs(10);
+            let at = UNIX_EPOCH + std::time::Duration::from_secs(110);
+            let expected = usize::from(layout == "cross-target");
+            assert_eq!(
+                preview_stale(&target, window, at).units,
+                expected,
+                "{layout}"
+            );
+            assert_eq!(
+                prune_stale(&temp.path().join("cache"), &target, window, at).units,
+                expected,
+                "{layout}"
+            );
+            assert_eq!(!graph.exists(), layout == "cross-target", "{layout}");
+        }
+    }
+
+    #[test]
     fn compiler_args_rewrite_all_four_forms() {
         let (_temp, mut args, _unit) = fixture();
         let incremental = args.incremental.as_ref().unwrap().display();
@@ -1743,8 +2384,11 @@ mod tests {
         let active = unit.try_active_at(122).unwrap();
         assert_eq!(active.kind(), LeaseKind::Active);
         let busy = read_state(&unit);
-        assert_eq!(busy.active_leases, 1);
         assert!(busy.in_flight);
+        let Completion::Active { state } = &active.completion else {
+            panic!("expected active lease");
+        };
+        assert_eq!(state.active_leases, 1);
         assert!(active.finish_at(CompileOutcome::Success, 123));
     }
 
@@ -1859,6 +2503,42 @@ mod tests {
     }
 
     #[test]
+    fn losing_a_completion_recovers_the_busy_marker_and_discards_the_graph() {
+        for kind in [LeaseKind::Seed, LeaseKind::Active, LeaseKind::Immediate] {
+            for outcome in [CompileOutcome::Success, CompileOutcome::CompileError] {
+                let (_temp, _args, unit) = fixture();
+                let lease = match kind {
+                    LeaseKind::Seed => {
+                        teach(&unit, 10);
+                        unit.try_seed_at(
+                            &cache_key("second"),
+                            &fields("stable", "source-b", "extern-a"),
+                            11,
+                        )
+                    }
+                    LeaseKind::Active => {
+                        activate(&unit, 10);
+                        unit.try_active_at(13)
+                    }
+                    LeaseKind::Immediate => unit.try_immediate_at(13),
+                }
+                .unwrap();
+                let busy = fs::read(&unit.state_path).unwrap();
+                assert!(read_state(&unit).in_flight);
+                fs::write(unit.rustc_dir.join("dep-graph.bin"), b"completed").unwrap();
+                assert!(lease.finish_at(outcome, 14));
+
+                // Model a power loss that retained the durable pre-compile
+                // marker but lost the later atomic completion rename.
+                crate::atomic::atomic_replace_deferrable(&unit.state_path, &busy, false).unwrap();
+                assert!(unit.try_active_at(15).is_none());
+                assert!(!path_exists(&unit.rustc_dir));
+                assert!(unit.try_immediate_at(16).is_some());
+            }
+        }
+    }
+
+    #[test]
     fn stale_learning_in_flight_state_cannot_seed() {
         let (_temp, _args, unit) = fixture();
         teach(&unit, 10);
@@ -1932,6 +2612,7 @@ mod tests {
             stable: cache_key("stable"),
             sources_externs: cache_key("dynamic"),
             at_secs: 100,
+            primary_source: None,
         };
         let mut state = DiskState {
             schema: STATE_SCHEMA,
@@ -2163,6 +2844,66 @@ mod tests {
     }
 
     #[test]
+    fn a_changed_primary_source_can_prepare_only_a_learning_seed() {
+        let (temp, _args, mut unit) = fixture();
+        let source = temp.path().join("edited.rs");
+        fs::write(&source, b"original").unwrap();
+        unit.source_file = Some(source.clone());
+        teach(&unit, 100);
+        let original = fs::read(&unit.state_path).unwrap();
+        assert!(unit.try_source_changed_seed().is_none());
+        fs::write(&source, b"original").unwrap();
+        assert!(unit.try_source_changed_seed().is_none());
+        fs::write(&source, b"edited").unwrap();
+        let lease = unit.try_source_changed_seed().unwrap();
+        assert_eq!(lease.kind(), LeaseKind::Seed);
+        assert!(
+            unit.try_source_changed_seed().is_none(),
+            "receiver lock is held"
+        );
+        assert!(lease.finish(CompileOutcome::CompileError));
+        assert_eq!(fs::read(&unit.state_path).unwrap(), original);
+        let lease = unit.try_source_changed_seed().unwrap();
+        fs::write(unit.rustc_dir.join("graph"), b"imported").unwrap();
+        assert!(lease.finish(CompileOutcome::Success));
+        assert_eq!(read_state(&unit).phase, Phase::Active);
+        assert!(
+            unit.try_source_changed_seed().is_none(),
+            "active lease limits still apply"
+        );
+        assert!(unit.reset());
+        assert!(unit.try_source_changed_seed().is_none(), "no observation");
+    }
+
+    #[test]
+    fn changed_source_cannot_borrow_busy_or_active_state_even_with_an_empty_graph() {
+        for (phase, in_flight) in [
+            (Phase::Learning, true),
+            (Phase::Seed, true),
+            (Phase::Active, false),
+            (Phase::Active, true),
+        ] {
+            let (temp, _args, mut unit) = fixture();
+            let source = temp.path().join("edited.rs");
+            fs::write(&source, b"original").unwrap();
+            unit.source_file = Some(source.clone());
+            teach(&unit, 100);
+            let mut state = read_state(&unit);
+            state.phase = phase;
+            state.in_flight = in_flight;
+            write_state(&unit, &state);
+            fs::create_dir(&unit.rustc_dir).unwrap();
+            fs::write(source, b"edited").unwrap();
+            let before = fs::read(&unit.state_path).unwrap();
+            assert!(
+                unit.try_source_changed_seed().is_none(),
+                "{phase:?}, {in_flight}"
+            );
+            assert_eq!(fs::read(&unit.state_path).unwrap(), before);
+        }
+    }
+
+    #[test]
     fn only_recorded_policy_state_can_seed() {
         let (_temp, _args, unit) = fixture();
         assert!(!unit.has_policy_state());
@@ -2246,13 +2987,14 @@ mod tests {
         teach(&unit, 10);
         let state = read_state(&unit);
 
-        for field in ["cache", "stable", "dynamic"] {
+        for field in ["cache", "stable", "dynamic", "primary_source"] {
             let mut invalid = state.clone();
             let observation = invalid.observation.as_mut().unwrap();
             match field {
                 "cache" => observation.cache_key = "not-a-digest".into(),
                 "stable" => observation.stable = "not-a-digest".into(),
                 "dynamic" => observation.sources_externs = "not-a-digest".into(),
+                "primary_source" => observation.primary_source = Some("not-a-digest".into()),
                 _ => unreachable!(),
             }
             assert!(!valid_state(&invalid, &unit.unit_key), "accepted {field}");

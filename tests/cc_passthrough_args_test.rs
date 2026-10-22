@@ -20,9 +20,35 @@ fn kache_binary() -> &'static str {
     env!("CARGO_BIN_EXE_kache")
 }
 
+struct FixtureDir(tempfile::TempDir);
+
+impl FixtureDir {
+    fn new() -> Self {
+        Self(tempfile::tempdir().unwrap())
+    }
+    fn path(&self) -> &std::path::Path {
+        self.0.path()
+    }
+    fn stop_daemon(&self) {
+        let cache = self.path().join("cache");
+        let mut stop = common::hermetic_command(
+            kache_binary(),
+            &cache,
+            Some(&self.path().join("kache.toml")),
+        );
+        common::stop_daemon(stop.args(["daemon", "stop"]), &cache);
+    }
+}
+
+impl Drop for FixtureDir {
+    fn drop(&mut self) {
+        self.stop_daemon();
+    }
+}
+
 #[test]
 fn refused_double_dash_invocation_is_exact_passthrough() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = FixtureDir::new();
 
     // Fake compiler: dump every argument it receives, one per line, then
     // succeed. A real clang-cl would *fail* on this argv if a flag landed
@@ -91,7 +117,7 @@ fn refused_double_dash_invocation_is_exact_passthrough() {
 /// publication. Exercise the read-set memo, then invalidate it with an edit.
 #[test]
 fn deferred_cc_reuses_setup_and_still_invalidates_changed_headers() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = FixtureDir::new();
     let root = dir.path().canonicalize().unwrap();
     let cache = root.join("cache");
     let config = root.join("kache.toml");
@@ -156,14 +182,36 @@ fn deferred_cc_reuses_setup_and_still_invalidates_changed_headers() {
                 "{phase}: {name}"
             );
         }
-        assert!(
-            !spans.iter().any(|span| matches!(
-                span["name"].as_str(),
-                Some("handoff_snapshot" | "handoff_event")
-            )),
-            "a missing daemon must not add handoff staging work"
-        );
-        assert!(!cache.join("store/staging/handoff").exists());
+        let status = common::hermetic_command(kache_binary(), &cache, Some(&config))
+            .args(["daemon", "status", "--json"])
+            .output()
+            .unwrap();
+        assert!(status.status.success(), "{status:?}");
+        let status: serde_json::Value = serde_json::from_slice(&status.stdout).unwrap();
+        assert_eq!(status["daemon_running"], true, "{status}");
+        let state =
+            std::path::Path::new(status["socket"].as_str().unwrap()).with_extension("state.json");
+        let state: serde_json::Value = serde_json::from_slice(&fs::read(state).unwrap()).unwrap();
+        let daemon_pid = state["pid"].as_u64().unwrap();
+        let pipeline_pid = spans
+            .iter()
+            .find(|span| span["name"] == "cc_parse")
+            .unwrap()["pid"]
+            .as_u64()
+            .unwrap();
+        eprintln!("{phase}: pipeline pid={pipeline_pid}, daemon pid={daemon_pid}");
+        // Sandboxed clients keep compilation local. They may still hand off
+        // publication, while daemon-owned compilation must publish directly.
+        if pipeline_pid == daemon_pid {
+            assert!(
+                !spans.iter().any(|span| matches!(
+                    span["name"].as_str(),
+                    Some("handoff_snapshot" | "handoff_event")
+                )),
+                "execution inside the daemon must not hand publication back to itself"
+            );
+            assert!(!cache.join("store/staging/handoff").exists());
+        }
         if phase == "cold" {
             assert!(
                 spans.iter().any(|span| span["name"] == "cc_capture"),
@@ -192,7 +240,7 @@ fn deferred_cc_reuses_setup_and_still_invalidates_changed_headers() {
 #[test]
 fn exchanged_header_contents_compile_current_output_and_keep_checkout_hits() {
     for discovery in ["0", "1"] {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = FixtureDir::new();
         let root = dir.path().canonicalize().unwrap();
         let cache = root.join("cache");
         fs::create_dir(root.join("home")).unwrap();
@@ -274,7 +322,7 @@ fn changed_link_archives_use_current_code_and_explicit_files_keep_cache_hits() {
         "explicit-search-path",
         "default",
     ] {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = FixtureDir::new();
         let root = dir.path().canonicalize().unwrap();
         fs::create_dir(root.join("home")).unwrap();
         fs::write(root.join("kache.toml"), "").unwrap();
@@ -393,9 +441,26 @@ fn cc_header_availability_creation_uses_current_compiler_output() {
                 format!("{prefix}int main(void) {{ return VALUE; }}\n"),
             )
             .unwrap();
-            for (phase, expected) in [("cold", 11), ("warm", 11), ("created", 23)] {
-                if phase == "created" {
-                    fs::write(root.join("optional.h"), "#define VALUE 23\n").unwrap();
+            for (phase, expected) in [
+                ("cold", 11),
+                ("warm", 11),
+                ("created", 23),
+                ("created-warm", 23),
+                ("modified", 31),
+                ("modified-warm", 31),
+                ("removed", 11),
+                ("recreated", 47),
+            ] {
+                match phase {
+                    "created" | "modified" | "recreated" => {
+                        fs::write(
+                            root.join("optional.h"),
+                            format!("#define VALUE {expected}\n"),
+                        )
+                        .unwrap();
+                    }
+                    "removed" => fs::remove_file(root.join("optional.h")).unwrap(),
+                    _ => {}
                 }
                 let _ = fs::remove_file(root.join("unit.o"));
                 let compiled = cacheable_cc_command(&root)
@@ -470,9 +535,8 @@ fn compile_and_run_unit(root: &std::path::Path, discovery: &str, args: &[&str]) 
     (event["cache_key"].as_str().unwrap().to_string(), value)
 }
 
-/// Run `unit.c` in `root` before and after `inc/optional.h` appears. The
-/// key must hold while the header is absent and change when it appears,
-/// and the program must return `absent` and then 23.
+/// Exercise the optional header lifecycle in both discovery modes. A newly
+/// discovered header must join the memo read set so later edits invalidate it.
 fn assert_probe_follows_optional_header(root: &std::path::Path, args: &[&str], absent: i32) {
     for discovery in ["0", "1"] {
         let _ = fs::remove_file(root.join("inc/optional.h"));
@@ -493,6 +557,27 @@ fn assert_probe_follows_optional_header(root: &std::path::Path, args: &[&str], a
             "discovery={discovery}: the probed header appearing must change the key"
         );
         assert_eq!(value, 23, "discovery={discovery}: created");
+        fs::write(root.join("inc/optional.h"), "#define VALUE 31\n").unwrap();
+        let (modified, value) = compile_and_run_unit(root, discovery, args);
+        assert_ne!(
+            modified, created,
+            "the newly read header must enter the memo"
+        );
+        assert_eq!(value, 31);
+        let (warm_modified, value) = compile_and_run_unit(root, discovery, args);
+        assert_eq!(warm_modified, modified);
+        assert_eq!(value, 31);
+        assert_eq!(last_cc_event(root)["result"], "local_hit");
+        fs::remove_file(root.join("inc/optional.h")).unwrap();
+        let (_, value) = compile_and_run_unit(root, discovery, args);
+        assert_eq!(
+            value, absent,
+            "removing the header must restore the fallback"
+        );
+        fs::write(root.join("inc/optional.h"), "#define VALUE 47\n").unwrap();
+        let (recreated, value) = compile_and_run_unit(root, discovery, args);
+        assert_ne!(recreated, created);
+        assert_eq!(value, 47);
     }
 }
 
@@ -512,7 +597,30 @@ fn cc_header_probe_keys_a_header_appearing_in_a_user_include_dir() {
          int main(void) { return VALUE; }\n",
     )
     .unwrap();
-    assert_probe_follows_optional_header(&root, &["-Iinc"], 11);
+    for args in [["-Iinc"], ["-isysteminc"], ["-idirafterinc"]] {
+        assert_probe_follows_optional_header(&root, &args, 11);
+    }
+}
+
+#[test]
+fn absolute_angle_header_probe_follows_its_optional_header() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    fs::write(root.join("kache.toml"), "").unwrap();
+    fs::create_dir(root.join("home")).unwrap();
+    fs::create_dir(root.join("inc")).unwrap();
+    let optional = root.join("inc/optional.h");
+    fs::write(
+        root.join("unit.c"),
+        format!(
+            "#if __has_include(<{0}>)\n#include <{0}>\n\
+             #else\n#define VALUE 11\n#endif\n\
+             int main(void) {{ return VALUE; }}\n",
+            optional.display()
+        ),
+    )
+    .unwrap();
+    assert_probe_follows_optional_header(&root, &[], 11);
 }
 
 /// A header outside every user directory, as a system header is, probes
@@ -542,6 +650,85 @@ fn cc_header_probe_outside_user_include_dirs_keys_the_unit() {
     assert_probe_follows_optional_header(&root, &["-isystem", "system", "-Iinc"], 5);
 }
 
+#[test]
+fn quoted_header_probe_outside_user_dirs_follows_its_local_header() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    fs::write(root.join("kache.toml"), "").unwrap();
+    fs::create_dir(root.join("home")).unwrap();
+    fs::create_dir(root.join("inc")).unwrap();
+    fs::create_dir(root.join("elsewhere")).unwrap();
+    fs::write(root.join("elsewhere/probe.h"),
+        "#if __has_include(\"optional.h\")\n#include \"optional.h\"\n#else\n#define VALUE 11\n#endif\n").unwrap();
+    fs::write(
+        root.join("unit.c"),
+        "#include \"elsewhere/probe.h\"\nint main(void) { return VALUE; }\n",
+    )
+    .unwrap();
+    for discovery in ["0", "1"] {
+        let _ = fs::remove_file(root.join("elsewhere/optional.h"));
+        let _ = fs::remove_dir_all(root.join("cache"));
+        assert_eq!(compile_and_run_unit(&root, discovery, &[]).1, 11);
+        assert_eq!(compile_and_run_unit(&root, discovery, &[]).1, 11);
+        for value in [23, 31] {
+            fs::write(
+                root.join("elsewhere/optional.h"),
+                format!("#define VALUE {value}\n"),
+            )
+            .unwrap();
+            assert_eq!(compile_and_run_unit(&root, discovery, &[]).1, value);
+        }
+        fs::remove_file(root.join("elsewhere/optional.h")).unwrap();
+        assert_eq!(compile_and_run_unit(&root, discovery, &[]).1, 11);
+    }
+}
+
+#[test]
+fn a_header_created_after_preprocessing_cannot_publish_an_incomplete_read_set() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    fs::write(root.join("kache.toml"), "").unwrap();
+    fs::create_dir(root.join("home")).unwrap();
+    fs::create_dir(root.join("inc")).unwrap();
+    fs::write(root.join("unit.c"),
+        "#if __has_include(<optional.h>)\n#include <optional.h>\n#else\n#define VALUE 11\n#endif\nint main(void) { return VALUE; }\n").unwrap();
+    let compiler = root.join("cc");
+    kache_fs::testutil::write_executable(
+        &compiler,
+        concat!(
+            "#!/bin/sh\n",
+            "preprocess=0; unit=0\n",
+            "for arg in \"$@\"; do case \"$arg\" in -E) preprocess=1;; unit.c) unit=1;; esac; done\n",
+            "/usr/bin/cc \"$@\"\nstatus=$?\n",
+            "if [ \"$status:$preprocess:$unit\" = '0:1:1' ]; then\n",
+            "  printf '#define VALUE 23\n' > inc/optional.h\n",
+            "  : > injected\nfi\nexit \"$status\"\n",
+        ),
+    );
+    let compiled = cacheable_cc_command(&root)
+        .args([
+            compiler.to_str().unwrap(),
+            "-c",
+            "unit.c",
+            "-Iinc",
+            "-o",
+            "unit.o",
+        ])
+        .env("HOME", root.join("home"))
+        .env("KACHE_DEFERRED_DISCOVERY", "0")
+        .env("KACHE_DAEMON_PUBLISH", "0")
+        .env("KACHE_MIN_STORE_COMPILE_MS", "0")
+        .output()
+        .unwrap();
+    assert!(compiled.status.success(), "{compiled:?}");
+    assert!(
+        root.join("injected").is_file(),
+        "the header must appear after the unit's preprocess"
+    );
+    assert_eq!(index_rows(&root, "cc_preprocess_memos"), 0);
+    assert_eq!(index_rows(&root, "entries"), 0);
+}
+
 fn cacheable_cc_command(root: &std::path::Path) -> Command {
     common::settle_writes(&[root]);
     let mut command = Command::new(kache_binary());
@@ -563,7 +750,7 @@ fn cacheable_cc_command(root: &std::path::Path) -> Command {
 
 #[test]
 fn cc_admission_reports_a_skip_reason_and_recompiles_until_admitted() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = FixtureDir::new();
     let root = dir.path().canonicalize().unwrap();
     fs::write(root.join("kache.toml"), "").unwrap();
     fs::write(root.join("unit.c"), "int value(void) { return 42; }\n").unwrap();
@@ -604,7 +791,7 @@ fn cc_admission_reports_a_skip_reason_and_recompiles_until_admitted() {
 
 #[test]
 fn deferred_cc_does_not_publish_inputs_changed_during_the_compile() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = FixtureDir::new();
     let root = dir.path().canonicalize().unwrap();
     fs::write(root.join("kache.toml"), "").unwrap();
     fs::write(
@@ -679,7 +866,7 @@ exit "$status"
 /// the old header's key, so neither the entry nor the memo may be stored.
 #[test]
 fn key_first_cc_does_not_store_an_input_changed_before_the_compile_read_it() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = FixtureDir::new();
     let root = dir.path().canonicalize().unwrap();
     fs::write(root.join("kache.toml"), "").unwrap();
     fs::write(
@@ -752,7 +939,7 @@ exec cc "$@"
 /// header it now includes.
 #[test]
 fn key_first_cc_does_not_store_a_header_saved_while_it_was_keyed() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = FixtureDir::new();
     let root = dir.path().canonicalize().unwrap();
     fs::write(root.join("kache.toml"), "").unwrap();
     fs::write(
@@ -831,7 +1018,7 @@ exec cc "$@"
 /// key taken before the compile stores the result, and the next run hits.
 #[test]
 fn key_first_cc_caches_a_header_stamped_ahead_of_the_clock() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = FixtureDir::new();
     let root = dir.path().canonicalize().unwrap();
     fs::write(root.join("kache.toml"), "").unwrap();
     fs::write(
@@ -867,8 +1054,23 @@ fn key_first_cc_caches_a_header_stamped_ahead_of_the_clock() {
 }
 
 fn index_rows(root: &std::path::Path, table: &str) -> i64 {
-    rusqlite::Connection::open(root.join("cache/index.db"))
-        .unwrap()
+    let index = rusqlite::Connection::open_with_flags(
+        root.join("cache/index.db"),
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap();
+    // Passthrough may open the hash memo without initializing entry tables.
+    let exists: bool = index
+        .query_row(
+            "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1)",
+            [table],
+            |row| row.get(0),
+        )
+        .unwrap();
+    if !exists {
+        return 0;
+    }
+    index
         .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
             row.get(0)
         })
@@ -894,7 +1096,7 @@ fn cc_memo_count(root: &std::path::Path) -> i64 {
 /// (kunobi-ninja/kache#1390).
 #[test]
 fn deferred_cc_records_its_memo_when_the_entry_already_exists() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = FixtureDir::new();
     let root = dir.path().canonicalize().unwrap();
     fs::write(root.join("kache.toml"), "").unwrap();
     fs::write(
@@ -943,7 +1145,7 @@ fn deferred_cc_records_its_memo_when_the_entry_already_exists() {
 /// spells its own path, so they must not share an entry.
 #[test]
 fn identical_sources_at_different_paths_get_their_own_entries() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = FixtureDir::new();
     let root = dir.path().canonicalize().unwrap();
     fs::write(root.join("kache.toml"), "").unwrap();
     let unit = "const char *unit_file(void) { return __FILE__; }\n";
@@ -958,6 +1160,7 @@ fn identical_sources_at_different_paths_get_their_own_entries() {
     .unwrap();
 
     for deferred in ["0", "1"] {
+        dir.stop_daemon();
         let _ = fs::remove_dir_all(root.join("cache"));
         let mut keys = Vec::new();
         for copy in ["a", "b", "b"] {

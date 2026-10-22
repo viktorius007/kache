@@ -5,6 +5,35 @@ use crate::test_support::process_state_test_lock;
 const GNU_RUSTC_VERSION: &str = "rustc 1.90.0\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\n";
 const DARWIN_RUSTC_VERSION: &str = "rustc 1.90.0\nhost: aarch64-apple-darwin\nrelease: 1.90.0\n";
 
+fn client_invocation(cwd: &Path, overrides: &[(&str, Option<&std::ffi::OsStr>)]) -> InvocationEnv {
+    let captured = InvocationEnv::capture();
+    let vars = captured
+        .vars_os()
+        .filter(|(name, _)| {
+            !overrides
+                .iter()
+                .any(|(key, _)| name.as_os_str() == std::ffi::OsStr::new(*key))
+        })
+        .chain(overrides.iter().filter_map(|(name, value)| {
+            Some((std::ffi::OsString::from(*name), (*value)?.to_owned()))
+        }));
+    InvocationEnv::from_parts(
+        vars,
+        Some(cwd.to_path_buf()),
+        captured.home_dir().map(Path::to_path_buf),
+        captured.temp_dir().to_path_buf(),
+    )
+}
+
+fn reparse_for_client(args: &RustcArgs, env: &InvocationEnv) -> RustcArgs {
+    let mut argv = vec![args.rustc.to_string_lossy().into_owned()];
+    if let Some(inner) = &args.inner_rustc {
+        argv.push(inner.to_string_lossy().into_owned());
+    }
+    argv.extend_from_slice(args.raw_args());
+    RustcArgs::parse_for(&argv, env).unwrap()
+}
+
 #[test]
 fn source_identity_uses_a_stable_configured_root() {
     let dir = tempfile::tempdir().unwrap();
@@ -1755,16 +1784,22 @@ fn discovery_defers_to_the_compile_and_takes_the_emitted_closure() {
 /// and stays off for a unit predictions cannot describe.
 #[test]
 fn discovery_flight_identity_names_the_unit_with_or_without_predictions() {
-    // Identity helpers read cwd and environment, which other tests mutate.
     let _lock = key_test_lock();
-    let _workspace = crate::config::tests::set_env_for_test(
-        "CARGO_MANIFEST_DIR",
-        Some(std::ffi::OsStr::new("/w/a")),
-    );
     let dir = tempfile::tempdir().unwrap();
     let db = dir.path().join("index.db");
+    let env = client_invocation(
+        dir.path(),
+        &[
+            ("CARGO_MANIFEST_DIR", Some(std::ffi::OsStr::new("/w/a"))),
+            ("OUT_DIR", None),
+        ],
+    );
     let parse = |args: &[&str]| {
-        RustcArgs::parse(&args.iter().map(|a| (*a).to_string()).collect::<Vec<_>>()).unwrap()
+        RustcArgs::parse_for(
+            &args.iter().map(|a| (*a).to_string()).collect::<Vec<_>>(),
+            &env,
+        )
+        .unwrap()
     };
     let out_dir = dir.path().join("target/debug/deps").display().to_string();
     let a = parse(&[
@@ -1794,7 +1829,7 @@ fn discovery_flight_identity_names_the_unit_with_or_without_predictions() {
         "my_macro=/t/debug/deps/libmy_macro-3.so",
     ]);
 
-    let off = FileHasher::persistent(&db);
+    let off = FileHasher::persistent(&db).with_invocation_env(&env);
     let a_off = discovery_flight_identity(&a, &off).expect("predictions off still names the unit");
     assert_eq!(
         a_off,
@@ -1809,7 +1844,9 @@ fn discovery_flight_identity_names_the_unit_with_or_without_predictions() {
         "a proc-macro dependent still gets a name: the flight is only a lock"
     );
 
-    let on = FileHasher::persistent(&db).with_input_predictions(true);
+    let on = FileHasher::persistent(&db)
+        .with_invocation_env(&env)
+        .with_input_predictions(true);
     assert_eq!(
         discovery_flight_identity(&a, &on),
         prediction_discovery_identity(&a, &on),
@@ -1824,10 +1861,17 @@ fn discovery_flight_identity_names_the_unit_with_or_without_predictions() {
 
     // In a registry package the same unit shares its record under the
     // tree guard, so it flies under the shared identity.
-    let _manifest = crate::config::tests::set_env_for_test(
-        "CARGO_MANIFEST_DIR",
-        Some(std::ffi::OsStr::new("/h/registry/src/index-1/a-1.0.0")),
+    let registry_env = client_invocation(
+        dir.path(),
+        &[
+            (
+                "CARGO_MANIFEST_DIR",
+                Some(std::ffi::OsStr::new("/h/registry/src/index-1/a-1.0.0")),
+            ),
+            ("OUT_DIR", None),
+        ],
     );
+    let with_macro = reparse_for_client(&with_macro, &registry_env);
     let shared = rustc_shared_prediction_identity(&with_macro)
         .expect("a registry proc-macro dependent has a shared identity");
     assert_eq!(
@@ -2048,13 +2092,18 @@ fn a_unit_the_store_never_held_defers_even_when_its_name_is_taken() {
 #[test]
 fn a_record_is_only_consulted_for_an_eligible_invocation() {
     let _lock = key_test_lock();
-    // Cargo sets the test process's own package and OUT_DIR.
-    let _manifest = crate::config::tests::set_env_for_test("CARGO_MANIFEST_DIR", None);
-    let _out = crate::config::tests::set_env_for_test("OUT_DIR", None);
     let dir = tempfile::tempdir().unwrap();
     let db = dir.path().join("index.db");
+    let env = client_invocation(
+        dir.path(),
+        &[("CARGO_MANIFEST_DIR", None), ("OUT_DIR", None)],
+    );
     let parse = |args: &[&str]| {
-        RustcArgs::parse(&args.iter().map(|a| (*a).to_string()).collect::<Vec<_>>()).unwrap()
+        RustcArgs::parse_for(
+            &args.iter().map(|a| (*a).to_string()).collect::<Vec<_>>(),
+            &env,
+        )
+        .unwrap()
     };
     let plain = parse(&["rustc", "src/lib.rs", "--edition", "2021"]);
     let with_macro = parse(&[
@@ -2066,14 +2115,16 @@ fn a_record_is_only_consulted_for_an_eligible_invocation() {
         "my_macro=/t/debug/deps/libmy_macro-3.so",
     ]);
 
-    let off = FileHasher::persistent(&db);
+    let off = FileHasher::persistent(&db).with_invocation_env(&env);
     assert_eq!(
         predicted_key_inputs(&plain, &off, &mut None),
         Err(Rejection::Disabled),
         "predictions off must not touch the table"
     );
 
-    let on = FileHasher::persistent(&db).with_input_predictions(true);
+    let on = FileHasher::persistent(&db)
+        .with_invocation_env(&env)
+        .with_input_predictions(true);
     assert_eq!(
         predicted_key_inputs(&with_macro, &on, &mut None),
         Err(Rejection::NotEligible),
@@ -2092,8 +2143,17 @@ fn a_record_is_only_consulted_for_an_eligible_invocation() {
         assert!(tree.is_none(), "only a guard this lookup took comes back");
     }
     let elsewhere = dir.path().join("elsewhere");
-    let _path_unit =
-        crate::config::tests::set_env_for_test("CARGO_MANIFEST_DIR", Some(elsewhere.as_os_str()));
+    let path_env = client_invocation(
+        dir.path(),
+        &[
+            ("CARGO_MANIFEST_DIR", Some(elsewhere.as_os_str())),
+            ("OUT_DIR", None),
+        ],
+    );
+    let plain = reparse_for_client(&plain, &path_env);
+    let on = FileHasher::persistent(&db)
+        .with_invocation_env(&path_env)
+        .with_input_predictions(true);
     assert_eq!(
         predicted_key_inputs(&plain, &on, &mut None),
         Err(Rejection::NotEligible),
@@ -3627,25 +3687,32 @@ fn rlib_only_member(base: &Path) -> (PathBuf, RustcArgs) {
 /// another checkout.
 #[test]
 fn an_rlib_only_member_is_predicted_only_under_the_workspace_guard() {
-    let mut lock = key_test_lock();
+    let _lock = key_test_lock();
     if get_rustc_version(Path::new("rustc")).is_err() {
         return;
     }
-    let base = lock.enter();
+    let directory = tempfile::tempdir().unwrap();
+    let base = directory.path().to_path_buf();
     let (root, args) = rlib_only_member(&base);
-    std::env::set_current_dir(&root).unwrap();
     write_file(&root.join("kt/src/lib.rs"), "facade::scan!();\n");
     write_file(&root.join("kt/assets/a.txt"), "a");
     write_file(&root.join("stale/x.txt"), "x");
     write_file(&root.join("stale/CACHEDIR.TAG"), CARGO_BUILD_TAG);
     write_file(&base.join("outside.txt"), "o");
     let manifest_dir = root.join("kt");
-    let _manifest = crate::config::tests::set_env_for_test(
-        "CARGO_MANIFEST_DIR",
-        Some(manifest_dir.as_os_str()),
+    let env = client_invocation(
+        &root,
+        &[
+            ("CARGO_MANIFEST_DIR", Some(manifest_dir.as_os_str())),
+            ("OUT_DIR", None),
+        ],
     );
-    let _out = crate::config::tests::set_env_for_test("OUT_DIR", None);
-    let hasher = |name: &str| FileHasher::persistent(&base.join(name)).with_input_predictions(true);
+    let args = reparse_for_client(&args, &env);
+    let hasher = |name: &str| {
+        FileHasher::persistent(&base.join(name))
+            .with_invocation_env(&env)
+            .with_input_predictions(true)
+    };
     let closure = |sources: &[PathBuf]| DepInfo {
         source_files: sources.to_vec(),
         env_deps: Vec::new(),
@@ -3712,7 +3779,7 @@ fn an_rlib_only_member_is_predicted_only_under_the_workspace_guard() {
     );
 
     let portable_rows = hasher("portable.db");
-    let vars: Vec<_> = std::env::vars_os().collect();
+    let vars: Vec<_> = env.vars_os().collect();
     let roots = workspace_roots(&args, &vars).unwrap();
     let portable = workspace_prediction_identity(&args, vars, &roots).unwrap();
     let record = |below: &str| PortablePrediction {
@@ -3742,21 +3809,26 @@ fn an_rlib_only_member_is_predicted_only_under_the_workspace_guard() {
 /// may have changed while the owner compiled.
 #[test]
 fn a_flight_waiter_digests_the_tree_again() {
-    let mut lock = key_test_lock();
+    let _lock = key_test_lock();
     if get_rustc_version(Path::new("rustc")).is_err() {
         return;
     }
-    let base = lock.enter();
+    let directory = tempfile::tempdir().unwrap();
+    let base = directory.path().to_path_buf();
     let (root, args) = rlib_only_member(&base);
-    std::env::set_current_dir(&root).unwrap();
     write_file(&root.join("kt/src/lib.rs"), "");
     let manifest_dir = root.join("kt");
-    let _manifest = crate::config::tests::set_env_for_test(
-        "CARGO_MANIFEST_DIR",
-        Some(manifest_dir.as_os_str()),
+    let env = client_invocation(
+        &root,
+        &[
+            ("CARGO_MANIFEST_DIR", Some(manifest_dir.as_os_str())),
+            ("OUT_DIR", None),
+        ],
     );
-    let _out = crate::config::tests::set_env_for_test("OUT_DIR", None);
-    let hasher = FileHasher::persistent(&base.join("index.db")).with_input_predictions(true);
+    let args = reparse_for_client(&args, &env);
+    let hasher = FileHasher::persistent(&base.join("index.db"))
+        .with_invocation_env(&env)
+        .with_input_predictions(true);
     let closure = DepInfo {
         source_files: vec![PathBuf::from("kt/src/lib.rs")],
         env_deps: Vec::new(),
@@ -3784,13 +3856,13 @@ fn a_flight_waiter_digests_the_tree_again() {
 /// here, though it keeps the row for other checkouts out.
 #[test]
 fn this_checkouts_rows_keep_the_guard_while_it_covers_the_closure() {
-    let mut lock = key_test_lock();
+    let _lock = key_test_lock();
     if get_rustc_version(Path::new("rustc")).is_err() {
         return;
     }
-    let base = lock.enter();
+    let directory = tempfile::tempdir().unwrap();
+    let base = directory.path().to_path_buf();
     let (root, args) = rlib_only_member(&base);
-    std::env::set_current_dir(&root).unwrap();
     write_file(&root.join("kt/src/lib.rs"), "");
     let out = root.join("target/debug/build/kt-1/out");
     write_file(
@@ -3799,11 +3871,14 @@ fn this_checkouts_rows_keep_the_guard_while_it_covers_the_closure() {
     );
     write_file(&base.join("outside.txt"), "o");
     let manifest_dir = root.join("kt");
-    let _manifest = crate::config::tests::set_env_for_test(
-        "CARGO_MANIFEST_DIR",
-        Some(manifest_dir.as_os_str()),
+    let env = client_invocation(
+        &root,
+        &[
+            ("CARGO_MANIFEST_DIR", Some(manifest_dir.as_os_str())),
+            ("OUT_DIR", Some(out.as_os_str())),
+        ],
     );
-    let _out = crate::config::tests::set_env_for_test("OUT_DIR", Some(out.as_os_str()));
+    let args = reparse_for_client(&args, &env);
     let tree = || Some("tree".to_string());
     let closure = |extra: PathBuf| DepInfo {
         source_files: vec![PathBuf::from("kt/src/lib.rs"), extra],
@@ -3816,8 +3891,14 @@ fn this_checkouts_rows_keep_the_guard_while_it_covers_the_closure() {
     assert_eq!(same_checkout_guard(&args, &outside, tree()), None);
 
     let registry = base.join("home/registry/src/index-1/kt-1.0.0");
-    let _registry =
-        crate::config::tests::set_env_for_test("CARGO_MANIFEST_DIR", Some(registry.as_os_str()));
+    let registry_env = client_invocation(
+        &root,
+        &[
+            ("CARGO_MANIFEST_DIR", Some(registry.as_os_str())),
+            ("OUT_DIR", Some(out.as_os_str())),
+        ],
+    );
+    let args = reparse_for_client(&args, &registry_env);
     assert_eq!(
         same_checkout_guard(&args, &outside, tree()),
         tree(),
@@ -4085,6 +4166,48 @@ fn a_workspace_identity_is_the_same_in_every_checkout_and_per_unit() {
 }
 
 #[test]
+fn workspace_discovery_flights_follow_the_portable_record_identity() {
+    let base = tempfile::tempdir().unwrap();
+    let hasher = FileHasher::new();
+    for with_macro in [false, true] {
+        let identity = |name: &str, crate_name: &str| {
+            let (root, args) = workspace_invocation(base.path(), name, crate_name);
+            let args = if with_macro {
+                let mut argv = vec!["rustc".to_string()];
+                argv.extend(args.all_args);
+                argv.extend([
+                    "--extern".to_string(),
+                    format!("pm={}", root.join("target/debug/deps/libpm.so").display()),
+                ]);
+                RustcArgs::parse(&argv).unwrap()
+            } else {
+                args
+            };
+            let manifest = root.join("kt");
+            let env = client_invocation(
+                &root,
+                &[
+                    ("CARGO_MANIFEST_DIR", Some(manifest.as_os_str())),
+                    ("OUT_DIR", None),
+                ],
+            );
+            let args = reparse_for_client(&args, &env);
+            let vars: Vec<_> = env.vars_os().collect();
+            let workspace = workspace_roots(&args, &vars).unwrap();
+            let portable = workspace_prediction_identity(&args, vars, &workspace).unwrap();
+            let flight = discovery_flight_identity(&args, &hasher).unwrap();
+            assert_eq!(flight, portable, "a peer must wait for the row it can read");
+            let on = FileHasher::new().with_input_predictions(true);
+            assert_eq!(discovery_flight_identity(&args, &on), Some(flight.clone()));
+            flight
+        };
+        let first = identity("first", "kt");
+        assert_eq!(first, identity("second", "kt"));
+        assert_ne!(first, identity("other", "other"));
+    }
+}
+
+#[test]
 fn a_remote_row_is_kept_only_once_it_checks_out() {
     let dir = tempfile::tempdir().unwrap();
     let db = dir.path().join("index.db");
@@ -4299,22 +4422,25 @@ fn the_guard_sees_only_the_files_its_walk_reaches() {
 /// the closure names.
 #[test]
 fn a_workspace_record_needs_every_source_where_the_guard_walks() {
-    let mut lock = key_test_lock();
+    let _lock = key_test_lock();
     if get_rustc_version(Path::new("rustc")).is_err() {
         return;
     }
-    let base = lock.enter();
+    let directory = tempfile::tempdir().unwrap();
+    let base = directory.path().to_path_buf();
     let (root, args) = workspace_invocation(&base, "w", "kt");
-    std::env::set_current_dir(&root).unwrap();
     write_file(&root.join("kt/src/lib.rs"), "");
     write_file(&root.join("stale/x.rs"), "");
     write_file(&root.join("stale/CACHEDIR.TAG"), CARGO_BUILD_TAG);
     let manifest_dir = root.join("kt");
-    let _manifest = crate::config::tests::set_env_for_test(
-        "CARGO_MANIFEST_DIR",
-        Some(manifest_dir.as_os_str()),
+    let env = client_invocation(
+        &root,
+        &[
+            ("CARGO_MANIFEST_DIR", Some(manifest_dir.as_os_str())),
+            ("OUT_DIR", None),
+        ],
     );
-    let _out = crate::config::tests::set_env_for_test("OUT_DIR", None);
+    let args = reparse_for_client(&args, &env);
     let closure = |sources: &[&str]| DepInfo {
         source_files: sources.iter().map(PathBuf::from).collect(),
         env_deps: Vec::new(),
@@ -5463,6 +5589,15 @@ fn an_aliased_out_dir_takes_the_shared_row(macro_dep: bool) {
             ("OUT_DIR".into(), out_dir.into()),
         ]
     };
+    let debug_dir = alias.join("debug");
+    let alias_env = client_invocation(
+        &package,
+        &[
+            ("CARGO_MANIFEST_DIR", Some(package.as_os_str())),
+            ("OUT_DIR", Some(alias.as_os_str())),
+            ("DEBUG_OUTPUT_DIR", Some(debug_dir.as_os_str())),
+        ],
+    );
     let args_in = |target: &Path| {
         let deps = target.join("debug/deps");
         let mut argv = vec![
@@ -5477,7 +5612,7 @@ fn an_aliased_out_dir_takes_the_shared_row(macro_dep: bool) {
             argv.push("--extern".to_string());
             argv.push(format!("pm={}", deps.join("libpm-1.so").display()));
         }
-        RustcArgs::parse(&argv).unwrap()
+        RustcArgs::parse_for(&argv, &alias_env).unwrap()
     };
     let args_a = args_in(&target_a);
     let args_b = args_in(&target_b);
@@ -5488,7 +5623,6 @@ fn an_aliased_out_dir_takes_the_shared_row(macro_dep: bool) {
     assert_eq!(shared(&args_a, &alias), shared(&args_b, &alias));
     assert_ne!(shared(&args_b, &alias), shared(&args_b, &own_out_dir));
 
-    let debug_dir = alias.join("debug");
     let dep_info = DepInfo {
         source_files: vec![package.join("src/lib.rs")],
         env_deps: vec![
@@ -5507,12 +5641,9 @@ fn an_aliased_out_dir_takes_the_shared_row(macro_dep: bool) {
         ));
     }
 
-    let _manifest =
-        crate::config::tests::set_env_for_test("CARGO_MANIFEST_DIR", Some(package.as_os_str()));
-    let _out = crate::config::tests::set_env_for_test("OUT_DIR", Some(alias.as_os_str()));
-    let _debug =
-        crate::config::tests::set_env_for_test("DEBUG_OUTPUT_DIR", Some(debug_dir.as_os_str()));
-    let hasher = FileHasher::persistent(&dir.path().join("index.db")).with_input_predictions(true);
+    let hasher = FileHasher::persistent(&dir.path().join("index.db"))
+        .with_invocation_env(&alias_env)
+        .with_input_predictions(true);
     let tree = macro_dep.then(|| crate_tree_digest(&hasher).unwrap());
     let identity = rustc_shared_prediction_identity(&args_a).unwrap();
     hasher.record_input_prediction(&identity, Some("kt"), &dep_info, tree);
@@ -5531,7 +5662,18 @@ fn an_aliased_out_dir_takes_the_shared_row(macro_dep: bool) {
         std::fs::remove_file(alias.join("stray.rs")).unwrap();
     }
 
-    let _own = crate::config::tests::set_env_for_test("OUT_DIR", Some(own_out_dir.as_os_str()));
+    let own_env = client_invocation(
+        &package,
+        &[
+            ("CARGO_MANIFEST_DIR", Some(package.as_os_str())),
+            ("OUT_DIR", Some(own_out_dir.as_os_str())),
+            ("DEBUG_OUTPUT_DIR", Some(debug_dir.as_os_str())),
+        ],
+    );
+    let args_b = reparse_for_client(&args_b, &own_env);
+    let hasher = FileHasher::persistent(&dir.path().join("index.db"))
+        .with_invocation_env(&own_env)
+        .with_input_predictions(true);
     assert_eq!(
         predicted_key_inputs(&args_b, &hasher, &mut None),
         Err(Rejection::NoRecord),
@@ -5609,10 +5751,14 @@ fn crate_tree_digest_tracks_content_names_and_exclusions() {
     std::fs::create_dir_all(root.join("src")).unwrap();
     std::fs::write(root.join("src/lib.rs"), "pub fn a() {}\n").unwrap();
     std::fs::write(root.join("Cargo.toml"), "[package]\n").unwrap();
-    let hasher = FileHasher::new();
-    // SAFETY: the process-state lock serialises environment edits.
-    unsafe { std::env::set_var("CARGO_MANIFEST_DIR", &root) };
-    unsafe { std::env::remove_var("OUT_DIR") };
+    let env = client_invocation(
+        dir.path(),
+        &[
+            ("CARGO_MANIFEST_DIR", Some(root.as_os_str())),
+            ("OUT_DIR", None),
+        ],
+    );
+    let hasher = FileHasher::new().with_invocation_env(&env);
     let baseline = crate_tree_digest(&hasher).unwrap();
 
     std::fs::write(root.join("src/lib.rs"), "pub fn b() {}\n").unwrap();
@@ -5643,7 +5789,14 @@ fn crate_tree_digest_tracks_content_names_and_exclusions() {
     std::fs::create_dir_all(copy.join("src")).unwrap();
     std::fs::write(copy.join("src/lib.rs"), "pub fn a() {}\n").unwrap();
     std::fs::write(copy.join("Cargo.toml"), "[package]\n").unwrap();
-    unsafe { std::env::set_var("CARGO_MANIFEST_DIR", &copy) };
+    let copy_env = client_invocation(
+        dir.path(),
+        &[
+            ("CARGO_MANIFEST_DIR", Some(copy.as_os_str())),
+            ("OUT_DIR", None),
+        ],
+    );
+    let hasher = FileHasher::new().with_invocation_env(&copy_env);
     assert_eq!(
         crate_tree_digest(&hasher).unwrap(),
         baseline,
@@ -5651,12 +5804,23 @@ fn crate_tree_digest_tracks_content_names_and_exclusions() {
     );
     let workspace = dir.path().join("workspace/member");
     std::fs::create_dir_all(workspace.join("src")).unwrap();
-    unsafe { std::env::set_var("CARGO_MANIFEST_DIR", &workspace) };
+    let workspace_env = client_invocation(
+        dir.path(),
+        &[
+            ("CARGO_MANIFEST_DIR", Some(workspace.as_os_str())),
+            ("OUT_DIR", None),
+        ],
+    );
+    let hasher = FileHasher::new().with_invocation_env(&workspace_env);
     assert!(
         crate_tree_digest(&hasher).is_none(),
         "a workspace crate keeps the pre-pass"
     );
-    unsafe { std::env::remove_var("CARGO_MANIFEST_DIR") };
+    let missing_env = client_invocation(
+        dir.path(),
+        &[("CARGO_MANIFEST_DIR", None), ("OUT_DIR", None)],
+    );
+    let hasher = FileHasher::new().with_invocation_env(&missing_env);
     assert!(
         crate_tree_digest(&hasher).is_none(),
         "no crate directory, no guard"
@@ -5874,6 +6038,7 @@ fn env_text_key_bytes_preserves_utf8_and_distinguishes_invalid() {
 /// (a sandboxed build with no writable home).
 #[test]
 fn tool_version_cache_write_is_read_back() {
+    let _lock = key_test_lock();
     let cache_dir = crate::config::default_cache_dir();
     if std::fs::create_dir_all(&cache_dir).is_err() || tempfile::tempfile_in(&cache_dir).is_err() {
         eprintln!("skipping: {} is not writable", cache_dir.display());
@@ -6072,7 +6237,7 @@ fn tool_version_cache_path_is_a_named_file_in_the_cache_dir() {
 
     let cache_file = tool_version_cache_path(&binary, "rustc-ver")
         .expect("a readable binary must produce a cache path");
-    let cache_dir = crate::config::default_cache_dir();
+    let cache_dir = crate::config::probe_memo_dir();
     assert_eq!(cache_file.parent(), Some(cache_dir.as_path()));
 
     let file_name = cache_file
@@ -7622,7 +7787,7 @@ fn linked_dwarf_archive_stays_path_bound() {
     assert_ne!(linked, hash_in("b", &dwarf, StaticLibUse::Linked));
     // The unqualified method is the linked reading.
     assert_eq!(
-        fh.hash_static_lib(&dir.path().join("a/libprobe.a"))
+        fh.hash_static_lib(&dir.path().join("a").join("libprobe.a"))
             .unwrap(),
         linked
     );
@@ -8626,18 +8791,23 @@ fn build_tree_roots_are_the_target_dir_and_the_workspace() {
 
 #[test]
 fn build_tree_roots_read_the_unit_out_dir_and_target() {
+    let dir = tempfile::tempdir().unwrap();
+    let target = dir.path().join("target");
     let args = RustcArgs::parse(&[
         "rustc".to_string(),
         "src/main.rs".to_string(),
         "--out-dir".to_string(),
-        "/w/target/x86_64-unknown-linux-gnu/debug/deps".to_string(),
+        target
+            .join("x86_64-unknown-linux-gnu/debug/deps")
+            .to_string_lossy()
+            .into_owned(),
         "--target".to_string(),
         "x86_64-unknown-linux-gnu".to_string(),
     ])
     .unwrap();
     assert_eq!(
         build_tree_roots(&args).first(),
-        Some(&PathBuf::from("/w/target")),
+        Some(&target),
         "the target dir comes from --out-dir and --target"
     );
 }
@@ -9528,6 +9698,13 @@ fn diagnostic_flags_change_the_key_and_verbose_remains_unkeyed() {
     let source = dir.path().join("lib.rs");
     std::fs::write(&source, b"pub fn hello() {}").unwrap();
     let base = key_of_flags(&flag_base(&source, &[]));
+    assert!(
+        outputs_of_flags(&flag_base(&source, &[]))
+            .fields
+            .unwrap()
+            .contains_key("diagnostics"),
+        "implicit diagnostics need a namespace distinct from older entries"
+    );
     for (flag, value, other) in [
         ("--error-format", "json", "human"),
         ("--json", "artifacts", "diagnostic-rendered-ansi"),
@@ -11645,6 +11822,54 @@ fn test_coverage_keys_consistent_across_remap_forms() {
 }
 
 #[test]
+fn rust_keys_reject_the_legacy_explicit_emit_recipe() {
+    let _lock = key_test_lock();
+    let invocation = InvocationEnv::capture();
+    let args = RustcArgs::parse_for(
+        &[
+            "rustc".to_string(),
+            "--crate-name=emit_compatibility".to_string(),
+            "--crate-type=rlib".to_string(),
+            "--emit=metadata".to_string(),
+        ],
+        &invocation,
+    )
+    .unwrap();
+    let (key, outputs) = compute_cache_key_with_outputs(
+        &args,
+        &FileHasher::new_for(&invocation),
+        &PathNormalizer::empty(),
+        &KeyEnv::default(),
+    );
+    key.unwrap();
+
+    // Reconstruct the compiler prefix with the same invocation snapshot as
+    // production, including only the emit marker beyond the historical recipe.
+    let identity = format!(
+        "rustc_version:{}\ntarget:{}\n",
+        get_rustc_version_for(&args.rustc, &invocation).unwrap(),
+        host_target_triple(),
+    );
+    let mut expected = blake3::Hasher::new();
+    expected.update(b"key_version:32\nemit_placement.v1:");
+    expected.update(&14_u64.to_le_bytes());
+    expected.update(b"compiler-owned");
+    expected.update(identity.as_bytes());
+    let fields = outputs.fields.unwrap();
+    let compiler = &fields["compiler"];
+    assert_eq!(compiler, &expected.finalize().to_hex()[..16]);
+
+    // Deleting only the emit marker must restore this unsafe schema-32 prefix.
+    let legacy = format!("key_version:32\n{identity}");
+    let legacy_compiler = blake3::hash(legacy.as_bytes()).to_hex();
+    assert_ne!(
+        compiler,
+        &legacy_compiler[..16],
+        "normal outputs must not reuse entries from explicit emit destinations",
+    );
+}
+
+#[test]
 fn test_cache_key_version_affects_key() {
     let _lock = key_test_lock();
     // Verify that the key version is hashed by checking that the hasher
@@ -12103,6 +12328,172 @@ fn mapped_hashes_are_memoised_by_content_and_map_set() {
     bare.cc_preprocess_fingerprints(&[name(&header)], "maps-a", &counting)
         .unwrap();
     assert_eq!(reads.get(), 6);
+}
+
+#[test]
+fn header_scans_share_content_and_warm_memos_do_not_reread_small_headers() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("idx.sqlite");
+    let paths: Vec<_> = ["a.h", "twin.h"]
+        .iter()
+        .map(|name| dir.path().join(name))
+        .collect();
+    for path in &paths {
+        std::fs::write(path, "#if __has_include(<optional.h>)\n#endif\n").unwrap();
+    }
+    let scans = std::cell::Cell::new(0);
+    let scan = |path: &Path| -> anyhow::Result<(String, String)> {
+        scans.set(scans.get() + 1);
+        let bytes = std::fs::read(path)?;
+        Ok((blake3::hash(&bytes).to_hex().to_string(), "probe".into()))
+    };
+    let first = FileHasher::persistent(&db);
+    assert_eq!(
+        first.cc_header_scans(&paths, 1, &scan).unwrap(),
+        ["probe", "probe"]
+    );
+    assert_eq!(scans.get(), 1, "identical files share a scan");
+    let without_memo = FileHasher::persistent(&db);
+    assert_eq!(
+        without_memo.cc_header_scans(&paths, 1, &scan).unwrap(),
+        ["probe", "probe"]
+    );
+    assert_eq!(
+        scans.get(),
+        1,
+        "scan reuse also works before a read-set memo exists"
+    );
+    let mut inputs = first
+        .cc_preprocess_fingerprints(
+            &paths
+                .iter()
+                .map(|path| (path.to_string_lossy().into_owned(), path.clone()))
+                .collect::<Vec<_>>(),
+            "",
+            &no_mapping,
+        )
+        .unwrap();
+    // Model a settled recording without sleeping. The bytes and stamps are
+    // real; only the observation clock advances beyond their settle window.
+    for input in &mut inputs {
+        input.observed_ns = input.fingerprint.mtime_ns.max(input.fingerprint.ctime_ns)
+            + kache_store::file_hash::HASH_SETTLE_NS;
+    }
+    first.cc_preprocess_memo_record_if_unchanged("memo", &"a".repeat(64), &inputs, &no_mapping);
+    let warm = FileHasher::persistent(&db);
+    let (_, satisfied) = warm
+        .cc_preprocess_memo_lookup("memo", no_remap, &no_mapping)
+        .unwrap();
+    assert_eq!(warm.stats().bytes_hashed, 0);
+    assert_eq!(
+        warm.cc_header_scans(&satisfied, 1, &scan).unwrap(),
+        ["probe", "probe"]
+    );
+    assert_eq!(scans.get(), 1, "the scan survives a fresh FileHasher");
+    assert_eq!(
+        warm.stats().bytes_hashed,
+        0,
+        "memo-validated small headers must not be hashed again"
+    );
+    warm.cc_header_scans(&satisfied, 2, &scan).unwrap();
+    assert_eq!(
+        scans.get(),
+        2,
+        "a new scanner version must rescan the bytes"
+    );
+    let changed = |path: &Path| -> anyhow::Result<(String, String)> {
+        std::fs::write(path, "different bytes")?;
+        Ok(("0".repeat(64), "wrong".into()))
+    };
+    assert!(warm.cc_header_scans(&paths[..1], 3, &changed).is_err());
+    let cache = warm.cache.as_ref().unwrap();
+    assert!(
+        cache
+            .get_cc_header_scans(3, &[&inputs[0].content])
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[test]
+fn header_scans_keep_the_key_snapshot_and_the_write_guard_detects_a_later_save() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("idx.sqlite");
+    let header = dir.path().join("header.h");
+    std::fs::write(&header, "old\n").unwrap();
+    let scans = std::cell::Cell::new(0);
+    let scan = |path: &Path| -> anyhow::Result<(String, String)> {
+        scans.set(scans.get() + 1);
+        let bytes = std::fs::read(path)?;
+        Ok((
+            blake3::hash(&bytes).to_hex().to_string(),
+            String::from_utf8(bytes)?,
+        ))
+    };
+    let paths = std::slice::from_ref(&header);
+    let first = FileHasher::persistent(&db);
+    assert_eq!(first.cc_header_scans(paths, 1, &scan).unwrap(), ["old\n"]);
+    let mut keyed = FileHasher::persistent(&db);
+    crate::test_support::settle_writes(&[&header]);
+    keyed.arm_too_new_guard(stamp_clock_ns(), 0);
+    keyed.hash(&header).unwrap();
+    assert!(!keyed.inputs_changed_since_keyed());
+    std::fs::write(&header, "new bytes\n").unwrap();
+    assert_eq!(keyed.cc_header_scans(paths, 1, &scan).unwrap(), ["old\n"]);
+    assert_eq!(
+        scans.get(),
+        1,
+        "analysis belongs to the selected content hash"
+    );
+    assert!(
+        keyed.inputs_changed_since_keyed(),
+        "the save blocks publication"
+    );
+    let next = FileHasher::persistent(&db);
+    assert_eq!(
+        next.cc_header_scans(paths, 1, &scan).unwrap(),
+        ["new bytes\n"]
+    );
+    assert_eq!(scans.get(), 2, "a new invocation observes the new content");
+}
+
+#[test]
+fn memo_hash_validation_accepts_resolution_proofs_and_rejects_malformed_ones() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("idx.sqlite");
+    let path = dir.path().join("input.c");
+    std::fs::write(&path, "int x;\n").unwrap();
+    let hasher = FileHasher::persistent(&db);
+    let inputs = hasher
+        .cc_preprocess_fingerprints(
+            &[(path.to_string_lossy().into_owned(), path.clone())],
+            "",
+            &no_mapping,
+        )
+        .unwrap();
+    for (index, (hash, valid)) in [
+        (format!("{}@{}", "a".repeat(64), "b".repeat(64)), true),
+        (format!("pb:{}@{}", "a".repeat(64), "b".repeat(64)), true),
+        (format!("{}@", "a".repeat(64)), false),
+        (format!("{}@{}", "a".repeat(64), "z".repeat(64)), false),
+        (
+            format!("{}@{}@{}", "a".repeat(64), "b".repeat(64), "c".repeat(64)),
+            false,
+        ),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let key = index.to_string();
+        hasher.cc_preprocess_memo_record_if_unchanged(&key, &hash, &inputs, &no_mapping);
+        assert_eq!(
+            hasher
+                .cc_preprocess_memo_lookup(&key, no_remap, &no_mapping)
+                .is_some(),
+            valid,
+            "{hash}"
+        );
+    }
 }
 
 /// The assembler scan runs once per distinct content and its verdict is
@@ -13359,7 +13750,14 @@ fn each_root_of_a_tree_digest_is_memoised_alone() {
     let memo = dir.path().join("memo");
     let (workspace, out) = (dir.path().join("w"), dir.path().join("out"));
     write_file(&workspace.join("Cargo.toml"), "[workspace]\n");
-    write_file(&workspace.join("kt/src/lib.rs"), "pub fn a() {}\n");
+    let source = workspace.join("kt/src/lib.rs");
+    write_file(&source, "pub fn a() {}\n");
+    // Same-size edits must move the stamp even on coarse filesystem clocks.
+    filetime::set_file_mtime(
+        &source,
+        filetime::FileTime::from_unix_time(1_000_000_000, 0),
+    )
+    .unwrap();
     write_file(&out.join("gen.rs"), "// gen\n");
     // Recreating a file can reuse its inode and coarse times. Give the two
     // identical files distinct mtimes so the OUT_DIR entry stamp must move.
@@ -13405,7 +13803,12 @@ fn each_root_of_a_tree_digest_is_memoised_alone() {
     assert_eq!(guard(true).1, 0);
     assert!(!taken.held(), "the OUT_DIR moved");
     assert!(again.held());
-    write_file(&workspace.join("kt/src/lib.rs"), "pub fn b() {}\n");
+    write_file(&source, "pub fn b() {}\n");
+    filetime::set_file_mtime(
+        &source,
+        filetime::FileTime::from_unix_time(1_000_000_001, 0),
+    )
+    .unwrap();
     assert!(!again.held(), "the workspace moved");
 }
 
@@ -15501,7 +15904,6 @@ fn key_matrix_manifest_dir_runtime_env_path_changes_key_across_workspaces() {
         return;
     }
 
-    let old_manifest_dir = std::env::var_os("CARGO_MANIFEST_DIR");
     let dir = tempfile::tempdir().unwrap();
     let workspace_a = dir.path().join("checkout-a");
     let workspace_b = dir.path().join("checkout-b");
@@ -15523,25 +15925,34 @@ fn key_matrix_manifest_dir_runtime_env_path_changes_key_across_workspaces() {
 
     let source_a = write_helper(&workspace_a);
     let source_b = write_helper(&workspace_b);
-    let fh = FileHasher::new();
 
     let manifest_a = workspace_a.join("helper").canonicalize().unwrap();
-    unsafe {
-        std::env::set_var("CARGO_MANIFEST_DIR", manifest_a);
-    }
-    let parsed_a = RustcArgs::parse(&base_args(&source_a)).unwrap();
-    let pn_a = PathNormalizer::from_env(Some(&workspace_a));
-    let key_a = compute_cache_key(&parsed_a, &fh, &pn_a, &KeyEnv::capture()).unwrap();
+    let env_a = client_invocation(
+        &workspace_a,
+        &[
+            ("CARGO_MANIFEST_DIR", Some(manifest_a.as_os_str())),
+            ("OUT_DIR", None),
+        ],
+    );
+    let parsed_a = RustcArgs::parse_for(&base_args(&source_a), &env_a).unwrap();
+    let fh_a = FileHasher::new().with_invocation_env(&env_a);
+    let pn_a = PathNormalizer::from_invocation(Some(&workspace_a), &env_a);
+    let key_a =
+        compute_cache_key(&parsed_a, &fh_a, &pn_a, &KeyEnv::from_invocation(&env_a)).unwrap();
 
     let manifest_b = workspace_b.join("helper").canonicalize().unwrap();
-    unsafe {
-        std::env::set_var("CARGO_MANIFEST_DIR", manifest_b);
-    }
-    let parsed_b = RustcArgs::parse(&base_args(&source_b)).unwrap();
-    let pn_b = PathNormalizer::from_env(Some(&workspace_b));
-    let key_b = compute_cache_key(&parsed_b, &fh, &pn_b, &KeyEnv::capture()).unwrap();
-
-    restore_env_var("CARGO_MANIFEST_DIR", old_manifest_dir);
+    let env_b = client_invocation(
+        &workspace_b,
+        &[
+            ("CARGO_MANIFEST_DIR", Some(manifest_b.as_os_str())),
+            ("OUT_DIR", None),
+        ],
+    );
+    let parsed_b = RustcArgs::parse_for(&base_args(&source_b), &env_b).unwrap();
+    let fh_b = FileHasher::new().with_invocation_env(&env_b);
+    let pn_b = PathNormalizer::from_invocation(Some(&workspace_b), &env_b);
+    let key_b =
+        compute_cache_key(&parsed_b, &fh_b, &pn_b, &KeyEnv::from_invocation(&env_b)).unwrap();
 
     assert_ne!(
         key_a, key_b,
@@ -15556,8 +15967,6 @@ fn key_matrix_out_dir_include_pattern_stays_stable_across_workspaces() {
         return;
     }
 
-    let old_out_dir = std::env::var_os("OUT_DIR");
-    let old_manifest_dir = std::env::var_os("CARGO_MANIFEST_DIR");
     let dir = tempfile::tempdir().unwrap();
     let workspace_a = dir.path().join("checkout-a");
     let workspace_b = dir.path().join("checkout-b");
@@ -15587,28 +15996,34 @@ pub fn value() -> u8 {
 
     let (source_a, out_a) = write_generated_include_crate(&workspace_a);
     let (source_b, out_b) = write_generated_include_crate(&workspace_b);
-    let fh = FileHasher::new();
 
     let out_a = out_a.canonicalize().unwrap();
-    unsafe {
-        std::env::set_var("OUT_DIR", &out_a);
-        std::env::set_var("CARGO_MANIFEST_DIR", &workspace_a);
-    }
-    let parsed_a = RustcArgs::parse(&base_args(&source_a)).unwrap();
-    let pn_a = PathNormalizer::from_env(Some(&workspace_a));
-    let key_a = compute_cache_key(&parsed_a, &fh, &pn_a, &KeyEnv::capture()).unwrap();
+    let env_a = client_invocation(
+        &workspace_a,
+        &[
+            ("OUT_DIR", Some(out_a.as_os_str())),
+            ("CARGO_MANIFEST_DIR", Some(workspace_a.as_os_str())),
+        ],
+    );
+    let parsed_a = RustcArgs::parse_for(&base_args(&source_a), &env_a).unwrap();
+    let fh_a = FileHasher::new().with_invocation_env(&env_a);
+    let pn_a = PathNormalizer::from_invocation(Some(&workspace_a), &env_a);
+    let key_a =
+        compute_cache_key(&parsed_a, &fh_a, &pn_a, &KeyEnv::from_invocation(&env_a)).unwrap();
 
     let out_b = out_b.canonicalize().unwrap();
-    unsafe {
-        std::env::set_var("OUT_DIR", &out_b);
-        std::env::set_var("CARGO_MANIFEST_DIR", &workspace_b);
-    }
-    let parsed_b = RustcArgs::parse(&base_args(&source_b)).unwrap();
-    let pn_b = PathNormalizer::from_env(Some(&workspace_b));
-    let key_b = compute_cache_key(&parsed_b, &fh, &pn_b, &KeyEnv::capture()).unwrap();
-
-    restore_env_var("OUT_DIR", old_out_dir);
-    restore_env_var("CARGO_MANIFEST_DIR", old_manifest_dir);
+    let env_b = client_invocation(
+        &workspace_b,
+        &[
+            ("OUT_DIR", Some(out_b.as_os_str())),
+            ("CARGO_MANIFEST_DIR", Some(workspace_b.as_os_str())),
+        ],
+    );
+    let parsed_b = RustcArgs::parse_for(&base_args(&source_b), &env_b).unwrap();
+    let fh_b = FileHasher::new().with_invocation_env(&env_b);
+    let pn_b = PathNormalizer::from_invocation(Some(&workspace_b), &env_b);
+    let key_b =
+        compute_cache_key(&parsed_b, &fh_b, &pn_b, &KeyEnv::from_invocation(&env_b)).unwrap();
 
     assert_eq!(
         key_a, key_b,
@@ -15623,7 +16038,6 @@ fn key_matrix_out_dir_dual_pattern_diverges_across_workspaces() {
         return;
     }
 
-    let old_out_dir = std::env::var_os("OUT_DIR");
     let dir = tempfile::tempdir().unwrap();
     let workspace_a = dir.path().join("checkout-a");
     let workspace_b = dir.path().join("checkout-b");
@@ -15655,25 +16069,34 @@ pub fn value() -> (&'static str, u8) {
 
     let (source_a, out_a) = write_dual_pattern_crate(&workspace_a);
     let (source_b, out_b) = write_dual_pattern_crate(&workspace_b);
-    let fh = FileHasher::new();
 
     let out_a = out_a.canonicalize().unwrap();
-    unsafe {
-        std::env::set_var("OUT_DIR", &out_a);
-    }
-    let parsed_a = RustcArgs::parse(&base_args(&source_a)).unwrap();
-    let pn_a = PathNormalizer::from_env(Some(&workspace_a));
-    let key_a = compute_cache_key(&parsed_a, &fh, &pn_a, &KeyEnv::capture()).unwrap();
+    let env_a = client_invocation(
+        &workspace_a,
+        &[
+            ("OUT_DIR", Some(out_a.as_os_str())),
+            ("CARGO_MANIFEST_DIR", Some(workspace_a.as_os_str())),
+        ],
+    );
+    let parsed_a = RustcArgs::parse_for(&base_args(&source_a), &env_a).unwrap();
+    let fh_a = FileHasher::new().with_invocation_env(&env_a);
+    let pn_a = PathNormalizer::from_invocation(Some(&workspace_a), &env_a);
+    let key_a =
+        compute_cache_key(&parsed_a, &fh_a, &pn_a, &KeyEnv::from_invocation(&env_a)).unwrap();
 
     let out_b = out_b.canonicalize().unwrap();
-    unsafe {
-        std::env::set_var("OUT_DIR", &out_b);
-    }
-    let parsed_b = RustcArgs::parse(&base_args(&source_b)).unwrap();
-    let pn_b = PathNormalizer::from_env(Some(&workspace_b));
-    let key_b = compute_cache_key(&parsed_b, &fh, &pn_b, &KeyEnv::capture()).unwrap();
-
-    restore_env_var("OUT_DIR", old_out_dir);
+    let env_b = client_invocation(
+        &workspace_b,
+        &[
+            ("OUT_DIR", Some(out_b.as_os_str())),
+            ("CARGO_MANIFEST_DIR", Some(workspace_b.as_os_str())),
+        ],
+    );
+    let parsed_b = RustcArgs::parse_for(&base_args(&source_b), &env_b).unwrap();
+    let fh_b = FileHasher::new().with_invocation_env(&env_b);
+    let pn_b = PathNormalizer::from_invocation(Some(&workspace_b), &env_b);
+    let key_b =
+        compute_cache_key(&parsed_b, &fh_b, &pn_b, &KeyEnv::from_invocation(&env_b)).unwrap();
 
     assert_ne!(
         key_a, key_b,
@@ -16114,16 +16537,8 @@ fn key_matrix_rustflags_whitespace_does_not_change_key() {
     );
 }
 
-// ── "should NOT change" cases — diagnostics-only inputs ──
-//
-// These flags steer only what rustc *prints*, never the emitted
-// artifact bytes. If the key changes for one of them, that is
-// over-keying (a missed hit) — the test will fail and surface it
-// rather than silently weakening the key.
-//
-// All lint configuration is deliberately absent from this section: it
-// cannot change successful artifact bytes, but it can change whether the
-// compile FAILS, and a hit replays success. See the tests below.
+// Diagnostic presentation and lint outcomes are part of the cached result.
+// These tests distinguish them from flags that leave that result unchanged.
 
 #[test]
 fn key_matrix_outcome_lint_configuration_changes_key() {
@@ -16524,28 +16939,36 @@ fn a_guarded_record_is_refused_when_the_tree_changed() {
 #[cfg(unix)]
 #[test]
 fn clippy_identity_reads_the_snapshot() {
-    let _lock = key_test_lock();
     let dir = tempfile::tempdir().unwrap();
     let driver = dir.path().join("clippy-driver");
     kache_fs::testutil::write_executable(
         &driver,
-        "#!/bin/sh\necho 'clippy 0.1.98 (abc 2026-09-01)'\n",
+        "#!/bin/sh\nread -r expected < clippy-version\n[ \"$expected\" = \"$CLIENT_VERSION\" ] || exit 17\nprintf '%s\\n' \"$CLIENT_VERSION\"\n",
     );
     let member = dir.path().join("member");
     std::fs::create_dir_all(&member).unwrap();
     std::fs::write(member.join("clippy.toml"), "msrv = \"1.70\"\n").unwrap();
-
-    let from_manifest = clippy_identity(
-        &driver,
-        &KeyEnv::from_parts(
+    let other_member = dir.path().join("other-member");
+    std::fs::create_dir_all(&other_member).unwrap();
+    let other_config = "msrv = \"1.80\"\n";
+    std::fs::write(other_member.join("clippy.toml"), other_config).unwrap();
+    let invocation = |cwd: &Path, version: &str| {
+        std::fs::write(cwd.join("clippy-version"), format!("{version}\n")).unwrap();
+        InvocationEnv::from_parts(
             [
-                ("CARGO_MANIFEST_DIR", member.as_os_str()),
-                ("CLIPPY_ARGS", OsStr::new("-Dwarnings")),
+                ("CLIENT_VERSION", std::ffi::OsString::from(version)),
+                ("KACHE_CACHE_DIR", cwd.join("cache").into_os_string()),
             ],
+            Some(cwd.to_owned()),
             None,
-        ),
-    )
-    .unwrap();
+            cwd.to_owned(),
+        )
+    };
+    let mut first = invocation(dir.path(), "clippy 0.1.98 (abc 2026-09-01)");
+    first.set("CARGO_MANIFEST_DIR", "member");
+    first.set("CLIPPY_ARGS", "-Dwarnings");
+    let first_key = KeyEnv::from_invocation(&first);
+    let from_manifest = clippy_identity_for(&driver, &first_key, &first).unwrap();
     assert!(
         from_manifest.starts_with("clippy 0.1.98"),
         "{from_manifest}"
@@ -16559,14 +16982,73 @@ fn clippy_identity_reads_the_snapshot() {
         "{from_manifest}"
     );
 
-    // With no manifest dir, the search starts at the working directory.
-    let from_cwd = clippy_identity(
-        &driver,
-        &KeyEnv::from_parts([] as [(&str, &str); 0], Some(member.clone())),
-    )
-    .unwrap();
-    assert!(from_cwd.contains("config:clippy.toml:"), "{from_cwd}");
+    let second = invocation(&other_member, "clippy 0.1.99 (def 2026-10-01)");
+    let from_cwd =
+        clippy_identity_for(&driver, &KeyEnv::from_invocation(&second), &second).unwrap();
+    assert!(from_cwd.starts_with("clippy 0.1.99"), "{from_cwd}");
+    assert!(
+        from_cwd.contains(&format!(
+            "config:clippy.toml:{}",
+            blake3::hash(other_config.as_bytes()).to_hex()
+        )),
+        "{from_cwd}"
+    );
     assert!(from_cwd.contains("CLIPPY_ARGS unset"), "{from_cwd}");
+    assert_eq!(
+        clippy_identity_for(&driver, &first_key, &first).unwrap(),
+        from_manifest
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn libc_probes_use_the_clients_programs_and_expected_family() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::write(root.path().join("client-marker"), "").unwrap();
+    let script = |name: &str, body: &str| {
+        let prefix = "#!/bin/sh\n[ -f client-marker ] && [ \"$LC_ALL\" = C ] && [ \"$LANG\" = C ] || exit 41\n";
+        kache_fs::testutil::write_executable(&root.path().join(name), format!("{prefix}{body}"));
+    };
+    script(
+        "getconf",
+        "[ \"$1\" = GNU_LIBC_VERSION ] || exit 42\nprintf 'glibc %s\\n' \"$GNU_VERSION\"\nexit \"${GNU_PROBE_EXIT:-0}\"\n",
+    );
+    script(
+        "ldd",
+        "[ \"$1\" = --version ] || exit 43\nprintf 'musl libc\\nVersion %s\\n' \"$MUSL_VERSION\" >&2\nexit 1\n",
+    );
+    let client = InvocationEnv::from_parts(
+        [
+            ("PATH", root.path().as_os_str().to_owned()),
+            ("GNU_VERSION", "2.37".into()),
+            ("MUSL_VERSION", "1.2.5".into()),
+            ("LC_ALL", "client-locale".into()),
+            ("LANG", "client-locale".into()),
+        ],
+        Some(root.path().to_owned()),
+        None,
+        root.path().to_owned(),
+    );
+    assert_eq!(
+        probe_linux_libc_signature_for(LinuxLibcFamily::Gnu, &client).unwrap(),
+        "2.37"
+    );
+    assert_eq!(
+        probe_linux_libc_signature_for(LinuxLibcFamily::Musl, &client).unwrap(),
+        "1.2.5"
+    );
+    let mut other = client.clone();
+    other.set("GNU_VERSION", "2.40");
+    assert_eq!(
+        probe_linux_libc_signature_for(LinuxLibcFamily::Gnu, &other).unwrap(),
+        "2.40"
+    );
+    other.set("GNU_PROBE_EXIT", "1");
+    assert!(probe_linux_libc_signature_for(LinuxLibcFamily::Gnu, &other).is_err());
+    assert_eq!(
+        probe_linux_libc_signature_for(LinuxLibcFamily::Gnu, &client).unwrap(),
+        "2.37"
+    );
 }
 
 #[cfg(target_os = "linux")]
@@ -17418,4 +17900,53 @@ fn macro_use_modules_rescan_version_eight_memos() {
             include_locator: true
         }
     );
+}
+
+#[test]
+fn concurrent_key_env_snapshots_do_not_use_the_servers_values() {
+    use crate::invocation::InvocationEnv;
+    let request = |value: Option<&str>| {
+        InvocationEnv::from_parts(
+            value
+                .into_iter()
+                .map(|value| ("KACHE_SNAPSHOT_INPUT", value)),
+            Some(PathBuf::from("/client")),
+            None,
+            PathBuf::from("/tmp"),
+        )
+    };
+    let patterns = vec!["KACHE_SNAPSHOT_INPUT".to_string()];
+    let requests = [
+        request(None),
+        request(Some("")),
+        request(Some("left")),
+        request(Some("right")),
+    ];
+    let keys = std::thread::scope(|scope| {
+        let jobs: Vec<_> = requests
+            .iter()
+            .map(|env| {
+                let patterns = &patterns;
+                scope.spawn(move || {
+                    apply_key_env_vars_in("base".to_string(), patterns, "snapshot", env)
+                })
+            })
+            .collect();
+        jobs.into_iter()
+            .map(|job| job.join().unwrap())
+            .collect::<Vec<_>>()
+    });
+    let unique: std::collections::HashSet<_> = keys.iter().collect();
+    assert_eq!(
+        unique.len(),
+        4,
+        "unset, empty and both client values must stay distinct"
+    );
+    for (env, expected) in requests.iter().zip(keys) {
+        assert_eq!(
+            apply_key_env_vars_in("base".to_string(), &patterns, "snapshot", env),
+            expected
+        );
+        assert!(key_env_guard_in(&patterns, env).is_some());
+    }
 }
