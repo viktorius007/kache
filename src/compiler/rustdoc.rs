@@ -3469,6 +3469,15 @@ mod tests {
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
 
+        // Every run shares this one environment: the probe memo keys on the
+        // whole environment and the cwd, and sibling tests change both
+        // process-wide. PATH is read once, for the script's tools.
+        let env = InvocationEnv::from_parts(
+            std::env::var_os("PATH").map(|path| ("PATH", path)),
+            Some(dir.path().to_owned()),
+            None,
+            dir.path().to_owned(),
+        );
         let cache = dir.path().join("cache");
         let mut config = crate::test_support::test_config(cache);
         config.daemon_publish = false;
@@ -3493,12 +3502,12 @@ mod tests {
         ]);
 
         std::fs::write(&fail, b"1").unwrap();
-        assert_eq!(run(&config, &args).unwrap(), 3);
+        assert_eq!(run_for(&config, &args, &env).unwrap(), 3);
         assert_eq!(merge_lines(&log), 1);
         std::fs::remove_file(&fail).unwrap();
         std::fs::create_dir_all(out.join("other")).unwrap();
         std::fs::write(out.join("other/index.html"), b"sibling\n").unwrap();
-        assert_eq!(run(&config, &args).unwrap(), 0);
+        assert_eq!(run_for(&config, &args, &env).unwrap(), 0);
         assert_eq!(merge_lines(&log), 2);
         assert_eq!(
             std::fs::read_to_string(out.join("demo/index.html")).unwrap(),
@@ -3508,7 +3517,7 @@ mod tests {
         std::fs::remove_dir_all(&out).unwrap();
         std::fs::remove_dir_all(&parts).unwrap();
         let _ = std::fs::remove_file(&dep);
-        assert_eq!(run(&config, &args).unwrap(), 0);
+        assert_eq!(run_for(&config, &args, &env).unwrap(), 0);
         assert_eq!(merge_lines(&log), 2, "a hit must not run rustdoc");
         assert_eq!(
             std::fs::read_to_string(out.join("demo/index.html")).unwrap(),
@@ -3538,7 +3547,7 @@ mod tests {
             "--parts-out-dir",
             &parts2.to_string_lossy(),
         ]);
-        assert_eq!(run(&config, &args2).unwrap(), 0);
+        assert_eq!(run_for(&config, &args2, &env).unwrap(), 0);
         assert_eq!(merge_lines(&log), 2);
         assert_eq!(
             std::fs::read_to_string(out2.join("demo/index.html")).unwrap(),
@@ -3560,7 +3569,7 @@ mod tests {
             "--include-parts-dir",
             &inc.to_string_lossy(),
         ]);
-        assert_eq!(run(&config, &fin).unwrap(), 0);
+        assert_eq!(run_for(&config, &fin, &env).unwrap(), 0);
         let mut stored = Vec::new();
         files_containing(&config.cache_dir, b"search-index.js", &mut stored);
         let bundles: Vec<_> = stored
@@ -3587,7 +3596,7 @@ mod tests {
         );
         let after_first = merge_lines(&log);
         std::fs::remove_file(fin_out.join("search-index.js")).unwrap();
-        assert_eq!(run(&config, &fin).unwrap(), 0);
+        assert_eq!(run_for(&config, &fin, &env).unwrap(), 0);
         assert_eq!(merge_lines(&log), after_first);
         assert_eq!(
             std::fs::read_to_string(fin_out.join("search-index.js")).unwrap(),
@@ -3597,12 +3606,19 @@ mod tests {
             std::fs::read_to_string(fin_out.join("demo/index.html")).unwrap(),
             "<p>demo</p>"
         );
-        let version_probes = std::fs::read_to_string(&log)
-            .unwrap()
-            .lines()
-            .filter(|line| line.contains("-Vv"))
-            .count();
-        assert_eq!(version_probes, 1);
+        let version_probes = || {
+            std::fs::read_to_string(&log)
+                .unwrap()
+                .lines()
+                .filter(|line| line.contains("-Vv"))
+                .count()
+        };
+        assert_eq!(version_probes(), 1);
+
+        let mut changed = env.clone();
+        changed.set("DOC_CLIENT", "other");
+        assert_eq!(run_for(&config, &args, &changed).unwrap(), 0);
+        assert_eq!(version_probes(), 2, "another environment probes again");
     }
 
     #[cfg(unix)]
