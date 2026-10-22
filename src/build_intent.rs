@@ -254,9 +254,7 @@ fn run_cargo_metadata(
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::null());
     // A `cargo` wrapper this reaches then finds a proxy marker, and runs
-    // Cargo instead of discovering again. Cargo's `[env]` reset is left out:
-    // it needs `--config`, which Cargo before 1.63 rejects, and
-    // `cargo metadata --no-deps` starts nothing.
+    // Cargo instead of discovering again.
     crate::cargo_proxy::mark_started_cargo(&mut command, Path::new(cargo));
 
     if let Some(path) = manifest_path {

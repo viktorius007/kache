@@ -130,7 +130,7 @@ mod sandbox;
 
 #[cfg(target_os = "macos")]
 #[path = "fallback/macos.rs"]
-mod macos;
+pub(crate) mod macos;
 
 #[cfg(test)]
 mod tests {

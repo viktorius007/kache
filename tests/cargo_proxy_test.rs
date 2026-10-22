@@ -123,11 +123,7 @@ fn cargo_shim_says_it_waits_for_target_cleanup_unless_quiet() {
         }
         std::fs::write(project.join("Cargo.toml"), "[workspace]\n").unwrap();
         std::os::unix::fs::symlink(KACHE_BIN, shims.join("cargo")).unwrap();
-        // The shim asks for Cargo's version before it waits; only the build counts.
-        kache_fs::testutil::write_executable(
-            &real.join("cargo"),
-            "#!/bin/sh\ncase \"$*\" in *-V) exit 1 ;; esac\n: > \"$STARTED\"\n",
-        );
+        kache_fs::testutil::write_executable(&real.join("cargo"), "#!/bin/sh\n: > \"$STARTED\"\n");
         // Held the way `kache clean` and the daemon hold it while they delete.
         let cleanup = std::fs::OpenOptions::new()
             .read(true)
@@ -445,7 +441,7 @@ fn versioned_fake_cargo(path: &Path, version: &str) {
         path,
         format!(
             "#!/bin/sh\ncase \"$*\" in\n  \
-                 '+new '*-V) echo 'cargo 1.91.0 (0000000 2025-10-10)' ;;\n  \
+                 '+new -V') echo 'cargo 1.91.0 (0000000 2025-10-10)' ;;\n  \
                  *-V) [ -n \"$KACHE_CARGO_PROXY_DEPTH\" ] || exit 9\n    \
                       echo 'cargo {version} (0000000 2020-01-01)' ;;\n  \
                  *) printf '%s' \"$*\" > \"$KACHE_TEST_CAPTURE\" ;;\n\
@@ -457,20 +453,16 @@ fn versioned_fake_cargo(path: &Path, version: &str) {
 #[test]
 fn build_dir_override_needs_a_cargo_that_knows_the_key() {
     let isolated = "--config build.build-dir=\"{workspace-root}/target\"";
-    let reset = "--config env.KACHE_CARGO_PROXY_DEPTH.value=\"\" \
-                 --config env.KACHE_CARGO_PROXY_DEPTH.force=true \
-                 --config env.KACHE_CARGO_PROXY_CHAIN.value=\"\" \
-                 --config env.KACHE_CARGO_PROXY_CHAIN.force=true";
     for (args, version, expected) in [
         // Before 1.63 Cargo rejects `--config`; before 1.91 it warns about the
         // unknown key. Both ignored the exported variable this replaced.
         (&["build"][..], "1.62.1", "build".to_string()),
-        (&["build"], "1.90.0", format!("{reset} build")),
-        (&["build"], "1.91.0", format!("{reset} {isolated} build")),
+        (&["build"], "1.90.0", "build".to_string()),
+        (&["build"], "1.91.0", format!("{isolated} build")),
         (
             &["+new", "check"],
             "1.62.1",
-            format!("+new {reset} {isolated} check"),
+            format!("+new {isolated} check"),
         ),
         (&["build"], "unknown", "build".to_string()),
     ] {
@@ -1451,10 +1443,12 @@ fn cargo_proxy_reached_again_through_a_cargo_wrapper_stops_and_names_it() {
     let stub = forwarding_cargo(&bin, &log);
 
     let mut command = metadata_through(dir.path(), &bin);
-    // The wrapper named as the real Cargo, so every level runs it again.
+    // The wrapper named as the real Cargo, so every level runs it again. An
+    // inherited CARGO must not pass for a real Cargo below the proxy.
     command
         .env("CARGO_HOME", dir.path().join("cargo-home"))
-        .env("KACHE_REAL_CARGO", &stub);
+        .env("KACHE_REAL_CARGO", &stub)
+        .env("CARGO", env!("CARGO"));
     let output = output_within_ten_seconds(command);
 
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -1464,9 +1458,7 @@ fn cargo_proxy_reached_again_through_a_cargo_wrapper_stops_and_names_it() {
         stderr.contains(&format!("{KACHE_BIN} ran {}", stub.display())),
         "{stderr}"
     );
-    // Each level below the bound runs the wrapper twice, for `cargo -V` and
-    // for the command: 2 + 4 + 8.
-    assert_eq!(forwarded_calls(&log), 14, "{stderr}");
+    assert_eq!(forwarded_calls(&log), 3, "{stderr}");
 }
 
 #[test]
@@ -1495,8 +1487,8 @@ fn cargo_proxy_runs_cargo_from_its_home_before_a_cargo_wrapper_on_path() {
 }
 
 /// The shim a `cargo` wrapper led back to runs Cargo from Cargo's home
-/// directly, one level deeper: never the `cargo` on PATH, and never the
-/// enclosing build's `CARGO`.
+/// directly, one level deeper: never the `cargo` on PATH, and never `CARGO`.
+/// The chain names this test as the proxy above, with nothing between.
 #[test]
 fn cargo_shim_reentered_runs_cargo_from_its_home_one_level_deeper() {
     let dir = tempfile::tempdir().unwrap();
@@ -1516,16 +1508,21 @@ fn cargo_shim_reentered_runs_cargo_from_its_home_one_level_deeper() {
         "#!/bin/sh\nprintf '%s|%s' \"$KACHE_CARGO_PROXY_DEPTH\" \"$*\" > \"$SEEN\"\n",
     );
     let path = std::env::join_paths([&shims, &on_path]).unwrap();
+    let chain = format!("{} test ran /wrapper", std::process::id());
 
     let mut command = hermetic_command(shims.join("cargo"), &dir.path().join("cache"), None);
     let output = command
         .args(["build", "-q"])
+        .current_dir(dir.path())
         .env("PATH", &path)
         .env("CARGO_HOME", &cargo_home)
         .env("SEEN", &seen)
         .env("KACHE_LOG", "off")
         .env("KACHE_CARGO_PROXY_DEPTH", "1")
-        .env("CARGO", &enclosing)
+        .env("KACHE_CARGO_PROXY_CHAIN", &chain)
+        // Relative, so it shows no real Cargo ran; a route that used it would
+        // find the sentinel in the working directory.
+        .env("CARGO", "enclosing-cargo")
         .env_remove("KACHE_REAL_CARGO")
         .output()
         .unwrap();
@@ -1546,6 +1543,8 @@ fn cargo_shim_reentered_runs_cargo_from_its_home_one_level_deeper() {
         .env("CARGO_HOME", &cargo_home)
         .env("SEEN", dir.path().join("not-run"))
         .env("KACHE_CARGO_PROXY_DEPTH", "3")
+        .env("KACHE_CARGO_PROXY_CHAIN", &chain)
+        .env_remove("CARGO")
         .output()
         .unwrap();
     assert!(!refused.status.success());
@@ -1557,11 +1556,32 @@ fn cargo_shim_reentered_runs_cargo_from_its_home_one_level_deeper() {
     assert!(!dir.path().join("not-run").exists());
 }
 
-/// A proxied `cargo run` whose program runs `cargo build` through PATH: Cargo
-/// empties the marker for the program, so the nested `kache cargo` is a first
-/// entry with its own build-dir isolation, not a re-entry.
-#[test]
-fn cargo_proxy_nested_under_a_proxied_cargo_run_takes_the_ordinary_route() {
+/// How a program below a proxied Cargo comes to run `cargo build` through
+/// PATH, where `cargo` is `kache cargo`.
+#[derive(Clone, Copy, Debug)]
+enum Nesting {
+    /// `cargo run` of a binary.
+    Run,
+    /// A build script.
+    BuildScript,
+    /// An external `cargo-*` subcommand, which Cargo execs into.
+    Subcommand,
+}
+
+/// Run a proxied Cargo whose descendant, reached by `nesting`, runs a nested
+/// `cargo build` of a second workspace through PATH. Returns the proxy's
+/// output, the marker the descendant saw, the nested Cargo's log line
+/// (`depth|chain|arguments`), and the second workspace's root, inside the
+/// returned directory.
+fn nested_proxy_build(
+    nesting: Nesting,
+) -> (
+    tempfile::TempDir,
+    Output,
+    String,
+    Option<String>,
+    std::path::PathBuf,
+) {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
     let home = root.join("home");
@@ -1569,7 +1589,8 @@ fn cargo_proxy_nested_under_a_proxied_cargo_run_takes_the_ordinary_route() {
     let guest = root.join("guest");
     let path_bin = root.join("path-bin");
     let log = root.join("cargo-log");
-    let marker = root.join("program-marker");
+    let marker = root.join("descendant-marker");
+    let nested_target = root.join("nested-target");
     for path in [
         &home.join(".cargo"),
         &host.join("src"),
@@ -1584,39 +1605,73 @@ fn cargo_proxy_nested_under_a_proxied_cargo_run_takes_the_ordinary_route() {
     )
     .unwrap();
     std::fs::write(guest.join("src/lib.rs"), "").unwrap();
+    let nested_args = [
+        "build".to_string(),
+        "-q".into(),
+        "--manifest-path".into(),
+        guest.join("Cargo.toml").display().to_string(),
+        "--target-dir".into(),
+        nested_target.display().to_string(),
+    ];
+    // A build script stays a child of Cargo, so it hides CARGO and leaves
+    // the decision to the ancestry. `cargo run` and a subcommand replace the
+    // Cargo process; the CARGO Cargo sets there is what shows it ran.
+    let hide_cargo = matches!(nesting, Nesting::BuildScript);
+    let program = format!(
+        "fn main() {{\n    \
+             let marker = std::env::var(\"KACHE_CARGO_PROXY_DEPTH\").unwrap_or_default();\n    \
+             std::fs::write({marker:?}, marker).unwrap();\n    \
+             let mut nested = std::process::Command::new(\"cargo\");\n    \
+             nested.args({nested_args:?});\n    \
+             if {hide_cargo} {{ nested.env_remove(\"CARGO\"); }}\n    \
+             assert!(nested.status().unwrap().success(), \"nested cargo failed\");\n\
+         }}\n"
+    );
+    let (manifest_extra, outer) = match nesting {
+        Nesting::Run => {
+            std::fs::write(host.join("src/main.rs"), &program).unwrap();
+            ("", vec!["run", "-q"])
+        }
+        Nesting::BuildScript => {
+            std::fs::write(host.join("build.rs"), &program).unwrap();
+            std::fs::write(host.join("src/lib.rs"), "").unwrap();
+            ("build = \"build.rs\"\n", vec!["build", "-q"])
+        }
+        Nesting::Subcommand => {
+            std::fs::write(host.join("src/lib.rs"), "").unwrap();
+            kache_fs::testutil::write_executable(
+                &path_bin.join("cargo-envtest"),
+                format!(
+                    "#!/bin/sh\nprintf '%s' \"$KACHE_CARGO_PROXY_DEPTH\" > '{}'\nexec cargo {}\n",
+                    marker.display(),
+                    nested_args
+                        .iter()
+                        .map(|arg| format!("'{arg}'"))
+                        .collect::<Vec<_>>()
+                        .join(" "),
+                ),
+            );
+            ("", vec!["envtest"])
+        }
+    };
     std::fs::write(
         host.join("Cargo.toml"),
-        "[package]\nname = \"proxy_nested_host\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\n[workspace]\n",
-    )
-    .unwrap();
-    std::fs::write(
-        host.join("src/main.rs"),
         format!(
-            "fn main() {{\n    \
-                 let marker = std::env::var_os(\"KACHE_CARGO_PROXY_DEPTH\");\n    \
-                 std::fs::write({marker:?}, format!(\"{{marker:?}}\")).unwrap();\n    \
-                 let status = std::process::Command::new(\"cargo\")\n        \
-                     .args([\"build\", \"-q\", \"--manifest-path\", {manifest:?}])\n        \
-                     .status()\n        \
-                     .unwrap();\n    \
-                 assert!(status.success(), \"nested cargo failed\");\n\
-             }}\n",
-            manifest = guest.join("Cargo.toml"),
+            "[package]\nname = \"proxy_nested_host\"\nversion = \"0.1.0\"\nedition = \"2024\"\n{manifest_extra}\n[workspace]\n"
         ),
     )
     .unwrap();
-    // The real Cargo, logging the marker and arguments of every launch.
+    // The real Cargo, logging every launch.
     let real = root.join("logging-cargo");
     kache_fs::testutil::write_executable(
         &real,
         format!(
-            "#!/bin/sh\nprintf '%s|%s\\n' \"${{KACHE_CARGO_PROXY_DEPTH-unset}}\" \"$*\" >> '{}'\n\
+            "#!/bin/sh\nprintf '%s|%s|%s\\n' \"$KACHE_CARGO_PROXY_DEPTH\" \"$KACHE_CARGO_PROXY_CHAIN\" \"$*\" >> '{}'\n\
              exec '{}' \"$@\"\n",
             log.display(),
             env!("CARGO"),
         ),
     );
-    // `cargo` on PATH is `kache cargo`.
     kache_fs::testutil::write_executable(
         &path_bin.join("cargo"),
         format!("#!/bin/sh\nexec '{KACHE_BIN}' cargo -- \"$@\"\n"),
@@ -1631,41 +1686,65 @@ fn cargo_proxy_nested_under_a_proxied_cargo_run_takes_the_ordinary_route() {
     .unwrap();
 
     let mut command = proxied_cargo(&home, &root.join("cache"), &root.join("target"));
-    let output = command
-        .args(["cargo", "--", "run", "-q"])
+    command
+        .arg("cargo")
+        .arg("--")
+        .args(outer)
         .current_dir(&host)
         .env("PATH", path)
         .env("KACHE_REAL_CARGO", &real)
-        .env_remove("RUSTC_WRAPPER")
-        .output()
-        .unwrap();
+        // Inherited by the proxy, which removes it from what it starts.
+        .env("CARGO", env!("CARGO"))
+        .env_remove("RUSTC_WRAPPER");
+    let output = command.output().unwrap();
     let log = std::fs::read_to_string(&log).unwrap_or_default();
-    assert!(
-        output.status.success(),
-        "{}\n{log}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert_eq!(std::fs::read_to_string(&marker).unwrap(), "Some(\"\")");
+    let tail = nested_args.join(" ");
     let nested = log
         .lines()
-        .find(|line| {
-            line.ends_with(&format!(
-                "build -q --manifest-path {}",
-                guest.join("Cargo.toml").display()
-            ))
-        })
-        .unwrap_or_else(|| panic!("no nested build in:\n{log}"));
-    assert!(
-        nested.starts_with("1|"),
-        "nested build was a re-entry: {nested}"
-    );
-    assert!(
-        nested.contains("--config build.build-dir="),
-        "nested build lost build-dir isolation: {nested}"
-    );
-    assert!(
-        guest.join("target/debug/.fingerprint").is_dir(),
-        "the nested build's intermediates are not in its own worktree"
-    );
+        .find(|line| line.ends_with(&tail))
+        .map(str::to_owned);
+    let marker = std::fs::read_to_string(&marker).unwrap_or_default();
+    (dir, output, marker, nested, guest)
+}
+
+/// A program below a proxied Cargo that runs `cargo build` through PATH: the
+/// marker is still set there, but a real Cargo ran in between, so the nested
+/// `kache cargo` is a first entry with its own chain and build-dir isolation.
+#[test]
+fn cargo_proxy_nested_below_a_real_cargo_takes_the_ordinary_route() {
+    for nesting in [Nesting::Run, Nesting::BuildScript, Nesting::Subcommand] {
+        let (_dir, output, marker, nested, guest) = nested_proxy_build(nesting);
+        assert!(
+            output.status.success(),
+            "{nesting:?}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(
+            marker, "1",
+            "{nesting:?}: the descendant inherits the marker"
+        );
+        let nested = nested.unwrap_or_else(|| panic!("{nesting:?}: no nested build logged"));
+        let mut fields = nested.splitn(3, '|');
+        let (depth, chain, arguments) = (
+            fields.next().unwrap(),
+            fields.next().unwrap(),
+            fields.next().unwrap(),
+        );
+        assert_eq!(
+            depth, "1",
+            "{nesting:?}: nested build was a re-entry: {nested}"
+        );
+        assert!(
+            !chain.contains('\x1f'),
+            "{nesting:?}: the nested chain did not start fresh: {chain:?}"
+        );
+        assert!(
+            arguments.contains("--config build.build-dir="),
+            "{nesting:?}: nested build lost build-dir isolation: {nested}"
+        );
+        assert!(
+            guest.join("target/debug/.fingerprint").is_dir(),
+            "{nesting:?}: the nested build's intermediates are not in its own worktree"
+        );
+    }
 }

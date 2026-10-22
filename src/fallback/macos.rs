@@ -77,7 +77,7 @@ fn server_pid(port: u16) -> Option<i32> {
     sandbox::parse_pid(&text)
 }
 
-fn process_path(pid: i32) -> Option<PathBuf> {
+pub(crate) fn process_path(pid: i32) -> Option<PathBuf> {
     let mut buffer = [0u8; libc::PROC_PIDPATHINFO_MAXSIZE as usize];
     let length =
         unsafe { libc::proc_pidpath(pid, buffer.as_mut_ptr().cast(), buffer.len() as u32) };

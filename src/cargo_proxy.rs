@@ -92,6 +92,7 @@ enum PlanDecision {
 /// Cargo config implementation.
 pub(crate) fn run(cargo_args: Vec<OsString>) -> Result<()> {
     let level = ProxyLevel::current();
+    level.check(&argv0())?;
     if level.reentered() {
         return run_reentered(&cargo_args, &level);
     }
@@ -101,16 +102,14 @@ pub(crate) fn run(cargo_args: Vec<OsString>) -> Result<()> {
 /// Cargo reached through the `cargo` link in Kache's shim directory.
 pub(crate) fn run_shim(cargo_args: Vec<OsString>) -> Result<()> {
     let level = ProxyLevel::current();
+    level.check(&argv0())?;
     if level.reentered() {
         return run_reentered(&cargo_args, &level);
     }
     let cargo = real_cargo_program(CargoRoute::Shim)?;
     let mut command = Command::new(&cargo);
-    command.args(cargo_invocation_args(
-        &cargo_args,
-        &marker_reset_config(cargo_version(&cargo, &cargo_args, Path::new("."))),
-    ));
-    level.mark(&mut command, &argv0(), &cargo);
+    command.args(&cargo_args);
+    level.mark(&mut command, &argv0(), std::process::id(), &cargo);
     crate::target_seed::configure_cargo_seed(&mut command, &cargo_args, false);
     run_cargo_with_target_protection(command, &cargo)
 }
@@ -180,13 +179,12 @@ fn run_with_source(cargo_args: Vec<OsString>) -> Result<()> {
         }
     }
 
-    let version = cargo_version(&cargo, &cargo_args, &cwd);
-    let overrides = cargo_overrides(rustflags.as_deref(), isolate_build_dir, || version);
-    let mut config = marker_reset_config(version);
-    config.extend(overrides.config.iter().cloned());
+    let overrides = cargo_overrides(rustflags.as_deref(), isolate_build_dir, || {
+        cargo_version(&cargo, &cargo_args, &cwd)
+    });
     let mut command = Command::new(&cargo);
     command
-        .args(cargo_invocation_args(&cargo_args, &config))
+        .args(cargo_invocation_args(&cargo_args, &overrides.config))
         .current_dir(&cwd);
     mark_started_cargo(&mut command, &cargo);
     if let Some(flags) = &overrides.encoded_rustflags {
@@ -233,70 +231,172 @@ fn cargo_command_label<'a>(args: impl IntoIterator<Item = &'a OsStr>) -> String 
 }
 
 /// Set in the environment of every Cargo a proxy starts: how many proxies
-/// are above it. Cargo empties it for what it starts in turn
-/// ([`marker_reset_config`]), so only a proxy reached without a real Cargo
-/// in between finds it set.
+/// are above it in an unbroken run of `cargo` wrapper hops.
 const PROXY_DEPTH_ENV: &str = "KACHE_CARGO_PROXY_DEPTH";
-/// One `<argv[0]> ran <cargo>` entry per proxy above, joined by
-/// [`PROXY_CHAIN_SEPARATOR`], for the error that ends a loop.
+/// One `<pid> <argv[0]> ran <cargo>` entry per proxy in that run, joined by
+/// [`PROXY_CHAIN_SEPARATOR`]: the pid bounds the ancestry walk, the Cargo
+/// path is never taken for a real Cargo, and the whole chain names the loop.
 const PROXY_CHAIN_ENV: &str = "KACHE_CARGO_PROXY_CHAIN";
 const PROXY_CHAIN_SEPARATOR: &str = "\x1f";
-/// `cargo` wrapper hops back to a proxy that are still tolerated. A wrapper
-/// that forwards to Kache re-enters on every hop; Cargo nested under a real
-/// Cargo starts again from zero.
+/// Every proxy above this one, wrapper hops and legitimate nesting alike.
+/// Never reset, so a loop the depth cannot see still ends.
+const PROXY_NESTING_ENV: &str = "KACHE_CARGO_PROXY_NESTING";
+/// `cargo` wrapper hops back to a proxy that are still tolerated.
 const MAX_PROXY_DEPTH: u32 = 2;
+/// Proxies tolerated above this one in all.
+const MAX_PROXY_NESTING: u32 = 16;
+/// Ancestors walked before the walk counts as failed.
+const MAX_ANCESTORS: usize = 1024;
 
 /// Where this proxy sits in a chain of proxies, from its environment.
 #[derive(Debug, Default, PartialEq, Eq)]
 struct ProxyLevel {
-    /// Proxies above this one. Zero when no proxy started this process's
-    /// Cargo tree.
+    /// Proxies above this one with only `cargo` wrappers in between. Zero
+    /// for a first entry, including one a real Cargo started below another
+    /// proxy.
     depth: u32,
     chain: Vec<String>,
+    /// Proxies above this one in all.
+    nesting: u32,
 }
 
 impl ProxyLevel {
+    /// The chain from the environment, unless a real Cargo ran between its
+    /// newest proxy and this process: then this is a first entry.
     fn current() -> Self {
-        Self::from_env(
+        let level = Self::from_env(
             std::env::var_os(PROXY_DEPTH_ENV).as_deref(),
             std::env::var_os(PROXY_CHAIN_ENV).as_deref(),
-        )
+            std::env::var_os(PROXY_NESTING_ENV).as_deref(),
+        );
+        let kache = kache_identity();
+        if level.reentered()
+            && level.reached_through_cargo(
+                std::process::id(),
+                crate::process_ancestry::process,
+                std::env::var_os("CARGO").as_deref(),
+                |path| is_kache(path, kache.as_deref()),
+            )
+        {
+            return Self::first(level.nesting);
+        }
+        level
     }
 
-    /// An empty depth is Cargo's reset (see [`marker_reset_config`]) and
-    /// means no proxy; an unreadable one still means a proxy set it.
-    fn from_env(depth: Option<&OsStr>, chain: Option<&OsStr>) -> Self {
-        let Some(depth) = depth.filter(|depth| !depth.is_empty()) else {
-            return Self::default();
+    fn first(nesting: u32) -> Self {
+        Self {
+            nesting,
+            ..Self::default()
+        }
+    }
+
+    /// Empty values count as unset; an unreadable depth still means a proxy
+    /// set it.
+    fn from_env(depth: Option<&OsStr>, chain: Option<&OsStr>, nesting: Option<&OsStr>) -> Self {
+        let number = |value: Option<&OsStr>| {
+            value
+                .filter(|value| !value.is_empty())
+                .map(|value| value.to_str().and_then(|v| v.parse().ok()).unwrap_or(1))
+        };
+        let nesting = number(nesting).unwrap_or(0);
+        let Some(depth) = number(depth) else {
+            return Self::first(nesting);
         };
         let chain = chain.map(OsStr::to_string_lossy).unwrap_or_default();
         Self {
-            depth: depth.to_str().and_then(|d| d.parse().ok()).unwrap_or(1),
+            depth,
             chain: chain
                 .split(PROXY_CHAIN_SEPARATOR)
                 .filter(|entry| !entry.is_empty())
                 .map(str::to_owned)
                 .collect(),
+            nesting,
         }
     }
 
-    /// Reached from a proxy without a real Cargo in between, which empties
-    /// the marker for everything it starts: a `cargo` wrapper led back here.
+    /// Reached from a proxy with nothing but `cargo` wrappers in between.
     fn reentered(&self) -> bool {
         self.depth > 0
     }
 
-    /// Mark `command`, which runs `cargo`, as started by this proxy.
-    fn mark(&self, command: &mut Command, argv0: &str, cargo: &Path) {
-        let mut chain = self.chain.clone();
-        chain.push(format!("{argv0} ran {}", cargo.display()));
-        command
-            .env(PROXY_DEPTH_ENV, self.depth.saturating_add(1).to_string())
-            .env(PROXY_CHAIN_ENV, chain.join(PROXY_CHAIN_SEPARATOR));
+    /// Whether a real Cargo ran between the chain's newest proxy and process
+    /// `pid`: one is among its ancestors through `process`, or `cargo`, the
+    /// process's `CARGO`, is set. Every proxy removes `CARGO` from what it
+    /// starts, and Cargo sets it for everything it starts, including the
+    /// `cargo run` programs and `cargo-*` subcommands it execs into, which
+    /// leave no Cargo among the ancestors. Where the ancestry cannot be
+    /// read, `CARGO` decides alone.
+    fn reached_through_cargo(
+        &self,
+        pid: u32,
+        process: impl Fn(u32) -> Option<(u32, Option<PathBuf>)>,
+        cargo: Option<&OsStr>,
+        is_kache: impl Fn(&Path) -> bool,
+    ) -> bool {
+        let cargo_set = cargo.is_some_and(|cargo| {
+            let path = Path::new(cargo);
+            path.is_absolute() && !is_kache(path)
+        });
+        cargo_set || self.between(pid, process, &is_kache) == Between::Cargo
     }
 
-    /// Refuse past [`MAX_PROXY_DEPTH`], naming every hop of the loop.
+    /// Whether a real Cargo is an ancestor of `pid` up to the newest proxy in
+    /// the chain, or anywhere above when that proxy is no longer an ancestor.
+    /// A real Cargo is an executable named `cargo` that is neither kache nor
+    /// a program the chain ran as Cargo: a wrapper script shows its
+    /// interpreter, and the rustup launcher becomes the toolchain's Cargo.
+    fn between(
+        &self,
+        pid: u32,
+        process: impl Fn(u32) -> Option<(u32, Option<PathBuf>)>,
+        is_kache: impl Fn(&Path) -> bool,
+    ) -> Between {
+        let proxy = self
+            .chain
+            .last()
+            .and_then(|entry| entry.split_once(' ')?.0.parse().ok());
+        let ran: Vec<PathBuf> = self
+            .chain
+            .iter()
+            .filter_map(|entry| Path::new(entry.split_once(" ran ")?.1).canonicalize().ok())
+            .collect();
+        between(pid, proxy, process, |executable| {
+            executable.canonicalize().is_ok_and(|executable| {
+                executable
+                    .file_name()
+                    .is_some_and(|name| name == "cargo" || name.eq_ignore_ascii_case("cargo.exe"))
+                    && !is_kache(&executable)
+                    && !ran.contains(&executable)
+            })
+        })
+    }
+
+    /// Mark `command`, which runs `cargo`, as started by this proxy, process
+    /// `pid`. `CARGO` is removed, so a `CARGO` below was set by a real Cargo.
+    fn mark(&self, command: &mut Command, argv0: &str, pid: u32, cargo: &Path) {
+        let mut chain = self.chain.clone();
+        chain.push(format!("{pid} {argv0} ran {}", cargo.display()));
+        command
+            .env(PROXY_DEPTH_ENV, self.depth.saturating_add(1).to_string())
+            .env(PROXY_CHAIN_ENV, chain.join(PROXY_CHAIN_SEPARATOR))
+            .env(
+                PROXY_NESTING_ENV,
+                self.nesting.saturating_add(1).to_string(),
+            )
+            .env_remove("CARGO");
+    }
+
+    /// Refuse past [`MAX_PROXY_DEPTH`] wrapper hops, naming every hop of the
+    /// loop, or past [`MAX_PROXY_NESTING`] proxies in all.
     fn check(&self, argv0: &str) -> Result<()> {
+        if self.nesting > MAX_PROXY_NESTING {
+            bail!(
+                "kache's cargo proxy is nested {nesting} deep ({PROXY_NESTING_ENV}={nesting}, \
+                 limit {MAX_PROXY_NESTING}): something keeps starting it again.{hops}",
+                nesting = self.nesting,
+                hops = self.hops(argv0, "refused"),
+            );
+        }
         if self.depth <= MAX_PROXY_DEPTH {
             return Ok(());
         }
@@ -316,29 +416,55 @@ impl ProxyLevel {
         for entry in &self.chain {
             hops.push_str(&format!("\n  {entry}"));
         }
-        hops.push_str(&format!("\n  {argv0} {outcome}"));
+        hops.push_str(&format!("\n  {} {argv0} {outcome}", std::process::id()));
         hops
     }
 }
 
-/// `--config` values that make Cargo empty the proxy marker in everything
-/// it starts, so a proxy reached through Cargo is a first entry again. `force`
-/// is needed because the marker is already set in Cargo's own environment.
-/// Cargo before 1.63, or one whose version is unknown, rejects `--config`;
-/// its descendants keep the marker.
-fn marker_reset_config(version: Option<CargoVersion>) -> Vec<String> {
-    if !cargo_at_least(version, CONFIG_ARGUMENT_CARGO) {
-        return Vec::new();
+/// What lies between a process and the proxy above it.
+#[derive(Debug, PartialEq, Eq)]
+enum Between {
+    /// A real Cargo.
+    Cargo,
+    /// Only processes that are not Cargo.
+    NoCargo,
+    /// The ancestry could not be read.
+    Unknown,
+}
+
+/// Walk the parents of `pid` through `process` up to and including `proxy`,
+/// or to the top of the tree when `proxy` is not among them, and report
+/// whether `is_cargo` holds for any executable on the way. `proxy` counts
+/// because a proxy that execs becomes the Cargo it ran; when `proxy` is `pid`
+/// itself, wrappers exec'd their way back and nothing lies between.
+fn between(
+    pid: u32,
+    proxy: Option<u32>,
+    process: impl Fn(u32) -> Option<(u32, Option<PathBuf>)>,
+    is_cargo: impl Fn(&Path) -> bool,
+) -> Between {
+    if proxy == Some(pid) {
+        return Between::NoCargo;
     }
-    [PROXY_DEPTH_ENV, PROXY_CHAIN_ENV]
-        .iter()
-        .flat_map(|name| {
-            [
-                format!("env.{name}.value=\"\""),
-                format!("env.{name}.force=true"),
-            ]
-        })
-        .collect()
+    let Some((mut ancestor, _)) = process(pid) else {
+        return Between::Unknown;
+    };
+    for _ in 0..MAX_ANCESTORS {
+        if ancestor == 0 {
+            return Between::NoCargo;
+        }
+        let Some((parent, executable)) = process(ancestor) else {
+            return Between::Unknown;
+        };
+        if executable.as_deref().is_some_and(&is_cargo) {
+            return Between::Cargo;
+        }
+        if Some(ancestor) == proxy || ancestor == 1 {
+            return Between::NoCargo;
+        }
+        ancestor = parent;
+    }
+    Between::Unknown
 }
 
 /// How this process was started, for [`ProxyLevel`]'s chain.
@@ -353,16 +479,14 @@ fn argv0() -> String {
 /// Mark `command`, which runs `cargo`, as started from this process, so a
 /// `cargo` wrapper it reaches cannot bring the proxy back for long.
 pub(crate) fn mark_started_cargo(command: &mut Command, cargo: &Path) {
-    ProxyLevel::current().mark(command, &argv0(), cargo);
+    ProxyLevel::current().mark(command, &argv0(), std::process::id(), cargo);
 }
 
 /// Run Cargo for a proxy that a `cargo` wrapper led back to. Nothing that
 /// could start the wrapper again runs first: no PATH lookup, no config
-/// inspection, no target protection. Cargo still empties the marker for what
-/// it starts.
+/// inspection, no target protection.
 fn run_reentered(cargo_args: &[OsString], level: &ProxyLevel) -> Result<()> {
     let argv0 = argv0();
-    level.check(&argv0)?;
     let cargo = real_cargo_program(CargoRoute::Reentered).with_context(|| {
         format!(
             "kache's cargo proxy was reached through a `cargo` wrapper:{}",
@@ -370,11 +494,8 @@ fn run_reentered(cargo_args: &[OsString], level: &ProxyLevel) -> Result<()> {
         )
     })?;
     let mut command = Command::new(&cargo);
-    command.args(cargo_invocation_args(
-        cargo_args,
-        &marker_reset_config(cargo_version(&cargo, cargo_args, Path::new("."))),
-    ));
-    level.mark(&mut command, &argv0, &cargo);
+    command.args(cargo_args);
+    level.mark(&mut command, &argv0, std::process::id(), &cargo);
     exec_cargo(command, &cargo)
 }
 
@@ -505,8 +626,6 @@ pub(crate) fn real_cargo_program(route: CargoRoute) -> Result<PathBuf> {
 }
 
 /// A command that runs the real Cargo for `route`, marked as started here.
-/// Cargo's `[env]` reset is left out: it needs `--config`, which Cargo before
-/// 1.63 rejects, and these commands start nothing but Cargo itself.
 pub(crate) fn cargo_command(route: CargoRoute) -> Result<Command> {
     let cargo = real_cargo_program(route)?;
     let mut command = Command::new(&cargo);
@@ -1015,17 +1134,11 @@ fn cargo_at_least(version: Option<CargoVersion>, minimum: CargoVersion) -> bool 
 /// launcher and toolchain selector.
 fn cargo_version(cargo: &Path, cargo_args: &[OsString], cwd: &Path) -> Option<CargoVersion> {
     let (selector, _) = split_toolchain_selector(cargo_args);
-    let mut args = selector.to_vec();
-    args.push("-V".into());
     let mut command = Command::new(cargo);
     mark_started_cargo(&mut command, cargo);
-    // A Cargo that rejects `--config` fails here. Its version is then
-    // unknown, which every caller treats as too old for `--config` anyway.
     let output = command
-        .args(cargo_invocation_args(
-            &args,
-            &marker_reset_config(Some(CONFIG_ARGUMENT_CARGO)),
-        ))
+        .args(selector)
+        .arg("-V")
         .current_dir(cwd)
         .stdin(Stdio::null())
         .stderr(Stdio::null())
@@ -2306,108 +2419,267 @@ mod tests {
 
     #[test]
     fn a_proxy_without_the_marker_is_the_first() {
-        let level = ProxyLevel::from_env(None, Some(OsStr::new("stale")));
+        let level = ProxyLevel::from_env(None, Some(OsStr::new("stale")), None);
         assert_eq!(level, ProxyLevel::default());
         assert!(!level.reentered());
     }
 
     #[test]
-    fn the_marker_carries_depth_and_chain() {
-        let level = ProxyLevel::from_env(Some(OsStr::new("2")), Some(OsStr::new("a\x1fb")));
+    fn the_marker_carries_depth_chain_and_nesting() {
+        let level = ProxyLevel::from_env(
+            Some(OsStr::new("2")),
+            Some(OsStr::new("a\x1fb")),
+            Some(OsStr::new("5")),
+        );
         assert_eq!(level.depth, 2);
         assert_eq!(level.chain, ["a", "b"]);
+        assert_eq!(level.nesting, 5);
         assert!(level.reentered());
+        // Nesting outlives a reset chain.
+        assert_eq!(
+            ProxyLevel::from_env(None, None, Some(OsStr::new("4"))),
+            ProxyLevel::first(4)
+        );
     }
 
     #[test]
     fn an_unreadable_marker_still_means_reentry() {
-        let level = ProxyLevel::from_env(Some(OsStr::new("x")), None);
+        let level = ProxyLevel::from_env(Some(OsStr::new("x")), None, Some(OsStr::new("y")));
         assert_eq!(level.depth, 1);
+        assert_eq!(level.nesting, 1);
         assert!(level.chain.is_empty());
     }
 
-    fn marker(command: &Command, name: &str) -> Option<String> {
+    #[test]
+    fn an_empty_marker_is_no_marker() {
+        let level = ProxyLevel::from_env(Some(OsStr::new("")), Some(OsStr::new("")), None);
+        assert_eq!(level, ProxyLevel::default());
+    }
+
+    fn marker(command: &Command, name: &str) -> Option<Option<String>> {
         command
             .get_envs()
             .find(|(key, _)| *key == name)
-            .and_then(|(_, value)| value)
-            .map(|value| value.to_string_lossy().into_owned())
+            .map(|(_, value)| value.map(|value| value.to_string_lossy().into_owned()))
     }
 
     #[test]
-    fn a_started_cargo_is_one_level_deeper() {
+    fn a_started_cargo_is_one_level_deeper_without_cargo() {
         let mut first = Command::new("cargo");
-        ProxyLevel::default().mark(&mut first, "/bin/kache", Path::new("/c"));
-        assert_eq!(marker(&first, PROXY_DEPTH_ENV).as_deref(), Some("1"));
+        ProxyLevel::first(3).mark(&mut first, "/bin/kache", 41, Path::new("/c"));
+        assert_eq!(marker(&first, PROXY_DEPTH_ENV), Some(Some("1".into())));
         assert_eq!(
-            marker(&first, PROXY_CHAIN_ENV).as_deref(),
-            Some("/bin/kache ran /c")
+            marker(&first, PROXY_CHAIN_ENV),
+            Some(Some("41 /bin/kache ran /c".into()))
         );
+        assert_eq!(marker(&first, PROXY_NESTING_ENV), Some(Some("4".into())));
+        assert_eq!(marker(&first, "CARGO"), Some(None), "CARGO is removed");
 
         let level = ProxyLevel {
             depth: 2,
             chain: vec!["a".into(), "b".into()],
+            nesting: 7,
         };
         let mut nested = Command::new("cargo");
-        level.mark(&mut nested, "/bin/kache", Path::new("/c"));
-        assert_eq!(marker(&nested, PROXY_DEPTH_ENV).as_deref(), Some("3"));
+        level.mark(&mut nested, "/bin/kache", 42, Path::new("/c"));
+        assert_eq!(marker(&nested, PROXY_DEPTH_ENV), Some(Some("3".into())));
         assert_eq!(
-            marker(&nested, PROXY_CHAIN_ENV).as_deref(),
-            Some("a\x1fb\x1f/bin/kache ran /c")
+            marker(&nested, PROXY_CHAIN_ENV),
+            Some(Some("a\x1fb\x1f42 /bin/kache ran /c".into()))
         );
+        assert_eq!(marker(&nested, PROXY_NESTING_ENV), Some(Some("8".into())));
+    }
+
+    #[test]
+    fn nesting_past_its_bound_is_refused_even_for_a_first_entry() {
+        assert!(ProxyLevel::first(16).check("k").is_ok());
+        let error = ProxyLevel::first(17).check("k").unwrap_err().to_string();
+        assert!(error.contains("KACHE_CARGO_PROXY_NESTING=17"), "{error}");
     }
 
     #[test]
     fn depth_past_the_bound_is_refused_with_the_chain() {
         let at_bound = ProxyLevel {
             depth: 2,
-            chain: vec!["a ran w".into(), "b ran w".into()],
+            chain: vec!["1 a ran w".into(), "2 b ran w".into()],
+            ..ProxyLevel::default()
         };
         assert!(at_bound.check("k").is_ok());
 
         let past = ProxyLevel {
             depth: 3,
-            chain: vec!["a ran w".into(), "b ran w".into(), "c ran w".into()],
+            chain: vec!["1 a ran w".into(), "2 b ran w".into(), "3 c ran w".into()],
+            ..ProxyLevel::default()
         };
         let error = past.check("/bin/kache").unwrap_err().to_string();
         assert!(error.contains("KACHE_CARGO_PROXY_DEPTH=3"), "{error}");
-        assert!(
-            error.contains("\n  a ran w\n  b ran w\n  c ran w\n  /bin/kache refused"),
-            "{error}"
+        let hops = format!(
+            "\n  1 a ran w\n  2 b ran w\n  3 c ran w\n  {} /bin/kache refused",
+            std::process::id()
         );
+        assert!(error.contains(&hops), "{error}");
+    }
+
+    /// `(pid, (parent, executable))` rows standing in for the process table.
+    fn table(rows: &[(u32, u32, &str)]) -> impl Fn(u32) -> Option<(u32, Option<PathBuf>)> {
+        let rows: std::collections::HashMap<u32, (u32, Option<PathBuf>)> = rows
+            .iter()
+            .map(|&(pid, parent, exe)| (pid, (parent, (!exe.is_empty()).then(|| exe.into()))))
+            .collect();
+        move |pid| rows.get(&pid).cloned()
+    }
+
+    fn named_cargo(path: &Path) -> bool {
+        path.file_name().is_some_and(|name| name == "cargo")
     }
 
     #[test]
-    fn an_emptied_marker_is_no_marker() {
-        let level = ProxyLevel::from_env(Some(OsStr::new("")), Some(OsStr::new("")));
-        assert_eq!(level, ProxyLevel::default());
-        assert!(!level.reentered());
-    }
-
-    #[test]
-    fn cargo_that_takes_config_empties_the_marker_for_what_it_starts() {
+    fn ancestry_between_a_proxy_and_its_descendant() {
+        // 10 is the new proxy, 7 the proxy in the chain.
+        let wrapper_only = table(&[
+            (10, 9, "/k"),
+            (9, 7, "/bin/sh"),
+            (7, 1, "/k"),
+            (1, 0, "/init"),
+        ]);
         assert_eq!(
-            marker_reset_config(Some((1, 63))),
-            [
-                "env.KACHE_CARGO_PROXY_DEPTH.value=\"\"",
-                "env.KACHE_CARGO_PROXY_DEPTH.force=true",
-                "env.KACHE_CARGO_PROXY_CHAIN.value=\"\"",
-                "env.KACHE_CARGO_PROXY_CHAIN.force=true",
-            ]
+            between(10, Some(7), &wrapper_only, named_cargo),
+            Between::NoCargo
         );
-        assert!(marker_reset_config(Some((1, 62))).is_empty());
-        assert!(marker_reset_config(None).is_empty());
+
+        let build_script = table(&[
+            (10, 9, "/k"),
+            (9, 8, "/t/build-script-build"),
+            (8, 7, "/t/cargo"),
+            (7, 1, "/k"),
+        ]);
+        assert_eq!(
+            between(10, Some(7), &build_script, named_cargo),
+            Between::Cargo
+        );
+
+        // A proxy that execs becomes the Cargo it ran.
+        let execed = table(&[(10, 9, "/k"), (9, 7, "/bin/sh"), (7, 1, "/t/cargo")]);
+        assert_eq!(between(10, Some(7), &execed, named_cargo), Between::Cargo);
+
+        // Nothing above the chain's proxy counts while it is an ancestor.
+        let above = table(&[(10, 7, "/k"), (7, 6, "/k"), (6, 1, "/t/cargo")]);
+        assert_eq!(between(10, Some(7), &above, named_cargo), Between::NoCargo);
+        // Once it is not, the walk goes to the top.
+        assert_eq!(between(10, Some(99), &above, named_cargo), Between::Cargo);
+        assert_eq!(
+            between(10, None, &wrapper_only, named_cargo),
+            Between::NoCargo
+        );
+
+        // An unreadable executable is not Cargo; an unreadable process ends the walk.
+        let hidden = table(&[(10, 9, "/k"), (9, 7, ""), (7, 1, "/k")]);
+        assert_eq!(between(10, Some(7), &hidden, named_cargo), Between::NoCargo);
+        let gone = table(&[(10, 9, "/k")]);
+        assert_eq!(between(10, Some(7), &gone, named_cargo), Between::Unknown);
+        assert_eq!(
+            between(10, Some(7), table(&[]), named_cargo),
+            Between::Unknown
+        );
+
+        let orphan = table(&[(10, 0, "/k")]);
+        assert_eq!(between(10, Some(7), &orphan, named_cargo), Between::NoCargo);
+        let cycle = table(&[(10, 9, "/k"), (9, 8, "/bin/sh"), (8, 9, "/bin/sh")]);
+        assert_eq!(between(10, Some(7), &cycle, named_cargo), Between::Unknown);
+    }
+
+    #[test]
+    fn a_real_cargo_is_named_cargo_and_is_neither_kache_nor_a_program_the_chain_ran() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().canonicalize().unwrap();
+        let toolchain = root.join("toolchain/cargo");
+        let wrapper = root.join("wrapper/cargo");
+        let kache = root.join("kache/cargo");
+        let other = root.join("toolchain/cargo-nextest");
+        for path in [&toolchain, &wrapper, &kache, &other] {
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, "").unwrap();
+        }
+        let level = ProxyLevel {
+            depth: 1,
+            chain: vec![format!("7 /k ran {}", wrapper.display())],
+            ..ProxyLevel::default()
+        };
+        let under = |exe: &Path| {
+            let rows = [(10, 9, "/k"), (9, 7, exe.to_str().unwrap()), (7, 1, "/k")];
+            level.between(10, table(&rows), |path| path == kache)
+        };
+        assert_eq!(under(&toolchain), Between::Cargo);
+        assert_eq!(under(&wrapper), Between::NoCargo);
+        assert_eq!(under(&kache), Between::NoCargo);
+        assert_eq!(under(&other), Between::NoCargo);
+    }
+
+    #[test]
+    fn without_ancestry_a_set_cargo_decides() {
+        let level = ProxyLevel {
+            depth: 1,
+            chain: vec!["7 /k ran /w".into()],
+            nesting: 1,
+        };
+        let unavailable = |_| None;
+        let not_kache = |_: &Path| false;
+        let toolchain = absolute("toolchain-cargo");
+        assert!(level.reached_through_cargo(
+            10,
+            unavailable,
+            Some(toolchain.as_os_str()),
+            not_kache
+        ));
+        assert!(!level.reached_through_cargo(10, unavailable, None, not_kache));
+        assert!(!level.reached_through_cargo(
+            10,
+            unavailable,
+            Some(OsStr::new("cargo")),
+            not_kache
+        ));
+        assert!(
+            !level.reached_through_cargo(10, unavailable, Some(toolchain.as_os_str()), |_| true)
+        );
+    }
+
+    #[test]
+    fn readable_ancestry_with_a_cargo_decides_without_cargo() {
+        let dir = tempfile::tempdir().unwrap();
+        let cargo = dir.path().join("cargo");
+        std::fs::write(&cargo, "").unwrap();
+        let level = ProxyLevel {
+            depth: 1,
+            chain: vec!["7 /k ran /w".into()],
+            nesting: 1,
+        };
+        let rows = [(10, 9, "/k"), (9, 7, cargo.to_str().unwrap()), (7, 1, "/k")];
+        assert!(level.reached_through_cargo(10, table(&rows), None, |_| false));
+        let no_cargo = [(10, 9, "/k"), (9, 7, "/bin/sh"), (7, 1, "/k")];
+        assert!(!level.reached_through_cargo(10, table(&no_cargo), None, |_| false));
+    }
+
+    #[test]
+    fn a_proxy_that_is_the_newest_in_its_chain_has_nothing_between() {
+        // Wrappers exec'd from proxy 10 back into kache as process 10; a Cargo
+        // above it does not count.
+        let rows = table(&[(10, 6, "/k"), (6, 1, "/t/cargo")]);
+        assert_eq!(between(10, Some(10), &rows, named_cargo), Between::NoCargo);
     }
 
     #[test]
     fn hops_end_with_this_proxy_and_what_it_did() {
         let level = ProxyLevel {
             depth: 1,
-            chain: vec!["a ran w".into()],
+            chain: vec!["7 a ran w".into()],
+            ..ProxyLevel::default()
         };
         assert_eq!(
             level.hops("/bin/kache", "found no Cargo outside PATH"),
-            "\n  a ran w\n  /bin/kache found no Cargo outside PATH"
+            format!(
+                "\n  7 a ran w\n  {} /bin/kache found no Cargo outside PATH",
+                std::process::id()
+            )
         );
     }
 
