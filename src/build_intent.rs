@@ -431,12 +431,14 @@ fn run_bounded(
             }
         }
     };
+    // A refusal below decides before anything about the output does: every
+    // other failure lets discovery try the next candidate.
+    if status.code() == Some(crate::cargo_proxy::PROXY_REFUSED_EXIT) {
+        return Err(DiscoveryFailure::ProxyRefused);
+    }
     match received {
         Ok((_, true)) => Err(DiscoveryFailure::TooLarge),
         Ok((kept, false)) if status.success() => Ok(kept),
-        _ if status.code() == Some(crate::cargo_proxy::PROXY_REFUSED_EXIT) => {
-            Err(DiscoveryFailure::ProxyRefused)
-        }
         _ => Err(DiscoveryFailure::Exit),
     }
 }
@@ -1241,6 +1243,34 @@ printf '{"workspace_root":"%s/project","packages":[{"name":"%s"}]}' "$CLIENT_ROO
             &format!(
                 "echo x >> '{}'\nexit {}",
                 log.display(),
+                crate::cargo_proxy::PROXY_REFUSED_EXIT
+            ),
+        );
+
+        let result = discover_workspace(
+            Some(cargo.as_os_str()),
+            soon(10_000),
+            None,
+            Some(first.path()),
+            Some(second.path()),
+        );
+        assert_eq!(result.err(), Some(DiscoveryFailure::ProxyRefused));
+        assert_eq!(calls(&log), 1, "discovery ran Cargo again after a refusal");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_refused_proxy_that_floods_stdout_still_ends_discovery() {
+        let (first, second) = two_manifest_dirs();
+        let bin = tempfile::tempdir().unwrap();
+        let log = bin.path().join("calls");
+        // Past METADATA_OUTPUT_CAP, then the refused status.
+        let cargo = fake_cargo(
+            bin.path(),
+            &format!(
+                "echo x >> '{}'\nhead -c {} /dev/zero\nexit {}",
+                log.display(),
+                METADATA_OUTPUT_CAP + 1,
                 crate::cargo_proxy::PROXY_REFUSED_EXIT
             ),
         );
