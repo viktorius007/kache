@@ -12,8 +12,6 @@ That is fmt, clippy `-D warnings`, and the workspace tests. Do not open the PR u
 
 Every check runs on your own machine; this fork does not use GitHub Actions. Before merging into `patched`, run `just pr`: it is `just check` plus `just mutants-diff` over your changed lines, the same scope upstream's CI would run. A 16-core Linux box finishes the mutation lane in well under an hour; a red run prints the missed mutants, so add the test that kills each one and rerun. Windows is not part of the gate: check it only when a change is being prepared for an upstream pull request, with `build-cycle-standard/kit/check-windows-cross.sh` (a local cross-compile that needs `mingw-w64`); macOS is checked with `just check` on a Mac.
 
-On the owner's Linux host the global Cargo configuration (shared build directory, kache as rustc-wrapper, shims first on PATH) leaks into this suite's fixture builds and fails 18 integration binaries. Run the suite with `CARGO_HOME=/home/agent/.cargo-clean RUSTUP_TOOLCHAIN=1.99.1 RUSTC_WRAPPER=` and `~/.local/lib/kache/shims` removed from PATH (`~/.cargo-clean` is a config-free home whose registry, git and bin link to `~/.cargo`). `cargo mutants` there: `--baseline skip` only while a flaky test remains, and never `-- --skip` (a custom harness rejects it).
-
 For the mutation lane:
 
 ```sh
