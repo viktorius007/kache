@@ -725,6 +725,8 @@ fn test_rust_compile_with_failed_strip_is_not_stored() {
         .env("RUSTC", &fake_rustc)
         .env("RUSTC_WRAPPER", kache_binary())
         .env("CARGO_TARGET_DIR", target_dir.path())
+        // Reset intermediate freshness together with the final artifacts.
+        .env("CARGO_BUILD_BUILD_DIR", target_dir.path().join("build"))
         .env("CARGO_INCREMENTAL", "0")
         .env("KACHE_MIN_STORE_COMPILE_MS", "0")
         .output()
