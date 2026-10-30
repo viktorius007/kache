@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+"""Exercise the sync workflow with local Git remotes and no compiler/install."""
+from pathlib import Path
+import shutil
+import subprocess
+import tempfile
+import unittest
+
+SCRIPT = Path(__file__).with_name("sync-patched")
+
+
+class SyncTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="kache-sync-test-")
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.upstream = self.root / "upstream"
+        self.fork = self.root / "fork.git"
+        self.work = self.root / "work"
+        self.git(self.root, "init", "--bare", str(self.fork))
+        self.git(self.root, "init", "--initial-branch=main", str(self.upstream))
+        self.identity(self.upstream)
+        (self.upstream / "shared").write_text("base\n")
+        self.commit(self.upstream, "base")
+        self.git(self.root, "clone", str(self.upstream), str(self.work))
+        self.identity(self.work)
+        self.git(self.work, "switch", "-c", "patched")
+        self.git(self.work, "remote", "rename", "origin", "upstream")
+        self.git(self.work, "remote", "add", "origin", str(self.fork))
+        (self.work / "local").mkdir()
+        shutil.copy2(SCRIPT, self.work / "local/sync-patched")
+        (self.work / "local-fix").write_text("keep this closed-PR fix\n")
+        self.commit(self.work, "local fix and sync tool")
+        self.git(self.work, "push", "origin", "patched")
+
+    def git(self, cwd, *args):
+        return subprocess.check_output(["git", *args], cwd=cwd, text=True, stderr=subprocess.DEVNULL).strip()
+
+    def identity(self, cwd):
+        self.git(cwd, "config", "user.name", "Sync test")
+        self.git(cwd, "config", "user.email", "sync-test@example.invalid")
+        self.git(cwd, "config", "core.hooksPath", "/dev/null")
+
+    def commit(self, cwd, message):
+        self.git(cwd, "add", ".")
+        self.git(cwd, "commit", "-m", message)
+
+    def sync(self, *args):
+        return subprocess.run([str(self.work / "local/sync-patched"), "--no-check", "--no-install", *args],
+                              cwd=self.work, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    def test_merge_preserves_local_fixes_pushes_without_extra_worktrees_and_is_repeatable(self):
+        (self.upstream / "upstream-fix").write_text("new upstream fix\n")
+        self.commit(self.upstream, "upstream fix")
+        before = self.git(self.work, "rev-parse", "HEAD")
+        result = self.sync("--push")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        head = self.git(self.work, "rev-parse", "HEAD")
+        self.assertNotEqual(head, before)
+        self.assertEqual((self.work / "local-fix").read_text(), "keep this closed-PR fix\n")
+        self.assertEqual((self.work / "upstream-fix").read_text(), "new upstream fix\n")
+        self.assertEqual(self.git(self.fork, "rev-parse", "patched"), head)
+        self.assertEqual(self.git(self.work, "stash", "list"), "")
+        self.assertEqual(self.git(self.work, "worktree", "list", "--porcelain").count("worktree "), 1)
+        result = self.sync("--push")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertEqual(self.git(self.work, "rev-parse", "HEAD"), head)
+
+    def test_conflict_remains_visible_and_no_fix_is_skipped(self):
+        (self.work / "shared").write_text("local behavior\n")
+        self.commit(self.work, "local change")
+        (self.upstream / "shared").write_text("upstream behavior\n")
+        self.commit(self.upstream, "upstream change")
+        result = self.sync()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("shared", self.git(self.work, "diff", "--name-only", "--diff-filter=U"))
+        self.git(self.work, "rev-parse", "MERGE_HEAD")
+        self.assertEqual(self.git(self.work, "stash", "list"), "")
+
+    def test_build_directory_is_removed_after_success_and_failed_validation(self):
+        tools = self.root / "tools"
+        builds = self.root / "builds"
+        tools.mkdir()
+        builds.mkdir()
+        programs = {
+            "rustup": "from pathlib import Path; import sys; print(Path(__file__).with_name(sys.argv[2]))",
+            "just": "from pathlib import Path; import os; p=Path(os.environ['CARGO_TARGET_DIR']); p.mkdir(); (p/'partial').write_text('build output'); raise SystemExit(int(os.environ['SYNC_TEST_EXIT']))",
+        }
+        for name, body in programs.items():
+            path = tools / name
+            path.write_text("#!/usr/bin/env python3\n" + body + "\n")
+            path.chmod(0o755)
+        import os
+        env = os.environ.copy()
+        env.update(PATH=str(tools) + os.pathsep + env["PATH"], KACHE_SYNC_BUILD_ROOT=str(builds))
+        for status in [0, 17]:
+            env["SYNC_TEST_EXIT"] = str(status)
+            result = subprocess.run([str(self.work / "local/sync-patched"), "--no-sync", "--no-install"],
+                cwd=self.work, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            self.assertEqual(result.returncode == 0, status == 0, result.stdout)
+            self.assertEqual(list(builds.iterdir()), [])
+
+    def test_dirty_tree_is_preserved_without_stashing(self):
+        (self.work / "uncommitted").write_text("keep me\n")
+        head = self.git(self.work, "rev-parse", "HEAD")
+        result = self.sync()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual((self.work / "uncommitted").read_text(), "keep me\n")
+        self.assertEqual(self.git(self.work, "rev-parse", "HEAD"), head)
+        self.assertEqual(self.git(self.work, "stash", "list"), "")
+
+
+if __name__ == "__main__":
+    unittest.main()

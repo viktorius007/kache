@@ -1,0 +1,19 @@
+{
+  "source_commit": "ac3207476f12edf774a1dd62a693464425621fb7",
+  "upstream_commit": "94c6307fdf972ddcf3181f44f043fc169d88803a",
+  "local_fixes_through": "cfe0204ad9c411e81dcfb7ea9eb63cc432482421",
+  "version": "2.0.0-rc.4+patched.ac3207476f12",
+  "sha256": {
+    "kache": "50858bbbea1f5a92b6811d47bbded425c7f45fc3e9b471bf6e8c42d2e9e59a08",
+    "kache-engine": "c484707031872ce664c683e6d0e33bc5ba399c4f756e99bdd47ca1b429b9c7fb"
+  },
+  "validation": {
+    "just_check": "passed",
+    "doctor_issues": 0,
+    "cache_probe": "passed",
+    "cargo_rebuild": {
+      "miss": 1,
+      "local_hit": 1
+    }
+  }
+}

@@ -1,4 +1,0 @@
-# PRs left out of the patched build: upstream replaced each with its own reworked
-# commit, so the original only conflicts with it. Remove a line once the PR closes.
-1513  # landed as #1627 (4df16c07)
-1534  # landed as #1612 (f74e5acf)
