@@ -2460,6 +2460,57 @@ fn deferred_durability_is_on_unless_switched_off() {
 }
 
 #[test]
+fn out_dir_alias_root_follows_invocation_file_and_ignore_env() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    let load = |vars: Vec<(&str, &str)>, file: &str| {
+        let invocation =
+            InvocationEnv::from_parts(vars, Some(root.to_owned()), None, root.to_owned());
+        Config::load_resolved_for(&invocation, toml::from_str(file).map_err(Into::into))
+    };
+    assert_eq!(load(vec![], "").unwrap().out_dir_alias_root, None);
+    let from_file = root.join("file-alias");
+    let from_env = root.join("env-alias");
+    let file = format!(
+        "[cache]\nout_dir_alias_root = {:?}\n",
+        from_file.to_str().unwrap()
+    );
+    assert_eq!(
+        load(vec![], &file).unwrap().out_dir_alias_root,
+        Some(from_file.clone())
+    );
+    let vars = vec![("KACHE_OUT_DIR_ALIAS_ROOT", from_env.to_str().unwrap())];
+    assert_eq!(
+        load(vars.clone(), &file).unwrap().out_dir_alias_root,
+        Some(from_env.clone())
+    );
+    let ignored = format!("{file}ignore_env = true\n");
+    assert_eq!(
+        load(vars, &ignored).unwrap().out_dir_alias_root,
+        Some(from_file)
+    );
+    assert_eq!(
+        load(vec![("KACHE_OUT_DIR_ALIAS_ROOT", "")], &file)
+            .unwrap()
+            .out_dir_alias_root,
+        None
+    );
+    for file in ["[cache]\nout_dir_alias_root = 'relative'\n", ""] {
+        let vars = if file.is_empty() {
+            vec![("KACHE_OUT_DIR_ALIAS_ROOT", "relative")]
+        } else {
+            vec![]
+        };
+        assert!(
+            load(vars, file)
+                .unwrap_err()
+                .to_string()
+                .contains("out_dir_alias_root must be an absolute path")
+        );
+    }
+}
+
+#[test]
 fn out_dir_alias_setting_is_on_unless_switched_off() {
     assert!(out_dir_alias_setting(None, None));
     assert!(out_dir_alias_setting(None, Some(true)));
@@ -2563,6 +2614,138 @@ fn daemon_publish_is_on_unless_switched_off() {
 }
 
 #[test]
+fn daemon_execution_concurrency_respects_environment_file_and_automatic_mode() {
+    let root = tempfile::tempdir().unwrap();
+    let file = |text| Ok(toml::from_str::<FileConfig>(text).unwrap());
+    let invocation = |value: Option<&str>| {
+        InvocationEnv::from_parts(
+            value
+                .into_iter()
+                .map(|value| ("KACHE_DAEMON_EXECUTION_CONCURRENCY", value))
+                .chain(std::iter::once((
+                    "KACHE_CACHE_DIR",
+                    root.path().to_str().unwrap(),
+                ))),
+            Some(root.path().to_owned()),
+            None,
+            root.path().to_owned(),
+        )
+    };
+    for (text, expected) in [
+        ("", None),
+        ("[cache]\ndaemon_execution_concurrency = 0", None),
+        ("[cache]\ndaemon_execution_concurrency = 24", Some(24)),
+        ("[cache]\ndaemon_execution_concurrency = 1024", Some(1024)),
+    ] {
+        assert_eq!(
+            Config::daemon_execution_concurrency_for(&invocation(None), &file(text)).unwrap(),
+            expected
+        );
+        assert_eq!(
+            Config::load_resolved_for(&invocation(None), file(text))
+                .unwrap()
+                .daemon_execution_concurrency,
+            expected,
+        );
+        for (value, expected) in [("0", None), ("1", Some(1)), ("1024", Some(1024))] {
+            assert_eq!(
+                Config::daemon_execution_concurrency_for(&invocation(Some(value)), &file(text))
+                    .unwrap(),
+                expected
+            );
+        }
+        for value in ["", "-1", "1.5", "auto", "invalid", "18446744073709551616"] {
+            assert!(
+                Config::daemon_execution_concurrency_for(&invocation(Some(value)), &file(text))
+                    .is_err()
+            );
+        }
+    }
+    assert_eq!(
+        Config::daemon_execution_concurrency_for(
+            &invocation(Some("invalid")),
+            &file("[cache]\nignore_env = true\ndaemon_execution_concurrency = 64")
+        )
+        .unwrap(),
+        Some(64)
+    );
+    let maximum = (usize::MAX >> 5).to_string();
+    assert_eq!(
+        Config::daemon_execution_concurrency_for(&invocation(Some(&maximum)), &file("")).unwrap(),
+        maximum.parse::<usize>().ok()
+    );
+    let too_large = ((usize::MAX >> 5) + 1).to_string();
+    assert!(
+        Config::daemon_execution_concurrency_for(&invocation(Some(&too_large)), &file("")).is_err()
+    );
+    assert!(
+        Config::daemon_execution_concurrency_for(
+            &invocation(None),
+            &file(&format!(
+                "[cache]\ndaemon_execution_concurrency = {too_large}"
+            ))
+        )
+        .is_err()
+    );
+    assert_eq!(
+        Config::daemon_execution_concurrency_for(
+            &invocation(None),
+            &Err(anyhow::anyhow!("no file"))
+        )
+        .unwrap(),
+        None
+    );
+}
+
+#[test]
+fn trusted_daemon_execution_requires_an_explicit_setting() {
+    let file = |text| Ok(toml::from_str::<FileConfig>(text).unwrap());
+    let invocation = |value: Option<&str>| {
+        InvocationEnv::from_parts(
+            value
+                .into_iter()
+                .map(|value| ("KACHE_TRUST_DAEMON_EXECUTION", value)),
+            None,
+            None,
+            std::env::temp_dir(),
+        )
+    };
+    for (text, expected) in [
+        ("", false),
+        ("[cache]\ntrust_daemon_execution = false", false),
+        ("[cache]\ntrust_daemon_execution = true", true),
+    ] {
+        assert_eq!(
+            Config::trust_daemon_execution_for(&invocation(None), &file(text)),
+            expected
+        );
+        for (value, expected) in [
+            ("1", true),
+            ("true", true),
+            ("TRUE", true),
+            ("0", false),
+            ("false", false),
+            ("yes", false),
+            ("", false),
+        ] {
+            assert_eq!(
+                Config::trust_daemon_execution_for(&invocation(Some(value)), &file(text)),
+                expected,
+                "{text:?} {value:?}"
+            );
+        }
+    }
+    assert!(!Config::trust_daemon_execution_for(
+        &invocation(Some("1")),
+        &file("[cache]\nignore_env = true")
+    ));
+    assert!(Config::trust_daemon_execution_for(
+        &invocation(Some("0")),
+        &file("[cache]\nignore_env = true\ntrust_daemon_execution = true")
+    ));
+}
+
+#[test]
 fn shared_hardlink_restores_are_off_unless_switched_on() {
     let _lock = config_path_lock();
     let none: Result<FileConfig> = Err(anyhow::anyhow!("no file"));
@@ -2620,6 +2803,7 @@ fn test_file_config_roundtrip() {
         paths: None,
         workspace: None,
         cache: Some(CacheFileConfig {
+            blaze: None,
             readonly_store: None,
             bypass_env: None,
             bypass_argv: None,
@@ -2634,8 +2818,11 @@ fn test_file_config_roundtrip() {
             shared_hardlink_restores: None,
             deferred_discovery: None,
             out_dir_alias: None,
+            out_dir_alias_root: None,
             deferred_durability: None,
             daemon_publish: None,
+            trust_daemon_execution: None,
+            daemon_execution_concurrency: None,
             auto_gc: None,
             index_auto_compact: None,
             auto_clean_orphaned_targets: None,
@@ -3273,6 +3460,7 @@ fn test_env_overrides_detect() {
 #[test]
 fn test_config_store_dir() {
     let config = Config {
+        blaze: false,
         readonly_store: None,
         fallback: None,
         key_salt: None,
@@ -3288,8 +3476,11 @@ fn test_config_store_dir() {
         shared_hardlink_restores: false,
         deferred_discovery: true,
         out_dir_alias: true,
+        out_dir_alias_root: None,
         deferred_durability: false,
         daemon_publish: false,
+        trust_daemon_execution: false,
+        daemon_execution_concurrency: None,
         project_rules: ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
@@ -3356,6 +3547,7 @@ fn test_config_store_dir() {
 #[test]
 fn test_config_index_db_path() {
     let config = Config {
+        blaze: false,
         readonly_store: None,
         fallback: None,
         key_salt: None,
@@ -3371,8 +3563,11 @@ fn test_config_index_db_path() {
         shared_hardlink_restores: false,
         deferred_discovery: true,
         out_dir_alias: true,
+        out_dir_alias_root: None,
         deferred_durability: false,
         daemon_publish: false,
+        trust_daemon_execution: false,
+        daemon_execution_concurrency: None,
         project_rules: ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
@@ -3435,6 +3630,7 @@ fn test_config_index_db_path() {
 #[test]
 fn test_config_event_log_path() {
     let config = Config {
+        blaze: false,
         readonly_store: None,
         fallback: None,
         key_salt: None,
@@ -3450,8 +3646,11 @@ fn test_config_event_log_path() {
         shared_hardlink_restores: false,
         deferred_discovery: true,
         out_dir_alias: true,
+        out_dir_alias_root: None,
         deferred_durability: false,
         daemon_publish: false,
+        trust_daemon_execution: false,
+        daemon_execution_concurrency: None,
         project_rules: ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
@@ -3533,6 +3732,7 @@ fn test_config_socket_path() {
     let _lock = config_path_lock();
     let _env_guard = set_env_for_test("KACHE_SOCKET_PATH", None);
     let config = Config {
+        blaze: false,
         readonly_store: None,
         fallback: None,
         key_salt: None,
@@ -3548,8 +3748,11 @@ fn test_config_socket_path() {
         shared_hardlink_restores: false,
         deferred_discovery: true,
         out_dir_alias: true,
+        out_dir_alias_root: None,
         deferred_durability: false,
         daemon_publish: false,
+        trust_daemon_execution: false,
+        daemon_execution_concurrency: None,
         project_rules: ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
@@ -4269,6 +4472,7 @@ fn test_save_and_load_file_config() {
         paths: None,
         workspace: None,
         cache: Some(CacheFileConfig {
+            blaze: None,
             readonly_store: None,
             bypass_env: None,
             bypass_argv: None,
@@ -4283,8 +4487,11 @@ fn test_save_and_load_file_config() {
             shared_hardlink_restores: None,
             deferred_discovery: None,
             out_dir_alias: None,
+            out_dir_alias_root: None,
             deferred_durability: None,
             daemon_publish: None,
+            trust_daemon_execution: None,
+            daemon_execution_concurrency: None,
             auto_gc: None,
             index_auto_compact: None,
             auto_clean_orphaned_targets: None,
@@ -5868,4 +6075,34 @@ fn the_default_floor_is_ten_gib_and_the_user_file_never_a_project_one() {
     assert_eq!(user_config_path(), chosen);
     let _unset = set_env_for_test("KACHE_CONFIG", None);
     assert_eq!(user_config_path(), config_file_path());
+}
+#[test]
+fn blaze_requires_explicit_opt_in_and_honors_the_selected_file() {
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join(".kache.toml");
+    let load = |extra: &[(&str, &str)]| {
+        let mut vars = vec![
+            (
+                "KACHE_CONFIG".to_owned(),
+                path.to_string_lossy().into_owned(),
+            ),
+            ("KACHE_HOST_CONFIG".into(), String::new()),
+        ];
+        vars.extend(extra.iter().map(|(k, v)| (k.to_string(), v.to_string())));
+        let env = InvocationEnv::from_parts(
+            vars,
+            Some(root.path().into()),
+            Some(root.path().into()),
+            root.path().into(),
+        );
+        Config::load_for(&env).unwrap().blaze
+    };
+    std::fs::write(&path, "[cache]\nunstable=true\n").unwrap();
+    assert!(!load(&[]));
+    assert!(load(&[("KACHE_BLAZE", "true")]));
+    std::fs::write(&path, "[cache]\nblaze=true\n").unwrap();
+    assert!(load(&[]));
+    assert!(!load(&[("KACHE_BLAZE", "0")]));
+    std::fs::write(&path, "[cache]\nblaze=true\nignore_env=true\n").unwrap();
+    assert!(load(&[("KACHE_BLAZE", "false")]));
 }

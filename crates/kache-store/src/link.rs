@@ -308,6 +308,11 @@ fn try_hard_link(src: &Path, dst: &Path) -> std::io::Result<()> {
     if let Some(kind) = injected_restore_hardlink_error() {
         return Err(std::io::Error::new(kind, "injected hardlink failure"));
     }
+    if let Some(result) =
+        crate::workspace::dispatch(crate::workspace::Operation::Hardlink(src, dst))
+    {
+        return result;
+    }
     fs::hard_link(src, dst)
 }
 
@@ -412,7 +417,9 @@ pub(crate) fn warn_hardlink_fallback_once(
 ///   only while the blob has no existing consumer. Later restores use private
 ///   copies so their required mtime stamp cannot mutate a still-linked artifact
 ///   another process is reading (#794). This is for immutable artifacts like
-///   `.rlib` / `.rmeta` where the build won't modify the content in place.
+///   `.rlib` / object files where the build won't modify the content in place.
+/// - `WritableCopy`: use a private stage with compiler-style creation permissions.
+///   Rust metadata may be rewritten by `cargo fix` without the wrapper.
 /// - `Copy`: fall back to a plain byte copy (independent file). For
 ///   executables, dylibs, and proc-macros that may be mutated post-build
 ///   (codesigning, stripping, etc.).
@@ -425,8 +432,26 @@ pub(crate) fn warn_hardlink_fallback_once(
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LinkStrategy {
     Hardlink,
+    WritableCopy,
     Copy,
     ExecutableHardlink,
+}
+
+#[cfg(not(windows))]
+fn remove_restore_file(path: &Path) -> std::io::Result<()> {
+    if let Some(result) = crate::workspace::dispatch(crate::workspace::Operation::Remove(path)) {
+        return result;
+    }
+    fs::remove_file(path)
+}
+
+fn create_restore_directories(path: &Path) -> std::io::Result<()> {
+    if let Some(result) =
+        crate::workspace::dispatch(crate::workspace::Operation::CreateDirectories(path))
+    {
+        return result;
+    }
+    fs::create_dir_all(path)
 }
 
 /// Link a cached file to the target output path.
@@ -451,6 +476,24 @@ fn link_to_target_via(
     )
     .then(kache_fs::executable_admission::materialize);
     let do_link = || -> Result<()> {
+        if strategy == LinkStrategy::WritableCopy {
+            // Create the private stage before cloning so the destination's
+            // umask and inherited ACLs determine its permissions.
+            let prepared = if crate::workspace::current().is_some() {
+                prepare_writable_target_from_file(store_path, target_path)?
+            } else {
+                prepare_writable_target_from_file_via(
+                    store_path,
+                    target_path,
+                    |_, _| Err(std::io::ErrorKind::Unsupported.into()),
+                    |source, target| reflink(source, target).map_err(std::io::Error::other),
+                )?
+            };
+            #[cfg(windows)]
+            clear_target(target_path)?;
+            return prepared.publish_replacing();
+        }
+
         // Remove existing file at target (link/clone calls fail if dst exists).
         clear_target(target_path)?;
 
@@ -466,12 +509,11 @@ fn link_to_target_via(
         // block-clone" from "this one file couldn't be cloned" (#508).
         let reflink_err = match reflink(store_path, target_path) {
             Ok(()) => {
-                match strategy {
-                    LinkStrategy::Hardlink => set_owner_write_permission(target_path)?,
+                if strategy == LinkStrategy::Hardlink {
+                    set_owner_write_permission(target_path)?;
+                } else {
                     // Executables and loadable libraries also need execute bits.
-                    LinkStrategy::Copy | LinkStrategy::ExecutableHardlink => {
-                        set_executable_permissions(target_path)?
-                    }
+                    set_executable_permissions(target_path)?;
                 }
                 tracing::debug!(
                     "reflinked {} -> {}",
@@ -487,57 +529,37 @@ fn link_to_target_via(
         let _ = &reflink_err;
 
         // Reflink unsupported on this filesystem — strategy-specific fallback.
-        match strategy {
-            // Windows has no reflink on NTFS, so the Hardlink strategy would
-            // hardlink the read-only store blob. NTFS stores FILE_ATTRIBUTE_READONLY
-            // in the shared MFT record, so EVERY hardlink to a read-only blob is
-            // itself read-only — and Windows refuses to delete or rewrite a
-            // read-only file (WinError 5). A consumer that owns its output and
-            // deletes/rewrites it — e.g. mozbuild's configure `ar_supports_response_files`
-            // conftest (#429) — then breaks. There is no way on NTFS to give a
-            // hardlink a different read-only state than its blob, so restore via an
-            // independent COPY instead: the output is writable and deletable while
-            // the store blob stays read-only (integrity preserved). This mirrors
-            // `write_restored`, already the proven-safe independent-file path, and
-            // costs only working-tree↔store block sharing (LRU is index-based, not
-            // mtime-based, so eviction is unaffected). gnu/clang restores keep
-            // hardlinking — reflink/hardlink there are writable or CoW-isolated.
+        if strategy == LinkStrategy::Hardlink {
+            // NTFS shares the read-only attribute across hardlinks. Unless the
+            // caller opted in, give its build a writable independent file.
             #[cfg(windows)]
-            LinkStrategy::Hardlink => {
+            {
                 if windows_hardlink_enabled() {
-                    // Opt-in (#429 / `[cache] windows_hardlink`): the caller accepts
-                    // that this build never deletes/rewrites a restored object, so
-                    // trade the read-only-output risk for working-tree dedup.
-                    hardlink_or_copy(store_path, target_path, bytes)
-                } else {
-                    copy_file(store_path, target_path, false)?;
-                    warn_no_cow_restore_once(store_path, target_path, bytes, &reflink_err, true);
-                    crate::opcounts::record_copied(bytes);
-                    Ok(())
+                    return hardlink_or_copy(store_path, target_path, bytes);
                 }
+                copy_file(store_path, target_path, false)?;
+                warn_no_cow_restore_once(store_path, target_path, bytes, &reflink_err, true);
+                crate::opcounts::record_copied(bytes);
+                return Ok(());
             }
             #[cfg(not(windows))]
-            LinkStrategy::Hardlink => hardlink_or_copy(store_path, target_path, bytes),
-            // Share the inode only when the blob can already run as it is: a
-            // chmod on the link would change the blob too.
-            #[cfg(unix)]
-            LinkStrategy::ExecutableHardlink
-                if executable_blob_is_shareable(blob_mode(store_path)) =>
-            {
-                executable_hardlink_or_copy(store_path, target_path, bytes)
-            }
-            LinkStrategy::Copy | LinkStrategy::ExecutableHardlink => {
-                // Copying here is by design (executables/dylibs may be mutated after
-                // the build), so no storage-layout advice — but a large artifact that
-                // failed to block-clone on a CoW volume is still a real fault and is
-                // reported rather than swallowed.
-                copy_file(store_path, target_path, true)?;
-                #[cfg(windows)]
-                warn_no_cow_restore_once(store_path, target_path, bytes, &reflink_err, false);
-                crate::opcounts::record_copied(bytes);
-                Ok(())
-            }
+            return hardlink_or_copy(store_path, target_path, bytes);
         }
+        // Share the inode only when the blob can already run as it is:
+        // changing permissions on the link would change the blob too.
+        #[cfg(unix)]
+        if strategy == LinkStrategy::ExecutableHardlink
+            && executable_blob_is_shareable(blob_mode(store_path))
+        {
+            return executable_hardlink_or_copy(store_path, target_path, bytes);
+        }
+        // Executables and dylibs may change after the build. A large artifact
+        // that failed to clone on a CoW volume still needs a fault report.
+        copy_file(store_path, target_path, true)?;
+        #[cfg(windows)]
+        warn_no_cow_restore_once(store_path, target_path, bytes, &reflink_err, false);
+        crate::opcounts::record_copied(bytes);
+        Ok(())
     };
 
     let mut err = match do_link() {
@@ -550,7 +572,7 @@ fn link_to_target_via(
             .is_some_and(|io| io.kind() == std::io::ErrorKind::NotFound)
     }) && let Some(parent) = target_path.parent()
     {
-        fs::create_dir_all(parent)
+        create_restore_directories(parent)
             .with_context(|| format!("creating parent dir for {}", target_path.display()))?;
         if let Err(e) = do_link() {
             err = e;
@@ -689,7 +711,7 @@ fn hardlink_or_copy_with_prelink_hook(
                     store_path.display(),
                     target_path.display()
                 );
-                fs::remove_file(target_path).with_context(|| {
+                remove_restore_file(target_path).with_context(|| {
                     format!(
                         "removing non-exclusive hardlink at {}",
                         target_path.display()
@@ -1117,6 +1139,18 @@ fn windows_volume_root(path: &Path) -> Option<String> {
     Some(String::from_utf16_lossy(&root[..len]))
 }
 
+fn writable_mode(permissions: &fs::Permissions) -> u32 {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        permissions.mode() & 0o777
+    }
+    #[cfg(windows)]
+    {
+        if permissions.readonly() { 0o444 } else { 0o644 }
+    }
+}
+
 /// Grant owner write access on an independent restore, retaining other bits.
 /// Call only after the target is known to have its own inode.
 fn set_owner_write_permission(path: &Path) -> Result<()> {
@@ -1128,32 +1162,52 @@ fn set_owner_write_permission(path: &Path) -> Result<()> {
     }
     #[cfg(not(unix))]
     permissions.set_readonly(false);
+    if let Some(result) = crate::workspace::dispatch(crate::workspace::Operation::Permissions(
+        path,
+        writable_mode(&permissions),
+    )) {
+        return result.map_err(Into::into);
+    }
     fs::set_permissions(path, permissions)
         .with_context(|| format!("setting owner write permission on {}", path.display()))
 }
 
-/// Set 0o755 after an executable/dylib reflink. Reflink preserves the store
-/// blob's read-only mode, but runtime-loaded artifacts must be executable.
+/// Restore writable executable permissions on a private clone.
+/// Never call this on a hardlink.
 fn set_executable_permissions(path: &Path) -> Result<()> {
+    if let Some(result) =
+        crate::workspace::dispatch(crate::workspace::Operation::Permissions(path, 0o755))
+    {
+        return result.map_err(Into::into);
+    }
     kache_fs::set_writable_permissions(path, true)
         .with_context(|| format!("setting executable permissions on {}", path.display()))
 }
 
 /// Clone a file using the shared filesystem implementation.
 pub fn try_reflink(src: &Path, dst: &Path) -> Result<()> {
+    if let Some(result) = crate::workspace::dispatch(crate::workspace::Operation::Reflink(src, dst))
+    {
+        return result.map_err(Into::into);
+    }
     kache_fs::try_reflink(src, dst).map_err(Into::into)
 }
 
 /// Regular file copy with appropriate permissions.
 /// `executable`: if true, sets 0o755 (rwxr-xr-x); otherwise 0o644 (rw-r--r--).
 fn copy_file(src: &Path, dst: &Path, executable: bool) -> Result<()> {
+    if let Some(result) =
+        crate::workspace::dispatch(crate::workspace::Operation::Copy(src, dst, executable))
+    {
+        return result.map_err(Into::into);
+    }
     kache_fs::copy_writable(src, dst, executable)
         .with_context(|| format!("copying {} to {}", src.display(), dst.display()))?;
     tracing::debug!("copied {} -> {}", src.display(), dst.display());
     Ok(())
 }
 
-/// A fully-written C/C++ cache artifact awaiting publication.
+/// A fully-written cache artifact awaiting publication.
 ///
 /// The staging file is created in the target directory with the same requested
 /// mode as a compiler output (`0666`). The kernel therefore applies the current
@@ -1161,7 +1215,7 @@ fn copy_file(src: &Path, dst: &Path, executable: bool) -> Result<()> {
 /// No metadata operation is performed through the final pathname.
 ///
 /// When the filesystem can share extents, the cached bytes are cloned into that
-/// stage (or onto a new file in the same directory that then takes the stage's
+/// stage (or inside a private sibling directory before taking the stage's
 /// mode). The clone has its own inode. A hardlink of the blob is discarded and
 /// the bytes are copied instead, so a later rewrite cannot change the cache.
 pub struct PreparedWritableTarget {
@@ -1175,12 +1229,14 @@ pub struct PreparedWritableTarget {
 enum WritableStage {
     Staged(kache_fs::StagedFile),
     Cloned(ClonedFile),
+    Client(crate::workspace::Prepared),
 }
 
 /// A clone created under a temporary name. Dropping an unpublished clone
 /// removes that name and leaves the cache blob alone.
 struct ClonedFile {
     path: PathBuf,
+    _directory: tempfile::TempDir,
 }
 
 impl Drop for ClonedFile {
@@ -1220,6 +1276,7 @@ impl PreparedWritableTarget {
             reflinked,
         } = self;
         match stage {
+            WritableStage::Client(stage) => stage.publish(false)?,
             WritableStage::Staged(staged) => staged.publish_new(&target).with_context(|| {
                 format!(
                     "publishing cc output without replacing {}",
@@ -1241,9 +1298,9 @@ impl PreparedWritableTarget {
 
     /// Atomically replace an existing ordinary compiler output.
     ///
-    /// The caller must first establish that the target is a private, writable
-    /// regular file. Special paths retain the no-clobber path above and are
-    /// handled by the selected compiler instead.
+    /// The caller owns the destination entry and must allow its replacement.
+    /// Publication replaces the entry without changing the old file's inode.
+    /// C/C++ callers leave special paths to the selected compiler instead.
     pub fn publish_replacing(self) -> Result<()> {
         let PreparedWritableTarget {
             stage,
@@ -1253,6 +1310,7 @@ impl PreparedWritableTarget {
             reflinked,
         } = self;
         match stage {
+            WritableStage::Client(stage) => stage.publish(true)?,
             WritableStage::Staged(staged) => staged
                 .replace(&target)
                 .with_context(|| format!("publishing cc output over {}", target.display()))?,
@@ -1290,6 +1348,19 @@ pub fn prepare_writable_target_from_file(
     src: &Path,
     target: &Path,
 ) -> Result<PreparedWritableTarget> {
+    if let Some(owner) = crate::workspace::current() {
+        let (stage, bytes, reflinked) = crate::workspace::Prepared::new(
+            owner,
+            crate::workspace::Operation::PrepareFile(src, target),
+        )?;
+        return Ok(PreparedWritableTarget {
+            stage: WritableStage::Client(stage),
+            target: target.to_path_buf(),
+            bytes,
+            source: Some(src.to_path_buf()),
+            reflinked,
+        });
+    }
     prepare_writable_target_from_file_via(
         src,
         target,
@@ -1302,7 +1373,7 @@ fn prepare_writable_target_from_file_via(
     src: &Path,
     target: &Path,
     clone_into: fn(&Path, &fs::File) -> std::io::Result<()>,
-    clone_new: fn(&Path, &Path) -> std::io::Result<()>,
+    clone_new: impl Fn(&Path, &Path) -> std::io::Result<()>,
 ) -> Result<PreparedWritableTarget> {
     let bytes = fs::metadata(src)
         .with_context(|| format!("reading cached cc artifact {}", src.display()))?
@@ -1317,8 +1388,7 @@ fn prepare_writable_target_from_file_via(
             .metadata()
             .with_context(|| format!("reading restore stage mode for {}", target.display()))?
             .permissions();
-        if let Err(error) = fs::set_permissions(&cloned, permissions) {
-            let _ = fs::remove_file(&cloned);
+        if let Err(error) = fs::set_permissions(&cloned.path, permissions) {
             tracing::debug!(
                 %error,
                 "cloned cc output kept the blob mode, restoring by copy: {} -> {}",
@@ -1327,7 +1397,7 @@ fn prepare_writable_target_from_file_via(
             );
         } else {
             return Ok(PreparedWritableTarget {
-                stage: WritableStage::Cloned(ClonedFile { path: cloned }),
+                stage: WritableStage::Cloned(cloned),
                 target: target.to_path_buf(),
                 bytes,
                 source: Some(src.to_path_buf()),
@@ -1371,20 +1441,30 @@ fn prepared_reflink(
     }
 }
 
-/// Clone `src` to a new file in `target`'s directory.
+/// Clone `src` inside a private directory beside `target`.
+/// The clone stays inaccessible until its destination permissions are applied.
 ///
 /// `None` means the caller should copy. A clone that shares `src`'s inode is
 /// removed when it is an extra name, and is not returned.
 fn private_clone_file(
     src: &Path,
     target: &Path,
-    clone_new: fn(&Path, &Path) -> std::io::Result<()>,
-) -> Result<Option<PathBuf>> {
-    let parent = stage_parent(target);
+    clone_new: impl Fn(&Path, &Path) -> std::io::Result<()>,
+) -> Result<Option<ClonedFile>> {
+    let Ok(directory) =
+        kache_fs::private_clone_directory(src, stage_parent(target), ".kache-cc-clone-")
+    else {
+        return Ok(None);
+    };
     for _ in 0..8 {
-        let dest = temp_clone_path(parent);
+        let dest = temp_clone_path(directory.path());
         match clone_new(src, &dest) {
-            Ok(()) => return Ok(accepted_private_clone(src, &dest)),
+            Ok(()) => {
+                return Ok(accepted_private_clone(src, &dest).map(|path| ClonedFile {
+                    path,
+                    _directory: directory,
+                }));
+            }
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
             Err(_) => return Ok(None),
         }
@@ -1398,9 +1478,9 @@ fn accepted_private_clone(src: &Path, dest: &Path) -> Option<PathBuf> {
         return None;
     };
     let Ok(src_meta) = fs::metadata(src) else {
-        // The clone moved the blob onto `dest`. Put that name back so the
-        // copy still has a source. Deleting `dest` would drop the only copy.
-        let _ = fs::rename(dest, src);
+        // Recover the source name without replacing a publisher that won
+        // after the metadata probe. Its inode may already be durable.
+        recover_vanished_blob(src, dest);
         return None;
     };
     if !same_file(&src_meta, &dst_meta) {
@@ -1415,6 +1495,18 @@ fn accepted_private_clone(src: &Path, dest: &Path) -> Option<PathBuf> {
         dest.display()
     );
     None
+}
+
+fn recover_vanished_blob(src: &Path, dest: &Path) {
+    match fs::hard_link(dest, src) {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+        Err(error) => {
+            tracing::debug!("could not recover vanished blob {}: {error}", src.display());
+            return;
+        }
+    }
+    let _ = fs::remove_file(dest);
 }
 
 fn rewind_stage(staged: &mut kache_fs::StagedFile) -> std::io::Result<()> {
@@ -1465,11 +1557,24 @@ fn link_count(meta: &fs::Metadata) -> u64 {
     }
 }
 
-/// Prepare transformed C/C++ bytes with the same absent-only guarantee.
+/// Prepare transformed bytes with the same absent-only guarantee.
 pub fn prepare_writable_target_from_bytes(
     target: &Path,
     content: &[u8],
 ) -> Result<PreparedWritableTarget> {
+    if let Some(owner) = crate::workspace::current() {
+        let (stage, bytes, reflinked) = crate::workspace::Prepared::new(
+            owner,
+            crate::workspace::Operation::PrepareBytes(target, content),
+        )?;
+        return Ok(PreparedWritableTarget {
+            stage: WritableStage::Client(stage),
+            target: target.to_path_buf(),
+            bytes,
+            source: None,
+            reflinked,
+        });
+    }
     use std::io::Write;
 
     let mut staged = new_writable_staging_file(target)?;
@@ -1490,6 +1595,14 @@ pub fn prepare_writable_target_from_bytes(
 /// write can take its place. A previous restore may have left a
 /// read-only hardlink or reflink of a store blob here.
 fn clear_target(target_path: &Path) -> Result<()> {
+    if let Some(result) =
+        crate::workspace::dispatch(crate::workspace::Operation::Remove(target_path))
+    {
+        return match result {
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+            result => result.map_err(Into::into),
+        };
+    }
     if target_path.exists() || target_path.symlink_metadata().is_ok() {
         #[cfg(windows)]
         if let Ok(meta) = fs::metadata(target_path) {
@@ -1520,6 +1633,27 @@ fn clear_target(target_path: &Path) -> Result<()> {
 /// holds no matter which path materializes the file — including a future
 /// content transform applied to an executable artifact (issue #298).
 pub fn write_restored(target_path: &Path, content: &[u8], strategy: LinkStrategy) -> Result<()> {
+    if strategy == LinkStrategy::WritableCopy {
+        create_restore_directories(stage_parent(target_path))?;
+        let prepared = prepare_writable_target_from_bytes(target_path, content)?;
+        #[cfg(windows)]
+        clear_target(target_path)?;
+        return prepared.publish_replacing();
+    }
+    if let Some(result) = crate::workspace::dispatch(crate::workspace::Operation::Write(
+        target_path,
+        content,
+        if matches!(
+            strategy,
+            LinkStrategy::Copy | LinkStrategy::ExecutableHardlink
+        ) {
+            0o755
+        } else {
+            0o644
+        },
+    )) {
+        return result.map_err(Into::into);
+    }
     #[cfg(target_os = "linux")]
     let _executable_writer = matches!(
         strategy,
@@ -1559,7 +1693,7 @@ pub fn write_restored(target_path: &Path, content: &[u8], strategy: LinkStrategy
             .is_some_and(|io| io.kind() == std::io::ErrorKind::NotFound)
     }) && let Some(parent) = target_path.parent()
     {
-        fs::create_dir_all(parent)
+        create_restore_directories(parent)
             .with_context(|| format!("creating parent dir for {}", target_path.display()))?;
         if let Err(e) = do_write() {
             err = e;
@@ -1597,6 +1731,9 @@ pub fn write_restored(target_path: &Path, content: &[u8], strategy: LinkStrategy
 /// green in the e2e suite on APFS but not the same mechanism), and network /
 /// FUSE filesystems make no such guarantee.
 pub fn touch_mtime_write_clock(path: &Path) -> Result<()> {
+    if let Some(result) = crate::workspace::dispatch(crate::workspace::Operation::Touch(path)) {
+        return result.map_err(Into::into);
+    }
     // Any failure below propagates to `restore_from_cache`'s callers, which
     // treat it as a clean miss and recompile (never a failed build) — so
     // fail-closed checks here cost a recompile, not correctness.
@@ -1713,52 +1850,9 @@ pub fn touch_mtime_write_clock(path: &Path) -> Result<()> {
 /// writable); the caller propagates it, degrading to a recompile.
 #[cfg(not(unix))]
 fn sample_write_clock(path: &Path) -> Result<filetime::FileTime> {
-    use std::io::Write;
-    use std::sync::atomic::{AtomicU64, Ordering};
-    static COUNTER: AtomicU64 = AtomicU64::new(0);
-
-    let dir = path
-        .parent()
-        .filter(|p| !p.as_os_str().is_empty())
-        .unwrap_or_else(|| Path::new("."));
-
-    // `create_new` refuses to open an existing file (and does not follow a
-    // symlink/reparse point squatting on the name), so a PID-reuse leftover
-    // or a planted file can never be truncated or sampled — the attempt
-    // just moves to the next name. Leftovers from a crash between create
-    // and remove are benign litter under a distinctive dotted name.
-    let mut last_err: Option<std::io::Error> = None;
-    for _ in 0..8 {
-        let probe = dir.join(format!(
-            ".kache-clock-{}-{}",
-            std::process::id(),
-            COUNTER.fetch_add(1, Ordering::Relaxed)
-        ));
-        let created = fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&probe);
-        let mut file = match created {
-            Ok(f) => f,
-            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
-            Err(e) => {
-                last_err = Some(e);
-                break;
-            }
-        };
-        let sampled = (|| {
-            file.write_all(b"t")?;
-            drop(file);
-            let meta = fs::metadata(&probe)?;
-            Ok::<_, std::io::Error>(filetime::FileTime::from_last_modification_time(&meta))
-        })();
-        let _ = fs::remove_file(&probe);
-        return sampled.with_context(|| format!("write-clock probe {}", probe.display()));
-    }
-    Err(last_err
-        .map(anyhow::Error::from)
-        .unwrap_or_else(|| anyhow::anyhow!("no free probe name after 8 attempts")))
-    .with_context(|| format!("creating write-clock probe in {}", dir.display()))
+    kache_fs::sample_write_clock(path)
+        .map(filetime::FileTime::from_system_time)
+        .with_context(|| format!("sampling write clock next to {}", path.display()))
 }
 
 const DEPINFO_ROOT_SENTINEL: &str = "__kache_root__/";
@@ -1793,6 +1887,59 @@ fn escape_depinfo_make_path(prefix: &str) -> String {
 /// private store snapshot; C/C++ keeps using this one-root form.
 pub fn rewrite_depinfo_content(content: &str, project_dir: &Path, mode: DepInfoMode) -> String {
     rewrite_depinfo_content_with_sentinel(content, project_dir, DEPINFO_ROOT_SENTINEL, mode)
+}
+
+/// Move dep-info's Make rule paths between target roots. Keep recorded env
+/// values: an artifact may embed one, so changing it must still rebuild.
+/// Existing cache sentinels are refused rather than interpreted as paths.
+/// The primary rule must name outputs under the donor, including its aliases.
+pub fn rebase_depinfo_content(content: &str, from: &Path, to: &Path) -> Option<String> {
+    if content.contains(DEPINFO_ROOT_SENTINEL) {
+        return None;
+    }
+    let from_prefixes = depinfo_prefixes_for_path(from, DepInfoMode::Relativize, cfg!(windows));
+    let to_prefixes = depinfo_prefixes_for_path(to, DepInfoMode::Expand, cfg!(windows));
+    let (outputs, _) = content.lines().next()?.split_once(": ")?;
+    let outputs = rewrite_depinfo_content_with_prefixes_and_sentinel(
+        outputs,
+        &from_prefixes,
+        DEPINFO_ROOT_SENTINEL,
+        DepInfoMode::Relativize,
+    );
+    let mut outputs = outputs.split_ascii_whitespace().peekable();
+    outputs.peek()?;
+    if outputs.any(|output| {
+        let Some(relative) = output.strip_prefix(DEPINFO_ROOT_SENTINEL) else {
+            return true;
+        };
+        Path::new(relative)
+            .components()
+            .any(|part| matches!(part, std::path::Component::ParentDir))
+    }) {
+        return None;
+    }
+    Some(
+        content
+            .split_inclusive('\n')
+            .map(|line| {
+                if line.starts_with(DEPINFO_ENV_DEP_PREFIX) {
+                    return line.to_owned();
+                }
+                let relative = rewrite_depinfo_content_with_prefixes_and_sentinel(
+                    line,
+                    &from_prefixes,
+                    DEPINFO_ROOT_SENTINEL,
+                    DepInfoMode::Relativize,
+                );
+                rewrite_depinfo_content_with_prefixes_and_sentinel(
+                    &relative,
+                    &to_prefixes,
+                    DEPINFO_ROOT_SENTINEL,
+                    DepInfoMode::Expand,
+                )
+            })
+            .collect(),
+    )
 }
 
 /// Rust dep-info carries two independently relocatable path families: target
@@ -2009,6 +2156,11 @@ fn rewrite_depinfo_content_with_sentinel_for_platform(
     mode: DepInfoMode,
     windows: bool,
 ) -> String {
+    let prefixes = depinfo_prefixes_for_path(project_dir, mode, windows);
+    rewrite_depinfo_content_with_prefixes_and_sentinel(content, &prefixes, sentinel, mode)
+}
+
+fn depinfo_prefixes_for_path(project_dir: &Path, mode: DepInfoMode, windows: bool) -> Vec<String> {
     let mut roots = vec![project_dir.to_path_buf()];
     if matches!(mode, DepInfoMode::Relativize)
         && let Ok(canonical) = project_dir.canonicalize()
@@ -2026,7 +2178,7 @@ fn rewrite_depinfo_content_with_sentinel_for_platform(
     }
     let mut seen = std::collections::HashSet::new();
     prefixes.retain(|prefix| seen.insert(prefix.clone()));
-    rewrite_depinfo_content_with_prefixes_and_sentinel(content, &prefixes, sentinel, mode)
+    prefixes
 }
 
 fn depinfo_prefixes_for_display(
@@ -2366,6 +2518,15 @@ mod tests {
     use std::cell::Cell;
 
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn workspace_modes_preserve_permissions_and_remove_file_type_bits() {
+        use std::os::unix::fs::PermissionsExt;
+        for (mode, expected) in [(0o100754, 0o754), (0o104640, 0o640), (0o100000, 0)] {
+            assert_eq!(writable_mode(&fs::Permissions::from_mode(mode)), expected);
+        }
+    }
 
     fn configure_invocation_policy(enabled: bool, marker: &Path) {
         set_windows_hardlink_restore(enabled);
@@ -3396,13 +3557,11 @@ mod tests {
     }
 
     #[test]
-    fn a_clone_is_created_in_the_output_directory() {
+    fn a_clone_is_created_in_a_private_output_directory() {
         fn write_beside(src: &Path, dest: &Path) -> std::io::Result<()> {
-            if dest.parent() != src.parent() {
-                return Err(std::io::Error::other(
-                    "clone was not created beside the output",
-                ));
-            }
+            assert_eq!(dest.parent().and_then(Path::parent), src.parent());
+            #[cfg(unix)]
+            assert_eq!(mode_of(dest.parent().unwrap()), 0o700);
             fs::write(dest, b"CLONED-BESIDE")
         }
 
@@ -3442,6 +3601,51 @@ mod tests {
         .publish()
         .unwrap();
         assert_eq!(fs::read(&output).unwrap(), b"cached object");
+    }
+
+    #[test]
+    fn vanished_blob_recovery_preserves_a_republished_winner() {
+        let dir = tempfile::tempdir().unwrap();
+        let blob = dir.path().join("blob.o");
+        let clone = dir.path().join("clone.o");
+        fs::write(&clone, b"old private clone").unwrap();
+        fs::write(&blob, b"flushed winner").unwrap();
+        crate::atomic::fsync_file(&blob).unwrap();
+        let winner = kache_fs::file_identity(&blob).unwrap();
+
+        recover_vanished_blob(&blob, &clone);
+
+        assert_eq!(kache_fs::file_identity(&blob).unwrap(), winner);
+        assert_eq!(fs::read(&blob).unwrap(), b"flushed winner");
+        assert!(!clone.exists());
+    }
+
+    #[test]
+    fn vanished_blob_recovery_restores_only_an_absent_name() {
+        let dir = tempfile::tempdir().unwrap();
+        let blob = dir.path().join("blob.o");
+        let clone = dir.path().join("clone.o");
+        fs::write(&clone, b"last cached copy").unwrap();
+        let identity = kache_fs::file_identity(&clone).unwrap();
+
+        assert!(accepted_private_clone(&blob, &clone).is_none());
+
+        assert_eq!(kache_fs::file_identity(&blob).unwrap(), identity);
+        assert_eq!(fs::read(&blob).unwrap(), b"last cached copy");
+        assert!(!clone.exists());
+    }
+
+    #[test]
+    fn failed_blob_recovery_keeps_the_last_copy() {
+        let dir = tempfile::tempdir().unwrap();
+        let parent = dir.path().join("blocked");
+        fs::write(&parent, b"not a directory").unwrap();
+        let clone = dir.path().join("clone.o");
+        fs::write(&clone, b"last cached copy").unwrap();
+
+        assert!(accepted_private_clone(&parent.join("blob.o"), &clone).is_none());
+
+        assert_eq!(fs::read(&clone).unwrap(), b"last cached copy");
     }
 
     #[cfg(unix)]
@@ -3743,6 +3947,72 @@ mod tests {
     }
 
     #[test]
+    fn rebasing_depinfo_preserves_escaping_sources_and_prefix_boundaries() {
+        let dir = tempfile::tempdir().unwrap();
+        let from = dir.path().join("donor target");
+        let to = dir.path().join("consumer target");
+        let similar = dir.path().join("donor target-other/source.rs");
+        let make = |path: &Path| escape_depinfo_make_path(path.to_str().unwrap());
+        let env = |path: &Path| escape_depinfo_env_value(path.to_str().unwrap());
+        let input = format!(
+            "{}: {} {} registry.rs\n# env-dep:OUT_DIR={}\n",
+            make(&from.join("lib.rlib")),
+            make(&from.join("out/generated.rs")),
+            make(&similar),
+            env(&from.join("out")),
+        );
+        let expected = format!(
+            "{}: {} {} registry.rs\n# env-dep:OUT_DIR={}\n",
+            make(&to.join("lib.rlib")),
+            make(&to.join("out/generated.rs")),
+            make(&similar),
+            env(&from.join("out")),
+        );
+        assert_eq!(
+            rebase_depinfo_content(&input, &from, &to).as_deref(),
+            Some(expected.as_str())
+        );
+        assert_eq!(
+            rebase_depinfo_content(input.strip_suffix('\n').unwrap(), &from, &to).as_deref(),
+            expected.strip_suffix('\n'),
+            "an unterminated final env record keeps its exact bytes",
+        );
+        assert_eq!(
+            rebase_depinfo_content("plain.rs: registry.rs\n", &from, &to),
+            None
+        );
+        assert_eq!(
+            rebase_depinfo_content("out: __kache_root__/untrusted.rs\n", &from, &to),
+            None
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rebasing_depinfo_accepts_the_donors_canonical_alias() {
+        let dir = tempfile::tempdir().unwrap();
+        let real = dir.path().join("real");
+        std::fs::create_dir(&real).unwrap();
+        let alias = dir.path().join("alias");
+        std::os::unix::fs::symlink(&real, &alias).unwrap();
+        let to = dir.path().join("consumer");
+        let source = real.canonicalize().unwrap().join("generated.rs");
+        let input = format!(
+            "{}: {}\n",
+            real.canonicalize().unwrap().join("out").display(),
+            source.display()
+        );
+        assert_eq!(
+            rebase_depinfo_content(&input, &alias, &to),
+            Some(format!(
+                "{}: {}\n",
+                to.join("out").display(),
+                to.join("generated.rs").display()
+            ))
+        );
+    }
+
+    #[test]
     fn rustc_depinfo_rewrite_preserves_literal_marker_dependencies() {
         let input = concat!(
             "/donor/target/demo.d: __kache_root__/root.rs __kache_cwd__/main.rs ",
@@ -3780,6 +4050,31 @@ mod tests {
                 .replace("/donor/", "/consumer/")
                 .replace("/external/", "/new-external/"),
             "literal source names and environment values must survive cache relocation"
+        );
+    }
+
+    #[test]
+    fn rebasing_depinfo_refuses_unowned_or_ambiguous_primary_outputs() {
+        let from = Path::new("/donor/debug");
+        let to = Path::new("/consumer/debug");
+        for input in [
+            "",
+            "not a Make rule",
+            ": registry.rs\n",
+            "relative.rlib: registry.rs\n",
+            "/older/debug/lib.rlib: registry.rs\n",
+            "/donor/debug/lib.rlib /older/debug/other.rlib: registry.rs\n",
+            "/donor/debug/../outside.rlib: registry.rs\n",
+        ] {
+            assert_eq!(rebase_depinfo_content(input, from, to), None, "{input:?}");
+        }
+        assert_eq!(
+            rebase_depinfo_content(
+                "/donor/debug/a.rlib /donor/debug/a.d: registry.rs\n",
+                from,
+                to
+            ),
+            Some("/consumer/debug/a.rlib /consumer/debug/a.d: registry.rs\n".into())
         );
     }
 
@@ -5131,6 +5426,197 @@ Unified_mm_ettings-WrongChannel0.o: Unified_mm_ettings-WrongChannel0.mm \\
     #[cfg(unix)]
     fn running_as_root() -> bool {
         unsafe { libc::geteuid() == 0 }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn metadata_restores_honor_private_creation_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+
+        const CHILD: &str = "KACHE_TEST_PRIVATE_METADATA_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "link::tests::metadata_restores_honor_private_creation_permissions",
+                    "--nocapture",
+                ])
+                .env(CHILD, "1")
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "private metadata child failed:\n{}\n{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+            return;
+        }
+        // Only this test runs in the child, so changing its umask cannot race
+        // other tests or affect the parent process.
+        unsafe { libc::umask(0o077) };
+        let dir = tempfile::tempdir().unwrap();
+        let cache = dir.path().join("cache");
+        let output_dir = dir.path().join("target");
+        fs::create_dir(&cache).unwrap();
+        fs::create_dir(&output_dir).unwrap();
+        fs::set_permissions(&output_dir, fs::Permissions::from_mode(0o755)).unwrap();
+        let blob = cache.join("blob");
+        fs::write(&blob, b"private metadata").unwrap();
+        fn private_reflink(source: &Path, target: &Path) -> Result<()> {
+            assert_eq!(mode_of(target.parent().unwrap()), 0o700);
+            try_reflink(source, target)
+        }
+        for mode in [0o400, 0o444, 0o555] {
+            fs::set_permissions(&blob, fs::Permissions::from_mode(mode)).unwrap();
+            for (name, reflink) in [
+                ("copy.rmeta", no_reflink as fn(&Path, &Path) -> Result<()>),
+                ("clone.rmeta", private_reflink),
+            ] {
+                let target = output_dir.join(name);
+                link_to_target_via(&blob, &target, LinkStrategy::WritableCopy, reflink).unwrap();
+                assert_eq!(mode_of(&target), 0o600, "{name}, blob mode {mode:o}");
+                assert_ne!(ino_of(&target), ino_of(&blob));
+                assert_eq!(fs::read(&target).unwrap(), b"private metadata");
+                fs::write(&target, b"rewritten").unwrap();
+                assert_eq!(fs::read(&blob).unwrap(), b"private metadata");
+                assert_eq!(mode_of(&blob), mode);
+            }
+        }
+        let target = output_dir.join("nested/transformed.rmeta");
+        write_restored(&target, b"transformed metadata", LinkStrategy::WritableCopy).unwrap();
+        assert_eq!(mode_of(&target), 0o600);
+        assert_eq!(fs::read(&target).unwrap(), b"transformed metadata");
+    }
+
+    #[test]
+    fn metadata_restores_use_the_clients_private_staging_operations() {
+        use crate::workspace::{Operation, Outcome, Scope, Workspace};
+        use std::sync::{Arc, Mutex};
+
+        #[derive(Default)]
+        struct Client {
+            calls: Mutex<Vec<&'static str>>,
+        }
+        impl Workspace for Client {
+            fn execute(&self, operation: Operation<'_>) -> std::io::Result<Outcome> {
+                let mut calls = self.calls.lock().unwrap();
+                match operation {
+                    Operation::PrepareFile(_, _) => calls.push("file"),
+                    Operation::PrepareBytes(_, b"metadata") => calls.push("bytes"),
+                    Operation::Publish(42, true) => {
+                        calls.push("publish");
+                        return Ok(Outcome::Done);
+                    }
+                    Operation::CreateDirectories(_) | Operation::Remove(_) => {
+                        return Ok(Outcome::Done);
+                    }
+                    _ => panic!("metadata must use the client's private staging"),
+                }
+                Ok(Outcome::Prepared {
+                    id: 42,
+                    bytes: 8,
+                    reflinked: false,
+                })
+            }
+        }
+
+        let client = Arc::new(Client::default());
+        let _scope = Scope::enter(Some(client.clone()));
+        // These paths need not exist in the engine's filesystem namespace.
+        // All access and publication must run through the original client.
+        let target = Path::new("client-only/output.rmeta");
+        link_to_target(
+            Path::new("client-only/blob"),
+            target,
+            LinkStrategy::WritableCopy,
+        )
+        .unwrap();
+        write_restored(target, b"metadata", LinkStrategy::WritableCopy).unwrap();
+        assert_eq!(
+            *client.calls.lock().unwrap(),
+            ["file", "publish", "bytes", "publish"]
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn writable_copy_restore_isolates_metadata_even_over_a_readonly_hardlink() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempfile::tempdir().unwrap();
+        let blob = dir.path().join("blob");
+        let target = dir.path().join("libfoo.rmeta");
+        fs::write(&blob, b"metadata").unwrap();
+        fs::set_permissions(&blob, fs::Permissions::from_mode(0o444)).unwrap();
+        for existing in [false, true] {
+            if existing {
+                fs::remove_file(&target).unwrap();
+                fs::hard_link(&blob, &target).unwrap();
+            }
+            let copied = crate::opcounts::thread_copied_bytes();
+            link_to_target_via(&blob, &target, LinkStrategy::WritableCopy, no_reflink).unwrap();
+            assert_eq!(crate::opcounts::thread_copied_bytes() - copied, 8);
+            assert_ne!(ino_of(&target), ino_of(&blob));
+            assert_eq!(mode_of(&target), 0o644);
+            assert_eq!(fs::read(&target).unwrap(), b"metadata");
+            fs::write(&target, b"fixed").unwrap();
+            assert_eq!(fs::read(&blob).unwrap(), b"metadata");
+            assert_eq!(mode_of(&blob), 0o444);
+        }
+        write_restored(&target, b"in-memory metadata", LinkStrategy::WritableCopy).unwrap();
+        assert_eq!(mode_of(&target), 0o644);
+        assert_eq!(fs::read(&target).unwrap(), b"in-memory metadata");
+        assert_eq!(fs::read(&blob).unwrap(), b"metadata");
+
+        let missing = dir.path().join("missing");
+        let error = link_to_target_via(&missing, &target, LinkStrategy::WritableCopy, no_reflink)
+            .unwrap_err();
+        assert_eq!(
+            error.downcast_ref::<std::io::Error>().unwrap().kind(),
+            std::io::ErrorKind::NotFound
+        );
+        if !running_as_root() {
+            let denied = dir.path().join("denied");
+            fs::create_dir(&denied).unwrap();
+            fs::set_permissions(&denied, fs::Permissions::from_mode(0o555)).unwrap();
+            let error = link_to_target_via(
+                &blob,
+                &denied.join("metadata"),
+                LinkStrategy::WritableCopy,
+                no_reflink,
+            )
+            .unwrap_err();
+            fs::set_permissions(&denied, fs::Permissions::from_mode(0o755)).unwrap();
+            assert_eq!(
+                error.downcast_ref::<std::io::Error>().unwrap().kind(),
+                std::io::ErrorKind::PermissionDenied
+            );
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn writable_copy_reflink_is_writable_and_non_executable() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempfile::tempdir().unwrap();
+        let blob = dir.path().join("blob");
+        let target = dir.path().join("libfoo.rmeta");
+        fs::write(&blob, b"metadata").unwrap();
+        // Even an executable imported blob must restore as ordinary metadata.
+        fs::set_permissions(&blob, fs::Permissions::from_mode(0o555)).unwrap();
+        if let Err(error) = try_reflink(&blob, &dir.path().join("probe")) {
+            eprintln!("reflink unavailable on test filesystem: {error}");
+            return;
+        }
+        link_to_target(&blob, &target, LinkStrategy::WritableCopy).unwrap();
+        assert_ne!(ino_of(&target), ino_of(&blob));
+        assert_eq!(mode_of(&target), 0o644);
+        assert_eq!(fs::read(&target).unwrap(), b"metadata");
+        fs::write(&target, b"fixed").unwrap();
+        assert_eq!(fs::read(&blob).unwrap(), b"metadata");
+        assert_eq!(mode_of(&blob), 0o555);
     }
 
     #[test]

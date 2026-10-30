@@ -17,6 +17,32 @@ use tokio::io::AsyncReadExt;
 
 const PREPARE_TIMEOUT: Duration = Duration::from_secs(5);
 
+pub(super) fn probe(
+    stream: &TokioStream,
+    client_pid: u32,
+    version: &str,
+    client_trust: bool,
+    daemon: &Daemon,
+) -> kache_protocol::execution::ExecutionStatus {
+    let eligible = version == daemon.version
+        && PeerProcess::for_connection(stream, client_pid).is_ok_and(|peer| {
+            peer.permits_delegation(client_trust && daemon.config.trust_daemon_execution)
+                .unwrap_or(false)
+        });
+    kache_protocol::execution::ExecutionStatus {
+        protocol_version: EXECUTION_VERSION,
+        eligible,
+        client_trust_enabled: client_trust,
+        daemon_trust_enabled: daemon.config.trust_daemon_execution,
+        detail: if eligible {
+            "client process and restore broker"
+        } else {
+            "local engine: release or process security context is incompatible"
+        }
+        .into(),
+    }
+}
+
 struct Prepared {
     entry: ExecutionEntry,
     args: Vec<String>,
@@ -158,8 +184,11 @@ pub(super) async fn handle(
     daemon: &Arc<Daemon>,
     lifecycle: &Arc<Lifecycle>,
 ) -> Result<()> {
+    let trusted_pipeline = request
+        .channels
+        .trusted_pipeline(daemon.config.trust_daemon_execution);
     let peer = match PeerProcess::for_connection(stream, request.client_pid) {
-        Ok(peer) if peer.permits_delegation().unwrap_or(false) => Arc::new(peer),
+        Ok(peer) if peer.permits_delegation(trusted_pipeline).unwrap_or(false) => Arc::new(peer),
         _ => return decline(stream, "compiler security context requires local execution").await,
     };
     let prepared = match Prepared::decode(request, &daemon.version) {
@@ -193,7 +222,7 @@ pub(super) async fn handle(
     );
     peer.verify_connection(stream)?;
     anyhow::ensure!(
-        peer.permits_delegation()?,
+        peer.permits_delegation(trusted_pipeline)?,
         "compiler security context changed before Commit"
     );
     tokio::time::timeout(

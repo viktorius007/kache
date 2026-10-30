@@ -226,6 +226,10 @@ gitignore = true
 # platform adapters explicitly. The Ubuntu mutation lane cannot compile those
 # adapters; macOS and Windows tests exercise them. The portable APFS allocation
 # classifier, extent walker and Windows identity assembly stay in scope.
+# `volume_usage_windows` is the Windows arm of `kache_fs::volume_usage`: a
+# guard against an empty or NUL-cut path in front of `capacity::volume_space`.
+# Linux does not compile it; the Windows run of
+# `volume_query_requires_a_real_path` covers the guard and the answer.
 # TempDir is fixture setup and cleanup, exposed by the testing feature for
 # consumer tests; mutating it tests the harness instead of filesystem behavior.
 # windows_identity combines a shifted u32 with an unshifted u32. Their bits do
@@ -258,11 +262,14 @@ exclude_globs = [
     "crates/kache-client/src/frontend_windows.rs",
     "crates/kache-ipc/src/windows_handles.rs",
     "crates/kache-ipc/src/windows_process.rs",
-    "crates/kache-ipc/src/windows_security.rs",
     "crates/kache-ipc/src/windows_msvc.rs",
     "crates/kache-ipc/src/execution/windows.rs",
     "crates/kache-ipc/src/execution/windows_client.rs",
     "src/invocation/windows_broker.rs",
+    # Native adapters absent from the Ubuntu mutation binary. Required macOS
+    # and Windows test jobs exercise them; shared broker logic stays in scope.
+    "src/invocation/unix_broker/macos.rs",
+    "crates/kache-ipc/src/execution/workspace/windows.rs",
     "src/invocation/process/windows.rs",
     "src/daemon_execution_windows.rs",
     "src/daemon_execution_macos.rs",
@@ -276,6 +283,15 @@ exclude_globs = [
 # `notice::deliver`, which picks terminal, stderr or log, stays in scope and
 # is tested with in-memory writers, refused writes and no terminal.
 exclude_re = [
+    # Only this thin syscall adapter is Windows-only; the delegation policy
+    # is compiled and mutation-tested on Linux.
+    "crates/kache-ipc/src/windows_security.rs:.*matches_daemon",
+    # Both wrappers are cfg(target_os = "macos"); Linux cannot observe them.
+    "src/invocation/unix_broker.rs:.*can_track_client",
+    "src/fallback.rs:.*compiler_peer_may_delegate",
+    # touch uses two disjoint kernel flags. XOR and OR produce the same mask;
+    # symlink and FIFO tests exercise the meaningful removal of either flag.
+    "crates/kache-ipc/src/execution/workspace.rs:.*replace \\| with \\^ in touch$",
     # Drive-prefix components are a Windows Path API. The native Windows
     # tests check client drive selection and invalid per-drive directories.
     # InvocationEnv's shared resolution and command policy stay in scope.
@@ -309,6 +325,17 @@ exclude_re = [
     # reader and the shared request/descriptor policy in mutation scope.
     "crates/kache-client/src/creation_mask.rs:.*(native_getter|inherited_mask)( ->|$)",
     "crates/kache-ipc/src/lib.rs:.*(PeerAuditToken::pid|peer_audit_token)",
+    # These deadline adapters and pipe guards are cfg(windows), so this Linux
+    # lane never compiles them. Native Windows tests exercise busy/connected
+    # deadlines, delivery, framing, reply identity and negotiation refusal.
+    # The Unix sender and shared bounded-worker/protocol policy stay in scope.
+    "src/daemon.rs:.*(send_request_with_async_timeout|with_windows_client|send_line_fire_and_forget_windows)( ->|$)",
+    "src/daemon_control.rs:.*(request_windows|classify_connect_error|legacy_exchange_windows)( ->|$)",
+    "crates/kache-ipc/src/lib.rs:.*(pipe_path|discard_pipe_writes_on_drop::<impl Drop for Discard<'_>>::drop|discard_sync_pipe_writes_on_drop::<impl Drop for Discard<'_>>::drop)( ->| with |$)",
+    # Only the Windows arm has these operators or guarded retries. Keep the
+    # connect_tokio body replacement and its Unix transport mutation-tested.
+    "crates/kache-ipc/src/lib.rs:.*replace (\\+|==|&&|<|>=) with .* in connect_tokio$",
+    "crates/kache-ipc/src/lib.rs:.*replace match guard .* in connect_tokio$",
     "src/fallback.rs:.*compiler_peer_unrestricted",
     "src/compiler/platform.rs:.*MacOsPlatform::codesign",
     "src/compiler/platform.rs:.*replace <impl Platform for MacOsPlatform>::ensure_binary_loadable -> .* with Ok\\(Default::default\\(\\)\\)",
@@ -336,6 +363,7 @@ exclude_re = [
     "crates/kache-fs/src/identity.rs:.*windows_handle_identity",
     "crates/kache-fs/src/identity.rs:.*replace \\| with \\^ in windows_identity",
     "crates/kache-fs/src/lib.rs:.*testutil::",
+    "crates/kache-fs/src/lib.rs:.*volume_usage_windows",
     "replace run_config_editor",
     "replace run_monitor",
     # `run_monitor` keeps one check of its own: refusing to start when stdout
@@ -391,7 +419,9 @@ exclude_re = [
     "replace \\| with \\^ in touch_mtime_write_clock",
     "replace \\| with & in touch_mtime_write_clock",
     "replace < with <= in touch_mtime_write_clock",
-    "sample_write_clock",
+    # The Windows-only store wrapper stays excluded. The shared kache-fs
+    # sampler is compiled on Linux and remains in mutation scope.
+    "crates/kache-store/src/link.rs:.*sample_write_clock",
     "NonInheritableStdio",
     "windows_pattern_has_ambiguous_root",
     "windows_path_uses_device_namespace",

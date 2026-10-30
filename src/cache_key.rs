@@ -265,6 +265,13 @@ mod apple_install_name;
 // profile directory from N_OSO paths, and native archives under the target
 // dir are keyed by their portable digest. Each changes new-layout keys only.
 //
+// v33: native Linux links also key the linker the driver runs (#1663).
+// `cc --version` names the driver, so a mold or binutils upgrade behind an
+// unchanged driver kept the key. The link's `-fuse-ld`, `--ld-path` and `-B`
+// arguments pick the linker, the driver places it (`-print-prog-name`, then
+// the client's PATH), and its content hash is folded. A linker that cannot be
+// placed fails closed to passthrough. Every native Linux link key changes.
+//
 // #1190 needs no bump. A trybuild unit folds a raw prefix only when the
 // working directory, the crate source, or `OUT_DIR` sits under it. Those are
 // the paths rustc writes into the rmeta; `--out-dir` reaches dep-info, which
@@ -1700,14 +1707,22 @@ pub fn dep_info_provided() -> bool {
 /// The files of the closure [`provide_dep_info`] left for the next key,
 /// spelled as [`FileFingerprint`] records their paths.
 pub(crate) fn provided_dep_info_sources_for(
-    env: &InvocationEnv,
+    file_hasher: &FileHasher<'_>,
 ) -> Option<std::collections::HashSet<String>> {
     PROVIDED_DEP_INFO.with(|cell| {
         cell.borrow().as_ref().and_then(|(dep_info, _)| {
             dep_info
                 .source_files
                 .iter()
-                .map(|path| Some(env.resolve(path)?.to_string_lossy().into_owned()))
+                .map(|path| {
+                    Some(
+                        file_hasher
+                            .resolve_path(path)
+                            .ok()?
+                            .to_string_lossy()
+                            .into_owned(),
+                    )
+                })
                 .collect::<Option<_>>()
         })
     })
@@ -1762,6 +1777,45 @@ pub(crate) fn source_path_identity(
     opaque.update(b"kache-source-path-v1\0");
     opaque.update(&env_os_key_bytes(file.as_os_str()));
     Ok(format!("<OPAQUE_PATH>/{}", opaque.finalize().to_hex()).into_bytes())
+}
+
+/// Identity of an explicit native search directory an rlib can bundle from.
+///
+/// Rlib native inputs beneath this unit's OUT_DIR are all content-keyed by
+/// `native_scan_dirs`, including archive member names and timestamps. Rustc
+/// bundles those members without recording their absolute search directory.
+/// Linked outputs and framework/all search paths keep their existing identity.
+/// Source files always use `source_path_identity`: rustc can expose their
+/// spelling through file!(), caller locations and debug information.
+fn out_dir_native_search_identity(
+    args: &RustcArgs,
+    path: &Path,
+    out_dir: Option<&OsStr>,
+) -> Option<Vec<u8>> {
+    if args.is_test || !args.emits_rlib() || args.links_native_closure() || args.skip_path_remap() {
+        return None;
+    }
+    let target = args.target_dir()?;
+    let out_dir = Path::new(out_dir?);
+    if !out_dir.is_absolute() {
+        return None;
+    }
+    // target_dir is resolved against the invocation, so this prefix match
+    // also requires an absolute search path.
+    let rest = path.strip_prefix(&target).ok()?;
+    if rest.as_os_str().is_empty()
+        || rest
+            .components()
+            .any(|c| !matches!(c, std::path::Component::Normal(_)))
+    {
+        return None;
+    }
+    // Use the same resolved containment as the native archive scan. A lexical
+    // child can be a symlink to an unscanned directory outside this OUT_DIR.
+    if dirs_under_for(&[path.to_path_buf()], out_dir, args.invocation_env()).is_empty() {
+        return None;
+    }
+    Some(env_os_key_bytes(rest.as_os_str()))
 }
 
 /// The prediction identity of one rustc invocation, or `None` when there is
@@ -3097,6 +3151,20 @@ fn dep_info_pre_pass_for(args: &RustcArgs, env: &InvocationEnv) -> Result<Option
         .transpose()
 }
 
+/// Whether this invocation can produce an EXE whose external debug database
+/// must pass the pairing audit. Libraries and known non-Windows outputs keep
+/// their previous keys. A custom spec's output format is not inferred here.
+fn executable_pdb_admission(args: &RustcArgs, rustc_version: &str, custom_target: bool) -> bool {
+    args.is_user_facing_executable()
+        && args.emits_link()
+        && (custom_target
+            || args
+                .target
+                .as_deref()
+                .or_else(|| rustc_host_triple(rustc_version))
+                .is_none_or(|target| target.split('-').any(|part| part == "windows")))
+}
+
 /// Compute the blake3 cache key for a rustc invocation, with what the
 /// computation learned on the way ([`KeyOutputs`]).
 ///
@@ -3231,7 +3299,8 @@ fn compute_key_into(
     // the same path on another machine) diverges the key. Built-in
     // triples aren't files, so they're unaffected.
     let target_path = Path::new(target);
-    if target_path.is_file() {
+    let custom_target_file = target_path.is_file();
+    if custom_target_file {
         match hash_file(target_path) {
             Ok(spec_hash) => {
                 hasher.update(b"target_spec:");
@@ -3248,6 +3317,21 @@ fn compute_key_into(
                 );
             }
         }
+    }
+
+    // Pre-audit clients can store an EXE-only entry under the old key. Keep
+    // those entries out of every local/remote lookup and committed-peer
+    // recheck. Custom specs can choose PE without saying so in
+    // their filename, so their linked executables take the same namespace.
+    let custom_target = custom_target_file
+        || args.target.as_deref().is_some_and(|target| {
+            target.contains(['/', '\\'])
+                || target.ends_with(".json")
+                || invocation.var_os("RUST_TARGET_PATH").is_some()
+        });
+    if executable_pdb_admission(args, &rustc_version, custom_target) {
+        hasher.set_group("pe_pdb_admission");
+        fold_field(&mut hasher, b"executable_pdb_pairing.v1:", b"verified");
     }
 
     // crate identity
@@ -3630,6 +3714,15 @@ fn compute_key_into(
         if kind == Some("framework") {
             framework_search_dirs.push(file_hasher.resolve_path(Path::new(path))?);
         }
+        if kind == Some("native")
+            && let Some(identity) =
+                out_dir_native_search_identity(args, Path::new(path), out_dir.as_deref())
+        {
+            // A separate length-prefixed namespace avoids both old key-only
+            // aliases and separator ambiguity in a literal Unix filename.
+            fold_field(&mut hasher, b"link_search_native_out_dir.v1:", &identity);
+            continue;
+        }
         let normalized = path_normalizer.normalize(path);
         hasher.update(b"link_search:");
         if let Some(k) = kind {
@@ -3656,8 +3749,8 @@ fn compute_key_into(
     // or unknown modifier is uncacheable.
     // Direct command-line native Windows MSVC libraries are handled separately
     // below: their import-library bytes affect the executable and are hashed
-    // as part of the host link identity, which refuses files handed to LINK
-    // through `-C link-arg` (`.res`, `.def`, `.obj`, `/DEF:`, ...).
+    // as part of the host link identity. That identity also hashes compiled
+    // resources; other raw files and explicit manifest inputs stay refused.
     // Linker order/section-order/map files and opaque response files require
     // side-input/output handling beyond the archive key. Fail closed instead
     // of caching an invocation whose auxiliary behavior cannot be reproduced.
@@ -3830,7 +3923,7 @@ fn compute_key_into(
     // older clients stored arbitrary diagnostic formats under that default key.
     hasher.set_group("diagnostics");
     fold_field(&mut hasher, b"diagnostics.v1:", b"");
-    for flag in &args.diagnostic_flags {
+    for flag in args.cache_key_diagnostic_flags() {
         fold_field(&mut hasher, b"diagnostic_arg:", flag.as_bytes());
     }
 
@@ -3932,6 +4025,12 @@ fn compute_key_into(
                 invocation,
             )
         },
+        |driver, rustc_version| {
+            let memo_dir = crate::config::probe_memo_dir_for(invocation)?;
+            let linker =
+                native_linker_for(args, rustc_version, driver, Some(&memo_dir), invocation)?;
+            file_hasher.hash(&linker)
+        },
         |sdkroot| match crate::native_link_key::sdk_identity_for_invocation(sdkroot, invocation)? {
             Some(identity) => Ok(identity),
             None => anyhow::bail!("the macOS SDK could not be identified"),
@@ -3953,8 +4052,8 @@ fn compute_key_into(
         args,
         &rustc_version,
         cfg!(target_os = "windows"),
-        |linker, architecture, host| {
-            let search_dirs = windows_native_link_search_dirs(args)?;
+        file_hasher,
+        |linker, architecture, host, search_dirs| {
             crate::native_link_key::probe_windows_msvc_identity_with_library_dirs_for(
                 linker,
                 architecture,
@@ -3962,10 +4061,10 @@ fn compute_key_into(
                 &search_dirs.rustc,
                 &search_dirs.linker,
                 &args.link_libs,
+                &search_dirs.default_libraries,
                 |path| file_hasher.hash_static_lib(path),
                 invocation,
             )
-            .map(|identity| identity.encode())
         },
         invocation,
     )?;
@@ -4297,6 +4396,32 @@ fn lexically_resolve_path(input: &str) -> String {
         (false, true) => anchor,
         (false, false) => format!("{anchor}{joined}"),
     }
+}
+
+/// Collapse `.`, `..`, and repeated separators without asking the filesystem.
+/// Components follow the platform: on Unix `\` is a filename character, so
+/// `a\b.rs` stays one file. `..` that would climb past the root is dropped.
+fn collapse_lexical(path: &Path) -> PathBuf {
+    use std::path::Component;
+
+    let mut collapsed = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if matches!(
+                    collapsed.components().next_back(),
+                    Some(Component::Normal(_))
+                ) {
+                    collapsed.pop();
+                }
+            }
+            Component::Prefix(_) | Component::RootDir | Component::Normal(_) => {
+                collapsed.push(component.as_os_str());
+            }
+        }
+    }
+    collapsed
 }
 
 /// Resolve a `-l` spec to a `static` archive in one of `search_dirs` and
@@ -5931,11 +6056,11 @@ fn path_is_only_used_for_includes(value_probe: &Path, source_probes: &[PathBuf])
 /// `macro_rules!` resolves in this crate, so dep-info reports the env dep while
 /// this crate's sources never name the var; without a visible include use, its
 /// value may be baked into the artifact. Such crates keep the absolute value.
-/// Proof comes only from files whose path ends in `.rs`, so an `include_str!`'d
+/// Proof comes only from UTF-8 files whose path ends in `.rs`, so an `include_str!`'d
 /// README that quotes an include is not proof. The test is the path, not what
 /// rustc did with the file: a `.rs` file read as text (`include_str!` of a
 /// codegen template or a UI-test fixture) still counts. Every file, whatever
-/// its extension, still counts AGAINST the var.
+/// its extension or encoding, still counts AGAINST the var.
 ///
 /// Visible declarations, imports and qualified uses of include-family names
 /// veto the proof. A glob import cannot: rustc rejects a glob-imported
@@ -6034,13 +6159,15 @@ fn env_dep_source_decision(
 /// 8: `macro_use` vetoes the include proof.
 ///
 /// 9: except on a module, whose macros are in this crate's sources.
-const SOURCE_ENV_DEP_SCANNER_VERSION: u32 = 9;
+/// 10: combine shadowed-include guards with upstream's byte scanner; non-UTF-8
+/// files can veto normalization but cannot supply include proof.
+const SOURCE_ENV_DEP_SCANNER_VERSION: u32 = 10;
 
 /// How one source file's text uses an env var.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum SourceEnvDepUse {
-    /// No env macro names the var, and none has a name the scanner cannot read
-    /// outside an include argument.
+    /// No env use supplies include proof or a runtime-value veto. Include-only
+    /// uses in a file that is not UTF-8 supply no proof.
     Unused,
     /// At least one `env!(var)` / `option_env!(var)` inside an `include*!`
     /// argument, and no use outside one.
@@ -6102,7 +6229,10 @@ impl SourceEnvDepUse {
 }
 
 fn source_env_dep_use(source: &str, var: &str) -> SourceEnvDepUse {
-    let bytes = source.as_bytes();
+    source_env_dep_use_bytes(source.as_bytes(), var)
+}
+
+fn source_env_dep_use_bytes(bytes: &[u8], var: &str) -> SourceEnvDepUse {
     let mut i = 0usize;
     // One entry per open delimiter, true when it opens an `include*!`
     // argument. Tracking every delimiter kind keeps `include!{..}` and
@@ -6136,7 +6266,7 @@ fn source_env_dep_use(source: &str, var: &str) -> SourceEnvDepUse {
         previous_token = Some(byte);
         match byte {
             b'"' => i = skip_quoted_string(bytes, i + 1),
-            b'\'' => i = skip_char_literal_or_lifetime(source, i),
+            b'\'' => i = skip_char_literal_or_lifetime(bytes, i),
             b'b' | b'c' | b'r' if raw_string_starts_at(bytes, i).is_some() => {
                 i = skip_raw_string(bytes, i);
             }
@@ -6180,11 +6310,11 @@ fn source_env_dep_use(source: &str, var: &str) -> SourceEnvDepUse {
                 let Some(open) = open else { continue };
 
                 if matches!(ident, b"env" | b"option_env") {
-                    match parse_env_macro_name(source, open + 1) {
+                    match parse_env_macro_name(bytes, open + 1) {
                         Some(name) if name != var => {}
                         Some(_) if include_depth > 0 => include_locator = true,
                         None if include_depth > 0 => {}
-                        None if parse_concat_prefix(source, open + 1)
+                        None if parse_concat_prefix(bytes, open + 1)
                             .is_some_and(|prefix| !var.starts_with(prefix)) =>
                         {
                             concat_prefix = true;
@@ -6282,8 +6412,7 @@ fn is_include_macro(name: &[u8]) -> bool {
 /// The var an env macro names, when its first token is a plain string literal
 /// without escapes. `None` means the name is computed or spelled in a form the
 /// scanner does not decode (`concat!`, `$v`, `"OUT\x5FDIR"`, raw strings).
-fn parse_env_macro_name(source: &str, after_open: usize) -> Option<&str> {
-    let bytes = source.as_bytes();
+fn parse_env_macro_name(bytes: &[u8], after_open: usize) -> Option<&str> {
     let start = skip_trivia(bytes, after_open);
     if bytes.get(start) != Some(&b'"') {
         return None;
@@ -6292,21 +6421,22 @@ fn parse_env_macro_name(source: &str, after_open: usize) -> Option<&str> {
         .iter()
         .position(|b| matches!(b, b'"' | b'\\'))?;
     let end = start + 1 + len;
-    (bytes[end] == b'"').then(|| &source[start + 1..end])
+    (bytes[end] == b'"')
+        .then(|| std::str::from_utf8(&bytes[start + 1..end]).ok())
+        .flatten()
 }
 
 /// The leading literal of an env macro name spelled `concat!("literal", ..)`,
 /// unqualified, with a literal the scanner decodes. Only the builtin concat!
 /// guarantees this prefix; binding information is checked across all sources.
-fn parse_concat_prefix(source: &str, after_open: usize) -> Option<&str> {
-    let bytes = source.as_bytes();
+fn parse_concat_prefix(bytes: &[u8], after_open: usize) -> Option<&str> {
     let start = skip_trivia(bytes, after_open);
     let end = skip_ident_bytes(bytes, start);
     if &bytes[start..end] != b"concat" {
         return None;
     }
     let open = parse_macro_open(bytes, end)?;
-    parse_env_macro_name(source, open + 1)
+    parse_env_macro_name(bytes, open + 1)
 }
 
 /// Position of the opening delimiter when `after_ident` starts `! (`, `! [`
@@ -6407,19 +6537,35 @@ fn skip_quoted_string(bytes: &[u8], mut i: usize) -> usize {
 /// Skip the char literal starting at the quote `quote`, or only the quote
 /// when it starts a lifetime or label (`'a`, `'static`). Skipping to the next
 /// quote after a lifetime would hide the code in between from the scanner.
-fn skip_char_literal_or_lifetime(source: &str, quote: usize) -> usize {
-    let bytes = source.as_bytes();
+fn skip_char_literal_or_lifetime(bytes: &[u8], quote: usize) -> usize {
     if bytes.get(quote + 1) == Some(&b'\\') {
         return skip_char_literal(bytes, quote + 1);
     }
-    let Some(ch) = source[quote + 1..].chars().next() else {
+    let Some(width) = first_lossy_char_len(&bytes[quote + 1..]) else {
         return bytes.len();
     };
-    let close = quote + 1 + ch.len_utf8();
+    let close = quote + 1 + width;
     if bytes.get(close) == Some(&b'\'') {
         close + 1
     } else {
         quote + 1
+    }
+}
+
+/// How many input bytes one lossy-decoded character consumes. Inspect at most
+/// four bytes so a char literal never validates the rest of a binary file.
+fn first_lossy_char_len(bytes: &[u8]) -> Option<usize> {
+    let prefix = &bytes[..bytes.len().min(4)];
+    match std::str::from_utf8(prefix) {
+        Ok(text) => text.chars().next().map(char::len_utf8),
+        Err(error) if error.valid_up_to() > 0 => {
+            std::str::from_utf8(&prefix[..error.valid_up_to()])
+                .ok()?
+                .chars()
+                .next()
+                .map(char::len_utf8)
+        }
+        Err(error) => Some(error.error_len().unwrap_or(prefix.len())),
     }
 }
 
@@ -7463,15 +7609,20 @@ struct RecentHash {
 /// [`hash_file`], for a read that follows a stat of the same file.
 fn read_file_hash(path: &Path) -> Result<String> {
     #[cfg(test)]
+    before_file_read(path);
+    hash_file(path)
+}
+
+#[cfg(test)]
+fn before_file_read(path: &Path) {
     BEFORE_READ.with(|hook| {
         if let Some(hook) = hook.borrow_mut().as_mut() {
             hook(path);
         }
     });
-    hash_file(path)
 }
 
-/// Run by [`read_file_hash`] before it reads, so a test can write to a file
+/// Run before a file read, so a test can write to a file
 /// between a hasher's stat and its read.
 #[cfg(test)]
 pub(crate) type BeforeRead = Box<dyn FnMut(&Path)>;
@@ -7645,10 +7796,37 @@ impl<'db> FileHasher<'db> {
     }
 
     fn resolve_path(&self, path: &Path) -> Result<PathBuf> {
-        self.invocation_env
+        let resolved = self
+            .invocation_env
             .resolve(path)
             .filter(|path| path.is_absolute())
-            .context("relative input requires the invocation working directory")
+            .context("relative input requires the invocation working directory")?;
+        Ok(self.collapse_out_dir_spelling(resolved))
+    }
+
+    /// One stored path for every spelling of a file under this invocation's
+    /// `OUT_DIR`. `Path` already equates `/out/./file` with `/out/file`, so the
+    /// recent-hash map has one entry and its fingerprint string is whichever
+    /// spelling was hashed. A later relocate then misses the other spelling.
+    /// Collapse `.`, `..`, and repeated separators by path component, and only
+    /// when the result is still under `OUT_DIR`. On Unix a backslash stays
+    /// part of the filename. A crate-relative `src/./init.js` is outside that
+    /// directory and stays spelled as rustc recorded it. This does not resolve
+    /// symlinks.
+    fn collapse_out_dir_spelling(&self, path: PathBuf) -> PathBuf {
+        let Some(out_dir) = self.invocation_env.var_os("OUT_DIR") else {
+            return path;
+        };
+        let Some(out_dir) = self.invocation_env.resolve(Path::new(&out_dir)) else {
+            return path;
+        };
+        let collapsed = collapse_lexical(&path);
+        let out = collapse_lexical(&out_dir);
+        if collapsed.starts_with(&out) {
+            collapsed
+        } else {
+            path
+        }
     }
 
     /// Let key computation derive its input set from a recorded closure
@@ -8252,8 +8430,9 @@ impl<'db> FileHasher<'db> {
         let mut known = std::collections::HashMap::new();
         for path in paths {
             let selected = {
+                let resolved = self.resolve_path(path)?;
                 let recent = self.recent_hashes.borrow();
-                recent.get(&absolute_path(path)).and_then(|recent| {
+                recent.get(&resolved).and_then(|recent| {
                     recent
                         .fingerprint
                         .as_ref()
@@ -8477,6 +8656,10 @@ impl<'db> FileHasher<'db> {
 
     /// Hash a file's contents, using the persistent cache when available.
     pub fn hash(&self, path: &Path) -> Result<String> {
+        self.hash_and_record(path).map(|recent| recent.hash)
+    }
+
+    fn hash_and_record(&self, path: &Path) -> Result<RecentHash> {
         let _trace = crate::phase_trace::phase("input_hash");
         let resolved = self.resolve_path(path)?;
         let path = resolved.as_path();
@@ -8484,11 +8667,55 @@ impl<'db> FileHasher<'db> {
         if let Some(observed) = &observed {
             self.guard_input(observed);
         }
+        let recent = RecentHash {
+            hash,
+            fingerprint: observed.map(|observed| observed.fingerprint),
+            header_scan: None,
+        };
+        self.recent_hashes
+            .borrow_mut()
+            .insert(resolved, recent.clone());
+        Ok(recent)
+    }
+
+    /// Validate and hash a compiled resource from one open file. Whole-file
+    /// memo rows carry no format proof, so these inputs are streamed on every
+    /// key rather than accepting an archive renamed to `.res`.
+    fn hash_windows_resource(&self, path: &Path) -> Result<String> {
+        use std::io::Read as _;
+
+        let _trace = crate::phase_trace::phase("input_hash");
+        let resolved = self.resolve_path(path)?;
+        let path = resolved.as_path();
+        let before = ObservedFingerprint::from_path(path)?;
+        self.note_too_new(&before.fingerprint);
+        #[cfg(test)]
+        before_file_read(path);
+        let mut file = std::fs::File::open(path)?;
+        // The standard null-resource header starts RC output. Its first 16
+        // bytes are LLVM's WinResMagic; the remaining null fields are zero.
+        const HEADER: [u8; 32] = [
+            0, 0, 0, 0, 32, 0, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
+        ];
+        let mut prefix = [0; 32];
+        file.read_exact(&mut prefix)
+            .context("reading the compiled resource header")?;
+        if prefix != HEADER {
+            anyhow::bail!("linker input is not a supported compiled resource");
+        }
+        let mut digest = blake3::Hasher::new();
+        digest.update(&prefix);
+        digest.update_reader(file)?;
+        let hash = digest.finalize().to_hex().to_string();
+        self.record_miss(before.fingerprint.size);
+        let (observed, _) = self.restat_after_read(path, before, true);
+        self.guard_input(&observed);
         self.recent_hashes.borrow_mut().insert(
-            resolved.clone(),
+            resolved,
             RecentHash {
                 hash: hash.clone(),
-                fingerprint: observed.map(|observed| observed.fingerprint),
+                fingerprint: Some(observed.fingerprint),
                 header_scan: None,
             },
         );
@@ -8724,22 +8951,14 @@ impl<'db> FileHasher<'db> {
     /// Decisions are keyed by the already-computed content hash, so warm key
     /// construction can reuse them without opening the source again (#557).
     fn env_dep_use(&self, path: &Path, var: &str) -> Result<SourceEnvDepUse> {
-        let absolute = self.resolve_path(path)?;
-        let path = absolute.as_path();
-        let recent = self.recent_hashes.borrow().get(&absolute).cloned();
+        let path = self.resolve_path(path)?;
+        let recent = self.recent_hashes.borrow().get(&path).cloned();
         let recent = match recent {
             Some(recent) => recent,
-            None => {
-                self.hash(path)?;
-                self.recent_hashes
-                    .borrow()
-                    .get(&absolute)
-                    .cloned()
-                    .expect("a successful hash records its fingerprint")
-            }
+            None => self.hash_and_record(&path)?,
         };
         if let Some(expected) = recent.fingerprint {
-            let current = FileFingerprint::from_path(path)
+            let current = FileFingerprint::from_path(&path)
                 .with_context(|| format!("revalidating {} before env-use scan", path.display()))?;
             if current != expected {
                 anyhow::bail!(
@@ -8747,12 +8966,12 @@ impl<'db> FileHasher<'db> {
                     path.display()
                 );
             }
-            return self.env_dep_use_for_hash(path, var, &recent.hash);
+            return self.env_dep_use_for_hash(&path, var, &recent.hash);
         }
 
         // Without a trustworthy fingerprint, bypass memo lookup. The scan
         // still verifies the content hash before recording a reusable result.
-        self.scan_env_dep_use(path, var, &recent.hash)
+        self.scan_env_dep_use(&path, var, &recent.hash)
     }
 
     fn env_dep_use_for_hash(
@@ -8805,8 +9024,22 @@ impl<'db> FileHasher<'db> {
             );
         }
 
-        let source = String::from_utf8_lossy(&bytes);
-        let result = source_env_dep_use(&source, var);
+        // A proc macro can decode tracked binary text into Rust. Preserve its
+        // runtime/binding vetoes without allocating the whole lossy string.
+        // rustc cannot read it directly as Rust, so it supplies no include proof.
+        let result = match std::str::from_utf8(&bytes) {
+            Ok(source) => source_env_dep_use(source, var),
+            Err(_) => match source_env_dep_use_bytes(&bytes, var) {
+                SourceEnvDepUse::IncludeLocator => SourceEnvDepUse::Unused,
+                SourceEnvDepUse::ConcatPrefix { .. } => SourceEnvDepUse::ConcatPrefix {
+                    include_locator: false,
+                },
+                SourceEnvDepUse::ConcatBinding { .. } => SourceEnvDepUse::ConcatBinding {
+                    include_locator: false,
+                },
+                result => result,
+            },
+        };
         if let Some(cache) = &self.cache
             && let Err(error) = cache.put_source_env_dep_use(
                 content_hash,
@@ -9200,6 +9433,11 @@ pub(crate) fn run_dep_info_pass_for(
 
     let dep_args = dep_info_pass_args(source_file, rustc_args, &dep_file);
 
+    let use_response_file = crate::compile::command_needs_response_file(
+        use_response_file,
+        &cmd,
+        dep_args.iter().map(std::string::String::as_str),
+    );
     let response_file = if use_response_file {
         let response = crate::compile::RustcResponseFile::new_in(
             &temp_root,
@@ -9219,7 +9457,7 @@ pub(crate) fn run_dep_info_pass_for(
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::piped())
-        .invocation_capture_with_io(kache_protocol::execution::windows::Stdio::STDERR)
+        .invocation_capture_with_io(kache_protocol::execution::process::Stdio::STDERR)
         .context("running rustc --emit=dep-info")?;
     // One extra rustc start per invocation, hit or miss. Counted and timed so
     // the event log can show what removing it would buy (`dep_info_runs`,
@@ -9744,7 +9982,7 @@ pub(crate) fn rustc_accepts_cwd_remap_for(
         command.arg("-Zallow-features=");
     }
     let mut child = command
-        .invocation_spawn_in_group_with_io(kache_protocol::execution::windows::Stdio::QUIET)
+        .invocation_spawn_in_group_with_io(kache_protocol::execution::process::Stdio::QUIET)
         .ok()?;
     let start = Instant::now();
     loop {
@@ -10457,19 +10695,21 @@ where
 /// into linked-output keys. Injected probes keep the gating testable without
 /// running host tools.
 #[cfg(test)]
-fn fold_native_link_runtime_identity<H, Crt, Sdk>(
+fn fold_native_link_runtime_identity<H, Crt, Linker, Sdk>(
     hasher: &mut H,
     args: &RustcArgs,
     rustc_version: &str,
     running_on_linux: bool,
     running_on_macos: bool,
     crt_probe: Crt,
+    linker_probe: Linker,
     sdk_probe: Sdk,
     env: &KeyEnv,
 ) -> Result<()>
 where
     H: KeyFold,
     Crt: FnOnce(&Path) -> Result<BTreeMap<String, String>>,
+    Linker: FnOnce(&Path, &str) -> Result<String>,
     Sdk: FnOnce(Option<String>) -> Result<String>,
 {
     fold_native_link_runtime_identity_for(
@@ -10479,19 +10719,21 @@ where
         running_on_linux,
         running_on_macos,
         crt_probe,
+        linker_probe,
         sdk_probe,
         env,
         &InvocationEnv::capture(),
     )
 }
 
-fn fold_native_link_runtime_identity_for<H, Crt, Sdk>(
+fn fold_native_link_runtime_identity_for<H, Crt, Linker, Sdk>(
     hasher: &mut H,
     args: &RustcArgs,
     rustc_version: &str,
     running_on_linux: bool,
     running_on_macos: bool,
     crt_probe: Crt,
+    linker_probe: Linker,
     sdk_probe: Sdk,
     env: &KeyEnv,
     invocation: &InvocationEnv,
@@ -10499,6 +10741,7 @@ fn fold_native_link_runtime_identity_for<H, Crt, Sdk>(
 where
     H: KeyFold,
     Crt: FnOnce(&Path) -> Result<BTreeMap<String, String>>,
+    Linker: FnOnce(&Path, &str) -> Result<String>,
     Sdk: FnOnce(Option<String>) -> Result<String>,
 {
     let emits_link = args.emit.is_empty() || args.emit.iter().any(|kind| kind == "link");
@@ -10528,6 +10771,16 @@ where
             "[key:{}] host_crt={}",
             args.crate_name.as_deref().unwrap_or("unknown"),
             encoded.replace('\n', ",")
+        );
+        // `cc --version` names the driver, not the linker it runs, so a mold
+        // or binutils upgrade behind an unchanged driver kept the key (#1663).
+        let linker = linker_probe(&driver, &rustc_version)
+            .context("identifying the linker the native Linux link runs")?;
+        fold_field(hasher, b"host_linker.v1:", linker.as_bytes());
+        tracing::trace!(
+            "[key:{}] host_linker={}",
+            args.crate_name.as_deref().unwrap_or("unknown"),
+            linker
         );
     }
 
@@ -10562,6 +10815,10 @@ struct WindowsNativeLinkSearchDirs {
     rustc: Vec<PathBuf>,
     /// Directories emitted to LINK before the LIB environment paths.
     linker: Vec<PathBuf>,
+    /// Files `-C link-arg` hands LINK by absolute path, which the key hashes
+    /// (see `windows_link_argument_input_files`), in argument order.
+    files: Vec<PathBuf>,
+    default_libraries: Vec<crate::native_link_key::WindowsDefaultLibrary>,
 }
 
 fn windows_native_link_search_dirs(args: &RustcArgs) -> Result<WindowsNativeLinkSearchDirs> {
@@ -10580,6 +10837,8 @@ fn windows_native_link_search_dirs(args: &RustcArgs) -> Result<WindowsNativeLink
         }
     }
     let mut linker = rustc.clone();
+    let mut files = Vec::new();
+    let mut default_libraries = Vec::new();
     for (key, value) in &args.codegen_opts {
         if !matches!(key.as_str(), "link-arg" | "link-args") {
             continue;
@@ -10587,18 +10846,51 @@ fn windows_native_link_search_dirs(args: &RustcArgs) -> Result<WindowsNativeLink
         let Some(value) = value.as_deref() else {
             continue;
         };
-        if crate::native_link_key::windows_link_argument_has_unmodeled_input(value) {
-            anyhow::bail!(
-                "explicit Windows linker input files (.lib/.a/.obj/.o/.res/.def/.exp/.manifest) \
-                 and file-carrying LINK options (/DEF, /DEFAULTLIB, /MANIFESTINPUT, \
-                 /MANIFESTFILE, /PDBSTRIPPED, ...) are not hashed and are not cacheable"
-            );
-        }
+        // A file in this carrier must not hide an accompanying /LIBPATH.
+        // Its existing parser refuses mixed/ambiguous values until both can
+        // be modeled together without changing library search order.
         if let Some(path) = windows_libpath_argument(value)? {
             linker.push(PathBuf::from(path));
         }
+        let Some(inputs) = crate::native_link_key::windows_link_argument_input_files(key, value)
+        else {
+            anyhow::bail!(
+                "Windows linker input files other than absolute compiled resources, and unmodeled file-carrying LINK options, are not cacheable"
+            );
+        };
+        let crate::native_link_key::WindowsLinkArgumentInputs {
+            files: argument_files,
+            default_libraries: argument_libraries,
+        } = inputs;
+        files.extend(argument_files);
+        default_libraries.extend(argument_libraries);
     }
-    Ok(WindowsNativeLinkSearchDirs { rustc, linker })
+    Ok(WindowsNativeLinkSearchDirs {
+        rustc,
+        linker,
+        files,
+        default_libraries,
+    })
+}
+
+/// Add compiled-resource digests to the MSVC identity in argument order.
+/// Missing inputs or unsupported formats make the link uncacheable.
+fn windows_link_identity_with_argument_files(
+    mut identity: String,
+    files: &[PathBuf],
+    file_hasher: &FileHasher<'_>,
+) -> Result<String> {
+    for (index, file) in files.iter().enumerate() {
+        let resolved = file_hasher.resolve_path(file)?;
+        if !resolved.is_file() {
+            anyhow::bail!("linker input {} is not a regular file", file.display());
+        }
+        let digest = file_hasher
+            .hash_windows_resource(file)
+            .with_context(|| format!("hashing linker input {}", file.display()))?;
+        identity.push_str(&format!("\nlink_arg_input.v1={index}={digest}"));
+    }
+    Ok(identity)
 }
 
 fn windows_libpath_argument(value: &str) -> Result<Option<String>> {
@@ -10681,7 +10973,7 @@ where
 /// Fold the selected native Windows MSVC link identity into a linked-output
 /// key. The probe is injected so the admission gate can be tested without a
 /// Windows toolchain; production supplies the real tool/library discovery.
-/// It gets the selected linker, the MSVC architecture and rustc's host.
+/// Argument admission and resource hashing stay in the shared fold.
 #[cfg(test)]
 fn fold_native_windows_msvc_identity<H, Probe>(
     hasher: &mut H,
@@ -10694,13 +10986,26 @@ where
     H: KeyFold,
     Probe: FnOnce(Option<&Path>, &str, &str) -> Result<String>,
 {
+    let invocation = InvocationEnv::capture();
     fold_native_windows_msvc_identity_for(
         hasher,
         args,
         rustc_version,
         running_on_windows,
-        probe,
-        &InvocationEnv::capture(),
+        &FileHasher::new_for(&invocation),
+        |linker, architecture, host, _| {
+            Ok(crate::native_link_key::WindowsMsvcIdentity {
+                linker: probe(linker, architecture, host)?,
+                compiler: "cl".into(),
+                toolset: "14".into(),
+                sdk: "10".into(),
+                ucrt: "10".into(),
+                architecture: architecture.into(),
+                wrapper: None,
+                libraries: BTreeMap::new(),
+            })
+        },
+        &invocation,
     )
 }
 
@@ -10709,12 +11014,18 @@ fn fold_native_windows_msvc_identity_for<H, Probe>(
     args: &RustcArgs,
     rustc_version: &str,
     running_on_windows: bool,
+    file_hasher: &FileHasher<'_>,
     probe: Probe,
     invocation: &InvocationEnv,
 ) -> Result<()>
 where
     H: KeyFold,
-    Probe: FnOnce(Option<&Path>, &str, &str) -> Result<String>,
+    Probe: FnOnce(
+        Option<&Path>,
+        &str,
+        &str,
+        &WindowsNativeLinkSearchDirs,
+    ) -> Result<crate::native_link_key::WindowsMsvcIdentity>,
 {
     if !running_on_windows || !args.is_executable_output() || !args.emits_link() {
         return Ok(());
@@ -10759,8 +11070,14 @@ where
             );
         }
     }
-    let identity = probe(linker, architecture, host)
+    let search_dirs = windows_native_link_search_dirs(args)?;
+    let identity = probe(linker, architecture, host, &search_dirs)
         .context("determining native Windows MSVC link identity")?;
+    let identity = identity
+        .with_default_libraries(&search_dirs.default_libraries)?
+        .encode();
+    let identity =
+        windows_link_identity_with_argument_files(identity, &search_dirs.files, file_hasher)?;
     fold_field(&mut *hasher, b"host_windows_msvc.v1:", identity.as_bytes());
     tracing::trace!(
         "[key:{}] host_windows_msvc={}",
@@ -10880,6 +11197,77 @@ fn probe_linux_libc_signature_for(
         "unable to identify native Linux {} (tried getconf/ldd)",
         expected.key_name()
     )
+}
+
+/// The linker a native Linux link runs, placed through its driver (#1663).
+///
+/// The link's own `-fuse-ld`, `--ld-path` and `-B` arguments select it. When
+/// rustc links through its bundled `rust-lld` ([`rustc_defaults_to_bundled_lld`]),
+/// rustc's `gcc-ld` directory and `lld` come first, as rustc passes them
+/// ahead of the link arguments. `memo_dir` remembers the placement.
+pub(crate) fn native_linker_for(
+    args: &RustcArgs,
+    rustc_version: &str,
+    driver: &Path,
+    memo_dir: Option<&Path>,
+    env: &InvocationEnv,
+) -> Result<PathBuf> {
+    let mut selection = crate::native_link_key::LinkerSelection::of(args)?;
+    if rustc_defaults_to_bundled_lld(args, rustc_version)
+        && let Some(gcc_ld) = bundled_gcc_ld_dir(args, rustc_version, env)
+    {
+        selection = selection.with_bundled_lld(gcc_ld);
+    }
+    match memo_dir {
+        Some(memo_dir) => {
+            crate::native_link_key::place_linker_memoized_for(memo_dir, driver, &selection, env)
+        }
+        None => crate::native_link_key::place_linker(driver, &selection, env),
+    }
+}
+
+/// Whether rustc links through its bundled `rust-lld`: the default on
+/// x86_64-unknown-linux-gnu since Rust 1.90, unless the invocation sets the
+/// linker features, flavor or self-contained mode itself. A wrong guess keys
+/// a linker the link does not run: an unused system linker (extra misses),
+/// or rustc's bundled one, which the rustc version already pins, in place of
+/// the system one, leaving a system linker upgrade unkeyed as before #1663.
+fn rustc_defaults_to_bundled_lld(args: &RustcArgs, rustc_version: &str) -> bool {
+    args.target
+        .as_deref()
+        .or_else(|| rustc_host_triple(rustc_version))
+        == Some("x86_64-unknown-linux-gnu")
+        && rustc_release_at_least(rustc_version, (1, 90))
+        && ["linker-features", "linker-flavor", "link-self-contained"]
+            .iter()
+            .all(|option| args.get_codegen_opt(option).is_none())
+}
+
+fn rustc_release_at_least(rustc_version: &str, at_least: (u64, u64)) -> bool {
+    rustc_version
+        .lines()
+        .find_map(|line| line.strip_prefix("release: "))
+        .and_then(|release| {
+            let mut parts = release.split(['.', '-']);
+            Some((parts.next()?.parse().ok()?, parts.next()?.parse().ok()?))
+        })
+        .is_some_and(|release: (u64, u64)| release >= at_least)
+}
+
+/// rustc's `gcc-ld` directory, when it holds the `ld.lld` rustc links with.
+fn bundled_gcc_ld_dir(
+    args: &RustcArgs,
+    rustc_version: &str,
+    env: &InvocationEnv,
+) -> Option<PathBuf> {
+    let host = rustc_host_triple(rustc_version)?;
+    let dir = get_rustc_sysroot_for(args, env)?
+        .join("lib")
+        .join("rustlib")
+        .join(host)
+        .join("bin")
+        .join("gcc-ld");
+    dir.join("ld.lld").is_file().then_some(dir)
 }
 
 /// Get linker identity string for cache key, with file-based caching.

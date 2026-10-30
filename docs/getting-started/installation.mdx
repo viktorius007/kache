@@ -7,11 +7,27 @@ Kache ships two executables: the `kache` client and `kache-engine`. Keep the sam
 version of both in the same directory when installing a release manually.
 
 ```bash
-cargo install kache --locked
+cargo install kache --locked --version 2.0.0-rc.3
 kache init
 ```
 
 `kache init` configures Cargo to use Kache. Your Cargo commands stay the same.
+
+## Release channels
+
+These docs track v2 on `main`. The command above pins the published v2 preview.
+The package-manager commands below without a prerelease version select the stable
+channel and do not opt into v2 release candidates.
+
+For a reproducible preview installation, request `2.0.0-rc.3` explicitly with
+Cargo, cargo-binstall, or mise. Homebrew and Windows also have separate unstable
+packages; APT has an unstable distribution. Check the
+[release list](https://github.com/kunobi-ninja/kache/releases) before selecting a
+newer version.
+
+Optional Blaze routing is available from `v2.0.0-rc.3`.
+The [upgrade guide](/docs/getting-started/upgrade-v2) covers
+existing installs and what state can start cold.
 
 ## Recommended methods
 
@@ -19,6 +35,8 @@ kache init
   <Tab value="cargo install">
     ```bash
     cargo install kache --locked
+    # Published v2 preview:
+    cargo install kache --locked --version 2.0.0-rc.3
     ```
 
     Cargo builds Kache with your local Rust toolchain, which must be Rust 1.95 or newer.
@@ -26,6 +44,8 @@ kache init
   <Tab value="cargo-binstall">
     ```bash
     cargo binstall kache
+    # Published v2 preview:
+    cargo binstall kache --version 2.0.0-rc.3
     ```
 
     This downloads a release binary when one exists for your target. Release binaries have no Rust runtime dependency.
@@ -89,6 +109,20 @@ kache init
 
 ## Nix
 
+### nixpkgs
+
+Kache is available in nixpkgs-unstable. Install its package with:
+
+```bash
+nix profile install github:NixOS/nixpkgs/nixpkgs-unstable#kache
+```
+
+On NixOS, add `pkgs.kache` to `environment.systemPackages` and set `RUSTC_WRAPPER` to `"${pkgs.kache}/bin/kache"`. The separate `pkgs.kache.shims` output provides C/C++ wrappers in `${pkgs.kache.shims}/bin`; put that directory before the real compilers on `PATH` to cache native compilations.
+
+### Kache flake
+
+Use Kache's flake to follow its releases directly or use its NixOS and nix-darwin modules.
+
 The flake builds for x86_64-linux, aarch64-linux and aarch64-darwin. On Intel macOS, use Homebrew, a release binary or `cargo install`.
 
 The `stable` branch follows released versions:
@@ -101,7 +135,7 @@ nix profile install github:kunobi-ninja/kache/stable
 Pin a release tag when updates must be explicit:
 
 ```bash
-nix profile install github:kunobi-ninja/kache/v1.0.0
+nix profile install github:kunobi-ninja/kache/v2.0.0-rc.3
 ```
 
 The flake also exports `overlays.default`, `nixosModules.default` and `darwinModules.default`. The module's `services.kache` options are defined in [`packaging/nix/module.nix`](https://github.com/kunobi-ninja/kache/blob/main/packaging/nix/module.nix). `enable` installs Kache, writes `settings` to `/etc/kache/config.toml` and sets `KACHE_CONFIG`. `rustcWrapper`, on by default, sets `RUSTC_WRAPPER`. `daemon.enable` runs the daemon as a systemd or launchd user service. The module does not put the shims on `PATH`; use the example below for that.
@@ -133,13 +167,24 @@ Other Rust-supported targets may work through `cargo install`, but they are not 
 
 ## Shell completions
 
-The official AUR packages install completions for Bash, Zsh, Fish and Elvish. For other installs, generate a script with [`kache completions <shell>`](/docs/commands/reference#kache-completions) and save it where your shell loads completions.
+`kache init` installs completions for your login shell on Unix: Bash, Zsh, or Fish. Open a new terminal after setup. Run `kache init` again after an upgrade to refresh the scripts; `--check` previews changes and `--no-shell` skips them.
+
+Bash and Zsh load a generated script from `${XDG_DATA_HOME:-~/.local/share}/kache/completions`. Fish uses `${XDG_CONFIG_HOME:-~/.config}/fish/completions/kache.fish`. Existing files are backed up before replacement.
+
+The official AUR packages also install completions for Elvish. For manual setup or another supported shell, use [`kache completions <shell>`](/docs/commands/reference#kache-completions).
+
+## Upgrading from 1.x
+
+Follow [Upgrading to v2](/docs/getting-started/upgrade-v2). Finish active builds,
+install the matching pair, keep the existing configuration, and restart the
+daemon. Custom installers and container images must include `kache-engine`.
 
 ## Verify the install
 
 ```bash
 kache --version
 kache doctor
+kache doctor --probe
 ```
 
 If you have not run it yet, enable Kache with `kache init`. The [quick start](/docs/getting-started/quick-start) shows how to confirm cache hits.
@@ -148,6 +193,14 @@ If you have not run it yet, enable Kache with `kache init`. The [quick start](/d
 
 ## Build from source
 
+To install the current main branch, including features not yet in a release:
+
+```bash
+cargo install --git https://github.com/kunobi-ninja/kache --branch main --locked kache
+```
+
+Or build from a checkout:
+
 ```bash
 git clone https://github.com/kunobi-ninja/kache
 cd kache
@@ -155,3 +208,7 @@ cargo install --path . --locked
 ```
 
 A git checkout builds with the toolchain pinned in `rust-toolchain.toml`, which rustup installs on first use.
+
+Both commands install `kache` and `kache-engine`. Build locally without installing
+with `cargo build --release --bins`; keep the two outputs together if you copy
+them from `target/release/`.

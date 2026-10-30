@@ -2,7 +2,7 @@
 
 #[cfg(all(test, windows))]
 use crate::prelude::*;
-use anyhow::{Result, bail, ensure};
+use anyhow::{Context, Result, bail, ensure};
 use kache_protocol::execution::{
     EXECUTION_VERSION, ExecutionCommand, ExecutionReply, ExecutionRequest,
 };
@@ -28,8 +28,11 @@ mod windows_client;
 use windows::Connection;
 #[cfg(unix)]
 mod unix;
+mod workspace;
 #[cfg(unix)]
 use unix::Connection;
+#[cfg(unix)]
+mod unix_client;
 
 /// `None` permits local execution. An error means Commit may have reached the
 /// daemon and the caller must not run the compiler again.
@@ -63,9 +66,22 @@ fn exchange(
     #[cfg(unix)] descriptors: &[BorrowedFd<'_>],
     committed: &mut bool,
 ) -> Result<i32> {
+    #[cfg(unix)]
+    let (mut unix_client, broker_files) = if matches!(
+        request.channels,
+        kache_protocol::execution::ExecutionChannels::UnixClient { .. }
+    ) {
+        let (client, files) = unix_client::Client::prepare(request, descriptors)?;
+        (Some(client), Some(files))
+    } else {
+        (None, None)
+    };
     #[cfg(windows)]
     let mut client = windows_client::Client::default();
+    #[cfg(unix)]
     let stream = Connection::connect(socket)?;
+    #[cfg(windows)]
+    let stream = Connection::connect(socket, request.channels.trusted_pipeline(true))?;
     write_message(
         &mut &stream,
         &kache_protocol::Request::ExecuteV1(Box::new(request.clone())),
@@ -86,8 +102,27 @@ fn exchange(
         let datagram = std::os::unix::net::UnixDatagram::unbound()?;
         datagram.set_write_timeout(Some(PREPARE_TIMEOUT))?;
         datagram.connect(endpoint)?;
+        #[cfg(unix)]
+        let files = {
+            let mut files = descriptors.to_vec();
+            if let Some(broker_files) = &broker_files {
+                let kache_protocol::execution::ExecutionChannels::UnixClient { terminal, .. } =
+                    request.channels
+                else {
+                    unreachable!()
+                };
+                files.splice(
+                    3 + usize::from(terminal)..3 + usize::from(terminal),
+                    broker_files.iter().map(AsFd::as_fd),
+                );
+            }
+            files
+        };
+        #[cfg(unix)]
+        let descriptors = files.as_slice();
         crate::descriptors::send(datagram.as_fd(), &ticket.key, descriptors)?;
     }
+
     #[cfg(windows)]
     ensure!(
         matches!(
@@ -104,12 +139,20 @@ fn exchange(
         "compiler execution was not prepared"
     );
 
+    // macOS can drain an in-flight socket when its last sender descriptor
+    // closes. Prepared confirms the daemon has installed its own descriptors.
+    #[cfg(unix)]
+    drop(broker_files);
+
     stream.prepare_commit()?;
-    send_commit(&mut &stream, committed)?;
+    send_commit(&mut &stream, committed).context("sending compiler Commit")?;
     #[cfg(windows)]
     stream.commit_written()?;
     ensure!(
-        matches!(read_reply(&mut reader)?, ExecutionReply::Accepted),
+        matches!(
+            read_reply(&mut reader).context("waiting for compiler acceptance")?,
+            ExecutionReply::Accepted
+        ),
         "daemon did not acknowledge compiler execution"
     );
     #[cfg(windows)]
@@ -118,16 +161,33 @@ fn exchange(
             ExecutionReply::Complete { exit_code } => return Ok(exit_code),
             ExecutionReply::Failed { message } => bail!("{message}"),
             ExecutionReply::WindowsControl { command } => {
-                write_message(&mut &stream, &client.execute(command))?;
+                write_message(&mut &stream, &client.execute_from(command, &stream))?;
             }
             reply => bail!("invalid compiler completion: {reply:?}"),
         }
     }
-    #[cfg(not(windows))]
-    match read_reply(&mut reader)? {
-        ExecutionReply::Complete { exit_code } => Ok(exit_code),
-        ExecutionReply::Failed { message } => bail!("{message}"),
-        reply => bail!("invalid compiler completion: {reply:?}"),
+    #[cfg(unix)]
+    loop {
+        #[cfg(unix)]
+        if let Some(client) = &mut unix_client
+            && reader.buffer().is_empty()
+            && client.ready(stream.as_fd())?
+        {
+            if !client
+                .service()
+                .context("servicing client-owned native operations")?
+            {
+                // The worker can release its broker before the async handler
+                // writes Complete. Completion still comes from that handler.
+                unix_client = None;
+            }
+            continue;
+        }
+        return match read_reply(&mut reader).context("waiting for compiler completion")? {
+            ExecutionReply::Complete { exit_code } => Ok(exit_code),
+            ExecutionReply::Failed { message } => bail!("{message}"),
+            reply => bail!("invalid compiler completion: {reply:?}"),
+        };
     }
 }
 
@@ -184,6 +244,146 @@ mod tests {
     use kache_protocol::execution::{ExecutionChannels, ExecutionEntry, NativeString};
     use std::fs::File;
     use std::os::unix::net::{UnixDatagram, UnixListener};
+
+    #[cfg(unix)]
+    #[test]
+    fn client_process_broker_transfers_live_pipes_and_reaps_the_native_child() {
+        use kache_protocol::execution::{
+            process::{Spawn, Stdio as Plan},
+            unix::{Command, Reply},
+        };
+        use std::os::unix::net::UnixStream;
+        use std::os::unix::process::ExitStatusExt;
+
+        let root = tempfile::tempdir_in("/tmp").unwrap();
+        let path = root.path().join("control");
+        let listener = UnixListener::bind(&path).unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let mut fixture = fixture(root.path());
+        fixture
+            .files
+            .extend((0..3).map(|_| tempfile::tempfile().unwrap()));
+        fixture.request.channels = ExecutionChannels::UnixClient {
+            terminal: true,
+            jobserver: vec![70, 71],
+            trusted_pipeline: false,
+        };
+        std::thread::scope(|threads| {
+            let server = threads.spawn(|| {
+                let (mut stream, _) =
+                    retry_until(Some(std::time::Instant::now() + PREPARE_TIMEOUT), || {
+                        listener.accept()
+                    })
+                    .unwrap();
+                stream.set_nonblocking(false).unwrap();
+                stream.set_read_timeout(Some(PREPARE_TIMEOUT)).unwrap();
+                let mut reader = std::io::BufReader::new(stream.try_clone().unwrap());
+                let mut line = String::new();
+                reader.read_line(&mut line).unwrap();
+                let endpoint = root.path().join("fds");
+                let datagram = UnixDatagram::bind(&endpoint).unwrap();
+                datagram.set_read_timeout(Some(PREPARE_TIMEOUT)).unwrap();
+                let ticket = kache_protocol::execution::DescriptorTicket {
+                    endpoint: NativeString::capture(endpoint.as_os_str()),
+                    key: [31; 16],
+                };
+                write_message(
+                    &mut stream,
+                    &ExecutionReply::Ready {
+                        version: EXECUTION_VERSION,
+                        descriptors: Some(ticket.clone()),
+                    },
+                )
+                .unwrap();
+                // Model a receiver which has sent Ready but has not installed
+                // the in-flight socket descriptors yet. macOS drains a socket
+                // if its sender closes the last installed descriptor here.
+                std::thread::sleep(std::time::Duration::from_millis(20));
+                let mut files =
+                    crate::descriptors::receive(datagram.as_fd(), &ticket.key, 8).unwrap();
+                let control = UnixStream::from(files.remove(4));
+                let pipes = UnixDatagram::from(files.remove(4));
+                pipes.set_read_timeout(Some(PREPARE_TIMEOUT)).unwrap();
+                control.set_read_timeout(Some(PREPARE_TIMEOUT)).unwrap();
+                let mut control = std::io::BufReader::new(control);
+                write_message(&mut stream, &ExecutionReply::Prepared).unwrap();
+                line.clear();
+                reader.read_line(&mut line).unwrap();
+                assert_eq!(
+                    serde_json::from_str::<ExecutionCommand>(&line).unwrap(),
+                    ExecutionCommand::Commit
+                );
+                write_message(&mut stream, &ExecutionReply::Accepted).unwrap();
+                let native = |value: &str| NativeString::capture(value.as_ref());
+                write_message(
+                    control.get_mut(),
+                    &Command::Spawn {
+                        command: Box::new(Spawn {
+                            program: native("/bin/sh"),
+                            args: vec![
+                                native("-c"),
+                                native("printf '%s' \"$PPID\"; printf native-error >&2; exit 19"),
+                            ],
+                            env: Vec::new(),
+                            cwd: NativeString::capture(root.path().as_os_str()),
+                            stdio: Plan::OUTPUT,
+                        }),
+                        jobserver: Vec::new(),
+                    },
+                )
+                .unwrap();
+                let mut reply = || {
+                    let mut line = String::new();
+                    control.read_line(&mut line).unwrap();
+                    serde_json::from_str::<Reply>(&line).unwrap()
+                };
+                let Reply::Spawned { id, pid } = reply() else {
+                    panic!("missing native child");
+                };
+                assert_ne!(pid, std::process::id());
+                let mut outputs = crate::descriptors::receive(pipes.as_fd(), &[0; 16], 2)
+                    .unwrap()
+                    .into_iter()
+                    .map(File::from);
+                let mut parent = String::new();
+                outputs.next().unwrap().read_to_string(&mut parent).unwrap();
+                assert_eq!(parent, std::process::id().to_string());
+                let mut error = String::new();
+                outputs.next().unwrap().read_to_string(&mut error).unwrap();
+                assert_eq!(error, "native-error");
+                let deadline = std::time::Instant::now() + PREPARE_TIMEOUT;
+                let raw = loop {
+                    assert!(
+                        std::time::Instant::now() < deadline,
+                        "native child was never reaped"
+                    );
+                    write_message(control.get_mut(), &Command::TryWait { id }).unwrap();
+                    let mut line = String::new();
+                    control.read_line(&mut line).unwrap();
+                    let Reply::Waited { status, .. } =
+                        serde_json::from_str::<Reply>(&line).unwrap()
+                    else {
+                        panic!("missing status");
+                    };
+                    if let Some(status) = status {
+                        break status;
+                    }
+                };
+                assert_eq!(std::process::ExitStatus::from_raw(raw).code(), Some(19));
+                write_message(control.get_mut(), &Command::Release { id }).unwrap();
+                let mut line = String::new();
+                control.read_line(&mut line).unwrap();
+                assert_eq!(serde_json::from_str::<Reply>(&line).unwrap(), Reply::Done);
+                write_message(&mut stream, &ExecutionReply::Complete { exit_code: 19 }).unwrap();
+            });
+            let descriptors = fixture.files.iter().map(AsFd::as_fd).collect::<Vec<_>>();
+            assert_eq!(
+                try_execute(&path, &fixture.request, &descriptors).unwrap(),
+                Some(19)
+            );
+            server.join().unwrap();
+        });
+    }
 
     #[derive(Clone, Copy, Debug)]
     enum Disconnect {
@@ -451,13 +651,13 @@ mod protocol_tests {
 #[cfg(all(test, windows))]
 mod windows_tests {
     use super::*;
-    use anyhow::Context as _;
     use interprocess::local_socket::ListenerNonblockingMode;
     use kache_protocol::execution::{ExecutionChannels, ExecutionEntry, NativeString};
 
     #[derive(Clone, Copy, Debug)]
     enum Peer {
         Complete,
+        Workspace,
         BeforePrepared,
         AfterCommit,
         Legacy,
@@ -484,6 +684,7 @@ mod windows_tests {
                 stdout: 0,
                 stderr: 0,
                 process_broker: true,
+                trusted_pipeline: false,
             },
         }
     }
@@ -496,11 +697,12 @@ mod windows_tests {
             .nonblocking(ListenerNonblockingMode::Both)
             .create_sync()?;
         let request = request(root.path());
+        let restored = root.path().join("restored-output");
         let server = std::thread::spawn(move || -> Result<()> {
             let deadline = std::time::Instant::now() + PREPARE_TIMEOUT;
             let inner = retry_until(Some(deadline), || listener.accept())
                 .context("accepting the execution client")?;
-            let connection = Connection::from_stream(inner, deadline)?;
+            let connection = Connection::from_stream(inner, deadline, false)?;
             let mut reader = std::io::BufReader::new(&connection);
             let mut line = String::new();
             reader
@@ -543,6 +745,50 @@ mod windows_tests {
                 return Ok(());
             }
             write_message(&mut &connection, &ExecutionReply::Accepted)?;
+            if matches!(peer, Peer::Workspace) {
+                use kache_protocol::execution::{windows, workspace};
+                use std::io::Seek;
+                use std::os::windows::io::AsRawHandle;
+                let mut contents = tempfile::tempfile()?;
+                contents.write_all(b"client-restored\0\xff")?;
+                contents.rewind()?;
+                let mut call = |operation, contents| -> Result<windows::Reply> {
+                    write_message(
+                        &mut &connection,
+                        &ExecutionReply::WindowsControl {
+                            command: windows::Command::Workspace {
+                                request: operation,
+                                contents,
+                            },
+                        },
+                    )?;
+                    line.clear();
+                    reader.read_line(&mut line)?;
+                    Ok(serde_json::from_str(&line)?)
+                };
+                let operation = || workspace::Command::PrepareBytes {
+                    target: NativeString::capture(restored.as_os_str()),
+                };
+                assert!(matches!(
+                    call(operation(), Some(u64::MAX))?,
+                    windows::Reply::Failed { .. }
+                ));
+                let windows::Reply::Workspace {
+                    result: workspace::Reply::PreparedFile { id, .. },
+                } = call(operation(), Some(contents.as_raw_handle() as usize as u64))?
+                else {
+                    bail!("client did not prepare restore contents")
+                };
+                assert!(!restored.exists());
+                assert_eq!(
+                    call(workspace::Command::Publish { id, replace: false }, None)?,
+                    windows::Reply::Workspace {
+                        result: workspace::Reply::Done
+                    }
+                );
+                assert_eq!(std::fs::read(&restored)?, b"client-restored\0\xff");
+            }
+
             write_message(
                 &mut &connection,
                 &ExecutionReply::Complete { exit_code: 19 },
@@ -551,7 +797,7 @@ mod windows_tests {
         });
         // A complete peer must expose preparation errors, rather than letting
         // the availability fallback hide them behind the server's timeout.
-        let result = if matches!(peer, Peer::Complete) {
+        let result = if matches!(peer, Peer::Complete | Peer::Workspace) {
             exchange(&path, &request, &mut false).map(Some)
         } else {
             try_execute(&path, &request)
@@ -571,6 +817,70 @@ mod windows_tests {
         }
         let error = exchange_with(Peer::AfterCommit).unwrap_err();
         assert!(error.to_string().contains("will not be run again locally"));
+    }
+
+    #[test]
+    fn named_pipe_client_restores_transformed_bytes_from_the_authenticated_daemon() {
+        assert_eq!(exchange_with(Peer::Workspace).unwrap(), Some(19));
+    }
+
+    #[test]
+    fn converting_a_client_handle_preserves_the_accepted_connection() -> Result<()> {
+        use interprocess::os::windows::named_pipe::{DuplexPipeStream, pipe_mode::Bytes};
+        use std::os::windows::fs::OpenOptionsExt;
+        use std::os::windows::io::OwnedHandle;
+        use windows_sys::Win32::Storage::FileSystem::{
+            FILE_FLAG_OVERLAPPED, FILE_SHARE_READ, FILE_SHARE_WRITE, SECURITY_IDENTIFICATION,
+        };
+
+        let root = tempfile::tempdir()?;
+        let path = root.path().join("control");
+        let listener = crate::ListenerOptions::new()
+            .name(crate::socket_name(&path)?)
+            .nonblocking(ListenerNonblockingMode::Both)
+            .create_sync()?;
+        let (accepted, wait_for_accept) = std::sync::mpsc::sync_channel(1);
+        let server = std::thread::spawn(move || -> Result<()> {
+            let deadline = std::time::Instant::now() + PREPARE_TIMEOUT;
+            let inner = retry_until(Some(deadline), || listener.accept())?;
+            let connection = Connection::from_stream(inner, deadline, false)?;
+            // accept has created another free instance. Reopening the client's
+            // handle here would switch to that instance and close this one.
+            accepted.send(())?;
+            let mut bytes = [0; 5];
+            (&connection).read_exact(&mut bytes)?;
+            ensure!(bytes == *b"bound", "request left its original connection");
+            (&connection).write_all(&bytes)?;
+            Ok(())
+        });
+        let result = (|| -> Result<()> {
+            let handle: OwnedHandle = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE)
+                .custom_flags(FILE_FLAG_OVERLAPPED)
+                .security_qos_flags(SECURITY_IDENTIFICATION)
+                .open(format!(r"\\.\pipe\{}", crate::daemon_endpoint(&path)))?
+                .into();
+            wait_for_accept.recv_timeout(PREPARE_TIMEOUT)?;
+            let pipe = DuplexPipeStream::<Bytes>::try_from(handle).map_err(std::io::Error::from)?;
+            let inner = interprocess::os::windows::named_pipe::local_socket::Stream::from(pipe);
+            let connection = Connection::from_stream(
+                inner.into(),
+                std::time::Instant::now() + PREPARE_TIMEOUT,
+                false,
+            )?;
+            (&connection).write_all(b"bound")?;
+            let mut reply = [0; 5];
+            (&connection).read_exact(&mut reply)?;
+            ensure!(reply == *b"bound", "reply left its original connection");
+            Ok(())
+        })();
+        server
+            .join()
+            .expect("named-pipe server panicked")
+            .with_context(|| format!("client returned {result:?}"))?;
+        result
     }
 
     fn assert_identification_only(connection: &Connection) -> Result<()> {
@@ -650,7 +960,12 @@ mod windows_tests {
             );
             std::thread::sleep(Duration::from_millis(10));
         }
-        assert!(!crate::windows_security::matches_daemon(child.0.as_handle()).unwrap());
+        for trusted_pipeline in [false, true] {
+            assert!(
+                !crate::windows_security::matches_daemon(child.0.as_handle(), trusted_pipeline)
+                    .unwrap()
+            );
+        }
         // Establish that a same-SID-only check would accept this real peer.
         use interprocess::os::windows::named_pipe::{DuplexPipeStream, pipe_mode::Bytes};
         let pipe = DuplexPipeStream::<Bytes>::connect_by_path_with_wait_mode(

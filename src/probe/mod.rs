@@ -537,7 +537,7 @@ fn run_family_probe_for(program: &str, env: &InvocationEnv) -> Result<Option<Pro
         .stderr(Stdio::null());
 
     let mut child = child_cmd
-        .invocation_spawn_in_group_with_io(kache_protocol::execution::windows::Stdio::STDOUT)
+        .invocation_spawn_in_group_with_io(kache_protocol::execution::process::Stdio::STDOUT)
         .map_err(|_| ())?;
     let mut stdout_handle = child.stdout.take().ok_or(())?;
     let (tx, rx) = std::sync::mpsc::channel();
@@ -1610,9 +1610,14 @@ printf 'host %s %s %s\n' "$CLIENT_VALUE" "$flavor" "$PWD"
     /// retry re-probes. Only for call sites that EXPECT a family — a genuine
     /// misparse still fails after the retries.
     fn probe_family_retrying(program: &str) -> Option<ProbedFamily> {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(1);
         for _ in 0..10 {
             if let Some(family) = probe_compiler_family(program) {
                 return Some(family);
+            }
+            // Retry brief exec failures, without repeating a timed-out probe.
+            if std::time::Instant::now() >= deadline {
+                return None;
             }
             std::thread::sleep(std::time::Duration::from_millis(10));
         }

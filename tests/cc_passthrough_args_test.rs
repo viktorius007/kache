@@ -30,12 +30,12 @@ impl FixtureDir {
         self.0.path()
     }
     fn stop_daemon(&self) {
-        let cache = self.path().join("cache");
-        let mut stop = common::hermetic_command(
-            kache_binary(),
-            &cache,
-            Some(&self.path().join("kache.toml")),
-        );
+        Self::stop_daemon_at(self.path());
+    }
+    fn stop_daemon_at(root: &std::path::Path) {
+        let cache = root.join("cache");
+        let mut stop =
+            common::hermetic_command(kache_binary(), &cache, Some(&root.join("kache.toml")));
         common::stop_daemon(stop.args(["daemon", "stop"]), &cache);
     }
 }
@@ -419,7 +419,7 @@ fn changed_link_archives_use_current_code_and_explicit_files_keep_cache_hits() {
 fn cc_header_availability_creation_uses_current_compiler_output() {
     for discovery in ["0", "1"] {
         for in_header in [false, true] {
-            let dir = tempfile::tempdir().unwrap();
+            let dir = FixtureDir::new();
             let root = dir.path().canonicalize().unwrap();
             fs::write(root.join("kache.toml"), "").unwrap();
             fs::create_dir(root.join("home")).unwrap();
@@ -500,14 +500,15 @@ fn cc_header_availability_creation_uses_current_compiler_output() {
     }
 }
 
-/// Compile `unit.c` in `root` through kache with `args` after the source,
+/// Compile `unit.c` in `root` through kache with `args` before the source,
 /// then link and run it. Returns the cache key the compile used and the
 /// program's exit code.
 fn compile_and_run_unit(root: &std::path::Path, discovery: &str, args: &[&str]) -> (String, i32) {
     let _ = fs::remove_file(root.join("unit.o"));
     let compiled = cacheable_cc_command(root)
-        .args(["/usr/bin/cc", "-c", "unit.c", "-o", "unit.o"])
+        .args(["/usr/bin/cc", "-c"])
         .args(args)
+        .args(["unit.c", "-o", "unit.o"])
         .env("HOME", root.join("home"))
         .env("KACHE_DEFERRED_DISCOVERY", discovery)
         .env("KACHE_DAEMON_PUBLISH", "0")
@@ -540,6 +541,7 @@ fn compile_and_run_unit(root: &std::path::Path, discovery: &str, args: &[&str]) 
 fn assert_probe_follows_optional_header(root: &std::path::Path, args: &[&str], absent: i32) {
     for discovery in ["0", "1"] {
         let _ = fs::remove_file(root.join("inc/optional.h"));
+        FixtureDir::stop_daemon_at(root);
         let _ = fs::remove_dir_all(root.join("cache"));
         let (cold, value) = compile_and_run_unit(root, discovery, args);
         assert!(
@@ -585,7 +587,7 @@ fn assert_probe_follows_optional_header(root: &std::path::Path, args: &[&str], a
 /// user `-I` directory. The key must change and the object must use it.
 #[test]
 fn cc_header_probe_keys_a_header_appearing_in_a_user_include_dir() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = FixtureDir::new();
     let root = dir.path().canonicalize().unwrap();
     fs::write(root.join("kache.toml"), "").unwrap();
     fs::create_dir(root.join("home")).unwrap();
@@ -604,7 +606,7 @@ fn cc_header_probe_keys_a_header_appearing_in_a_user_include_dir() {
 
 #[test]
 fn absolute_angle_header_probe_follows_its_optional_header() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = FixtureDir::new();
     let root = dir.path().canonicalize().unwrap();
     fs::write(root.join("kache.toml"), "").unwrap();
     fs::create_dir(root.join("home")).unwrap();
@@ -629,7 +631,7 @@ fn absolute_angle_header_probe_follows_its_optional_header() {
 /// header appears in a user `-I` directory.
 #[test]
 fn cc_header_probe_outside_user_include_dirs_keys_the_unit() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = FixtureDir::new();
     let root = dir.path().canonicalize().unwrap();
     fs::write(root.join("kache.toml"), "").unwrap();
     fs::create_dir(root.join("home")).unwrap();
@@ -651,8 +653,137 @@ fn cc_header_probe_outside_user_include_dirs_keys_the_unit() {
 }
 
 #[test]
+fn cc_forwarded_header_probes_cache_and_follow_optional_header_changes() {
+    for (definition, args) in [
+        (
+            "#ifdef __has_include\n#define HAS(x) __has_include(x)\n#else\n#define HAS(x) 0\n#endif\n",
+            &["-Iinc"][..],
+        ),
+        (
+            "#ifndef HAS\n#ifdef __has_include\n#define HAS __has_include\n#else\n#define HAS(x) 0\n#endif\n#endif\n",
+            &["-Iinc"][..],
+        ),
+        ("", &["-Iinc", "-DHAS(x)=__has_include(x)"][..]),
+        (
+            "#define HAS(x) HAVE\n",
+            &["-Iinc", "-DHAVE=__has_include(<optional.h>)"][..],
+        ),
+    ] {
+        let dir = FixtureDir::new();
+        let root = dir.path().canonicalize().unwrap();
+        fs::write(root.join("kache.toml"), "").unwrap();
+        fs::create_dir(root.join("home")).unwrap();
+        fs::create_dir(root.join("inc")).unwrap();
+        fs::write(root.join("aliases.h"), definition).unwrap();
+        fs::write(
+            root.join("use.h"),
+            "#if HAS(<optional.h>)\n#include <optional.h>\n#else\n#define VALUE 11\n#endif\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("unit.c"),
+            "#include \"aliases.h\"\n#include \"use.h\"\nint main(void) { return VALUE; }\n",
+        )
+        .unwrap();
+        assert_probe_follows_optional_header(&root, args, 11);
+    }
+}
+
+#[test]
+fn cc_forwarded_header_probes_with_cpp_standard_headers() {
+    let dir = FixtureDir::new();
+    let root = dir.path().canonicalize().unwrap();
+    fs::write(root.join("kache.toml"), "").unwrap();
+    fs::create_dir(root.join("home")).unwrap();
+    fs::create_dir(root.join("inc")).unwrap();
+    fs::write(
+        root.join("unit.c"),
+        "#include <cstddef>\n#include <type_traits>\n#include <string_view>\n\
+         #define HAS(x) __has_include(x)\n\
+         #if HAS(<optional.h>)\n#include <optional.h>\n#else\n#define VALUE 11\n#endif\n\
+         static_assert(std::is_integral_v<int>);\n\
+         int main() { return sizeof(std::string_view) ? VALUE : 255; }\n",
+    )
+    .unwrap();
+    assert_probe_follows_optional_header(&root, &["-x", "c++", "-std=c++17", "-Iinc"], 11);
+}
+
+#[test]
+fn cc_opaque_header_probe_macros_remain_uncached() {
+    for expression in ["HAS(HEADER)", "JOIN(H,AS)(<optional.h>)"] {
+        let dir = FixtureDir::new();
+        let root = dir.path().canonicalize().unwrap();
+        fs::write(root.join("kache.toml"), "").unwrap();
+        fs::create_dir(root.join("home")).unwrap();
+        fs::create_dir(root.join("inc")).unwrap();
+        fs::write(root.join("aliases.h"),
+            "#define HAS(x) __has_include(x)\n#define HEADER <optional.h>\n#define JOIN(a,b) a##b\n").unwrap();
+        fs::write(root.join("unit.c"), format!(
+            "#include \"aliases.h\"\n#if {expression}\n#include <optional.h>\n#else\n#define VALUE 11\n#endif\nint main(void) {{ return VALUE; }}\n")).unwrap();
+        for discovery in ["0", "1"] {
+            let _ = fs::remove_file(root.join("inc/optional.h"));
+            for expected in [11, 23] {
+                if expected == 23 {
+                    fs::write(root.join("inc/optional.h"), "#define VALUE 23\n").unwrap();
+                }
+                let (key, value) = compile_and_run_unit(&root, discovery, &["-Iinc"]);
+                assert!(key.is_empty(), "{expression}: opaque probes must not cache");
+                assert_eq!(value, expected);
+            }
+        }
+    }
+}
+
+#[test]
+fn cc_quoted_header_probe_macro_expands_in_the_callers_directory() {
+    for body in ["__has_include(\"optional.h\")", "HAS(\"optional.h\")"] {
+        let dir = FixtureDir::new();
+        let root = dir.path().canonicalize().unwrap();
+        fs::write(root.join("kache.toml"), "").unwrap();
+        for path in ["home", "defs", "caller"] {
+            fs::create_dir(root.join(path)).unwrap();
+        }
+        fs::write(
+            root.join("defs/probes.h"),
+            format!("#define HAS(x) __has_include(x)\n#define HAVE {body}\n"),
+        )
+        .unwrap();
+        fs::write(
+            root.join("caller/use.h"),
+            "#if HAVE\n#define VALUE 23\n#else\n#define VALUE 11\n#endif\n",
+        )
+        .unwrap();
+        fs::write(root.join("unit.c"),
+            "#include \"defs/probes.h\"\n#include \"caller/use.h\"\nint main(void) { return VALUE; }\n"
+        ).unwrap();
+        for discovery in ["0", "1"] {
+            let _ = fs::remove_file(root.join("caller/optional.h"));
+            for (present, expected) in [
+                (false, 11),
+                (false, 11),
+                (true, 23),
+                (true, 23),
+                (false, 11),
+            ] {
+                if present {
+                    fs::write(root.join("caller/optional.h"), "").unwrap();
+                } else {
+                    let _ = fs::remove_file(root.join("caller/optional.h"));
+                }
+                let (key, value) = compile_and_run_unit(&root, discovery, &[]);
+                assert!(
+                    key.is_empty(),
+                    "{body}: unknown macro expansion sites must not cache"
+                );
+                assert_eq!(value, expected, "{body}: discovery={discovery}");
+            }
+        }
+    }
+}
+
+#[test]
 fn quoted_header_probe_outside_user_dirs_follows_its_local_header() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = FixtureDir::new();
     let root = dir.path().canonicalize().unwrap();
     fs::write(root.join("kache.toml"), "").unwrap();
     fs::create_dir(root.join("home")).unwrap();
@@ -667,6 +798,7 @@ fn quoted_header_probe_outside_user_dirs_follows_its_local_header() {
     .unwrap();
     for discovery in ["0", "1"] {
         let _ = fs::remove_file(root.join("elsewhere/optional.h"));
+        dir.stop_daemon();
         let _ = fs::remove_dir_all(root.join("cache"));
         assert_eq!(compile_and_run_unit(&root, discovery, &[]).1, 11);
         assert_eq!(compile_and_run_unit(&root, discovery, &[]).1, 11);
@@ -685,7 +817,7 @@ fn quoted_header_probe_outside_user_dirs_follows_its_local_header() {
 
 #[test]
 fn a_header_created_after_preprocessing_cannot_publish_an_incomplete_read_set() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = FixtureDir::new();
     let root = dir.path().canonicalize().unwrap();
     fs::write(root.join("kache.toml"), "").unwrap();
     fs::create_dir(root.join("home")).unwrap();
@@ -773,6 +905,8 @@ fn cc_admission_reports_a_skip_reason_and_recompiles_until_admitted() {
             String::from_utf8_lossy(&output.stderr)
         );
         assert!(root.join("unit.o").is_file());
+        // Drain asynchronous publication before reading this compile's event.
+        dir.stop_daemon();
         let events = fs::read_to_string(root.join("cache/events.jsonl")).unwrap();
         let event: serde_json::Value =
             serde_json::from_str(events.lines().last().unwrap()).unwrap();
@@ -1078,6 +1212,8 @@ fn index_rows(root: &std::path::Path, table: &str) -> i64 {
 }
 
 fn last_cc_event(root: &std::path::Path) -> serde_json::Value {
+    // Local fallback may return before the daemon publishes its event.
+    FixtureDir::stop_daemon_at(root);
     let events = fs::read_to_string(root.join("cache/events.jsonl")).unwrap();
     serde_json::from_str(events.lines().last().unwrap()).unwrap()
 }

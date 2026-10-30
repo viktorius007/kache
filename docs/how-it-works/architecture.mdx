@@ -3,20 +3,33 @@ title: Architecture
 description: How the compiler wrapper, local store, and daemon divide the work
 ---
 
-Kache ships a small `kache` client and a `kache-engine` executable containing the
-CLI, cache pipeline and daemon.
+Keep invoking Kache through `kache`, including from Cargo's `RUSTC_WRAPPER`.
+V2 ships two executables from the same release:
+
+| Process | Owns |
+| --- | --- |
+| `kache` client | Captures each compiler invocation; owns native compiler children, streams, and brokered artifact operations |
+| Local `kache-engine` | CLI commands, daemon startup, build-script launchers, and local cache fallback before handoff |
+| Daemon (`kache daemon run`, through the engine) | Concurrent cache pipelines, key and restore decisions, remote transfers, and maintenance |
+
+The local daemon is useful without a remote cache. The optional network planner
+service is a separate process and is not required for exact cache lookups.
 
 The client sends compiler arguments, environment, working directory and IO to
 the daemon. The daemon runs concurrent cache pipelines, each with its own inputs,
 jobserver, cancellation and accounting. It does not change its process-wide
 environment or working directory to serve a client.
 
-On Unix, the daemon starts native compiler children. On Windows, the client
-starts them at the daemon's request, preserving the client's token, job objects
-and console. The cache pipeline stays in the daemon on both platforms.
-Both Windows peers compare process-token context before committing execution.
-The client opens the pipe with identification-only security, so the server can
-inspect its identity without acting with its token.
+On Linux, macOS and Windows, the client starts native compiler children at the
+daemon's request and applies artifact copies, clones, links, transformed writes,
+timestamp updates and staged publication. The daemon selects cache entries and
+restore strategies. The client owns child cleanup and unpublished stages.
+
+All platforms share compiler inputs, workspace operations and the workspace
+executor. Unix transfers descriptors over private per-invocation sockets.
+Windows duplicates handles from the authenticated named-pipe peer and retains
+its native process token, job objects and console. Compiler output and artifact
+contents travel through pipes or shared file handles, outside control messages.
 
 The engine starts a missing daemon on the first cache-enabled compile. If
 preparation fails or the client's process restrictions cannot be preserved, the
@@ -24,6 +37,50 @@ client can run the local engine. The first Commit write attempt transfers
 execution responsibility to the daemon. A later disconnect fails the invocation.
 
 CLI commands and build-script launchers run in the engine.
+
+### Process restrictions
+
+By default, Linux execution delegation requires compatible process credentials,
+namespaces and security labels, with Seccomp and NoNewPrivs disabled on both
+peers. Otherwise the client uses its local engine.
+
+On macOS, both peers must be outside Seatbelt sandboxes by default. Peer identity
+is checked with the kernel audit token. Windows requires matching process-token
+contexts. Different token generations carrying security attributes require local
+execution by default, even when both processes belong to the same user.
+
+For a daemon you trust to access the workspace, enable this
+setting in both the daemon's startup configuration and the build's configuration:
+
+```toml
+[cache]
+trust_daemon_execution = true
+```
+
+`KACHE_TRUST_DAEMON_EXECUTION=1` sets the same option. Restart an existing daemon
+after changing its startup setting. On Linux this permits the client broker under
+Seccomp filters and NoNewPrivs; it does not compare filter programs. On macOS
+it permits a sandboxed client or daemon after authenticating the peer. Unknown
+sandbox status still requires local execution.
+
+On Windows, this setting permits different `TSA://ProcUnique` values when both
+tokens contain only that known process-identity attribute, or both attribute
+lists are empty. Unknown attributes and changes to the attribute's type, flags
+or value count still require local execution. User, logon session, groups,
+privileges and the other token-context checks still apply. Token attributes can
+affect access rules, so enabling this option trusts the daemon to read inputs
+under its own token.
+
+Compiler children and brokered restore operations retain the client's
+restrictions. The daemon still discovers inputs, reads workspace files and
+maintains cache state under its own restrictions. This setting does not promise
+to reproduce an arbitrary client sandbox across the whole pipeline. Large-file
+prestaging is not used by brokered restores.
+
+`kache init` reports the current execution path after starting the daemon.
+`kache doctor` checks execution eligibility separately from daemon health. This
+probe runs no compiler and reserves no worker; each invocation checks admission
+again before Commit.
 
 ## Build path
 
@@ -51,7 +108,7 @@ The second local check prevents duplicate work when another process fills the sa
 | `dup` | Yes | The key was new but all output blobs already existed |
 | `error` | Yes | The compiler failed; nothing was stored |
 | `skipped` | Yes | The compile ran but its result was not stored, for example because a requested output was missing, the compile was faster than `cache.min_store_compile_ms`, or another process held the key's lock |
-| `passthrough` | Yes | Kache did not cache the invocation: policy declined it, or the key, the store or a restore failed |
+| `passthrough` | Not implied | Kache did not cache the invocation: policy declined it, a compiler query ran, another wrapper handled it, or key/store/restore work failed |
 
 An entry that prefetch imported before the compile asked for it logs `local_hit`. Build timelines mark such units with the prefetch delivery and its timing.
 
@@ -69,11 +126,17 @@ Identical output bytes share one blob. Restores first try copy-on-write cloning.
 
 See [Deduplication](/docs/deduplication) for platform details.
 
-A miss stores its outputs without waiting for an fsync. The daemon flushes the new blobs and metadata to disk on a two-second sweep and marks those entries durable, and a GC run flushes whatever is still pending. Without a reachable daemon the wrapper flushes the entry itself, so a store used without a daemon does not accumulate unflushed entries. Until an entry is flushed, a hit on it verifies every blob against its content hash before restoring, so a crash in between costs a recompile, never a wrong artifact. `[cache] deferred_durability = false` flushes inside the compile instead.
+A miss or a remotely downloaded entry can be stored without waiting for an fsync. The daemon verifies and flushes pending entries on a two-second sweep, up to 64 entries in the main store and in each indexed volume shard. A GC run also flushes pending entries.
+
+Without a reachable daemon, the wrapper attempts to flush the entry it stored. A non-dry-run `kache sync` also retries pending entries, even when there is nothing to transfer. IO failures or concurrent changes can leave entries pending for the next attempt. While an entry is pending, a hit verifies its blobs against their content hashes; the flush also verifies the bytes before marking that publication durable. Missing or damaged pending artifacts cause a cache miss. Set `[cache] deferred_durability = false` to flush inside the compile or download instead.
+
+Strict stores validate and flush shared blobs too, before a store or import operation succeeds. This adds a validation read to strict writes. Entries with more than 64 artifact records verify sequentially while holding the store's writer lock to bound open files, so a large flush can delay other writers. Already-durable hits keep the configured restore-verification policy.
 
 ## Daemon
 
-The daemon owns delegated compilation, remote work and periodic maintenance:
+The daemon owns delegated cache pipelines, remote work and periodic maintenance.
+For an accepted invocation the client still creates compiler processes and
+performs brokered restores under its own process restrictions:
 
 - concurrent cache pipelines for delegated compiler invocations
 - exact remote checks and downloads
@@ -98,7 +161,7 @@ See [Daemon overview](/docs/daemon/overview) and [Lifecycle](/docs/daemon/lifecy
 
 As `RUSTC_WRAPPER`, Kache sees rustc and workspace-wrapper invocations, and caches the Clippy ones among them. On Unix, after rustc builds a build script, Kache puts a launcher in its place, so Cargo runs the script through Kache too; see [Build scripts](/docs/how-it-works/build-scripts). Rust link work driven by rustc can be cached when the artifact policy allows it (`cache.cache_executables`, on by default on Linux and macOS); an independently invoked linker is outside this path.
 
-On Unix, `kache init` also adds a shim directory to the front of `PATH` and sets `kache test-runner` as Cargo's runner for the host, both through your shell startup files. The `cargo` shim runs the real Cargo and marks its target directories in use while it runs, so cleanup leaves them alone; it caches nothing. The `rustdoc` shim, which init sets as `build.rustdoc` when that is unset, caches the modes described in [Rust documentation](/docs/getting-started/rustdoc). The test runner makes test binaries wait for the compile scheduler's slots. Apart from these and the C, C++ and CUDA compilers below, Kache wraps no other tools.
+On Unix, `kache init` also adds a shim directory to the front of `PATH` and sets `kache test-runner` as Cargo's runner for the host, both through your shell startup files. The `cargo` shim runs the real Cargo and marks its target directories in use while it runs, so cleanup leaves them alone. It can seed compatible dependency units before Cargo checks a new target. On main it can also route explicitly opted-in local builds through [Blaze](/docs/getting-started/blaze). Compiler artifact caching still happens at the wrapper boundary. The `rustdoc` shim, which init sets as `build.rustdoc` when that is unset, caches the modes described in [Rust documentation](/docs/getting-started/rustdoc). The test runner makes test binaries wait for the compile scheduler's slots.
 
 C/C++ caching is separate. Kache must be invoked as the compiler wrapper (`kache cc`) or through a compiler-name shim on `PATH` (`kache init --shims`, Unix only). Supported object compilations use the same local store and remote pipeline as rustc. clang-cl debug objects stay machine-local. See [C and C++](/docs/getting-started/c-cpp).
 

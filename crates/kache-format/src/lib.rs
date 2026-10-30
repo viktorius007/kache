@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 /// Cache-key recipe version written into entry metadata.
-pub const CACHE_KEY_VERSION: u32 = 33;
+/// 34 separates the integrated fork's escaped dependency-path markers from
+/// upstream schema 33, which uses the same number for a different encoding.
+pub const CACHE_KEY_VERSION: u32 = 34;
 
 /// Emit kinds represented by the current entry format.
 pub const GATED_EMIT_KINDS: [&str; 8] = [

@@ -2969,6 +2969,44 @@ fn opt_in_link_response_files_are_refused_without_compiler_parsing() {
 }
 
 #[test]
+fn opt_in_link_keys_preserve_unicode17_soname_bytes() {
+    let _lock = crate::test_support::process_state_test_lock();
+    let env = InvocationEnv::capture();
+    let dir = tempfile::tempdir().unwrap();
+    let object = dir.path().join("input.o");
+    fs::write(&object, b"same object bytes").unwrap();
+    let compiler = CcCompiler::for_invocation(Vec::new(), &env).with_cache_cc_links(true);
+    let file_hasher = crate::cache_key::FileHasher::new_for(&env);
+    let path_normalizer = crate::path_normalizer::PathNormalizer::empty();
+    let ctx = KeyCtx {
+        invocation_env: &env,
+        file_hasher: &file_hasher,
+        path_normalizer: &path_normalizer,
+        cache_dir: dir.path(),
+        key_salt: None,
+        key_env_vars: &[],
+        extra_inputs_digest: None,
+        build_script_inputs_digest: None,
+    };
+    // Unicode 18 assigns U+1ADE a combining class that merges these names
+    // under NFC. The linker embeds their distinct raw SONAME bytes.
+    let key = |soname: &str| {
+        let argv = vec![
+            "cc".to_string(),
+            "-shared".to_string(),
+            object.to_string_lossy().into_owned(),
+            format!("-Wl,-soname,{soname}"),
+            "-o".to_string(),
+            dir.path().join("output.so").to_string_lossy().into_owned(),
+        ];
+        let parsed = compiler.parse(&argv).unwrap();
+        assert!(compiler.refuse_reasons(&parsed).is_empty());
+        compiler.cache_key(&parsed, &ctx).unwrap()
+    };
+    assert_ne!(key("q\u{1ade}\u{0323}"), key("q\u{0323}\u{1ade}"));
+}
+
+#[test]
 fn cache_key_for_link_changes_when_an_object_changes() {
     let _lock = crate::test_support::process_state_test_lock();
     let dir = tempfile::tempdir().unwrap();
@@ -4382,6 +4420,53 @@ fn build_preprocess_args_strips_dep_info_flags() {
             "{stripped} should be stripped from preprocess args, got {pp:?}"
         );
     }
+}
+
+/// #1751: GCC treats `-g3` as `-dD` under `-E`, so the probe would print
+/// every `#define` and a libc redirect macro would look like a computed
+/// `asm`. Drop it from the GNU preprocess argv. A computed `asm` that is
+/// actually in the expansion is still a hidden input.
+#[test]
+fn gnu_preprocess_argv_drops_g3_and_still_refuses_computed_asm() {
+    use crate::compiler::flags::Dialect;
+    let parsed = CcArgs::parse(&s(&["gcc", "-g3", "-c", "file.c"])).unwrap();
+    assert_eq!(parsed.family.dialect(), Dialect::Gnu);
+    assert_eq!(parsed.debug_level, Some(3));
+    assert!(parsed.rest.iter().any(|arg| arg == "-g3"));
+    let pp = build_preprocess_args(&parsed);
+    assert!(
+        !pp.iter().any(|arg| arg == "-g3"),
+        "GNU preprocess argv must not contain -g3, got {pp:?}"
+    );
+    assert!(pp.iter().any(|arg| arg == "file.c"), "{pp:?}");
+    assert_eq!(&pp[..2], &["-E".to_string(), "-P".to_string()]);
+    assert_eq!(
+        cc_assembler_hidden_input(b"void f() { asm((text())); }"),
+        Some("asm((...))")
+    );
+
+    let dumped = CcArgs::parse(&s(&[
+        "gcc", "-c", "file.c", "-g", "-g0", "-g1", "-g2", "-g3", "-dD", "-dM", "-dN", "-dI", "-dU",
+    ]))
+    .unwrap();
+    let pp = build_preprocess_args(&dumped);
+    for flag in [
+        "-g", "-g0", "-g1", "-g2", "-g3", "-dD", "-dM", "-dN", "-dI", "-dU",
+    ] {
+        assert!(
+            !pp.iter().any(|arg| arg == flag),
+            "{flag} should be absent from the GNU preprocess argv, got {pp:?}"
+        );
+    }
+    assert!(pp.iter().any(|arg| arg == "file.c"), "{pp:?}");
+
+    let cl = CcArgs::parse(&s(&["clang-cl", "-g3", "-c", "file.c"])).unwrap();
+    assert_eq!(cl.family.dialect(), Dialect::Cl);
+    let cl_pp = build_preprocess_args(&cl);
+    assert!(
+        cl_pp.iter().any(|arg| arg == "-g3"),
+        "only the GNU preprocess argv drops -g3, got {cl_pp:?}"
+    );
 }
 
 #[test]
@@ -5837,6 +5922,142 @@ fn cc_prefix_maps_preserve_source_parent_dir_for_out_of_tree() {
     );
 }
 
+/// kunobi-ninja/kache#1755: a build dir and a source that share only the
+/// filesystem root must keep the source directories under `<CC_SOURCE>`.
+/// Mapping the file's immediate parent flattens `__FILE__` to
+/// `<CC_SOURCE>/location.cc`. These paths are not created; the maps are
+/// lexical.
+#[test]
+fn cc_prefix_maps_anchor_root_source_at_its_first_directory() {
+    let src = "/src/base/location.cc";
+    let parsed = CcArgs::parse(&s(&["cc", "-c", src, "-o", "location.o"])).unwrap();
+    let maps = cc_prefix_maps_for(&parsed, Path::new("/obj"));
+
+    assert!(
+        maps.iter()
+            .any(|map| Path::new(&map.from) == Path::new("/src") && map.to == CC_SOURCE_SENTINEL),
+        "root-anchored source must map /src to <CC_SOURCE>, got {maps:?}"
+    );
+    assert!(
+        maps.iter()
+            .all(|map| Path::new(&map.from) != Path::new("/src/base")),
+        "must not map the source parent /src/base, got {maps:?}"
+    );
+    assert!(
+        maps.iter()
+            .all(|map| Path::new(&map.from) != Path::new("/")),
+        "must not map the filesystem root, got {maps:?}"
+    );
+
+    let got = String::from_utf8(apply_cc_prefix_maps_to_bytes(
+        src.as_bytes().to_vec(),
+        &maps,
+    ))
+    .unwrap();
+    assert!(
+        got.ends_with("base/location.cc"),
+        "source __FILE__ must keep the base/ parent dir, got {got:?} from {maps:?}"
+    );
+    assert_ne!(
+        got,
+        format!("{CC_SOURCE_SENTINEL}/location.cc"),
+        "source path must not collapse to a flat <CC_SOURCE>, got {got:?}"
+    );
+
+    // More than one directory below the anchor. Stopping at the file's
+    // parent, or one level above it, still drops part of the relative path.
+    let deep = "/src/security/sandbox/chromium/base/location.cc";
+    let deep_parsed = CcArgs::parse(&s(&["cc", "-c", deep, "-o", "location.o"])).unwrap();
+    let deep_maps = cc_prefix_maps_for(&deep_parsed, Path::new("/obj"));
+    assert!(
+        deep_maps.iter().any(|map| {
+            Path::new(&map.from) == Path::new("/src") && map.to == CC_SOURCE_SENTINEL
+        }),
+        "a deep source still anchors at /src, got {deep_maps:?}"
+    );
+    let deep_got = String::from_utf8(apply_cc_prefix_maps_to_bytes(
+        deep.as_bytes().to_vec(),
+        &deep_maps,
+    ))
+    .unwrap();
+    assert!(
+        deep_got.ends_with("security/sandbox/chromium/base/location.cc"),
+        "relative path below /src must survive, got {deep_got:?} from {deep_maps:?}"
+    );
+    assert_ne!(
+        deep_got,
+        format!("{CC_SOURCE_SENTINEL}/location.cc"),
+        "deep source must not collapse to a flat <CC_SOURCE>, got {deep_got:?}"
+    );
+
+    let direct = CcArgs::parse(&s(&["cc", "-c", "/src/foo.c", "-o", "foo.o"])).unwrap();
+    let direct_maps = cc_prefix_maps_for(&direct, Path::new("/build"));
+    assert!(
+        direct_maps.iter().any(|map| {
+            Path::new(&map.from) == Path::new("/src") && map.to == CC_SOURCE_SENTINEL
+        }),
+        "a file directly in /src still maps /src to <CC_SOURCE>, got {direct_maps:?}"
+    );
+
+    let with_base = cc_prefix_maps_cfg(
+        &parsed,
+        Path::new("/obj"),
+        Some(Path::new("/src")),
+        None,
+        &[],
+    );
+    assert!(
+        with_base
+            .iter()
+            .any(|map| { Path::new(&map.from) == Path::new("/src") && map.to == CC_BASE_SENTINEL }),
+        "base dir /src must be mapped, got {with_base:?}"
+    );
+    assert!(
+        with_base
+            .iter()
+            .all(|map| Path::new(&map.from) != Path::new("/src/base")),
+        "a base dir of /src must not leave a more specific /src/base map, got {with_base:?}"
+    );
+}
+
+/// `/var` and `/private/var` are one directory. Widening the anchor to `/var`
+/// leaves the checkout id in the key, so a relocated clone misses.
+#[cfg(unix)]
+#[test]
+fn cc_prefix_maps_keep_the_source_parent_when_var_and_private_var_meet() {
+    let canonical = std::fs::canonicalize("/var").unwrap_or_else(|_| PathBuf::from("/var"));
+    if canonical == Path::new("/var") {
+        return;
+    }
+    let dir = std::env::temp_dir();
+    let dir = std::fs::canonicalize(&dir).unwrap();
+    let via_private = dir.strip_prefix("/private").is_ok();
+    if !via_private {
+        return;
+    }
+    let via_var = PathBuf::from("/var").join(dir.strip_prefix("/private/var").unwrap());
+    let cwd = dir.join("clone-a");
+    let source_parent = via_var.join("clone-a/src");
+    std::fs::create_dir_all(cwd.join("src")).unwrap();
+    std::fs::create_dir_all(source_parent.as_path()).unwrap();
+    let source = source_parent.join("foo.c");
+    std::fs::write(&source, "int answer(void) { return 1; }\n").unwrap();
+    let parsed =
+        CcArgs::parse(&s(&["cc", "-c", &source.to_string_lossy(), "-o", "foo.o"])).unwrap();
+    let maps = cc_prefix_maps_for(&parsed, &cwd);
+    assert!(
+        maps.iter()
+            .all(|map| Path::new(&map.from) != Path::new("/var")
+                && Path::new(&map.from) != Path::new("/private")),
+        "a /var spelling must not anchor at the volume root, got {maps:?}"
+    );
+    assert!(
+        maps.iter().any(|map| Path::new(&map.from) == source_parent),
+        "the source parent must stay the <CC_SOURCE> anchor, got {maps:?}"
+    );
+    let _ = std::fs::remove_dir_all(dir.join("clone-a"));
+}
+
 /// Issue #78: an explicit `-isysroot <sdk>` is mapped to `<SDKROOT>` so
 /// the SDK path that rides in the resolved `cc -###` tokens stops
 /// keying the artifact per-install.
@@ -7211,7 +7432,10 @@ fn include_shadowing_keys_a_probe_beside_fallback_definitions() {
 fn include_shadowing_refuses_a_probe_through_a_macro() {
     for text in [
         "#if __has_include(HEADER)\n#endif\n",
-        "#define HAS(h) __has_include_next(h)\n",
+        "#define HAS(h) __has_include_next(h)\n#if HAS(HEADER)\n#endif\n",
+        "#define HAS(h) __has_include_next(WRAP(h))\n",
+        "#define HAS(h, other) __has_include_next(h)\n",
+        "#define HAS (h) __has_include(h)\n",
     ] {
         let temp = tempfile::tempdir().unwrap();
         let (parsed, source, _) = probing_unit(temp.path(), text);
@@ -7219,6 +7443,280 @@ fn include_shadowing_refuses_a_probe_through_a_macro() {
             digest_cc_include_shadowing(&parsed, &[source]).is_err(),
             "{text}: a probe through a macro must refuse the key"
         );
+    }
+}
+
+#[test]
+fn header_probe_scanner_resolves_fmt_and_xxhash_forwarding_macros() {
+    for definition in [
+        "#ifdef __has_include\n# define HAS(x) __has_include(x)\n#else\n# define HAS(x) 0\n#endif\n",
+        "#ifndef HAS\n# ifdef __has_include\n# define HAS __has_include\n# else\n# define HAS(x) 0\n# endif\n#endif\n",
+        "#define HAS_IMPL(x) NEXT(x)\n#define HAS(x) HAS_IMPL(x)\n#define NEXT __has_include_next\n",
+        "#define HAS(x) __has_include(x) // forwarding\n",
+        "#define HAS(x) /* forwarding\n */ __has_include(x)\n",
+    ] {
+        assert_eq!(
+            cc_header_probes(format!("{definition}#if HAS(<optional.h>)\n#endif\n").as_bytes()),
+            Some(vec![CcHeaderProbe {
+                name: "optional.h".into(),
+                quoted: false
+            }]),
+            "{definition}",
+        );
+    }
+    assert_eq!(
+        cc_header_probes(b"#define HAS(x) __has_include(x)\n"),
+        Some(vec![])
+    );
+    assert_eq!(
+        cc_header_probes(b"#define A B\n#define B A\n#if A(unknown)\n#endif\n"),
+        Some(vec![])
+    );
+    assert_eq!(cc_header_probes(b"#define HAS OTHER\n#define OTHER HAS\n#define HAS __has_include\n#if OTHER(<optional.h>) // use\n#endif\n"), Some(vec![CcHeaderProbe { name: "optional.h".into(), quoted: false }]));
+}
+
+#[test]
+fn header_probe_aliases_resolve_across_read_headers_and_keep_local_lookup_paths() {
+    let temp = tempfile::tempdir().unwrap();
+    let (parsed, source, include) = probing_unit(temp.path(), "#include <use.h>\n");
+    let definitions = include.join("definitions.h");
+    fs::write(
+        &definitions,
+        "#define HAS(x) IMPL(x)\n#define IMPL __has_include\n",
+    )
+    .unwrap();
+    let sub = include.join("sub");
+    fs::create_dir(&sub).unwrap();
+    let use_header = sub.join("use.h");
+    fs::write(&use_header, "#if HAS(\"optional.h\")\n#endif\n").unwrap();
+    for inputs in [
+        vec![source.clone(), use_header.clone(), definitions.clone()],
+        vec![definitions.clone(), source.clone(), use_header.clone()],
+    ] {
+        assert!(probed_header_moves_the_key(
+            &parsed,
+            &inputs,
+            &sub.join("optional.h")
+        ));
+    }
+    fs::write(&use_header, "#if HAS(HEADER)\n#endif\n").unwrap();
+    assert!(digest_cc_include_shadowing(&parsed, &[source, definitions, use_header]).is_err());
+}
+
+#[test]
+fn header_probe_aliases_refuse_opaque_uses_and_keep_conditional_alternatives() {
+    for usage in [
+        "#if HAS(HEADER)",
+        "#define CHECK HAS",
+        "#define WRAP(x) (HAS(x))",
+        "#define WRAP(x) HAS(OTHER(x))",
+    ] {
+        let text = format!("#define HAS(x) __has_include(x)\n{usage}\n#if CHECK(HEADER)\n");
+        assert_eq!(cc_header_probes(text.as_bytes()), None, "{usage}");
+    }
+    let text = b"#if OPTION\n#define HAS(x) __has_include(x)\n#else\n#define HAS(x) 0\n#endif\n#if defined(HAS) && HAS(<optional.h>)\n#endif\n#undef HAS\n";
+    assert_eq!(
+        cc_header_probes(text),
+        Some(vec![CcHeaderProbe {
+            name: "optional.h".into(),
+            quoted: false
+        }])
+    );
+}
+
+#[test]
+fn header_probe_scanner_handles_digraphs_and_refuses_directive_trigraphs() {
+    assert_eq!(
+        cc_header_probes(b"%:define HAS(x) __has_include(x)\n%:if HAS(<optional.h>)\n%:endif\n"),
+        Some(vec![CcHeaderProbe {
+            name: "optional.h".into(),
+            quoted: false
+        }])
+    );
+    assert_eq!(
+        cc_header_probes(b"#define HAS __has_include\n??=if HAS(<optional.h>)\n"),
+        None
+    );
+    assert_eq!(cc_header_probes(b"#define HAS(\n"), Some(vec![]));
+}
+
+#[test]
+fn header_probe_scanner_refuses_conditionals_that_can_paste_an_operator_alias() {
+    for paste in ["a ## b", "a %:%: b", "a ## b ## __VA_ARGS__"] {
+        let text = format!(
+            "#define JOIN(a,b,...) {paste}\n#define WRAP(a,b) JOIN(a,b)\n#define HAS(x) __has_include(x)\n#if WRAP(H,AS)(<optional.h>)\n#endif\n"
+        );
+        assert_eq!(cc_header_probes(text.as_bytes()), None, "{paste}");
+    }
+    assert_eq!(
+        cc_header_probes(
+            b"#define JOIN(a,b) a##b\n#if JOIN(__has_,include)(<optional.h>)\n#endif\n"
+        ),
+        None
+    );
+    let text = b"#define HAS(x) __has_include(x)\n#define FEATURE(x) FIXED_PREFIX_ ## x\n#if FEATURE(ENABLED) && HAS(<optional.h>)\n#endif\n";
+    assert_eq!(
+        cc_header_probes(text),
+        Some(vec![CcHeaderProbe {
+            name: "optional.h".into(),
+            quoted: false
+        }])
+    );
+    for unrelated in ["HAS_EXTRA", "PREFIX_HAS"] {
+        let text = format!(
+            "#define {unrelated}(x) __has_include(x)\n#define HAS(x) 0\n#define JOIN H##AS\n#if JOIN(<optional.h>)\n#endif\n"
+        );
+        assert_eq!(
+            cc_header_probes(text.as_bytes()),
+            Some(vec![]),
+            "a pasted ordinary macro must not match a probe alias by substring: {unrelated}"
+        );
+    }
+}
+
+#[test]
+fn header_probe_scanner_binds_constant_arguments_to_token_paste_helpers() {
+    let text = b"#define JOIN3(a,b,c) a##b##c\n#define INT_MAX_FOR(n) JOIN3(INT,n,_MAX)\n#define INT64_MAX 1\n#define HAS(x) __has_include(x)\n#if INT_MAX_FOR(64) && HAS(<optional.h>)\n#endif\n";
+    assert_eq!(
+        cc_header_probes(text),
+        Some(vec![CcHeaderProbe {
+            name: "optional.h".into(),
+            quoted: false
+        }])
+    );
+    let text = b"#define JOIN3(a,b,c) a##b##c\n#define INT64_MAX 1\n#define HAS(x) __has_include(x)\n#if JOIN3(INT,64,_MAX) && HAS(<optional.h>)\n#endif\n";
+    assert_eq!(
+        cc_header_probes(text),
+        Some(vec![CcHeaderProbe {
+            name: "optional.h".into(),
+            quoted: false
+        }])
+    );
+    for text in [
+        "#define JOIN(a,b) a##b\n#define ARG H\n#define HAS(x) __has_include(x)\n#if JOIN(ARG,AS)(<optional.h>)\n#endif\n",
+        "#define JOIN(a,b,...) a##b##__VA_ARGS__\n#define HAS(x) __has_include(x)\n#if JOIN(H,A,S,,)(<optional.h>)\n#endif\n",
+        "#define JOIN(a,b) a##b\n#define JOIN(a,b) OTHER(a,b)\n#define HAS(x) __has_include(x)\n#if JOIN(X,Y)(<optional.h>)\n#endif\n",
+        "#define JOIN(a,b) a##b\n#define WRAP(...) JOIN(__VA_ARGS__,AS)\n#define HAS(x) __has_include(x)\n#if WRAP(H)(<optional.h>)\n#endif\n",
+        "#define JOIN(a,b) a##b\n#define WRAP($) JOIN($,AS)\n#define HAS(x) __has_include(x)\n#if WRAP(H)(<optional.h>)\n#endif\n",
+        "#define JOIN$(a,b) a##b\n#define HAS(x) __has_include(x)\n#if JOIN$(H,AS)(<optional.h>)\n#endif\n",
+        "#define $JOIN(a,b) a##b\n#define HAS(x) __has_include(x)\n#if $JOIN(H,AS)(<optional.h>)\n#endif\n",
+    ] {
+        assert_eq!(cc_header_probes(text.as_bytes()), None, "{text}");
+    }
+}
+
+#[test]
+fn header_probe_macro_parameters_shadow_global_paste_helpers() {
+    let text = b"#define JOIN(a,b) a##b\n#define SAFE(JOIN) (JOIN)\n#define HAS(x) __has_include(x)\n#if SAFE(1) && HAS(<optional.h>)\n#endif\n";
+    assert_eq!(
+        cc_header_probes(text),
+        Some(vec![CcHeaderProbe {
+            name: "optional.h".into(),
+            quoted: false
+        }])
+    );
+}
+
+#[test]
+fn header_probe_scanner_keeps_fixed_prefixes_on_parenthesized_paste_chains() {
+    let text = b"#define HAS(x) __has_include(x)\n#define PREFIX_HAS 1\n#define CHECK(a,b) (PREFIX_ ## a ## b)\n#if CHECK(H,AS) && HAS(<optional.h>)\n#endif\n";
+    assert_eq!(
+        cc_header_probes(text),
+        Some(vec![CcHeaderProbe {
+            name: "optional.h".into(),
+            quoted: false
+        }])
+    );
+}
+
+#[test]
+fn header_probe_scanner_does_not_treat_cpp_control_flow_as_a_directive() {
+    let text = b"#define JOIN(a,b) a##b\n#define HAS(x) __has_include(x)\nint HAS;\nint f(void) {\nif (JOIN(H,AS)) return 1;\nreturn 0;\n}\n#if HAS(<optional.h>)\n#endif\n";
+    assert_eq!(
+        cc_header_probes(text),
+        Some(vec![CcHeaderProbe {
+            name: "optional.h".into(),
+            quoted: false
+        }])
+    );
+}
+
+#[test]
+fn header_probe_macro_arguments_keep_nested_commas_inside_the_argument() {
+    let tokens: &[&[u8]] = &[
+        b"CALL", b"(", b"FN", b"(", b"1", b",", b"2", b")", b",", b"TAIL", b")",
+    ];
+    assert_eq!(
+        cc_header_macro_use(tokens, 0).arguments,
+        Some(vec![
+            vec!["FN", "(", "1", ",", "2", ")"]
+                .into_iter()
+                .map(str::to_owned)
+                .collect(),
+            vec!["TAIL".to_owned()],
+        ])
+    );
+    assert!(cc_header_macro_use(&tokens[..7], 0).arguments.is_none());
+    assert!(cc_header_macro_use(&[b"BARE"], 0).arguments.is_none());
+}
+
+#[test]
+fn header_probe_scanner_refuses_wrong_arity_even_in_an_inactive_branch() {
+    for arguments in ["H", "", "H,AS,EXTRA"] {
+        let text = format!(
+            "#define JOIN(a,b) a##b\n#define HAS(x) __has_include(x)\n#if 0\n#if JOIN({arguments})(<optional.h>)\n#endif\n#endif\n"
+        );
+        assert_eq!(cc_header_probes(text.as_bytes()), None, "{arguments}");
+    }
+}
+
+#[test]
+fn header_probe_identifiers_exclude_numbers_and_literal_tokens() {
+    for name in ["HAS_INCLUDE", "_HAS", "has2"] {
+        assert!(cc_header_probe_identifier(name.as_bytes()), "{name}");
+    }
+    for token in ["", "7", "2HAS", "HAS(x)", "u8\"HAS\"", "HAS$", ","] {
+        assert!(!cc_header_probe_identifier(token.as_bytes()), "{token}");
+    }
+}
+
+#[test]
+fn header_probe_aliases_from_compiler_definitions_follow_header_availability() {
+    let temp = tempfile::tempdir().unwrap();
+    let (mut parsed, source, include) =
+        probing_unit(temp.path(), "#if HAS(<optional.h>)\n#endif\n");
+    for (name, value) in [("HAS", "__has_include"), ("HAS(x)", "__has_include(x)")] {
+        parsed.defines = vec![(name.into(), Some(value.into()))];
+        assert!(probed_header_moves_the_key(
+            &parsed,
+            std::slice::from_ref(&source),
+            &include.join("optional.h")
+        ));
+    }
+    fs::write(&source, "#if HAVE\n#endif\n").unwrap();
+    parsed.defines = vec![("HAVE".into(), Some("__has_include(<optional.h>)".into()))];
+    assert!(probed_header_moves_the_key(
+        &parsed,
+        std::slice::from_ref(&source),
+        &include.join("optional.h")
+    ));
+    let sub = temp.path().join("elsewhere");
+    fs::create_dir(&sub).unwrap();
+    let header = sub.join("probe.h");
+    fs::write(&header, "#if HAVE\n#endif\n").unwrap();
+    parsed.defines = vec![("HAVE".into(), Some("__has_include(\"optional.h\")".into()))];
+    assert!(digest_cc_include_shadowing(&parsed, &[source.clone(), header]).is_err());
+    fs::write(&source, "#if HAS(HEADER)\n#endif\n").unwrap();
+    parsed.defines = vec![("HAS(x)".into(), Some("__has_include(x)".into()))];
+    assert!(digest_cc_include_shadowing(&parsed, &[source]).is_err());
+}
+
+#[test]
+fn header_probe_scanner_refuses_quoted_probes_inside_macro_bodies() {
+    for body in ["__has_include(\"optional.h\")", "HAS(\"optional.h\")"] {
+        let text =
+            format!("#define HAS(x) __has_include(x)\n#define HAVE {body}\n#if HAVE\n#endif\n");
+        assert!(cc_header_probes(text.as_bytes()).is_none(), "{body}");
     }
 }
 
@@ -7241,6 +7739,25 @@ fn header_probe_scanner_keeps_each_probe_in_an_expression() {
                 },
             ]),
             "{text}",
+        );
+    }
+}
+
+#[test]
+fn header_probe_feature_tests_after_other_conditions_are_not_probes() {
+    for feature in [
+        "(FEATURE > 1) && defined(__has_include)",
+        "(FEATURE > 1) && defined __has_include",
+        "(FEATURE > 1) && defined(__has_include_next)",
+    ] {
+        let text = format!("#if {feature} && __has_include(<optional.h>)\n#endif\n");
+        assert_eq!(
+            cc_header_probes(text.as_bytes()),
+            Some(vec![CcHeaderProbe {
+                name: "optional.h".into(),
+                quoted: false
+            }]),
+            "{feature}"
         );
     }
 }

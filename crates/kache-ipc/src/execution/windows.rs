@@ -12,7 +12,8 @@ use windows_sys::Win32::Storage::FileSystem::{
     FILE_FLAG_OVERLAPPED, FILE_SHARE_READ, FILE_SHARE_WRITE, SECURITY_IDENTIFICATION,
 };
 use windows_sys::Win32::System::Threading::{
-    OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SYNCHRONIZE, WaitForSingleObject,
+    OpenProcess, PROCESS_DUP_HANDLE, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SYNCHRONIZE,
+    WaitForSingleObject,
 };
 
 pub(super) const MAX_REPLY_BYTES: u64 = 8 << 20;
@@ -30,10 +31,11 @@ pub(super) struct Connection {
 struct PeerSecurity {
     process: OwnedHandle,
     pid: u32,
+    trusted_pipeline: bool,
 }
 
 impl PeerSecurity {
-    fn open(stream: &crate::SyncStream) -> io::Result<Self> {
+    fn open(stream: &crate::SyncStream, trusted_pipeline: bool) -> io::Result<Self> {
         use kunobi_daemon::local::peer::PeerCredentials as _;
         let peer = stream.credentials()?;
         let pid = peer
@@ -48,7 +50,7 @@ impl PeerSecurity {
             })?;
         let process = unsafe {
             OpenProcess(
-                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SYNCHRONIZE,
+                PROCESS_DUP_HANDLE | PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SYNCHRONIZE,
                 0,
                 pid,
             )
@@ -59,6 +61,7 @@ impl PeerSecurity {
         let peer = Self {
             process: unsafe { OwnedHandle::from_raw_handle(process) },
             pid,
+            trusted_pipeline,
         };
         peer.verify(stream)?;
         Ok(peer)
@@ -79,7 +82,10 @@ impl PeerSecurity {
                 "compiler endpoint process exited",
             ));
         }
-        if !crate::windows_security::matches_daemon(self.process.as_handle())? {
+        if !crate::windows_security::matches_daemon(
+            self.process.as_handle(),
+            self.trusted_pipeline,
+        )? {
             return Err(io::Error::new(
                 io::ErrorKind::PermissionDenied,
                 "compiler endpoint security context differs",
@@ -90,7 +96,7 @@ impl PeerSecurity {
 }
 
 impl Connection {
-    pub(super) fn connect(socket: &Path) -> Result<Self> {
+    pub(super) fn connect(socket: &Path, trusted_pipeline: bool) -> Result<Self> {
         use interprocess::os::windows::named_pipe::{DuplexPipeStream, pipe_mode::Bytes};
         let deadline = std::time::Instant::now() + PREPARE_TIMEOUT;
         let path = format!(r"\\.\pipe\{}", crate::daemon_endpoint(socket));
@@ -115,14 +121,15 @@ impl Connection {
         })?;
         let pipe = DuplexPipeStream::<Bytes>::try_from(handle).map_err(io::Error::from)?;
         let inner = interprocess::os::windows::named_pipe::local_socket::Stream::from(pipe);
-        Self::from_stream(inner.into(), deadline)
+        Self::from_stream(inner.into(), deadline, trusted_pipeline)
     }
 
     pub(super) fn from_stream(
         inner: crate::SyncStream,
         deadline: std::time::Instant,
+        trusted_pipeline: bool,
     ) -> Result<Self> {
-        let peer = PeerSecurity::open(&inner)?;
+        let peer = PeerSecurity::open(&inner, trusted_pipeline)?;
         use windows_sys::Win32::System::Pipes::{GetNamedPipeInfo, PIPE_SERVER_END};
         let crate::SyncStream::NamedPipe(pipe) = &inner;
         let (mut flags, mut outbound, mut inbound) = (0, 0, 0);
@@ -151,6 +158,47 @@ impl Connection {
             peer,
             write_capacity: write_capacity as usize,
         })
+    }
+
+    pub(super) fn contents(&self, value: u64) -> io::Result<std::fs::File> {
+        use windows_sys::Win32::Foundation::{DUPLICATE_SAME_ACCESS, DuplicateHandle};
+        use windows_sys::Win32::Storage::FileSystem::{FILE_TYPE_DISK, GetFileType};
+        use windows_sys::Win32::System::Threading::GetCurrentProcess;
+        self.peer.verify(&self.inner)?;
+        let value = usize::try_from(value)
+            .ok()
+            .filter(|value| *value != 0 && isize::try_from(*value).is_ok())
+            .ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "invalid restore contents handle",
+                )
+            })?;
+        let mut handle = std::ptr::null_mut();
+        if unsafe {
+            DuplicateHandle(
+                self.peer.process.as_raw_handle(),
+                value as _,
+                GetCurrentProcess(),
+                &mut handle,
+                0,
+                0,
+                DUPLICATE_SAME_ACCESS,
+            )
+        } == 0
+        {
+            return Err(io::Error::last_os_error());
+        }
+        let file = std::fs::File::from(unsafe { OwnedHandle::from_raw_handle(handle) });
+        if unsafe { GetFileType(file.as_raw_handle()) } != FILE_TYPE_DISK
+            || !file.metadata()?.is_file()
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "restore contents must be a regular file",
+            ));
+        }
+        Ok(file)
     }
 
     pub(super) fn prepare_commit(&self) -> Result<()> {

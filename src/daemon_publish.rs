@@ -21,6 +21,8 @@
 //!   A refusal before the daemon holds the key falls back to the wrapper.
 //!   A cancellation after the daemon has snapshotted and holds the key is
 //!   published by the daemon, so a slow snapshot cannot drop the compile.
+//!   The cancelled wrapper keeps event ownership; only an accepted receipt
+//!   transfers both publication and the event to the daemon.
 //! - The daemon owns the handoff files from acceptance on and removes them
 //!   once the put has copied them. A daemon that dies with jobs queued loses
 //!   those stores, never a build: the compile has already produced its
@@ -110,6 +112,7 @@ fn memo_input_from_wire(
 /// A job the handler accepted: the request plus the key lock it holds.
 pub(crate) struct PublishJob {
     request: PublishCcRequest,
+    owns_event: bool,
     _lock: KeyLock,
 }
 
@@ -281,17 +284,20 @@ impl Daemon {
             // Exactly one wins, even if the socket reply is lost. A missing
             // receipt means the wrapper already gave up. It publishes only if
             // it can take the key back, so keep these snapshots and the claim.
-            if let Err(error) = accept_receipt(&request)
-                && !receipt_cancelled(&error)
-            {
-                remove_handoff_files(&owned);
-                return Err(error);
-            }
+            let owns_event = match accept_receipt(&request) {
+                Ok(()) => true,
+                Err(error) if receipt_cancelled(&error) => false,
+                Err(error) => {
+                    remove_handoff_files(&owned);
+                    return Err(error);
+                }
+            };
             remove_handoff_files(&request.files);
             let mut request = request;
             request.files = owned;
             Ok::<_, anyhow::Error>(Some(PublishJob {
                 request,
+                owns_event,
                 _lock: lock,
             }))
         })
@@ -397,10 +403,14 @@ pub(crate) fn run_publish_worker(
 }
 
 /// Store one handed-off compile, log its event, and release what the job
-/// held. Every failure is recorded on the event; none of them can reach a
-/// build.
+/// held. Store failures are logged and included in events owned by the daemon;
+/// none of them can reach a build.
 fn publish_one(daemon: &Arc<Daemon>, config: &Config, store: &Store, job: PublishJob) {
-    let PublishJob { request, _lock } = job;
+    let PublishJob {
+        request,
+        owns_event,
+        _lock,
+    } = job;
     let store_started = std::time::Instant::now();
     let files: Vec<(PathBuf, String)> = request
         .files
@@ -469,7 +479,9 @@ fn publish_one(daemon: &Arc<Daemon>, config: &Config, store: &Store, job: Publis
     // done. Drop the lock only after the files are gone: a peer that takes
     // the key next must find a committed entry, and nothing of ours left.
     discard_handoff_files(&request);
-    crate::wrapper::write_event(config, &event);
+    if owns_event {
+        crate::wrapper::write_event(config, &event);
+    }
     drop(_lock);
     daemon.publish_queue().progress.finished();
 }
@@ -1066,6 +1078,7 @@ mod tests {
                 &store,
                 PublishJob {
                     request,
+                    owns_event: true,
                     _lock: lock,
                 },
             );
@@ -1184,12 +1197,11 @@ mod tests {
         );
     }
 
-    /// Only an entry the wrapper marked for the remote is queued for upload,
-    /// even when a remote is configured.
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn only_an_entry_marked_for_the_remote_is_queued_for_upload() {
-        const CHILD_ROOT: &str = "KACHE_TEST_REMOTE_PUBLISH_ROOT";
-        let Some(root) = std::env::var_os(CHILD_ROOT) else {
+    /// Run blocking publication fixtures in a child that can be killed and
+    /// reaped if persistence outlives an async timeout or runtime teardown.
+    /// Return its root inside the child, or None after checking its result.
+    fn publish_fixture_child_root(test_name: &str, root_env: &str) -> Option<PathBuf> {
+        let Some(root) = std::env::var_os(root_env) else {
             // A stuck publish_one owns a blocking task that runtime teardown
             // cannot cancel. Keep the worker in a process we can kill and reap.
             let dir = tempfile::tempdir().unwrap();
@@ -1206,13 +1218,8 @@ mod tests {
             }
             let mut child = FixtureChild(
                 std::process::Command::new(std::env::current_exe().unwrap())
-                    .args([
-                        "--exact",
-                        "daemon_publish::tests::only_an_entry_marked_for_the_remote_is_queued_for_upload",
-                        "--nocapture",
-                        "--test-threads=1",
-                    ])
-                    .env(CHILD_ROOT, dir.path())
+                    .args(["--exact", test_name, "--nocapture", "--test-threads=1"])
+                    .env(root_env, dir.path())
                     .current_dir(dir.path())
                     .stdout(log.try_clone().unwrap())
                     .stderr(log)
@@ -1235,7 +1242,7 @@ mod tests {
                             b"ok",
                             "the child must finish the upload assertions"
                         );
-                        return;
+                        return None;
                     }
                     Ok(None) if std::time::Instant::now() < deadline => {
                         std::thread::sleep(Duration::from_millis(10));
@@ -1253,7 +1260,19 @@ mod tests {
                 }
             }
         };
-        let dir = PathBuf::from(root);
+        Some(PathBuf::from(root))
+    }
+
+    /// Only an entry the wrapper marked for the remote is queued for upload,
+    /// even when a remote is configured.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn only_an_entry_marked_for_the_remote_is_queued_for_upload() {
+        let Some(dir) = publish_fixture_child_root(
+            "daemon_publish::tests::only_an_entry_marked_for_the_remote_is_queued_for_upload",
+            "KACHE_TEST_REMOTE_PUBLISH_ROOT",
+        ) else {
+            return;
+        };
         let mut config = crate::test_support::test_config(dir.join("cache"));
         config.remote = Some(crate::config::RemoteConfig::test_s3("bucket", "artifacts"));
         let daemon = Arc::new(Daemon::new(config.clone()));
@@ -1275,6 +1294,7 @@ mod tests {
                     &store,
                     PublishJob {
                         request,
+                        owns_event: true,
                         _lock: lock,
                     },
                 );
@@ -1469,6 +1489,87 @@ mod tests {
         assert!(started.elapsed() < Duration::from_secs(5));
     }
 
+    /// A hand-off the shutdown drain stores is still queued for upload: the
+    /// upload queue closes only after the publish worker is done. The worker
+    /// here starts only once shutdown has closed the publish queue, as a busy
+    /// one reaches its last jobs only during the drain.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn the_shutdown_drain_queues_what_it_stores_for_upload() {
+        let Some(dir) = publish_fixture_child_root(
+            "daemon_publish::tests::the_shutdown_drain_queues_what_it_stores_for_upload",
+            "KACHE_TEST_SHUTDOWN_PUBLISH_ROOT",
+        ) else {
+            return;
+        };
+        let mut config = crate::test_support::test_config(dir.join("cache"));
+        config.auto_gc = false;
+        config.remote = Some(crate::config::RemoteConfig {
+            prefix: "artifacts".into(),
+            backend: crate::config::RemoteBackendConfig::Filesystem(
+                crate::config::FilesystemRemoteConfig {
+                    root: dir.join("remote"),
+                    atomic_write_dir: dir.join("remote-staging"),
+                },
+            ),
+        });
+        let daemon = Arc::new(Daemon::new(config.clone()));
+        let (upload_tx, mut uploads) = tokio::sync::mpsc::unbounded_channel();
+        daemon.set_upload_tx(upload_tx);
+        let (tx, rx) = tokio::sync::mpsc::channel(4);
+        daemon.publish_queue().set_sender(tx);
+        let mut request = handoff_request(&config, &key("drained"), &dir);
+        request.publishes_to_remote = true;
+        let _receipt = HandoffReceipt::new(&request).unwrap();
+        assert!(daemon.handle_publish_cc(request.clone()).await.ok);
+
+        let runtime = tokio::runtime::Handle::current();
+        let (done_tx, done) = tokio::sync::oneshot::channel();
+        let (start_tx, start_rx) = std::sync::mpsc::channel();
+        let worker_daemon = Arc::clone(&daemon);
+        let worker = std::thread::spawn(move || {
+            let _runtime = runtime.enter();
+            start_rx.recv().expect("shutdown releases the worker");
+            run_publish_worker(worker_daemon, rx);
+            let _ = done_tx.send(());
+        });
+        let drain = crate::daemon::drain_publications_then_close_uploads(&daemon, done);
+        tokio::pin!(drain);
+        // Let shutdown close publication admission before the worker can
+        // publish. Poll once so the fixture needs no scheduling delay.
+        std::future::poll_fn(|cx| {
+            assert!(
+                std::future::Future::poll(drain.as_mut(), cx).is_pending(),
+                "the drain waits for the worker"
+            );
+            std::task::Poll::Ready(())
+        })
+        .await;
+        assert!(
+            daemon.publish_queue().sender().is_none(),
+            "shutdown closes the publish queue"
+        );
+        start_tx.send(()).unwrap();
+        tokio::time::timeout(Duration::from_secs(30), drain)
+            .await
+            .expect("the drain ends once the worker exits");
+        worker.join().expect("publish worker panicked");
+
+        let store = Store::open(&config).unwrap();
+        assert!(store.get(&request.cache_key).unwrap().is_some(), "stored");
+        let queued = uploads
+            .try_recv()
+            .expect("the entry the drain stored is queued for upload");
+        assert_eq!(queued.key, request.cache_key);
+        assert!(
+            matches!(
+                uploads.try_recv(),
+                Err(tokio::sync::mpsc::error::TryRecvError::Disconnected)
+            ),
+            "the upload queue is closed after the drain"
+        );
+        std::fs::write(dir.join("publisher-complete"), b"ok").unwrap();
+    }
+
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn client_cleanup_after_a_lost_reply_cannot_remove_queued_outputs() {
         let dir = tempfile::tempdir().unwrap();
@@ -1513,7 +1614,7 @@ mod tests {
     /// that job is queued the wrapper's reclaim sees the key held; after the
     /// put it sees a commit and does not store a second copy.
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn a_cancelled_receipt_is_published_when_the_daemon_holds_the_key() {
+    async fn cancelled_handoff_publishes_without_taking_the_wrappers_event() {
         let dir = tempfile::tempdir().unwrap();
         let config = crate::test_support::test_config(dir.path().join("cache"));
         let daemon = Arc::new(Daemon::new(config.clone()));
@@ -1546,7 +1647,14 @@ mod tests {
             BuildClaim::Committed(_)
         ));
         let events = crate::events::read_events(&config.event_log_path()).unwrap();
-        assert_eq!(events.len(), 1);
+        assert!(
+            events.is_empty(),
+            "cancelling the receipt leaves event ownership with the wrapper"
+        );
+        crate::wrapper::write_event(&config, &request.event);
+        let events = crate::events::read_events(&config.event_log_path()).unwrap();
+        assert_eq!(events.len(), 1, "the compile is counted once");
+        assert!(!events[0].store_handed_off);
         assert!(
             events[0].store_error.is_empty(),
             "{:?}",

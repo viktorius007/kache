@@ -521,6 +521,9 @@ fn doctor_install_path_check_wording() {
 
 #[test]
 fn doctor_check_optionality_truth_table() {
+    assert!(doctor_check_is_optional("Compiler execution", false, false));
+    assert!(doctor_check_is_optional("Compiler execution", true, true));
+    assert_eq!(doctor_section("Compiler execution"), "Services");
     // An install path an upgrade may break is information, not an issue.
     assert!(doctor_check_is_optional("Install path", false, false));
     // So is a build that could reuse another checkout with a setting changed.
@@ -2784,13 +2787,6 @@ fn test_compute_project_stats_classifies_remaining_buckets() {
 }
 
 #[test]
-fn test_parse_cargo_lock_crate_names_nonexistent() {
-    // When Cargo.lock doesn't exist in cwd, should return None
-    // We can't guarantee cwd lacks Cargo.lock, so just test the function doesn't panic
-    let _ = parse_cargo_lock_crate_names();
-}
-
-#[test]
 fn test_parse_cargo_lock_crate_names_from_valid_missing_and_bad_files() {
     // Cargo.lock parser -> valid names, missing file, and malformed TOML.
     let dir = tempfile::tempdir().unwrap();
@@ -3422,9 +3418,12 @@ fn test_get_workspace_crate_names_lists_members() {
         std::fs::write(root.join(m).join("src/lib.rs"), "").unwrap();
     }
 
-    let names = get_workspace_crate_names(root.join("Cargo.toml").to_str().unwrap()).unwrap();
-    assert!(names.contains(&"a".to_string()), "got {names:?}");
-    assert!(names.contains(&"b".to_string()), "got {names:?}");
+    let names = sync_scope::resolve(Some(root.join("Cargo.toml").to_str().unwrap()), false)
+        .unwrap()
+        .workspace
+        .unwrap();
+    assert!(names.contains("a"), "got {names:?}");
+    assert!(names.contains("b"), "got {names:?}");
 }
 
 #[test]
@@ -3432,18 +3431,7 @@ fn test_get_workspace_crate_names_errors_on_bad_manifest() {
     let dir = tempfile::tempdir().unwrap();
     let bad = dir.path().join("Cargo.toml");
     std::fs::write(&bad, "this is not valid toml [[[").unwrap();
-    assert!(get_workspace_crate_names(bad.to_str().unwrap()).is_err());
-}
-
-#[test]
-fn test_workspace_filter_bad_manifest_is_empty_set() {
-    // Explicit bad manifest path -> warning branch with empty filter.
-    let dir = tempfile::tempdir().unwrap();
-    let bad = dir.path().join("Cargo.toml");
-    std::fs::write(&bad, "not toml [[[[").unwrap();
-
-    let filter = workspace_filter(Some(bad.to_str().unwrap())).unwrap();
-    assert!(filter.is_empty());
+    assert!(sync_scope::resolve(Some(bad.to_str().unwrap()), false).is_err());
 }
 
 // ── backend-neutral remote tests ──────────────────────────────────────────
@@ -3827,6 +3815,7 @@ fn save_manifest_config(
         DEFAULT_REMOTE_RESTORE_TIMEOUT_SECS, DEFAULT_S3_POOL_IDLE_SECS,
     };
     Config {
+        blaze: false,
         remote_error: None,
         socket_path_override: None,
         fallback: None,
@@ -3844,8 +3833,11 @@ fn save_manifest_config(
         shared_hardlink_restores: false,
         deferred_discovery: true,
         out_dir_alias: true,
+        out_dir_alias_root: None,
         deferred_durability: false,
         daemon_publish: false,
+        trust_daemon_execution: false,
+        daemon_execution_concurrency: None,
         project_rules: crate::config::ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
@@ -4971,6 +4963,40 @@ fn prefetch_session_lines_follow_the_summaries() {
 }
 
 #[test]
+fn stats_summary_shows_every_source_even_when_zero() {
+    let dir = tempfile::tempdir().unwrap();
+    let config = save_manifest_config(dir.path().join("cache"), None);
+    for (counts, expected) in [
+        (
+            [30, 1, 7, 2, 86],
+            "local 30 · prefetch 1 · remote 7 · dup 2 · miss 86",
+        ),
+        (
+            [4, 0, 0, 0, 0],
+            "local 4 · prefetch 0 · remote 0 · dup 0 · miss 0",
+        ),
+        (
+            [0, 0, 0, 0, 0],
+            "local 0 · prefetch 0 · remote 0 · dup 0 · miss 0",
+        ),
+    ] {
+        let mut snap = StatsSnapshot::default();
+        [
+            snap.event_stats.local_hits,
+            snap.event_stats.prefetch_hits,
+            snap.event_stats.remote_hits,
+            snap.event_stats.dups,
+            snap.event_stats.misses,
+        ] = counts;
+        let lines = render_stats(&snap, &config, SinceWindow::DEFAULT);
+        assert_eq!(
+            stats_row(&lines, "Sources"),
+            Some(format!("Sources | {expected} | "))
+        );
+    }
+}
+
+#[test]
 fn hit_rate_row_adds_every_outcome() {
     let row = |local, prefetch, remote, dups, misses| {
         let dir = tempfile::tempdir().unwrap();
@@ -4985,17 +5011,17 @@ fn hit_rate_row_adds_every_outcome() {
         stats_row(&lines, "Hit rate").unwrap_or_default()
     };
     assert!(
-        row(1, 4, 0, 0, 0).contains("5 of 5 crates from cache (1 local, 0 remote, 4 prefetched)"),
+        row(1, 4, 0, 0, 0).contains("5 of 5 crates from cache"),
         "{}",
         row(1, 4, 0, 0, 0)
     );
     assert!(
-        row(1, 0, 4, 0, 0).contains("5 of 5 crates from cache (1 local, 4 remote, 0 prefetched)"),
+        row(1, 0, 4, 0, 0).contains("5 of 5 crates from cache"),
         "{}",
         row(1, 0, 4, 0, 0)
     );
     assert!(
-        row(3, 1, 1, 2, 0).contains("5 of 7 crates from cache (3 local, 1 remote, 1 prefetched)"),
+        row(3, 1, 1, 2, 0).contains("5 of 7 crates from cache"),
         "{}",
         row(3, 1, 1, 2, 0)
     );
@@ -5149,6 +5175,7 @@ fn render_stats_prefetch_section_gated_on_activity() {
 /// from client-side rendering.
 fn effective_config_like(config: &Config) -> crate::daemon::EffectiveConfig {
     crate::daemon::EffectiveConfig {
+        process: None,
         max_size: config.max_size,
         cache_dir: config.cache_dir.display().to_string(),
         runtime_dir: config.runtime_dir.display().to_string(),
@@ -6934,6 +6961,74 @@ fn build_entry_pack(key: &str, crate_name: &str) -> Vec<u8> {
 }
 
 #[tokio::test]
+async fn lockfile_sync_pulls_hyphenated_packages_from_compiler_crate_prefixes() {
+    let dir = tempfile::tempdir().unwrap();
+    let config = save_manifest_config(dir.path().to_path_buf(), Some(test_remote_cfg()));
+    let store = Store::open(&config).unwrap();
+    let remote = test_remote_cfg();
+    let backend = TestBackend::memory();
+    let packages = [
+        ("aho-corasick", "aho_corasick"),
+        ("wasm-bindgen-shared", "wasm_bindgen_shared"),
+        ("serde", "serde"),
+    ];
+    let lock = dir.path().join("Cargo.lock");
+    let mut content = String::from("version = 3\n");
+    let mut expected_lists = Vec::new();
+    let mut expected_gets = Vec::new();
+    let mut keys = Vec::new();
+    for (package, crate_name) in packages {
+        content.push_str(&format!(
+            "\n[[package]]\nname = {package:?}\nversion = \"1.0.0\"\n"
+        ));
+        let key = sync_test_cache_key(crate_name);
+        backend
+            .seed(
+                &format!("prefix/v3/manifests/{crate_name}/{key}.json"),
+                b"{}".to_vec(),
+            )
+            .await;
+        let pack_path = format!("prefix/v3/packs/{crate_name}/{key}.tar.zst");
+        backend
+            .seed(&pack_path, build_entry_pack(&key, crate_name))
+            .await;
+        expected_lists.push(format!("prefix/v3/manifests/{crate_name}/"));
+        expected_gets.push(pack_path);
+        keys.push(key);
+    }
+    // Different versions of one package still need only one prefix listing.
+    content.push_str("\n[[package]]\nname = \"aho-corasick\"\nversion = \"2.0.0\"\n");
+    std::fs::write(&lock, content).unwrap();
+    let crates = parse_cargo_lock_crate_names_from(&lock).unwrap();
+    sync_with_client(
+        &as_cache_remote(as_remote_backend(&backend), &remote),
+        &config,
+        &store,
+        None,
+        true,
+        false,
+        false,
+        false,
+        Some(&crates),
+        false,
+        false,
+    )
+    .await
+    .unwrap();
+    let mut listed = backend.list_calls();
+    listed.sort();
+    expected_lists.sort();
+    assert_eq!(listed, expected_lists);
+    let mut downloaded = backend.get_calls();
+    downloaded.sort();
+    expected_gets.sort();
+    assert_eq!(downloaded, expected_gets);
+    for key in keys {
+        assert!(config.store_dir().join(key).join("meta.json").exists());
+    }
+}
+
+#[tokio::test]
 async fn sync_with_client_pull_downloads_and_imports_entry() {
     // Remote lists a key absent locally; the GET returns a VALID pack, so
     // the pull downloads, extracts, and imports it into the local store.
@@ -6983,6 +7078,162 @@ async fn sync_with_client_pull_downloads_and_imports_entry() {
         backend.get_calls(),
         vec![format!("prefix/v3/packs/serde/{key}.tar.zst")]
     );
+}
+
+#[tokio::test]
+async fn sync_with_client_pull_flushes_deferred_imports_without_a_daemon() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut config = save_manifest_config(dir.path().to_path_buf(), Some(test_remote_cfg()));
+    config.deferred_durability = true;
+    let store = Store::open(&config).unwrap();
+    let remote = test_remote_cfg();
+
+    let key = sync_test_cache_key("deferred-pull");
+    let pack = build_entry_pack(&key, "serde");
+    let backend = TestBackend::memory();
+    backend
+        .seed(
+            &format!("prefix/v3/manifests/serde/{key}.json"),
+            b"{}".to_vec(),
+        )
+        .await;
+    backend
+        .seed(&format!("prefix/v3/packs/serde/{key}.tar.zst"), pack)
+        .await;
+
+    sync_with_client(
+        &as_cache_remote(as_remote_backend(&backend), &remote),
+        &config,
+        &store,
+        None,
+        true,
+        false,
+        false,
+        false,
+        None,
+        false,
+        false,
+    )
+    .await
+    .expect("pull sync should succeed");
+
+    assert!(store.contains(&key));
+    assert_eq!(
+        store.pending_durability().unwrap(),
+        0,
+        "no daemon will flush the pulled entry, so the pull does"
+    );
+}
+
+#[tokio::test]
+async fn sync_with_client_retries_pending_durability_on_a_no_op_but_not_a_dry_run() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut config = save_manifest_config(dir.path().to_path_buf(), Some(test_remote_cfg()));
+    config.deferred_durability = true;
+    let store = Store::open(&config).unwrap();
+    let remote = test_remote_cfg();
+    let key = sync_test_cache_key("no-op-durability-retry");
+    let source = dir.path().join("pending.rlib");
+    std::fs::write(&source, b"pending local artifact").unwrap();
+    store
+        .put(
+            &key,
+            "serde",
+            &["lib".to_string()],
+            &[],
+            "",
+            "dev",
+            &[(source, "libserde.rlib".to_string())],
+            "",
+            "",
+        )
+        .unwrap();
+    let meta = store.get(&key).unwrap().unwrap();
+    let blob = store.blob_path(&meta.files[0].hash);
+    let temporarily_unavailable = dir.path().join("temporarily-unavailable");
+    std::fs::rename(&blob, &temporarily_unavailable).unwrap();
+    assert_eq!(store.flush_durability(10).unwrap(), 0);
+    assert_eq!(store.pending_durability().unwrap(), 1);
+    std::fs::rename(&temporarily_unavailable, &blob).unwrap();
+
+    let backend = TestBackend::memory();
+    backend
+        .seed(
+            &format!("prefix/v3/manifests/serde/{key}.json"),
+            b"{}".to_vec(),
+        )
+        .await;
+    let client = as_cache_remote(as_remote_backend(&backend), &remote);
+    let held = store.try_durability_flush_lock().unwrap().unwrap();
+    sync_with_client(
+        &client, &config, &store, None, true, false, false, false, None, false, false,
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        store.pending_durability().unwrap(),
+        1,
+        "another flusher owns the queue"
+    );
+    drop(held);
+    sync_with_client(
+        &client, &config, &store, None, true, false, true, false, None, false, false,
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        store.pending_durability().unwrap(),
+        1,
+        "dry-run must not flush"
+    );
+    sync_with_client(
+        &client, &config, &store, None, true, false, false, false, None, false, false,
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        store.pending_durability().unwrap(),
+        0,
+        "no-op sync must retry"
+    );
+    assert!(
+        backend.get_calls().is_empty(),
+        "the entry must not be downloaded again"
+    );
+    assert_eq!(std::fs::read(&blob).unwrap(), b"pending local artifact");
+}
+
+#[cfg(unix)]
+#[test]
+fn standalone_sync_leaves_pending_work_to_a_reachable_daemon() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut config = save_manifest_config(dir.path().to_path_buf(), None);
+    config.deferred_durability = true;
+    let store = Store::open(&config).unwrap();
+    let source = dir.path().join("daemon-owned.rlib");
+    std::fs::write(&source, b"daemon-owned pending artifact").unwrap();
+    store
+        .put(
+            "daemon-owned",
+            "fixture",
+            &["lib".to_string()],
+            &[],
+            "",
+            "dev",
+            &[(source, "libfixture.rlib".to_string())],
+            "",
+            "",
+        )
+        .unwrap();
+    let listener = crate::transport::ListenerOptions::new()
+        .name(crate::transport::socket_name(&config.socket_path()).unwrap())
+        .create_sync()
+        .unwrap();
+    flush_standalone_sync(&config, &store);
+    assert_eq!(store.pending_durability().unwrap(), 1);
+    drop(listener);
+    flush_standalone_sync(&config, &store);
+    assert_eq!(store.pending_durability().unwrap(), 0);
 }
 
 #[tokio::test]
@@ -9971,6 +10222,8 @@ fn init_steps_list_each_edit_with_the_backup_before_it() {
         rustdoc: Some("configure"),
         test_runner: Some(SetupStep::new("test_runner", "configure", vec![rc.clone()])),
         test_changes: vec![(rc.clone(), rc_exists)],
+        completions: None,
+        completion_changes: Vec::new(),
         recovery: "keep",
         recovery_path: PathBuf::from("/home/me/.config/kache/config.toml"),
         service: Some("keep"),
@@ -10026,6 +10279,8 @@ fn init_steps_list_each_edit_with_the_backup_before_it() {
         rustdoc: Some("keep"),
         test_runner: None,
         test_changes: Vec::new(),
+        completions: None,
+        completion_changes: Vec::new(),
         recovery: "ask",
         service: None,
         ..facts(true, true, true)
@@ -10150,6 +10405,8 @@ fn a_run_reports_declined_and_failed_steps_as_not_done() {
         rustdoc: Some("configure"),
         test_runner: None,
         test_changes: Vec::new(),
+        completions: None,
+        completion_changes: Vec::new(),
         recovery: "ask",
         recovery_path: PathBuf::from("/home/me/.config/kache/config.toml"),
         service: Some("configure"),
@@ -10182,6 +10439,8 @@ fn a_run_reports_declined_and_failed_steps_as_not_done() {
             rustdoc: None,
             test_runner: None,
             test_changes: Vec::new(),
+            completions: None,
+            completion_changes: Vec::new(),
             recovery: "keep",
             service_installed_now: false,
         },
@@ -10202,6 +10461,8 @@ fn a_run_reports_declined_and_failed_steps_as_not_done() {
             rustdoc: Some("configure"),
             test_runner: None,
             test_changes: Vec::new(),
+            completions: None,
+            completion_changes: Vec::new(),
             recovery: "configure",
             service_installed_now: true,
         },
@@ -10230,6 +10491,8 @@ fn a_run_reports_declined_and_failed_steps_as_not_done() {
             rustdoc: Some("failed"),
             test_runner: None,
             test_changes: Vec::new(),
+            completions: None,
+            completion_changes: Vec::new(),
             recovery: "keep",
             service_installed_now: false,
         },
@@ -10244,6 +10507,40 @@ fn a_run_reports_declined_and_failed_steps_as_not_done() {
         ]
     );
     assert_eq!(components(&kept)[4], "login_service keep");
+
+    // Completion edits are replanned after other shell edits. Report the
+    // backups from the applied plan, not the earlier preview.
+    let completion_path = PathBuf::from("/home/me/.local/share/kache/completions/kache.bash");
+    let completed = run_facts(
+        &SetupFacts {
+            completion_changes: vec![(PathBuf::from("/old-preview"), true)],
+            ..plan
+        },
+        RunOutcome {
+            cargo_applied: false,
+            rustdoc: None,
+            test_runner: None,
+            test_changes: Vec::new(),
+            completions: Some(SetupStep::new(
+                "completions",
+                "configure",
+                vec![completion_path.clone()],
+            )),
+            completion_changes: vec![(completion_path.clone(), true)],
+            recovery: "keep",
+            service_installed_now: false,
+        },
+    );
+    let steps = setup_steps(&completed);
+    let completion = steps.iter().find(|s| s.component == "completions").unwrap();
+    assert_eq!(completion.action, "configure");
+    assert_eq!(
+        completion.paths.as_slice(),
+        std::slice::from_ref(&completion_path)
+    );
+    let backups: Vec<_> = steps.iter().filter(|s| s.component == "backup").collect();
+    assert_eq!(backups.len(), 1);
+    assert_eq!(backups[0].paths, [completion_path]);
 }
 
 #[test]
@@ -10281,6 +10578,8 @@ fn a_run_reports_the_test_runner_it_planned_after_the_shell_edits() {
         rustdoc: None,
         test_runner: Some(SetupStep::new("test_runner", "unsupported", Vec::new())),
         test_changes: Vec::new(),
+        completions: None,
+        completion_changes: Vec::new(),
         recovery: "keep",
         recovery_path: PathBuf::from("/home/me/.config/kache/config.toml"),
         service: None,
@@ -10293,6 +10592,8 @@ fn a_run_reports_the_test_runner_it_planned_after_the_shell_edits() {
             rustdoc: None,
             test_runner: Some(SetupStep::new("test_runner", "configure", vec![rc.clone()])),
             test_changes: vec![(rc.clone(), true)],
+            completions: None,
+            completion_changes: Vec::new(),
             recovery: "keep",
             service_installed_now: false,
         },
@@ -11095,4 +11396,68 @@ fn direct_stats_include_rotated_events() {
     let snap = snapshot_from_direct_reads(&config, false, "size", SinceWindow::DEFAULT, false);
     assert_eq!(snap.event_stats.local_hits, 12);
     assert_eq!(snap.event_stats.misses, 1);
+}
+
+#[test]
+fn doctor_shows_the_native_linker_only_on_linux_with_a_compiler() {
+    assert!(doctor_shows_native_linker(true, false));
+    assert!(!doctor_shows_native_linker(true, true));
+    assert!(!doctor_shows_native_linker(false, false));
+    assert!(!doctor_shows_native_linker(false, true));
+}
+
+#[cfg(unix)]
+#[test]
+fn native_linker_check_reports_the_linker_cc_runs() {
+    let directory = tempfile::tempdir().unwrap();
+    let root = directory.path().canonicalize().unwrap();
+    let bin = root.join("bin");
+    fs::create_dir_all(&bin).unwrap();
+    kache_fs::testutil::write_executable(
+        &bin.join("cc"),
+        format!(
+            "#!/bin/sh\nfor arg in \"$@\"; do case \"$arg\" in -print-prog-name=ld) echo {bin}/ld ;; -print-prog-name=*) echo \"${{arg#-print-prog-name=}}\" ;; esac; done\n",
+            bin = bin.display()
+        ),
+    );
+    kache_fs::testutil::write_executable(&bin.join("ld"), "#!/bin/sh\necho 'GNU ld (test) 2.45'\n");
+    let env = |rustflags: &str| {
+        crate::invocation::InvocationEnv::from_parts(
+            [
+                ("PATH", bin.as_os_str()),
+                ("RUSTFLAGS", std::ffi::OsStr::new(rustflags)),
+            ],
+            Some(root.clone()),
+            None,
+            root.clone(),
+        )
+    };
+
+    let check = native_linker_check(&env(""));
+    assert!(check.pass, "{}", check.detail);
+    assert_eq!(
+        check.detail,
+        format!("{} (GNU ld (test) 2.45)", bin.join("ld").display())
+    );
+
+    let check = native_linker_check(&env("-C link-arg=-fuse-ld=mold"));
+    assert!(!check.pass);
+    assert!(check.detail.contains("`ld.mold`"), "{}", check.detail);
+    assert!(check.fix.is_some());
+
+    // `-C linker` in RUSTFLAGS names the driver to ask.
+    kache_fs::testutil::write_executable(
+        &bin.join("clang"),
+        format!(
+            "#!/bin/sh\nfor arg in \"$@\"; do case \"$arg\" in -print-prog-name=ld) echo {bin}/ld.alt ;; esac; done\n",
+            bin = bin.display()
+        ),
+    );
+    kache_fs::testutil::write_executable(&bin.join("ld.alt"), "#!/bin/sh\necho 'LLD 22.1.8'\n");
+    let check = native_linker_check(&env("-C linker=clang"));
+    assert!(check.pass, "{}", check.detail);
+    assert_eq!(
+        check.detail,
+        format!("{} (LLD 22.1.8)", bin.join("ld.alt").display())
+    );
 }

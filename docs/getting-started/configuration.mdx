@@ -20,6 +20,23 @@ Open the editor:
 kache config
 ```
 
+For scripts, use the file commands:
+
+```bash
+kache config path
+kache config list --json
+kache config set --project cache.local_only true
+kache config get --project cache.local_only
+kache config unset --project cache.local_only
+kache config set --global cache.local_max_size 50GiB
+```
+
+`get` and `list` report values written in the selected file, before environment overrides, host settings or defaults. `get` and `unset` fail when the key is absent. `set` accepts known keys with matching TOML types; quote array values for the shell, for example `kache config set paths.base_dirs '["/work", "/sources"]'`. Workspace declarations and entire tables are edited directly in TOML.
+
+`--project` uses the nearest existing `.kache.toml`, or creates one in the current directory on `set`. `--global` chooses the user config even when `KACHE_CONFIG` or a project file exists. `--file PATH` selects another file. These selectors are mutually exclusive and follow the subcommand. Without a selector, the commands use the same file selection as the editor. All five subcommands support `--json`.
+
+The commands change the file only. A daemon setting takes effect when the daemon next loads it; restart the daemon when you need a running instance to use the changed value.
+
 Or edit TOML directly. Kache chooses the first file in this order:
 
 1. `KACHE_CONFIG`
@@ -30,9 +47,9 @@ Kache reads only that one file, plus the [host config](#host-config); a `.kache.
 
 Each process walks up from its own current directory. Cargo compiles packages under the workspace root from the workspace root, but compiles registry and git dependencies, and runs their build scripts, from each package's source directory under `$CARGO_HOME`, so those compiles do not see your project's `.kache.toml`. A daemon that a build starts resolves its file from the directory of the compile that started it, which can be a dependency's source directory. To apply a setting to every compile and to the daemon, put it in your user config or the host config, or point `KACHE_CONFIG` at the file.
 
-If the chosen file is not valid TOML, or a key has the wrong type, Kache ignores the whole file, and the host config with it, and runs on environment variables and defaults without a warning. Size keys (`local_max_size`, `event_log_max_size`, `prefetch_max_bytes`) take quoted strings such as `"50GiB"`.
+If the chosen file is not valid TOML, or a key has the wrong type, compiler configuration resolution falls back to environment variables and defaults for the whole file, including the host overlay. Run `kache doctor` to check the selected file; the editor and file-editing subcommands refuse invalid TOML instead of saving over it. Size keys (`local_max_size`, `event_log_max_size`, `prefetch_max_bytes`) take quoted strings such as `"50GiB"`.
 
-The editor covers common fields and keeps the other settings Kache knows. Saving rewrites the whole file: comments and keys Kache does not recognize are dropped, and a file that does not parse is replaced. The editor asks before it first overwrites an existing file.
+The editor covers common fields and updates changed keys while keeping comments and other settings. It asks before its first save to an existing file and refuses a file it cannot read or parse. The file subcommands also preserve comments and unrelated settings; `unset` can remove an unknown key.
 
 ```toml title="~/.config/kache/config.toml"
 [cache]
@@ -46,9 +63,13 @@ region = "us-east-1"
 
 Use `type = "filesystem"` with `path = "/mnt/kache"` for a shared filesystem remote. Kache also supports `gcs` and `oci` remotes; see [Remote settings](#remote-settings).
 
+The file subcommands above are available in `v2.0.0-rc.2`. On older versions,
+use the interactive editor or edit the selected TOML file.
+See [Release channels](/docs/getting-started/installation#release-channels).
+
 ### Unstable mode
 
-Enable all Kache experiments with one setting:
+Opt into experiments controlled by Kache's unstable mode:
 
 ```toml
 [cache]
@@ -65,7 +86,8 @@ Worktree incremental seeding is enabled independently through
 compilers. See [incremental seeds between worktrees](/docs/getting-started/mutation-testing#incremental-seeds-between-worktrees)
 for compiler behavior and donor settings.
 
-Unstable mode does not enable every optional configuration setting. Those
+Unstable mode does not enable [Blaze](/docs/getting-started/blaze), which needs
+its own opt-in on main. It does not enable every optional configuration setting. Those
 settings also cover project-specific policies such as remote access and disk
 cleanup. Experiments still check compiler support and input compatibility.
 
@@ -116,12 +138,42 @@ local_max_size = "200GiB"
 | none | `cache.event_log_max_size` | `64MiB` | Rotate the event log after this size. Rotation keeps the build in progress, up to half this size, and moves the dropped lines to `events.jsonl.archive/`, pruned at each rotation to 8 days and 512 MiB |
 | none | `cache.event_log_keep_lines` | `1000` | Minimum lines retained when the event log rotates |
 | `KACHE_DISABLED` | none | `false` | Pass all compiler work through when set to `1` or `true` |
+| `KACHE_BLAZE` | `cache.blaze` | `false` | Route eligible local Cargo commands through an installed Blaze client. See [Optional Blaze builds](#optional-blaze-builds). |
 | `KACHE_LOCAL_ONLY` | `cache.local_only` | `false` | Ignore all remote and planner configuration while keeping local caching |
 | `KACHE_REMOTE_READONLY` | `cache.remote_readonly` | `false` | Allow remote reads but suppress remote writes. On GitHub Actions and GitLab CI, every job except a push to a protected branch is also forced read-only, and `=0` does not turn that off. A pull request job with `pull_request_prefix` set writes under that prefix instead, unless this setting is on or the remote is OCI. See [Who may write](/docs/remote-cache/ci#who-may-write). |
+| `KACHE_DAEMON_EXECUTION_CONCURRENCY` | `cache.daemon_execution_concurrency` | automatic | Concurrent daemon pipeline requests: four per available CPU, at least 32. A positive integer overrides that default; `0` selects automatic sizing. On Unix, the daemon can lower the count to fit its open-file limit and logs the reduction. RPC and blocking-thread capacity grow with this setting. It does not change compiler scheduler permits. Restart the daemon after changing it; an installed service reads its own environment and config. |
 | `KACHE_SCHEDULER` | `cache.scheduler` | `true` | Pace real compiler processes across concurrent builds after a miss. Hits and passthroughs never wait. `0` or `false` turns it off. With the [test runner](#test-runner), it paces test binaries too. |
 | `KACHE_SCHEDULER_MEMORY_PRESSURE` | `cache.scheduler_memory_pressure` | `true` | Under memory pressure, run compiles one after another. See [Limits](/docs/how-it-works/limits). |
 
 On macOS the default store is `~/Library/Caches/kache`; on Linux it is `$XDG_CACHE_HOME/kache` or `~/.cache/kache`; on Windows it is under `%LOCALAPPDATA%`.
+
+## Optional Blaze builds
+
+Available from `v2.0.0-rc.3`. See the
+[Blaze guide](/docs/getting-started/blaze) for routing, worktrees, and the separate
+Kache/Blaze cache and daemon state.
+
+Install [Blaze](https://github.com/indexable-inc/blaze) separately, run `kache init`
+to activate the Cargo shim, then opt in from the project:
+
+```sh
+kache config set --project cache.blaze true
+cargo build
+```
+
+The shim checks for `ra-jit` on each eligible command, so installing Blaze later
+needs no new `init`. Routing supports Linux and Apple silicon macOS. Local
+`build`, `run`, `test` and `check` commands can use Blaze. CI, release builds,
+explicit profiles, `+toolchain` invocations and leading global options use Cargo.
+
+Missing or unstartable Blaze falls back to Cargo. Once Blaze starts, its build
+errors are returned without retrying through Cargo. Blaze manages its own compiler
+and cache; eligible dependency compilations can still use Kache. Workspace results
+handled by Blaze appear as passthroughs, separately from Kache hits and misses.
+
+Use `KACHE_BLAZE=1 cargo build` to opt in for one command with the current config.
+Creating a `.kache.toml` selects that file instead of the user config, following
+the [config file precedence](#config-file).
 
 ## Test runner
 
@@ -549,6 +601,8 @@ Workspace rules are accepted only from the `.kache.toml` beside the active Cargo
 | `KACHE_REMOTE_RESTORE_TIMEOUT_SECS` | `cache.remote_restore_timeout_secs` | `300` | Daemon operation deadline; wrapper demand remains capped at three seconds |
 | `KACHE_REMOTE_NEGATIVE_TTL_SECS` | `cache.remote_negative_ttl_secs` | `60` | Cache definitive remote 404 results |
 
+Prediction-row fetches wait at most two seconds, or less when `remote_restore_timeout_secs` is shorter. Setting it to `0` keeps the two-second prediction cap. While the read circuit breaker is degraded, prediction fetches return immediately and leave recovery probes to artifact restores.
+
 Credentials resolve from explicit `KACHE_S3_ACCESS_KEY` and `KACHE_S3_SECRET_KEY`, standard AWS variables, then the AWS profile. Web identity, container credentials and instance credentials follow only when no profile is selected. A selected profile that cannot supply credentials makes S3 requests fail; see [Selected profile](/docs/remote-cache/s3-setup#selected-profile).
 
 The `KACHE_S3_*` connection settings apply to S3. GCS and OCI require an explicit
@@ -644,14 +698,16 @@ Every GC driver (the daemon's sweep and its eviction after an upload, the auto-G
 | --- | --- | --- | --- |
 | `KACHE_DAEMON_IDLE_TIMEOUT` | `cache.daemon_idle_timeout_secs` | `0` | Stop after idle seconds; `0` keeps it running |
 | `KACHE_DAEMON_PUBLISH` | `cache.daemon_publish` | `true` | Let a running daemon store completed C/C++ compiles. The wrapper stores locally when the daemon cannot accept the work. |
+| `KACHE_TRUST_DAEMON_EXECUTION` | `cache.trust_daemon_execution` | `false` | Both peers must opt in. Allows a trusted daemon pipeline under Linux Seccomp/NoNewPrivs, macOS sandboxes, or Windows process-identity token differences. Compiler children and artifact restoration run in the client; input discovery and other pipeline accesses retain the daemon's restrictions. See [Process restrictions](/docs/how-it-works/architecture#process-restrictions). |
 | `KACHE_HEARTBEAT_SECS` | `cache.heartbeat_secs` | `30` | Event heartbeat cadence for long miss compiles; `0` disables it |
 | `KACHE_EXPLAIN_MISS` | `cache.explain_miss` | `false` | Record changed key groups on repeat misses |
 | `KACHE_RECORD_SESSIONS` | `cache.record_sessions` | `false` | Make every `kache stats --full` append its session line, as `--record` does, and every GC run append to `telemetry/gc-runs.jsonl` |
 | `KACHE_STORAGE_LAYOUT_ADVICE` | `cache.storage_layout_advice` | `true` | Warn when storage layout forces copies. CLI commands print the advice; compiler wrappers log it at `warn` (see `KACHE_LOG`) so it never lands in compiler output |
 | `KACHE_WINDOWS_HARDLINK` | `cache.windows_hardlink` | `false` | Unsafe opt-in hardlink restores on non-CoW Windows volumes |
 | `KACHE_DEFERRED_DISCOVERY` | `cache.deferred_discovery` | `true` | On a certain miss (no closure record, no remote), compile first and key from the dep-info rustc emits instead of running the dep-info pre-pass; a C compile with no recorded read set likewise compiles first and keys from the dependency file it writes. Set to `0` to keep the pre-pass and the preprocessor probe on every miss. |
-| `KACHE_OUT_DIR_ALIAS` | `cache.out_dir_alias` | `true` | On Unix, compile a registry proc macro whose `OUT_DIR` is empty, or a registry lib that only proc macros link, against one shared read-only directory under `<cache>/out-dirs` instead of its own `OUT_DIR`, so the path it bakes in is the same in every checkout. A macro that writes debug output there fails with a hint; set to `0` to turn this off. |
-| `KACHE_DEFERRED_DURABILITY` | `cache.deferred_durability` | `true` | Store a miss without an fsync and let a background worker flush it a moment later; a hit on an entry not yet flushed verifies its bytes first. Set to `0` to flush every entry inside the compile that stored it. |
+| `KACHE_OUT_DIR_ALIAS` | `cache.out_dir_alias` | `true` | On Unix, compile a registry proc macro whose `OUT_DIR` is empty, or a registry lib that only proc macros link, against one shared read-only directory under `<cache>/out-dirs` instead of its own `OUT_DIR`, so the path it bakes in is the same in checkouts sharing that root. With per-job or per-host stores, set `KACHE_OUT_DIR_ALIAS_ROOT` to share the path across stores. A macro that writes debug output there fails with a hint; set to `0` to turn this off. |
+| `KACHE_OUT_DIR_ALIAS_ROOT` | `cache.out_dir_alias_root` | `<cache>/out-dirs` | Absolute path to a shared alias root, independent of the local store. Use the same path on each fleet host to keep proc-macro bytes and dependent keys stable across stores. Kache creates it if missing; it must be owned by the build user, forbid writes by other users, and sit outside the checkout and target directories. An unsafe root disables aliasing. |
+| `KACHE_DEFERRED_DURABILITY` | `cache.deferred_durability` | `true` | Store a miss or a downloaded entry without an fsync and let a background worker flush it a moment later; a hit on an entry not yet flushed verifies its bytes first. Set to `0` to flush every entry inside the compile or download that stored it. |
 | `KACHE_SHARED_HARDLINK_RESTORES` | `cache.shared_hardlink_restores` | `false` | Let every target directory hardlink the same store blob on filesystems without reflink. Only for single-use target directories (a CI job's tree): the restore-time mtime stamp on a shared inode re-dates the artifact in every other tree that links it. |
 | `KACHE_PROGRESS` | none | off | `hits` or `verbose` compiler progress |
 | `KACHE_LOG` | none | CLI: `kache=warn`; wrapper: off | Stderr tracing filter |
@@ -685,3 +741,16 @@ ignore_env = true
 It does not suppress `KACHE_DISABLED`, `KACHE_CONFIG`, `KACHE_HOST_CONFIG`, `KACHE_SOCKET_PATH`, `KACHE_TRUST_DOMAIN`, S3 and OCI credentials, logging, progress, or other environment-only controls. It does suppress `KACHE_PLANNER_TOKEN`, which has a TOML key. Kache warns when it ignores a set variable.
 
 The daemon reads configuration at startup and watches the active config file and the host config. When either changes, the daemon drains and exits, and the next start loads the new settings. Other settings come from the environment the daemon started with. A daemon started by a build, `kache daemon start` or `kache daemon restart` drops the variables that select the remote (`KACHE_S3_BUCKET`, `KACHE_S3_ENDPOINT`, `KACHE_S3_REGION`, `KACHE_S3_PREFIX`, `KACHE_S3_PROFILE`, `KACHE_S3_USER_AGENT` and `KACHE_LOCAL_ONLY`), so set those in the config file, or run `kache daemon run` from that environment. An installed service uses its service definition, not your current shell. See [Updates and config changes](/docs/daemon/lifecycle#updates-and-config-changes).
+
+### Shared empty OUT_DIRs across stores
+
+The default alias path includes the local store path. If jobs use different store paths, a proc macro that embeds its alias path produces different bytes and changes its dependents' cache keys. Give those jobs one absolute alias root instead:
+
+```toml
+[cache]
+out_dir_alias_root = "/var/lib/kache-out-dirs"
+```
+
+Set `KACHE_OUT_DIR_ALIAS_ROOT` to override the file. Each host needs that same canonical path, writable by the build user; Kache creates private parents and empty read-only aliases beneath it. The setting applies on Unix, where OUT_DIR aliasing is supported.
+
+When switching roots, clean existing Cargo targets so proc macros rebuild with the new path. Keep old alias directories while any artifacts may still reference them. Kache does not collect alias directories or the consumer evidence and deny markers stored with them. A macro that writes debug output still needs `KACHE_OUT_DIR_ALIAS=0`, as described above.

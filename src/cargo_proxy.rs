@@ -96,15 +96,34 @@ pub(crate) fn run(cargo_args: Vec<OsString>) -> Result<()> {
 }
 
 /// Cargo reached through the `cargo` link in Kache's shim directory.
-pub(crate) fn run_shim(cargo_args: Vec<OsString>) -> Result<()> {
+pub(crate) fn run_shim(shim: &OsStr, cargo_args: Vec<OsString>) -> Result<()> {
     let level = ProxyLevel::current();
     level.check(&argv0(), max_proxy_depth())?;
     let cargo = real_cargo_program(CargoRoute::Shim)?;
+    let env = crate::invocation::InvocationEnv::capture();
+    let config =
+        crate::config::Config::load_for(&env).context("loading the cache configuration")?;
+    let what = cargo_command_label(cargo_args.iter().map(OsString::as_os_str));
+    let lease = crate::target_use::shared_for(
+        &config.cache_dir,
+        &what,
+        cargo_args.iter().map(OsString::as_os_str),
+    )
+    .context("protecting target directories while Cargo runs")?;
+    if let Some(status) = crate::blaze::try_run(&config, &env, shim, &cargo, &cargo_args)? {
+        drop(lease);
+        std::process::exit(crate::test_runner::finish(
+            crate::test_runner::exit_disposition(
+                status.code(),
+                crate::test_runner::signals::of(&status),
+            ),
+        ));
+    }
     let mut command = Command::new(&cargo);
     command.args(&cargo_args);
     level.mark(&mut command, &argv0(), std::process::id(), &cargo);
     crate::target_seed::configure_cargo_seed(&mut command, &cargo_args, false);
-    run_cargo_with_target_protection(command, &cargo)
+    run_cargo_guarded(command, &cargo, lease, &config)
 }
 
 fn run_with_source(cargo_args: Vec<OsString>) -> Result<()> {
@@ -525,8 +544,13 @@ fn real_cargo_candidate(
 /// The real Cargo for `route`, never this executable.
 pub(crate) fn real_cargo_program(route: CargoRoute) -> Result<PathBuf> {
     let kache = kache_identity();
+    let mut cargo_env = CargoEnvironment::current();
+    if cargo_env.real_cargo.is_none() {
+        cargo_env.real_cargo =
+            crate::blaze::returning_cargo(&crate::invocation::InvocationEnv::capture());
+    }
     let program = real_cargo_candidate(
-        &CargoEnvironment::current(),
+        &cargo_env,
         route,
         |path| is_kache(path, &kache),
         || crate::compiler::shim::resolve_real_compiler_from_env("cargo"),

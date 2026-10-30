@@ -3,6 +3,7 @@ mod blob_heal;
 mod build_script;
 mod build_script_inputs;
 use kache_store::atomic;
+mod blaze;
 mod build_intent;
 mod cache_fs;
 mod cache_key;
@@ -14,6 +15,7 @@ mod cli;
 mod compile;
 mod compiler;
 mod config;
+mod config_cli;
 mod config_tui;
 mod daemon;
 mod daemon_publish;
@@ -28,6 +30,8 @@ mod heartbeat;
 mod identity;
 mod incremental_policy;
 mod index_compact;
+#[cfg(unix)]
+mod init_completions;
 #[cfg(unix)]
 mod init_shell;
 mod invocation;
@@ -45,6 +49,7 @@ mod opcounts;
 mod otel;
 mod out_dir_alias;
 mod path_normalizer;
+mod pe_pdb;
 mod phase_trace;
 mod planner_auth;
 mod planner_client;
@@ -260,6 +265,7 @@ fn command_supports_json(command: &Option<Commands>) -> bool {
         | Commands::Diff { .. }
         | Commands::Report { .. } => true,
         Commands::Init { shims, .. } => shims.is_none(),
+        Commands::Config { command } => command.is_some(),
         Commands::Daemon { command } => match command {
             None | Some(DaemonCommands::Status) => true,
             Some(
@@ -274,7 +280,6 @@ fn command_supports_json(command: &Option<Commands>) -> bool {
         },
         // Interactive, or Cargo's own output.
         Commands::Cargo { .. }
-        | Commands::Config
         | Commands::Monitor { .. }
         | Commands::Login { .. }
         | Commands::Completions { .. } => false,
@@ -295,6 +300,13 @@ fn config_without_terminal(path: &std::path::Path) -> String {
         "`kache config` needs a terminal. Edit {} directly, or set KACHE_* environment variables.",
         path.display()
     )
+}
+
+/// Use the same visible command tree for `init` and `completions`.
+fn generate_completions(shell: clap_complete::Shell, output: &mut dyn std::io::Write) {
+    let mut command = without_hidden(&Cli::command());
+    let name = command.get_name().to_string();
+    clap_complete::generate(shell, &mut command, name, output);
 }
 
 /// `command` with its hidden subcommands and flags left out, for shell
@@ -329,7 +341,9 @@ fn json_refusal(command: &Option<Commands>) -> Option<&'static str> {
         return None;
     }
     Some(match command {
-        Some(Commands::Config) => "`kache config` is interactive and has no JSON form.",
+        Some(Commands::Config { command: None }) => {
+            "`kache config` is interactive; use a config subcommand with --json."
+        }
         Some(Commands::Login { .. }) => "`kache login` is interactive and has no JSON form.",
         Some(Commands::Monitor { .. }) => {
             "`kache monitor` is interactive; use `kache stats --json`."
@@ -606,7 +620,7 @@ fn run_main() -> Result<()> {
     }) && std::env::var_os(platform::SELF_SPAWN_ENV).is_none()
     {
         init_logging(LogMode::Cli);
-        return cargo_proxy::run_shim(raw_args[1..].to_vec());
+        return cargo_proxy::run_shim(&raw_args[0], raw_args[1..].to_vec());
     }
     if let Some(args) = test_runner_args(&raw_args) {
         init_logging(LogMode::Wrapper);
@@ -757,7 +771,10 @@ fn run_cli(cli: Cli, readiness: Option<kunobi_daemon::readiness::channel::Notifi
 
     // Config and Completions run before Config::load() (broken/missing config).
     match &cli.command {
-        Some(Commands::Config) => {
+        Some(Commands::Config { command }) => {
+            if let Some(command) = command {
+                return config_cli::run(command, json);
+            }
             if !std::io::stdout().is_terminal() {
                 anyhow::bail!(config_without_terminal(&config::resolve_config_path()));
             }
@@ -769,10 +786,7 @@ fn run_cli(cli: Cli, readiness: Option<kunobi_daemon::readiness::channel::Notifi
         Some(Commands::Logout) => return cli::login::logout(),
         Some(Commands::Cargo { args }) => return cargo_proxy::run(args.clone()),
         Some(Commands::Completions { shell }) => {
-            use clap_complete::generate;
-            let mut cmd = without_hidden(&Cli::command());
-            let name = cmd.get_name().to_string();
-            generate(*shell, &mut cmd, name, &mut std::io::stdout());
+            generate_completions(*shell, &mut std::io::stdout());
             return Ok(());
         }
         _ => {}
@@ -782,7 +796,7 @@ fn run_cli(cli: Cli, readiness: Option<kunobi_daemon::readiness::channel::Notifi
     // Doctor reports this as a failing check, and the editor refuses to open.
     if !matches!(
         cli.command,
-        Some(Commands::Doctor { .. } | Commands::Config)
+        Some(Commands::Doctor { .. } | Commands::Config { .. })
     ) && let Some((path, reason)) = config::unusable_config_file()
     {
         eprintln!(
@@ -881,6 +895,7 @@ fn run_cli(cli: Cli, readiness: Option<kunobi_daemon::readiness::channel::Notifi
             verify,
             checksums,
             repair,
+            probe,
         }) => {
             if json && !doctor_json_is_read_only(fix, purge_sccache, verify, checksums, repair) {
                 return Err(machine::invalid_arguments(
@@ -893,6 +908,7 @@ fn run_cli(cli: Cli, readiness: Option<kunobi_daemon::readiness::channel::Notifi
                 verify || checksums || repair,
                 checksums,
                 repair,
+                probe,
                 json,
             )
         }
@@ -1059,12 +1075,16 @@ fn run_cli(cli: Cli, readiness: Option<kunobi_daemon::readiness::channel::Notifi
             cli::telemetry_push(&config, &selection, &labels, dry_run)
         }
         Some(Commands::Explain {
+            all: true, root, ..
+        }) => explain::run_all(&config, root.as_deref(), json),
+        Some(Commands::Explain {
             crate_name: Some(crate_name),
             ..
         }) => cli::why_miss(&config, &crate_name, json),
         Some(Commands::Explain {
             crate_name: None,
             root,
+            ..
         }) => explain::run(&config, root.as_deref(), json),
         Some(Commands::Diff { root }) => {
             if run_diff::run(&config, root.as_deref(), json)? {
@@ -1091,7 +1111,7 @@ fn run_cli(cli: Cli, readiness: Option<kunobi_daemon::readiness::channel::Notifi
         #[cfg(not(unix))]
         Some(Commands::InstallShims { .. }) => Err(anyhow::anyhow!(UNIX_ONLY_SHIMS)),
         Some(Commands::Cargo { .. }) => unreachable!(),
-        Some(Commands::Config) => unreachable!(),
+        Some(Commands::Config { .. }) => unreachable!(),
         Some(Commands::Login { .. } | Commands::Logout) => unreachable!(),
         Some(Commands::Completions { .. }) => unreachable!(),
         None => {
@@ -1207,7 +1227,11 @@ fn run_workspace_wrapper_chain_for(
     let extra_inputs = wrapper::resolve_extra_inputs_for_passthrough(config, &parsed)?;
     let preserve_incremental =
         preserve_workspace_wrapper_incremental(config.preserve_incremental, extra_inputs.is_some());
-    let exit = run_compiler_directly_for(config, args, preserve_incremental, env)?;
+    let exit = if blaze::workspace_wrapper(&args[0]) {
+        blaze::run_workspace_wrapper(config, args, &parsed, env)?
+    } else {
+        run_compiler_directly_for(config, args, preserve_incremental, env)?
+    };
     if exit == 0 {
         wrapper::complete_current_extra_inputs_after_success(
             config,
@@ -1440,30 +1464,40 @@ fn run_wrapper_mode(args: &[String]) -> Result<()> {
             .unwrap_or_else(|| "kache".to_owned()),
     };
     #[cfg(any(unix, windows))]
-    if wrappers_above(context.env.var_os(KACHE_ACTIVE_ENV).as_deref()).is_none() {
+    let config = if wrappers_above(context.env.var_os(KACHE_ACTIVE_ENV).as_deref()).is_none() {
         let config = config::Config::load_for(&context.env)?;
-        if let Some(exit) =
-            invocation::execution::try_execute(&config.socket_path(), args, &context)?
-        {
+        if let Some(exit) = invocation::execution::try_execute_with_trust(
+            &config.socket_path(),
+            args,
+            &context,
+            config.trust_daemon_execution,
+        )? {
             std::process::exit(exit);
         }
-        if !cfg!(test)
-            && !config.disabled
-            && daemon::is_running(&config).is_ok_and(|running| !running)
-        {
+        // A held run lock can belong to the release we just upgraded from.
+        // The coordinator checks its version and drains it before replacing it.
+        if !cfg!(test) && !config.disabled {
             match daemon::start(&config) {
                 Ok(_) => {
-                    if let Some(exit) =
-                        invocation::execution::try_execute(&config.socket_path(), args, &context)?
-                    {
+                    if let Some(exit) = invocation::execution::try_execute_with_trust(
+                        &config.socket_path(),
+                        args,
+                        &context,
+                        config.trust_daemon_execution,
+                    )? {
                         std::process::exit(exit);
                     }
                 }
                 Err(error) => tracing::debug!(%error, "compiler daemon did not start"),
             }
         }
-    }
-    let exit = run_compiler_invocation(args, context)?;
+        Some(config)
+    } else {
+        None
+    };
+    #[cfg(not(any(unix, windows)))]
+    let config = None;
+    let exit = run_compiler_invocation_with_config(args, context, config)?;
     std::process::exit(exit);
 }
 
@@ -1519,10 +1553,18 @@ fn run_original_compiler_invocation(
 }
 
 fn run_compiler_invocation(args: &[String], context: invocation::InvocationContext) -> Result<i32> {
+    run_compiler_invocation_with_config(args, context, None)
+}
+
+fn run_compiler_invocation_with_config(
+    args: &[String],
+    context: invocation::InvocationContext,
+    prepared_config: Option<config::Config>,
+) -> Result<i32> {
     let _cancellation = invocation::process::CancellationScope::enter(context.cancellation.clone());
     invocation::process::check()?;
     context.env.validate()?;
-    let result = run_compiler_invocation_inner(args, context);
+    let result = run_compiler_invocation_inner(args, context, prepared_config);
     invocation::process::check()?;
     result
 }
@@ -1530,6 +1572,7 @@ fn run_compiler_invocation(args: &[String], context: invocation::InvocationConte
 fn run_compiler_invocation_inner(
     args: &[String],
     context: invocation::InvocationContext,
+    prepared_config: Option<config::Config>,
 ) -> Result<i32> {
     let invocation::InvocationContext {
         daemon,
@@ -1574,7 +1617,12 @@ fn run_compiler_invocation_inner(
     // Every compiler child gets this request's re-entrancy depth.
     env.set(KACHE_ACTIVE_ENV, "1");
 
-    let mut config = config::Config::load_for(&env)?;
+    // Local fallback keeps the snapshot used to select the daemon endpoint.
+    // Delegated requests load their own invocation's configuration here.
+    let mut config = match prepared_config {
+        Some(config) => config,
+        None => config::Config::load_for(&env)?,
+    };
     if daemon.is_some() {
         config.daemon_publish = false;
     }
@@ -2086,6 +2134,65 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
+    fn local_fallback_reuses_its_config_snapshot_but_new_requests_reload() {
+        let root = tempfile::tempdir().unwrap();
+        let root = root.path().canonicalize().unwrap();
+        std::fs::create_dir(root.join("bin")).unwrap();
+        kache_fs::testutil::write_executable(
+            &root.join("bin/rustc"),
+            "#!/bin/sh\nprintf '%s\\n' \"$@\" > observed-args\nexit 23\n",
+        );
+        let config_path = root.join(".kache.toml");
+        std::fs::write(&config_path, "[cache]\npreserve_incremental = false\n").unwrap();
+        let mut env = invocation::InvocationEnv::from_parts(
+            [("PATH", "bin"), ("KACHE_DISABLED", "1")],
+            Some(root.clone()),
+            Some(root.clone()),
+            root.clone(),
+        );
+        env.set("KACHE_CONFIG", &config_path);
+        env.set("KACHE_CACHE_DIR", root.join("cache"));
+        let prepared = config::Config::load_for(&env).unwrap();
+        assert!(!prepared.preserve_incremental);
+        std::fs::write(&config_path, "[cache]\npreserve_incremental = true\n").unwrap();
+
+        for (snapshot, preserved) in [(Some(prepared), false), (None, true)] {
+            let exit = run_compiler_invocation_with_config(
+                &[
+                    "rustc".into(),
+                    "--crate-name".into(),
+                    "demo".into(),
+                    "--crate-type".into(),
+                    "lib".into(),
+                    "lib.rs".into(),
+                    "-C".into(),
+                    format!("incremental={}", root.join("incremental").display()),
+                ],
+                invocation::InvocationContext {
+                    daemon: None,
+                    env: env.clone(),
+                    io: invocation::io::InvocationIo::process(),
+                    cancellation: None,
+                    jobserver: kache_ipc::jobserver::Descriptors::default(),
+                    started_at: std::time::Instant::now(),
+                    shim_stem: "kache".into(),
+                },
+                snapshot,
+            )
+            .unwrap();
+            assert_eq!(exit, 23);
+            let observed = std::fs::read_to_string(root.join("observed-args")).unwrap();
+            assert_eq!(observed.contains("incremental="), preserved, "{observed}");
+            assert_eq!(
+                observed.contains(".kache-preserved"),
+                preserved,
+                "{observed}"
+            );
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
     fn compiler_entry_returns_each_clients_status_and_restores_request_state() {
         use std::os::unix::fs::PermissionsExt;
 
@@ -2532,6 +2639,14 @@ mod tests {
     }
 
     #[test]
+    fn run_cli_rejects_unsupported_json_before_loading_configuration() {
+        let cli = Cli::try_parse_from(["kache", "config", "--json"]).unwrap();
+        let error = run_cli(cli, None).unwrap_err();
+        assert!(is_invalid_arguments(&error), "{error:#}");
+        assert!(error.to_string().contains("config"), "{error:#}");
+    }
+
+    #[test]
     fn json_refusals_name_the_command_or_list_visible_ones() {
         let general = json_refusal(&None).unwrap();
         assert!(general.contains("is supported on"), "{general}");
@@ -2551,7 +2666,7 @@ mod tests {
             Some(general)
         );
         assert!(
-            json_refusal(&Some(Commands::Config))
+            json_refusal(&Some(Commands::Config { command: None }))
                 .unwrap()
                 .contains("kache config")
         );
@@ -2801,7 +2916,8 @@ mod tests {
             build.command,
             Some(Commands::Explain {
                 crate_name: None,
-                root: Some(_)
+                root: Some(_),
+                ..
             })
         ));
         assert!(Cli::try_parse_from(["kache", "why-miss", "serde", "--root", "x"]).is_err());
@@ -2979,7 +3095,9 @@ mod tests {
         assert!(command_supports_json(&Some(Commands::Daemon {
             command: Some(DaemonCommands::Status),
         })));
-        assert!(!command_supports_json(&Some(Commands::Config)));
+        assert!(!command_supports_json(&Some(Commands::Config {
+            command: None
+        })));
         assert!(!command_supports_json(&Some(Commands::Monitor {
             since: None
         })));

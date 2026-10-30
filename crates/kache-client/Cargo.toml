@@ -1,6 +1,6 @@
 [package]
 name = "kache-client"
-version = "1.2.2"
+version = "2.0.0-rc.4"
 edition = "2024"
 rust-version = "1.95"
 description = "Synchronous compiler client for the Kache daemon."
@@ -10,28 +10,30 @@ homepage = "https://kunobi.ninja/docs/kache"
 readme = "README.md"
 
 [dependencies]
-kache-config = { version = "1.2.2", path = "../kache-config" }
-kache-ipc = { version = "1.2.2", path = "../kache-ipc" }
-kache-protocol = { version = "1.2.2", path = "../kache-protocol" }
+kache-config = { version = "2.0.0-rc.4", path = "../kache-config" }
+kache-ipc = { version = "2.0.0-rc.4", path = "../kache-ipc" }
+kache-protocol = { version = "2.0.0-rc.4", path = "../kache-protocol" }
 anyhow = "1"
 tracing = "0.1"
+serde_json = "1"
 
-kache-shims = { version = "1.2.2", path = "../kache-shims" }
+kache-shims = { version = "2.0.0-rc.4", path = "../kache-shims" }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
+tempfile = "3"
 windows-sys = { version = "0.61", features = [
     "Win32_Foundation",
+    "Win32_Storage_FileSystem",
     "Win32_System_Console",
     "Win32_System_Threading",
 ] }
 
 [dev-dependencies]
 tempfile = "3"
-serde_json = "1"
 
 [build-dependencies]
-syn = { version = "2", features = ["full"] }
+syn = { version = "3", features = ["full"] }
 heck = "0.5"

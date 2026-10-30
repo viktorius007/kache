@@ -583,7 +583,7 @@ fn deadline_io_check(deadline: Option<Instant>, stage: &'static str) -> std::io:
     if deadline.is_some_and(|at| Instant::now() >= at) {
         return Err(std::io::Error::new(
             std::io::ErrorKind::TimedOut,
-            format!("remote deadline elapsed during {stage}"),
+            crate::remote_resilience::RemoteDeadlineElapsed { stage },
         ));
     }
     Ok(())
@@ -903,6 +903,7 @@ pub(crate) mod tests {
         };
         let read_error = std::io::Read::read(&mut reader, &mut [0_u8; 4]).unwrap_err();
         assert_eq!(read_error.kind(), std::io::ErrorKind::TimedOut);
+        assert_local_deadline(read_error);
 
         let mut writer = DeadlineWriter {
             inner: Vec::new(),
@@ -911,8 +912,10 @@ pub(crate) mod tests {
         };
         let write_error = std::io::Write::write_all(&mut writer, b"pack").unwrap_err();
         assert_eq!(write_error.kind(), std::io::ErrorKind::TimedOut);
+        assert_local_deadline(write_error);
         let flush_error = std::io::Write::flush(&mut writer).unwrap_err();
         assert_eq!(flush_error.kind(), std::io::ErrorKind::TimedOut);
+        assert_local_deadline(flush_error);
 
         let mut hashing_writer = HashingWriter {
             inner: Vec::new(),
@@ -921,6 +924,14 @@ pub(crate) mod tests {
         };
         let flush_error = std::io::Write::flush(&mut hashing_writer).unwrap_err();
         assert_eq!(flush_error.kind(), std::io::ErrorKind::TimedOut);
+        assert_local_deadline(flush_error);
+    }
+
+    fn assert_local_deadline(error: std::io::Error) {
+        assert_eq!(
+            crate::remote_resilience::classify_remote_error(&anyhow::Error::new(error)),
+            crate::remote_resilience::RemoteErrorClass::Deadline,
+        );
     }
 
     /// #211: building a blob path from a malformed (short) hash must not panic
@@ -1028,6 +1039,7 @@ pub(crate) mod tests {
     fn v3_pack_roundtrip_restores_meta_and_files() {
         let tmp = tempfile::tempdir().unwrap();
         let config = Config {
+            blaze: false,
             readonly_store: None,
             fallback: None,
             key_salt: None,
@@ -1043,8 +1055,11 @@ pub(crate) mod tests {
             shared_hardlink_restores: false,
             deferred_discovery: true,
             out_dir_alias: true,
+            out_dir_alias_root: None,
             deferred_durability: false,
             daemon_publish: false,
+            trust_daemon_execution: false,
+            daemon_execution_concurrency: None,
             project_rules: crate::config::ProjectRules::default(),
             auto_gc: true,
             index_auto_compact: true,
@@ -1144,6 +1159,7 @@ pub(crate) mod tests {
 
         let restore_cache_dir = tmp.path().join("restore-cache");
         let restore_config = Config {
+            blaze: false,
             readonly_store: None,
             fallback: None,
             key_salt: None,
@@ -1159,8 +1175,11 @@ pub(crate) mod tests {
             shared_hardlink_restores: false,
             deferred_discovery: true,
             out_dir_alias: true,
+            out_dir_alias_root: None,
             deferred_durability: false,
             daemon_publish: false,
+            trust_daemon_execution: false,
+            daemon_execution_concurrency: None,
             project_rules: crate::config::ProjectRules::default(),
             auto_gc: true,
             index_auto_compact: true,
@@ -1340,49 +1359,52 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn v3_extract_rejects_ambiguous_v32_depinfo() {
-        let dir = tempfile::tempdir().unwrap();
-        let store = Store::open(&min_config(dir.path().join("cache"))).unwrap();
-        let source = dir.path().join("fixture.d");
-        std::fs::write(&source, b"fixture.o: __kache_cwd__/main.rs\n").unwrap();
-        store
-            .put(
-                "legacy-marker-entry",
-                "fixture",
-                &["lib".into()],
-                &[],
-                "",
-                "debug",
-                &[(source, "fixture.d".into())],
-                "",
-                "",
-            )
-            .unwrap();
-        let entry = store.entry_dir("legacy-marker-entry");
-        let meta_path = entry.join("meta.json");
-        let mut meta: EntryMeta =
-            serde_json::from_slice(&std::fs::read(&meta_path).unwrap()).unwrap();
-        meta.key_schema = 32;
-        std::fs::write(&meta_path, serde_json::to_vec(&meta).unwrap()).unwrap();
-        let pack = create_entry_pack_zstd(&entry, &store.blobs_dir(), &meta, 3).unwrap();
-        let decoder = zstd::stream::Decoder::new(std::io::Cursor::new(pack)).unwrap();
-        let target = dir.path().join("restored");
-        let error = extract_entry_pack(decoder, &target)
-            .expect_err("ambiguous v32 dep-info must not become a restored cache entry");
-        assert_eq!(
-            error.to_string(),
-            "downloaded entry uses incompatible key schema 32"
-        );
-        assert!(
-            !target.exists(),
-            "rejected legacy dep-info must not be published"
-        );
+    fn v3_extract_rejects_incompatible_depinfo_encodings() {
+        for schema in [32, 33] {
+            let dir = tempfile::tempdir().unwrap();
+            let store = Store::open(&min_config(dir.path().join("cache"))).unwrap();
+            let source = dir.path().join("fixture.d");
+            std::fs::write(&source, b"fixture.o: __kache_cwd__/main.rs\n").unwrap();
+            store
+                .put(
+                    "legacy-marker-entry",
+                    "fixture",
+                    &["lib".into()],
+                    &[],
+                    "",
+                    "debug",
+                    &[(source, "fixture.d".into())],
+                    "",
+                    "",
+                )
+                .unwrap();
+            let entry = store.entry_dir("legacy-marker-entry");
+            let meta_path = entry.join("meta.json");
+            let mut meta: EntryMeta =
+                serde_json::from_slice(&std::fs::read(&meta_path).unwrap()).unwrap();
+            meta.key_schema = schema;
+            std::fs::write(&meta_path, serde_json::to_vec(&meta).unwrap()).unwrap();
+            let pack = create_entry_pack_zstd(&entry, &store.blobs_dir(), &meta, 3).unwrap();
+            let decoder = zstd::stream::Decoder::new(std::io::Cursor::new(pack)).unwrap();
+            let target = dir.path().join("restored");
+            let error = extract_entry_pack(decoder, &target)
+                .expect_err("incompatible dep-info must not become a restored cache entry");
+            assert_eq!(
+                error.to_string(),
+                format!("downloaded entry uses incompatible key schema {schema}")
+            );
+            assert!(
+                !target.exists(),
+                "rejected legacy dep-info must not be published"
+            );
+        }
     }
 
     #[test]
     fn v3_extract_rejects_content_hash_mismatch() {
         let tmp = tempfile::tempdir().unwrap();
         let config = Config {
+            blaze: false,
             readonly_store: None,
             fallback: None,
             key_salt: None,
@@ -1398,8 +1420,11 @@ pub(crate) mod tests {
             shared_hardlink_restores: false,
             deferred_discovery: true,
             out_dir_alias: true,
+            out_dir_alias_root: None,
             deferred_durability: false,
             daemon_publish: false,
+            trust_daemon_execution: false,
+            daemon_execution_concurrency: None,
             project_rules: crate::config::ProjectRules::default(),
             auto_gc: true,
             index_auto_compact: true,
@@ -1556,6 +1581,7 @@ pub(crate) mod tests {
 
     fn min_config(cache_dir: std::path::PathBuf) -> Config {
         Config {
+            blaze: false,
             readonly_store: None,
             fallback: None,
             key_salt: None,
@@ -1571,8 +1597,11 @@ pub(crate) mod tests {
             shared_hardlink_restores: false,
             deferred_discovery: true,
             out_dir_alias: true,
+            out_dir_alias_root: None,
             deferred_durability: false,
             daemon_publish: false,
+            trust_daemon_execution: false,
+            daemon_execution_concurrency: None,
             project_rules: crate::config::ProjectRules::default(),
             auto_gc: true,
             index_auto_compact: true,

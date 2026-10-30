@@ -32,7 +32,17 @@ struct Prepared {
 impl Execution<'_> {
     /// `None` permits local execution. Errors after Commit prohibit a retry.
     pub fn try_execute(&self, socket: &Path) -> Result<Option<i32>> {
-        let prepared = match self.prepare() {
+        self.try_execute_with_trust(socket, false)
+    }
+
+    /// Both peers must opt in to daemon-side workspace accesses under the
+    /// daemon's restrictions. Native children remain owned by the client.
+    pub fn try_execute_with_trust(
+        &self,
+        socket: &Path,
+        trusted_pipeline: bool,
+    ) -> Result<Option<i32>> {
+        let prepared = match self.prepare(trusted_pipeline) {
             Ok(prepared) => prepared,
             Err(error) => {
                 tracing::debug!(%error, "compiler request cannot be transferred");
@@ -56,7 +66,7 @@ impl Execution<'_> {
         }
     }
 
-    fn prepare(&self) -> Result<Prepared> {
+    fn prepare(&self, trusted_pipeline: bool) -> Result<Prepared> {
         #[cfg(unix)]
         anyhow::ensure!(
             self.files.len() == 3 + usize::from(self.terminal),
@@ -71,9 +81,10 @@ impl Execution<'_> {
         #[cfg(unix)]
         let (originals, jobserver) = kache_ipc::jobserver::capture(&env)?;
         #[cfg(unix)]
-        let channels = ExecutionChannels::Unix {
+        let channels = ExecutionChannels::UnixClient {
             terminal: self.terminal,
             jobserver: originals,
+            trusted_pipeline,
         };
         #[cfg(windows)]
         let channels = {
@@ -92,6 +103,7 @@ impl Execution<'_> {
                 stdout: handle(1),
                 stderr: handle(2),
                 process_broker: true,
+                trusted_pipeline,
             }
         };
         let native_path = |path: &Path| NativeString::capture(path.as_os_str());
@@ -208,7 +220,7 @@ mod tests {
                     descriptors: Some(ticket.clone()),
                 });
                 let mut transferred =
-                    kache_ipc::descriptors::receive(datagram.as_fd(), &ticket.key, 3)
+                    kache_ipc::descriptors::receive(datagram.as_fd(), &ticket.key, 5)
                         .unwrap()
                         .into_iter()
                         .map(File::from)
@@ -295,7 +307,7 @@ mod tests {
                         let Prepared {
                             request,
                             jobserver: descriptors,
-                        } = execution.prepare().unwrap();
+                        } = execution.prepare(false).unwrap();
                         assert_eq!(request.entry, entry);
                         assert_eq!(request.client_version, "fixture-release");
                         assert_eq!(request.client_pid, std::process::id());
@@ -365,7 +377,7 @@ mod windows_tests {
             root.path().to_owned(),
         );
         let executable = std::env::current_exe().unwrap();
-        let prepared = Execution {
+        let execution = Execution {
             entry: ExecutionEntry::Original,
             args: &args,
             env: &env,
@@ -374,21 +386,23 @@ mod windows_tests {
             files: &files,
             terminal: false,
             client_version: "fixture",
+        };
+        for trusted_pipeline in [false, true] {
+            let prepared = execution.prepare(trusted_pipeline).unwrap();
+            assert_eq!(prepared.request.argv[1].decode().unwrap(), native);
+            assert_eq!(prepared.request.env[0].1.decode().unwrap(), native);
+            assert_eq!(prepared.request.creation_mask, None);
+            assert_eq!(
+                prepared.request.channels,
+                ExecutionChannels::Windows {
+                    stdin: files[0].as_raw_handle() as usize as u64,
+                    stdout: files[1].as_raw_handle() as usize as u64,
+                    stderr: files[2].as_raw_handle() as usize as u64,
+                    process_broker: true,
+                    trusted_pipeline,
+                }
+            );
         }
-        .prepare()
-        .unwrap();
-        assert_eq!(prepared.request.argv[1].decode().unwrap(), native);
-        assert_eq!(prepared.request.env[0].1.decode().unwrap(), native);
-        assert_eq!(prepared.request.creation_mask, None);
-        assert_eq!(
-            prepared.request.channels,
-            ExecutionChannels::Windows {
-                stdin: files[0].as_raw_handle() as usize as u64,
-                stdout: files[1].as_raw_handle() as usize as u64,
-                stderr: files[2].as_raw_handle() as usize as u64,
-                process_broker: true,
-            }
-        );
         for file in files {
             assert!(
                 file.metadata().is_ok(),

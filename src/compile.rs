@@ -1,5 +1,6 @@
 use crate::invocation::process::{Child, CommandExt as _};
 use anyhow::{Context, Result, bail};
+use kache_protocol::command_line::{WINDOWS_COMMAND_LINE_LIMIT, windows_command_line_bound};
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
@@ -43,6 +44,48 @@ impl CompileResult {
     pub fn pending_stderr(&self) -> &str {
         self.pending_stderr.as_deref().unwrap_or(&self.stderr)
     }
+}
+
+/// Whether the compiler's own arguments go to rustc in a response file
+/// (`@file`): Cargo used one (it does once its own command line is too long),
+/// or the command Kache spawns, with the flags Kache adds (path remapping,
+/// above all, several of them on Windows), could pass `limit` although
+/// Cargo's own line fit. `limit` is [`WINDOWS_COMMAND_LINE_LIMIT`] on Windows
+/// and `None` where the limits are far above any compile's.
+pub(crate) fn needs_response_file(
+    cargo_used_one: bool,
+    line_bound: impl FnOnce() -> usize,
+    limit: Option<usize>,
+) -> bool {
+    cargo_used_one || limit.is_some_and(|limit| line_bound() > limit)
+}
+
+/// [`WINDOWS_COMMAND_LINE_LIMIT`] on Windows, where a compile's command line
+/// is bounded; `None` elsewhere.
+pub(crate) const COMMAND_LINE_LIMIT: Option<usize> = if cfg!(windows) {
+    Some(WINDOWS_COMMAND_LINE_LIMIT)
+} else {
+    None
+};
+
+/// [`needs_response_file`] for `cmd` (its program and the arguments it has so
+/// far) followed by `args`.
+pub(crate) fn command_needs_response_file<'a>(
+    cargo_used_one: bool,
+    cmd: &'a std::process::Command,
+    args: impl IntoIterator<Item = &'a str>,
+) -> bool {
+    needs_response_file(
+        cargo_used_one,
+        || {
+            windows_command_line_bound(
+                std::iter::once(cmd.get_program())
+                    .chain(cmd.get_args())
+                    .chain(args.into_iter().map(std::ffi::OsStr::new)),
+            )
+        },
+        COMMAND_LINE_LIMIT,
+    )
 }
 
 /// A securely-created standard rustc response file that owns its lifetime.
@@ -114,6 +157,7 @@ pub(crate) fn run_rustc(
     crate_name: Option<&str>,
     extra_filename: Option<&str>,
     emit: &[String],
+    linked_executable: bool,
     skip_remap: bool,
     path_normalizer: &crate::path_normalizer::PathNormalizer,
     incremental_mode: IncrementalMode,
@@ -181,11 +225,11 @@ pub(crate) fn run_rustc(
     // Skipped under coverage instrumentation — tools like tarpaulin
     // and llvm-cov need original source paths in profraw data to
     // map coverage hits back to source files.
-    if !skip_remap {
-        for arg in path_normalizer.remap_args() {
-            cmd.arg(arg);
-        }
-    }
+    let remap_args = if skip_remap {
+        Vec::new()
+    } else {
+        path_normalizer.remap_args()
+    };
 
     // Normal artifact-cache compiles disable incremental compilation: the key
     // leaves the flag out, so a stored artifact must come from a compile
@@ -194,10 +238,19 @@ pub(crate) fn run_rustc(
     // instead, which preserve only a path Kache isolated and locked before
     // this call. CARGO_INCREMENTAL=0 alone would be too late: Cargo already
     // put the codegen flag in argv before the wrapper runs.
-    let compiler_args = match incremental_mode {
+    let mut compiler_args: Vec<&String> = remap_args.iter().collect();
+    compiler_args.extend(match incremental_mode {
         IncrementalMode::Strip => strip_incremental_flags(args),
         IncrementalMode::PreserveIsolated { .. } => args.iter().collect(),
-    };
+    });
+    // Cargo's own line fit when it used no response file, but the remapping
+    // flags above make Kache's longer. Include them in the response file too:
+    // remapping flags alone can exceed the Windows command-line limit.
+    let use_response_file = command_needs_response_file(
+        use_response_file,
+        &cmd,
+        compiler_args.iter().map(|arg| arg.as_str()),
+    );
     let response_file = if use_response_file {
         let temp_dir = env
             .resolve(env.temp_dir())
@@ -239,7 +292,7 @@ pub(crate) fn run_rustc(
         .stderr(std::process::Stdio::piped());
     let compiler_trace = crate::phase_trace::phase("compiler");
     let mut child = cmd
-        .invocation_spawn_with_io(kache_protocol::execution::windows::Stdio::OUTPUT)
+        .invocation_spawn_with_io(kache_protocol::execution::process::Stdio::OUTPUT)
         .with_context(|| format!("executing {}", rustc.display()))?;
     let monitor = crate::heartbeat::start_monitor(crate_name.unwrap_or("unknown"), child.id());
     let child_stdout = child.stdout.take().context("capturing rustc stdout")?;
@@ -286,22 +339,40 @@ pub(crate) fn run_rustc(
 
     // Discover output files. rustc's own `artifact` JSON notifications
     // are authoritative — when cargo invokes rustc it passes
-    // `--error-format=json --json=artifacts`, so rustc reports every
-    // file it writes by exact path. Candidate path probing is the fallback
-    // for invocations that don't emit those messages (a bare `rustc`
-    // without `--json=artifacts`), where filename guessing is the best
-    // available signal.
+    // `--error-format=json --json=artifacts`, so rustc reports the files
+    // it wrote by exact path. The linker import library beside a DLL is
+    // not in that list; `include_dll_import_libs` keeps an existing
+    // sibling. Candidate path probing is the fallback for invocations
+    // that don't emit those messages (a bare `rustc` without
+    // `--json=artifacts`), where filename guessing is the best available
+    // signal.
     let artifacts = if exit_code == 0 {
-        let from_json = resolve_artifacts_in(&captured_stderr.artifacts, cwd);
+        let mut from_json = resolve_artifacts_in(&captured_stderr.artifacts, cwd);
+        // rustc reports a Windows `.exe` but not the `.pdb` it names.
+        let executable_name = crate::pe_pdb::executable_output_name(
+            linked_executable,
+            output_path,
+            from_json.iter().map(|(_, name)| name.as_str()),
+        )
+        .ok()
+        .flatten();
+        crate::pe_pdb::add_named_pdbs(&mut from_json, executable_name.as_deref());
         if from_json.is_empty() {
             tracing::debug!(
                 "[kache] no rustc artifact notifications for {}; falling back to candidate path discovery",
                 crate_name.unwrap_or("unknown")
             );
-            ArtifactSet::from_output_files(
-                discover_output_files(output_path, out_dir, crate_name, extra_filename, emit)?,
-                classify_by_filename,
+            let mut discovered =
+                discover_output_files(output_path, out_dir, crate_name, extra_filename, emit)?;
+            let executable_name = crate::pe_pdb::executable_output_name(
+                linked_executable,
+                output_path,
+                discovered.iter().map(|(_, name)| name.as_str()),
             )
+            .ok()
+            .flatten();
+            crate::pe_pdb::add_named_pdbs(&mut discovered, executable_name.as_deref());
+            ArtifactSet::from_output_files(discovered, classify_by_filename)
         } else {
             tracing::debug!(
                 "[kache] discovered {} output file(s) for {} from rustc artifact notifications",
@@ -560,7 +631,33 @@ fn resolve_artifacts_in(artifacts: &[PathBuf], cwd: &Path) -> Vec<(PathBuf, Stri
         }
         files.push((abs, name));
     }
+    // Reported `.dll` names do not include the import library beside them.
+    include_dll_import_libs(&mut files);
     files
+}
+
+/// Linker import libraries written beside a DLL and omitted from rustc's
+/// artifact JSON.
+///
+/// The stem of `foo.dll` is `foo`, so the siblings are `foo.dll.lib`,
+/// `foo.dll.exp`, and `foo.dll.a` in the same directory. A missing file is
+/// left out. Another crate's sidecar is not a candidate: this probes those
+/// three names only, and does not scan the output directory.
+fn include_dll_import_libs(files: &mut Vec<(PathBuf, String)>) {
+    let mut extra = Vec::new();
+    for (path, name) in files.iter() {
+        let Some(stem) = name.strip_suffix(".dll") else {
+            continue;
+        };
+        for suffix in ["dll.lib", "dll.exp", "dll.a"] {
+            let sibling_name = format!("{stem}.{suffix}");
+            let sibling = path.with_file_name(&sibling_name);
+            if sibling.is_file() && !files.iter().any(|(existing, _)| existing == &sibling) {
+                extra.push((sibling, sibling_name));
+            }
+        }
+    }
+    files.extend(extra);
 }
 
 /// Product suffixes for rustc/cargo artifacts (`{base}.{suffix}`).
@@ -593,7 +690,7 @@ fn emit_may_produce_per_cgu_files(emit: &[String]) -> bool {
 }
 
 /// Invoke `f` for each `--out-dir` candidate basename (no intermediate `Vec`).
-fn for_each_out_dir_candidate(crate_name: &str, extra: &str, mut f: impl FnMut(&str)) {
+pub(crate) fn for_each_out_dir_candidate(crate_name: &str, extra: &str, mut f: impl FnMut(&str)) {
     let bare = crate::args::format_crate_output_stem(crate_name, extra);
     let mut buf = String::with_capacity(bare.len() + 8 + 16);
     for suffix in ARTIFACT_SUFFIXES {
@@ -924,6 +1021,16 @@ fi
                             "out/libsample.rlib".to_owned(),
                             "relative.rs".to_owned(),
                         ];
+                        let normalizer = crate::path_normalizer::PathNormalizer::from_invocation(
+                            Some(cwd),
+                            &env,
+                        );
+                        let expected_args: Vec<_> = normalizer
+                            .remap_args()
+                            .into_iter()
+                            .chain(args.iter().cloned())
+                            .collect();
+                        assert!(expected_args.len() > args.len());
                         let mut metadata = Vec::new();
                         let result = run_rustc(
                             &env,
@@ -937,7 +1044,8 @@ fi
                             None,
                             &[],
                             false,
-                            &crate::path_normalizer::PathNormalizer::empty(),
+                            false,
+                            &normalizer,
                             IncrementalMode::Strip,
                             Some(&mut metadata),
                             None,
@@ -947,7 +1055,7 @@ fi
                         assert!(!result.signaled);
                         assert_eq!(
                             fs::read_to_string(cwd.join("actual-args")).unwrap(),
-                            format!("{}\n", args.join("\n"))
+                            format!("{}\n", expected_args.join("\n"))
                         );
                         let lines: Vec<_> = result.stdout.lines().collect();
                         assert_eq!(lines.len(), 3);
@@ -1657,6 +1765,89 @@ fi
     }
 
     #[test]
+    fn json_artifact_list_includes_the_import_lib_beside_the_reported_dll() {
+        let dir = tempfile::tempdir().unwrap();
+        let dll = dir.path().join("foo.dll");
+        let import_lib = dir.path().join("foo.dll.lib");
+        let exports = dir.path().join("foo.dll.exp");
+        let gnu_import = dir.path().join("foo.dll.a");
+        let other_import = dir.path().join("bar.dll.lib");
+        let other_meta = dir.path().join("bar.rmeta");
+        for path in [
+            &dll,
+            &import_lib,
+            &exports,
+            &gnu_import,
+            &other_import,
+            &other_meta,
+        ] {
+            fs::write(path, b"artifact").unwrap();
+        }
+
+        // `bar.rmeta` is a reported non-dll. Its stem must not pick up
+        // `bar.dll.lib`, and neither does a directory scan.
+        let reported = [dll.clone(), other_meta.clone()];
+        let with_sidecars = artifact_set_from_json(&reported, dir.path());
+        assert_eq!(
+            artifact_names(&with_sidecars),
+            [
+                "bar.rmeta",
+                "foo.dll",
+                "foo.dll.a",
+                "foo.dll.exp",
+                "foo.dll.lib",
+            ]
+        );
+        assert_eq!(artifact_path(&with_sidecars, "foo.dll.lib"), import_lib);
+        assert!(
+            !with_sidecars
+                .outputs()
+                .iter()
+                .any(|artifact| artifact.path == other_import)
+        );
+
+        fs::remove_file(&import_lib).unwrap();
+        fs::remove_file(&exports).unwrap();
+        fs::remove_file(&gnu_import).unwrap();
+        let without_sidecars =
+            artifact_set_from_json(&[dll.clone(), other_meta.clone()], dir.path());
+        assert_eq!(artifact_names(&without_sidecars), ["bar.rmeta", "foo.dll"]);
+
+        // Already named in the JSON list: still one copy, not a second probe.
+        fs::write(&import_lib, b"artifact").unwrap();
+        let already_reported =
+            artifact_set_from_json(&[dll, import_lib.clone(), other_meta], dir.path());
+        assert_eq!(
+            artifact_names(&already_reported),
+            ["bar.rmeta", "foo.dll", "foo.dll.lib"]
+        );
+        assert_eq!(artifact_path(&already_reported, "foo.dll.lib"), import_lib);
+    }
+
+    fn artifact_set_from_json(reported: &[PathBuf], cwd: &Path) -> ArtifactSet {
+        ArtifactSet::from_output_files(resolve_artifacts_in(reported, cwd), classify_by_filename)
+    }
+
+    fn artifact_names(set: &ArtifactSet) -> Vec<&str> {
+        let mut names: Vec<&str> = set
+            .outputs()
+            .iter()
+            .map(|artifact| artifact.store_name.as_str())
+            .collect();
+        names.sort_unstable();
+        names
+    }
+
+    fn artifact_path(set: &ArtifactSet, name: &str) -> PathBuf {
+        set.outputs()
+            .iter()
+            .find(|artifact| artifact.store_name == name)
+            .unwrap()
+            .path
+            .clone()
+    }
+
+    #[test]
     fn test_discover_output_files_o_mode_finds_siblings_and_depinfo() {
         // -o mode: the primary output plus same-stem siblings, plus the
         // crate-name dep-info pattern, are all discovered.
@@ -2013,5 +2204,128 @@ fi
 
         pre_clean_outputs(None, Some(dir.path()), Some("foo"), Some("-abc"), &[]);
         assert!(rlib.exists(), "writable candidates must not be removed");
+    }
+
+    /// A unit whose own command line Cargo spawned directly (it fit) but that
+    /// Kache's remapping flags lengthen past Windows' limit: seen on the crates
+    /// of a large GUI framework (one line was 29,610 characters), which failed to spawn ("compiler spawn failed"), ran
+    /// uncached and unremapped, and made every crate above them miss in the
+    /// next checkout. Their arguments go through a response file instead.
+    #[test]
+    fn a_line_kache_lengthens_past_the_windows_limit_takes_a_response_file() {
+        let cargo_args: Vec<String> = (0..490)
+            .map(|i| format!("--check-cfg=cfg(feature, values(\"feature-number-{i:04}\"))"))
+            .chain(["--crate-name".to_string(), "platform".to_string()])
+            .collect();
+        let program = std::ffi::OsStr::new(r"C:\Users\user\.rustup\toolchains\x\bin\rustc.exe");
+        let cargo_line = windows_command_line_bound(
+            std::iter::once(program).chain(cargo_args.iter().map(std::ffi::OsStr::new)),
+        );
+        assert!(cargo_line < WINDOWS_COMMAND_LINE_LIMIT, "{cargo_line}");
+        let remaps: Vec<String> = (0..48)
+            .map(|i| {
+                format!(
+                    r"--remap-path-prefix=\\?\C:\src\checkout-{i:02}\target\debug=/kache/target"
+                )
+            })
+            .collect();
+        let mut cmd = std::process::Command::new(program);
+        cmd.args(&remaps);
+        let args = || cargo_args.iter().map(String::as_str);
+
+        assert!(command_needs_response_file(false, &cmd, args()) == cfg!(windows));
+        let kache_line = || {
+            windows_command_line_bound(
+                std::iter::once(program)
+                    .chain(remaps.iter().map(std::ffi::OsStr::new))
+                    .chain(cargo_args.iter().map(std::ffi::OsStr::new)),
+            )
+        };
+        assert!(
+            kache_line() > WINDOWS_COMMAND_LINE_LIMIT,
+            "{}",
+            kache_line()
+        );
+        assert!(needs_response_file(
+            false,
+            kache_line,
+            Some(WINDOWS_COMMAND_LINE_LIMIT)
+        ));
+        // Elsewhere, and for a line that fits, nothing changes; a response
+        // file Cargo used is always kept.
+        assert!(!needs_response_file(false, kache_line, None));
+        assert!(!needs_response_file(
+            false,
+            || cargo_line,
+            Some(WINDOWS_COMMAND_LINE_LIMIT)
+        ));
+        assert!(needs_response_file(true, || 0, None));
+    }
+
+    /// The bound counts every escape the standard library may add: quotes
+    /// around a word, a backslash before each quote and doubled backslashes.
+    #[test]
+    fn response_file_selection_preserves_exact_fits_and_short_circuits() {
+        assert!(!needs_response_file(false, || 32_767, Some(32_767)));
+        assert!(needs_response_file(false, || 32_768, Some(32_767)));
+        assert!(needs_response_file(
+            true,
+            || panic!("Cargo's response file does not need a size check"),
+            None,
+        ));
+        assert!(!needs_response_file(
+            false,
+            || panic!("unlimited platforms do not need a size check"),
+            None,
+        ));
+        let cmd = std::process::Command::new("rustc");
+        assert!(command_needs_response_file(true, &cmd, ["lib.rs"]));
+    }
+
+    #[test]
+    fn the_windows_command_line_bound_counts_quotes_escapes_and_wide_characters() {
+        let bound = |words: &[&str]| {
+            windows_command_line_bound(words.iter().map(|w| std::ffi::OsStr::new(*w)))
+        };
+        assert_eq!(bound(&[]), 1);
+        assert_eq!(bound(&["rustc"]), 1 + 5 + 3);
+        // `a "b"\` is quoted and escaped as `"a \"b\"\\"`: 11 units, under 6 + 4 + 3.
+        assert_eq!(bound(&[r#"a "b"\"#]), 1 + 6 + 3 + 3);
+        // Characters outside the BMP take two UTF-16 units each.
+        assert_eq!(bound(&["\u{1F600}"]), 1 + 2 + 3);
+    }
+
+    /// On Windows the bound is safe and the limit real: a line the bound puts
+    /// at the limit spawns, and one past it does not.
+    #[cfg(windows)]
+    #[test]
+    fn windows_spawns_a_line_within_the_bound_and_refuses_one_past_the_limit() {
+        let exe = std::env::current_exe().unwrap();
+        // libtest takes every further word as a filter; none matches, so the
+        // child runs no test and exits at once.
+        let word = r#"C:\src dir\target\deps\lib"named"\"#;
+        let mut args = vec!["--exact".to_string(), "--test-threads=1".to_string()];
+        let line = |args: &[String]| {
+            windows_command_line_bound(
+                std::iter::once(exe.as_os_str()).chain(args.iter().map(std::ffi::OsStr::new)),
+            )
+        };
+        while line(&[args.clone(), vec![word.to_string()]].concat()) <= WINDOWS_COMMAND_LINE_LIMIT {
+            args.push(word.to_string());
+        }
+        let status = std::process::Command::new(&exe)
+            .args(&args)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .expect("a line within the bound spawns");
+        assert!(status.success());
+
+        let long = vec!["x".repeat(WINDOWS_COMMAND_LINE_LIMIT)];
+        let error = std::process::Command::new(&exe)
+            .args(&long)
+            .status()
+            .expect_err("a line past the limit does not spawn");
+        assert_eq!(error.raw_os_error(), Some(206), "{error}");
     }
 }

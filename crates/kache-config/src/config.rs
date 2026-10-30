@@ -162,6 +162,9 @@ pub struct Config {
     /// remote surface it through [`Config::require_remote`].
     pub remote_error: Option<String>,
     pub disabled: bool,
+    /// Route eligible local Cargo shim commands through Blaze. Off by default.
+    /// `[cache] blaze` / `KACHE_BLAZE`; CI and explicit profiles stay with Cargo.
+    pub blaze: bool,
     pub cache_executables: bool,
     /// Opt-in C/C++ whole-program link caching (epic #762 / #259). Off by
     /// default until path/repro gates pass. `KACHE_CACHE_CC_LINKS` or
@@ -473,15 +476,21 @@ pub struct Config {
     pub deferred_discovery: bool,
     /// Compile a registry proc macro, or a lib only proc macros link, whose
     /// `OUT_DIR` is empty against one shared read-only directory under the
-    /// cache dir, so the path it bakes is the same in every checkout. On by
+    /// cache dir (or `out_dir_alias_root`), so the path it bakes is the same
+    /// in checkouts sharing that root. On by
     /// default on Unix; `KACHE_OUT_DIR_ALIAS=0` or
     /// `[cache] out_dir_alias = false` turns it off.
     pub out_dir_alias: bool,
-    /// Store new entries without an fsync on the build path. The daemon (or
-    /// the next `kache gc`) flushes them shortly after; until then a hit on
-    /// such an entry verifies its bytes before restoring. On by default;
-    /// `KACHE_DEFERRED_DURABILITY=0` or `[cache] deferred_durability = false`
-    /// flushes every entry inside the compile that stored it.
+    /// Shared empty OUT_DIR root, independent of the local store. Defaults to
+    /// `<cache_dir>/out-dirs`. Must be absolute and outside the checkout.
+    /// Set via `KACHE_OUT_DIR_ALIAS_ROOT` or `[cache] out_dir_alias_root`.
+    pub out_dir_alias_root: Option<PathBuf>,
+    /// Store new and downloaded entries without an fsync on the build path.
+    /// The daemon (or the next `kache gc`) flushes them shortly after; until
+    /// then a hit on such an entry verifies its bytes before restoring. On by
+    /// default; `KACHE_DEFERRED_DURABILITY=0` or
+    /// `[cache] deferred_durability = false` flushes every entry inside the
+    /// compile or download that stored it.
     pub deferred_durability: bool,
     /// Hand a finished cc compile's store put to the daemon so the wrapper
     /// returns as soon as the object is written (see `daemon_publish`). On
@@ -489,6 +498,15 @@ pub struct Config {
     /// false` keeps every put in the wrapper. Without a reachable daemon the
     /// wrapper stores on its own either way.
     pub daemon_publish: bool,
+    /// Permit a trusted daemon's pipeline to access the workspace under its
+    /// own restrictions. Native children and restores still run in the client.
+    /// Disabled unless `KACHE_TRUST_DAEMON_EXECUTION=1` or
+    /// `[cache] trust_daemon_execution = true` is set on both peers.
+    pub trust_daemon_execution: bool,
+    /// Concurrent daemon pipeline requests. None selects a CPU-based default.
+    /// Zero in the file or environment selects automatic sizing too.
+    /// The daemon can lower this to fit its open-file limit.
+    pub daemon_execution_concurrency: Option<usize>,
     /// The project's `[cache] exclude` and `bypass_*` rule lists, read once
     /// with the rest of the file. Every wrapper invocation consults them
     /// before any key work; re-reading the file for each list cost a C
@@ -882,6 +900,8 @@ pub struct CcFileConfig {
 
 #[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct CacheFileConfig {
+    /// Optional Blaze routing for local development. See [`Config::blaze`].
+    pub blaze: Option<bool>,
     pub local_store: Option<String>,
     /// Job/process-lifetime state, separate from the persistent local store.
     pub runtime_dir: Option<String>,
@@ -911,10 +931,15 @@ pub struct CacheFileConfig {
     pub deferred_discovery: Option<bool>,
     /// Shared read-only OUT_DIR toggle. See [`Config::out_dir_alias`].
     pub out_dir_alias: Option<bool>,
+    /// Shared empty OUT_DIR root. See [`Config::out_dir_alias_root`].
+    pub out_dir_alias_root: Option<String>,
     /// Deferred store flush toggle. See [`Config::deferred_durability`].
     pub deferred_durability: Option<bool>,
     /// Daemon hand-off toggle. See [`Config::daemon_publish`].
     pub daemon_publish: Option<bool>,
+    pub trust_daemon_execution: Option<bool>,
+    /// See [`Config::daemon_execution_concurrency`].
+    pub daemon_execution_concurrency: Option<usize>,
     /// Opportunistic size-pressure GC toggle. See [`Config::auto_gc`].
     pub auto_gc: Option<bool>,
     /// Daemon index compaction toggle. See [`Config::index_auto_compact`].
@@ -1351,7 +1376,10 @@ const IGNORE_ENV_GATED_VARS: &[&str] = &[
     "KACHE_SHARED_HARDLINK_RESTORES",
     "KACHE_DEFERRED_DISCOVERY",
     "KACHE_DAEMON_PUBLISH",
+    "KACHE_TRUST_DAEMON_EXECUTION",
+    "KACHE_DAEMON_EXECUTION_CONCURRENCY",
     "KACHE_OUT_DIR_ALIAS",
+    "KACHE_OUT_DIR_ALIAS_ROOT",
     "KACHE_DEFERRED_DURABILITY",
     "KACHE_AUTO_GC",
     "KACHE_INDEX_AUTO_COMPACT",
@@ -1367,6 +1395,7 @@ const IGNORE_ENV_GATED_VARS: &[&str] = &[
     "KACHE_STORAGE_LAYOUT_ADVICE",
     "KACHE_HEARTBEAT_SECS",
     "KACHE_EXPLAIN_MISS",
+    "KACHE_BLAZE",
     "KACHE_SCHEDULER",
     "KACHE_PLANNER_ENDPOINT",
     "KACHE_PLANNER_TIMEOUT_MS",
@@ -1457,8 +1486,17 @@ const ENV_FILE_KEYS: &[(&str, &str)] = &[
     ),
     ("KACHE_DEFERRED_DISCOVERY", "cache.deferred_discovery"),
     ("KACHE_OUT_DIR_ALIAS", "cache.out_dir_alias"),
+    ("KACHE_OUT_DIR_ALIAS_ROOT", "cache.out_dir_alias_root"),
     ("KACHE_DEFERRED_DURABILITY", "cache.deferred_durability"),
     ("KACHE_DAEMON_PUBLISH", "cache.daemon_publish"),
+    (
+        "KACHE_TRUST_DAEMON_EXECUTION",
+        "cache.trust_daemon_execution",
+    ),
+    (
+        "KACHE_DAEMON_EXECUTION_CONCURRENCY",
+        "cache.daemon_execution_concurrency",
+    ),
     ("KACHE_AUTO_GC", "cache.auto_gc"),
     ("KACHE_INDEX_AUTO_COMPACT", "cache.index_auto_compact"),
     (
@@ -1491,6 +1529,7 @@ const ENV_FILE_KEYS: &[(&str, &str)] = &[
     ("KACHE_STORAGE_LAYOUT_ADVICE", "cache.storage_layout_advice"),
     ("KACHE_HEARTBEAT_SECS", "cache.heartbeat_secs"),
     ("KACHE_EXPLAIN_MISS", "cache.explain_miss"),
+    ("KACHE_BLAZE", "cache.blaze"),
     ("KACHE_SCHEDULER", "cache.scheduler"),
     ("KACHE_PLANNER_ENDPOINT", "cache.planner.endpoint"),
     ("KACHE_PLANNER_TIMEOUT_MS", "cache.planner.timeout_ms"),
@@ -2112,14 +2151,45 @@ impl Config {
         }
         let modified_input_guard = Self::modified_input_guard_enabled_for(invocation, &file_config);
         let input_predictions = Self::input_predictions_enabled_for(invocation, &file_config);
+        let blaze = env_or_ignored_for(invocation, "KACHE_BLAZE", ignore_env)
+            .map(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+            .unwrap_or_else(|_| {
+                file_config
+                    .as_ref()
+                    .ok()
+                    .and_then(|file| file.cache.as_ref())
+                    .and_then(|cache| cache.blaze)
+                    .unwrap_or(false)
+            });
         let record_sessions = Self::record_sessions_enabled_for(invocation, &file_config);
         let windows_hardlink = Self::windows_hardlink_enabled_for(invocation, &file_config);
         let shared_hardlink_restores =
             Self::shared_hardlink_restores_enabled_for(invocation, &file_config);
         let deferred_discovery = Self::deferred_discovery_enabled_for(invocation, &file_config);
         let out_dir_alias = Self::out_dir_alias_enabled_for(invocation, &file_config);
+        let out_dir_alias_root =
+            env_or_ignored_for(invocation, "KACHE_OUT_DIR_ALIAS_ROOT", ignore_env)
+                .ok()
+                .or_else(|| {
+                    file_config
+                        .as_ref()
+                        .ok()
+                        .and_then(|c| c.cache.as_ref())
+                        .and_then(|c| c.out_dir_alias_root.clone())
+                })
+                .filter(|value| !value.is_empty())
+                .map(|value| shellexpand_for(invocation, &value));
+        if let Some(root) = &out_dir_alias_root {
+            anyhow::ensure!(
+                root.is_absolute(),
+                "cache.out_dir_alias_root must be an absolute path"
+            );
+        }
         let deferred_durability = Self::deferred_durability_enabled_for(invocation, &file_config);
         let daemon_publish = Self::daemon_publish_enabled_for(invocation, &file_config);
+        let trust_daemon_execution = Self::trust_daemon_execution_for(invocation, &file_config);
+        let daemon_execution_concurrency =
+            Self::daemon_execution_concurrency_for(invocation, &file_config)?;
         let project_rules = ProjectRules::from_file_config(&file_config);
         let auto_gc = Self::auto_gc_enabled_for(invocation, &file_config);
         let index_auto_compact = Self::index_auto_compact_enabled_for(invocation, &file_config);
@@ -2246,6 +2316,7 @@ impl Config {
             remote,
             remote_error,
             disabled,
+            blaze,
             local_only,
             remote_readonly,
             readonly_store,
@@ -2257,8 +2328,11 @@ impl Config {
             shared_hardlink_restores,
             deferred_discovery,
             out_dir_alias,
+            out_dir_alias_root,
             deferred_durability,
             daemon_publish,
+            trust_daemon_execution,
+            daemon_execution_concurrency,
             project_rules,
             auto_gc,
             index_auto_compact,
@@ -2926,6 +3000,53 @@ impl Config {
             .and_then(|c| c.cache.as_ref())
             .and_then(|c| c.daemon_publish)
             .unwrap_or(true)
+    }
+
+    fn daemon_execution_concurrency_for(
+        invocation: &InvocationEnv,
+        file_config: &Result<FileConfig>,
+    ) -> Result<Option<usize>> {
+        let configured =
+            match env_or_ignored_for(
+                invocation,
+                "KACHE_DAEMON_EXECUTION_CONCURRENCY",
+                Self::ignore_env_enabled(file_config),
+            ) {
+                Ok(value) => Some(value.parse::<usize>().context(
+                    "KACHE_DAEMON_EXECUTION_CONCURRENCY must be a non-negative integer",
+                )?),
+                Err(_) => file_config
+                    .as_ref()
+                    .ok()
+                    .and_then(|config| config.cache.as_ref())
+                    .and_then(|cache| cache.daemon_execution_concurrency),
+            };
+        // Four RPC handlers per pipeline must fit Tokio's semaphore limit
+        // (usize::MAX >> 3), including on 32-bit clients.
+        anyhow::ensure!(
+            configured.is_none_or(|value| value <= usize::MAX >> 5),
+            "cache.daemon_execution_concurrency is too large"
+        );
+        Ok(configured.filter(|value| *value != 0))
+    }
+
+    fn trust_daemon_execution_for(
+        invocation: &InvocationEnv,
+        file_config: &Result<FileConfig>,
+    ) -> bool {
+        if let Ok(value) = env_or_ignored_for(
+            invocation,
+            "KACHE_TRUST_DAEMON_EXECUTION",
+            Self::ignore_env_enabled(file_config),
+        ) {
+            return value == "1" || value.eq_ignore_ascii_case("true");
+        }
+        file_config
+            .as_ref()
+            .ok()
+            .and_then(|config| config.cache.as_ref())
+            .and_then(|cache| cache.trust_daemon_execution)
+            .unwrap_or(false)
     }
 
     /// Shared read-only OUT_DIR: `KACHE_OUT_DIR_ALIAS` (env wins), else
@@ -3770,9 +3891,9 @@ fn source_excluded_by_patterns(patterns: &[String], source_path: &Path, roots: &
 ///   the entry; restore materializes it next to the binary, where `lldb`
 ///   prefers it over the stale debug map. Source-level debugging of restored
 ///   executables works, so on by default.
-/// - **Windows**: the `.exe` references its `.pdb` by recorded path, the same
-///   external-reference problem. Off pending the equivalent investigation
-///   (the `.pdb` path remains untouched).
+/// - **Windows**: off by default. When enabled, the Rust adapter checks PE
+///   outputs against their named PDBs and refuses debug records it cannot
+///   restore with the executable.
 ///
 /// A split-debuginfo configuration (`-Csplit-debuginfo=unpacked`) moves Linux
 /// into the same external-reference shape, but the sidecars are themselves

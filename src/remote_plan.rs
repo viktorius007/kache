@@ -66,6 +66,7 @@ mod tests {
 
     fn test_config() -> Config {
         Config {
+            blaze: false,
             readonly_store: None,
             fallback: None,
             key_salt: None,
@@ -81,8 +82,11 @@ mod tests {
             shared_hardlink_restores: false,
             deferred_discovery: true,
             out_dir_alias: true,
+            out_dir_alias_root: None,
             deferred_durability: false,
             daemon_publish: false,
+            trust_daemon_execution: false,
+            daemon_execution_concurrency: None,
             project_rules: crate::config::ProjectRules::default(),
             auto_gc: true,
             index_auto_compact: true,

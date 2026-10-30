@@ -19,11 +19,19 @@
 //! variables, a linker other than `link.exe`/`lld-link`, an ambiguous or
 //! missing `-l` library, cross-target and windows-gnu links, and any
 //! `-C link-arg` that hands LINK a file the identity does not hash. That last
-//! group is decided by [`windows_link_argument_has_unmodeled_input`]:
-//! `.lib`/`.a`/`.obj`/`.o`/`.res`/`.def`/`.exp`/`.manifest` inputs and
-//! file-carrying options such as `/DEF:`, `/MANIFESTINPUT:`,
-//! `/MANIFESTFILE:` and `/PDBSTRIPPED:` are only text in the key, so a file
-//! rebuilt under an unchanged name would otherwise restore a stale executable.
+//! group is checked by [`windows_link_argument_input_files`]. Absolute `.res`
+//! inputs with the standard binary resource header are hashed from their
+//! validated bytes. Objects, archives, explicit manifest inputs and other
+//! file-carrying options stay refused; their further inputs or side outputs
+//! are not modeled.
+//!
+//! `NODEFAULTLIB` excludes libraries rather than introducing file inputs.
+//! `DEFAULTLIB` is admitted only for the modeled CRT/vcruntime/UCRT names,
+//! using their selected runtime hashes rather than rustc's `-l` lookup.
+//! Explicit requests also require a closed embedded COFF archive: directive
+//! and CodeView type sections, thin members and unsupported formats bypass.
+//! Invalid runtime candidates (non-files, metadata errors other than absence,
+//! or unreadable selected files) fail closed instead of falling back.
 
 use crate::invocation::process::CommandExt as _;
 use anyhow::{Context, Result, bail};
@@ -172,11 +180,18 @@ fn crt_memo_material(driver: &Path, env: &InvocationEnv) -> Option<(PathBuf, Str
 
 fn directory_stamp(directory: &Path) -> Option<String> {
     let metadata = std::fs::metadata(directory).ok()?;
-    Some(format!(
+    let stamp = format!(
         "{}:{}",
         crate::cache_key::metadata_mtime_ns(&metadata),
         crate::cache_key::metadata_ctime_ns(&metadata)
-    ))
+    );
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        Some(format!("{stamp}:{}", metadata.mode()))
+    }
+    #[cfg(not(unix))]
+    Some(stamp)
 }
 
 #[cfg(all(test, unix))]
@@ -254,6 +269,15 @@ fn driver_library_search_dirs(driver: &Path) -> Vec<PathBuf> {
 }
 
 fn driver_library_search_dirs_for(driver: &Path, env: &InvocationEnv) -> Vec<PathBuf> {
+    driver_search_dirs_for(driver, "libraries:", env)
+        .into_iter()
+        .filter(|dir| dir.is_dir())
+        .collect()
+}
+
+/// One line of `cc -print-search-dirs` (`libraries:` or `programs:`), as the
+/// absolute directories it lists, whether or not they exist yet.
+fn driver_search_dirs_for(driver: &Path, line_prefix: &str, env: &InvocationEnv) -> Vec<PathBuf> {
     let Ok(mut command) = env.command(driver) else {
         return Vec::new();
     };
@@ -277,15 +301,12 @@ fn driver_library_search_dirs_for(driver: &Path, env: &InvocationEnv) -> Vec<Pat
         return Vec::new();
     }
     let text = String::from_utf8_lossy(&output.stdout);
-    let Some(line) = text
-        .lines()
-        .find_map(|line| line.strip_prefix("libraries:"))
-    else {
+    let Some(line) = text.lines().find_map(|line| line.strip_prefix(line_prefix)) else {
         return Vec::new();
     };
     let line = line.trim().trim_start_matches('=');
     std::env::split_paths(line)
-        .filter(|dir| dir.is_absolute() && dir.is_dir())
+        .filter(|dir| dir.is_absolute())
         .collect()
 }
 
@@ -363,6 +384,317 @@ fn print_file_name_for(driver: &Path, name: &str, env: &InvocationEnv) -> Option
         .filter(|path| path.is_file())
 }
 
+/// The driver arguments of a link that choose which linker the driver runs.
+///
+/// Read from `-C link-arg` and `-C link-args` in the order the driver sees
+/// them: the last `-fuse-ld=` and `--ld-path=` win, and `-B` directories are
+/// searched in the order given. `cc --version` names the driver only, so
+/// this is what tells two links through the same driver apart.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub(crate) struct LinkerSelection {
+    /// `-B<dir>`, `-B <dir>`, `--prefix=<dir>` and `--prefix <dir>`, in order.
+    search_dirs: Vec<String>,
+    /// The last `-fuse-ld=` value.
+    fuse_ld: Option<String>,
+    /// The last `--ld-path=` value. Clang lets it override `-fuse-ld`.
+    ld_path: Option<String>,
+    /// rustc's own `gcc-ld` directory when rustc links through its bundled
+    /// `rust-lld`. rustc then passes `-B<dir>` and `-fuse-ld=lld` ahead of the
+    /// link arguments, so the directory is searched first and `lld` is what a
+    /// link without its own `-fuse-ld` uses.
+    bundled_lld: Option<PathBuf>,
+}
+
+/// What to ask the driver for: a linker it names, or one given by path.
+#[derive(Debug, PartialEq, Eq)]
+enum LinkerQuery {
+    Named(String),
+    Path(PathBuf),
+}
+
+impl LinkerSelection {
+    pub(crate) fn of(args: &crate::args::RustcArgs) -> Result<Self> {
+        let mut words = Vec::new();
+        for (key, value) in &args.codegen_opts {
+            let Some(value) = value.as_deref() else {
+                continue;
+            };
+            match key.as_str() {
+                "link-arg" => words.push(value.to_string()),
+                "link-args" => words.extend(value.split_whitespace().map(str::to_string)),
+                _ => {}
+            }
+        }
+        Self::from_words(&words)
+    }
+
+    fn from_words(words: &[String]) -> Result<Self> {
+        let mut selection = Self::default();
+        let mut words = words.iter();
+        while let Some(word) = words.next() {
+            if let Some(value) = word.strip_prefix("-fuse-ld=") {
+                selection.fuse_ld = Some(value.to_string());
+            } else if let Some(value) = word.strip_prefix("--ld-path=") {
+                selection.ld_path = Some(value.to_string());
+            } else if word == "-B" || word == "--prefix" {
+                let dir = words
+                    .next()
+                    .with_context(|| format!("`{word}` link argument has no directory"))?;
+                selection.search_dirs.push(dir.clone());
+            } else if let Some(dir) = word.strip_prefix("--prefix=") {
+                selection.search_dirs.push(dir.to_string());
+            } else if let Some(dir) = word.strip_prefix("-B") {
+                selection.search_dirs.push(dir.to_string());
+            }
+        }
+        Ok(selection)
+    }
+
+    /// The selection when rustc links through the `rust-lld` in `gcc_ld`.
+    pub(crate) fn with_bundled_lld(mut self, gcc_ld: PathBuf) -> Self {
+        self.bundled_lld = Some(gcc_ld);
+        self
+    }
+
+    /// `-B` directories in the order the driver searches them.
+    fn driver_search_dirs(&self) -> impl Iterator<Item = &str> {
+        self.bundled_lld
+            .iter()
+            .filter_map(|dir| dir.to_str())
+            .chain(self.search_dirs.iter().map(String::as_str))
+    }
+
+    /// Clang's rules, which GCC's `-fuse-ld=<name>` follows: a value with a
+    /// directory is a path, a bare `--ld-path` name is searched like any
+    /// program, and `-fuse-ld=<name>` means the program `ld.<name>`.
+    fn query(&self) -> Result<LinkerQuery> {
+        if let Some(value) = &self.ld_path {
+            if value.is_empty() {
+                bail!("an empty `--ld-path` names no linker");
+            }
+            return Ok(if Path::new(value).components().count() > 1 {
+                LinkerQuery::Path(PathBuf::from(value))
+            } else {
+                LinkerQuery::Named(value.clone())
+            });
+        }
+        match self.fuse_ld.as_deref() {
+            Some("") => bail!("an empty `-fuse-ld` names no linker"),
+            Some(value) if Path::new(value).components().count() > 1 => {
+                Ok(LinkerQuery::Path(PathBuf::from(value)))
+            }
+            Some(name) => Ok(LinkerQuery::Named(format!("ld.{name}"))),
+            None if self.bundled_lld.is_some() => Ok(LinkerQuery::Named("ld.lld".to_string())),
+            None => Ok(LinkerQuery::Named("ld".to_string())),
+        }
+    }
+}
+
+/// The file a native link's driver runs as its linker.
+///
+/// A linker given by path is that file, relative to the client's working
+/// directory. A named one is placed by the driver (`-print-prog-name`, with
+/// the link's `-B` directories): a path it reports is used, relative ones
+/// rooted at the working directory, and a bare name it echoes back is
+/// searched on the client's PATH, as collect2 and Clang do. A linker that
+/// cannot be placed is an error: the caller then treats the link as
+/// uncacheable.
+pub(crate) fn place_linker(
+    driver: &Path,
+    selection: &LinkerSelection,
+    env: &InvocationEnv,
+) -> Result<PathBuf> {
+    let _trace = crate::phase_trace::phase("native_linker_resolve");
+    let name = match selection.query()? {
+        LinkerQuery::Path(path) => {
+            return env
+                .resolve(&path)
+                .filter(|path| path.is_file())
+                .with_context(|| format!("linker {} does not exist", path.display()));
+        }
+        LinkerQuery::Named(name) => name,
+    };
+    let mut command = env
+        .command(driver)
+        .context("running the native linker driver")?;
+    for dir in selection.driver_search_dirs() {
+        command.arg(format!("-B{dir}"));
+    }
+    let output = command
+        .arg(format!("-print-prog-name={name}"))
+        .env("LC_ALL", "C")
+        .env("LANG", "C")
+        .invocation_output()
+        .context("asking the native linker driver for its linker")?;
+    if !output.status.success() {
+        bail!("the native linker driver could not place `{name}`");
+    }
+    let reported = String::from_utf8_lossy(&output.stdout);
+    let reported = Path::new(reported.trim());
+    let placed = if reported.components().count() > 1 {
+        env.resolve(reported)
+    } else {
+        env.resolve_program(Path::new(&name))
+    };
+    placed
+        .filter(|path| path.is_file())
+        .with_context(|| format!("the native linker driver runs `{name}`, which is not installed"))
+}
+
+/// First line of a placed linker's `--version`, for diagnostics only.
+pub(crate) fn linker_banner(linker: &Path, env: &InvocationEnv) -> Option<String> {
+    let output = env
+        .command(linker)
+        .ok()?
+        .arg("--version")
+        .env("LC_ALL", "C")
+        .env("LANG", "C")
+        .invocation_output()
+        .ok()?;
+    let text = String::from_utf8_lossy(&output.stdout);
+    let line = text.lines().next()?.trim();
+    (!line.is_empty()).then(|| line.to_string())
+}
+
+/// [`place_linker`] with the placement remembered.
+///
+/// A placement depends on the driver, the selection, the variables that
+/// steer the driver's search, and what the searched locations hold. The
+/// memo is keyed by the first three and validated against the last: every
+/// directory the search could look in (the driver's program directories,
+/// each `-B` directory, every PATH entry, the placed linker's directory)
+/// and the linker's name inside each of them must look as they did. See
+/// [`location_stamp`]. The caller hashes the placed file's content on every
+/// call. A linker given by path needs no driver and is not memoised.
+pub(crate) fn place_linker_memoized_for(
+    memo_dir: &Path,
+    driver: &Path,
+    selection: &LinkerSelection,
+    env: &InvocationEnv,
+) -> Result<PathBuf> {
+    let driver = env
+        .resolve_program(driver)
+        .context("resolving native linker driver")?;
+    let LinkerQuery::Named(name) = selection.query()? else {
+        return place_linker(&driver, selection, env);
+    };
+    let memo_dir = env
+        .resolve(memo_dir)
+        .context("resolving linker memo directory")?;
+    if let Some(placed) = linker_placement_memo_for(&memo_dir, &driver, selection, env) {
+        return Ok(placed);
+    }
+    let placed = place_linker(&driver, selection, env)?;
+    record_linker_placement_memo(&memo_dir, &driver, selection, &name, &placed, env);
+    Ok(placed)
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct LinkerPlacementMemo {
+    placed: PathBuf,
+    /// Searched location to its [`location_stamp`] when the memo was written.
+    locations: BTreeMap<PathBuf, String>,
+}
+
+/// What a search location looks like, so a memo can tell it changed.
+///
+/// An existing path is its canonical target with that target's modification
+/// and change times: renaming a file in or out of a directory, retargeting a
+/// symlink on the way, or changing a file's mode all change it. A missing
+/// path is just absent, so creating it changes the stamp too.
+fn location_stamp(path: &Path) -> Option<String> {
+    match std::fs::canonicalize(path) {
+        Ok(target) => Some(format!(
+            "{}\n{}",
+            target.display(),
+            directory_stamp(&target)?
+        )),
+        Err(_) => Some("absent".to_string()),
+    }
+}
+
+fn linker_memo_digest(
+    driver: &Path,
+    selection: &LinkerSelection,
+    env: &InvocationEnv,
+) -> Option<(PathBuf, String)> {
+    let (canonical, crt_digest) = crt_memo_material(driver, env)?;
+    let mut material = Material::new("linux-linker-placement-v1");
+    material.push(crt_digest.as_bytes());
+    for dir in selection.driver_search_dirs() {
+        material.push(b"-B");
+        material.push(dir.as_bytes());
+    }
+    material.push(selection.fuse_ld.as_deref().unwrap_or("").as_bytes());
+    material.push(selection.ld_path.as_deref().unwrap_or("").as_bytes());
+    Some((canonical, material.digest()))
+}
+
+fn linker_placement_memo_for(
+    memo_dir: &Path,
+    driver: &Path,
+    selection: &LinkerSelection,
+    env: &InvocationEnv,
+) -> Option<PathBuf> {
+    let (_, digest) = linker_memo_digest(driver, selection, env)?;
+    let path = probe_memo::memo_path(memo_dir, "linker-placement", "json", &digest);
+    let body = probe_memo::read_verified(&path, &digest)?;
+    let memo: LinkerPlacementMemo = serde_json::from_str(&body).ok()?;
+    if memo.locations.is_empty() {
+        return None;
+    }
+    for (location, stamp) in &memo.locations {
+        if location_stamp(location).as_ref() != Some(stamp) {
+            return None;
+        }
+    }
+    memo.placed.is_file().then_some(memo.placed)
+}
+
+fn record_linker_placement_memo(
+    memo_dir: &Path,
+    driver: &Path,
+    selection: &LinkerSelection,
+    name: &str,
+    placed: &Path,
+    env: &InvocationEnv,
+) {
+    let Some((canonical, digest)) = linker_memo_digest(driver, selection, env) else {
+        return;
+    };
+    let mut directories = driver_search_dirs_for(&canonical, "programs:", env);
+    directories.extend(
+        selection
+            .driver_search_dirs()
+            .filter_map(|dir| env.resolve(Path::new(dir))),
+    );
+    if let Some(path) = env.var_os("PATH") {
+        directories.extend(std::env::split_paths(&path).filter_map(|dir| env.resolve(&dir)));
+    }
+    directories.extend(placed.parent().map(Path::to_path_buf));
+    let mut locations = BTreeMap::new();
+    for directory in directories {
+        for location in [directory.join(name), directory] {
+            let Some(stamp) = location_stamp(&location) else {
+                // A location that cannot be described cannot validate a memo.
+                return;
+            };
+            locations.insert(location, stamp);
+        }
+    }
+    let memo = LinkerPlacementMemo {
+        placed: placed.to_path_buf(),
+        locations,
+    };
+    if let Ok(body) = serde_json::to_string(&memo) {
+        probe_memo::write_verified(
+            &probe_memo::memo_path(memo_dir, "linker-placement", "json", &digest),
+            &digest,
+            &body,
+        );
+    }
+}
+
 /// Identity of the SDK a macOS link builds against.
 ///
 /// Version + build version pin the libraries. The path is not folded: Command
@@ -373,7 +705,8 @@ fn print_file_name_for(driver: &Path, name: &str, env: &InvocationEnv) -> Option
 /// Apple's `xcrun` accepts a filesystem path as `--sdk`. xcbuild's `xcrun`
 /// only accepts a name such as `macosx`. When `xcrun` rejects a path that is
 /// still a real SDK directory, read the same version and build from
-/// `SystemVersion.plist` inside that root.
+/// `SystemVersion.plist` inside that root. For a named or default SDK, ask
+/// `xcrun` for its selected path before reading that manifest.
 #[cfg(all(test, target_os = "macos"))]
 pub(crate) fn sdk_identity_for(root: Option<String>) -> Result<Option<String>> {
     sdk_identity_for_invocation(root, &InvocationEnv::capture())
@@ -384,24 +717,40 @@ pub(crate) fn sdk_identity_for_invocation(
     root: Option<String>,
     env: &InvocationEnv,
 ) -> Result<Option<String>> {
-    let sdk = root.as_deref().unwrap_or("macosx");
-    if let Some(identity) = xcrun_identity(sdk, env) {
-        return Ok(Some(identity));
-    }
-    let path = env
-        .resolve(Path::new(sdk))
-        .context("resolving selected SDK root")?;
-    if path.is_dir() {
-        return identity_from_sdk_root(&path).map(Some);
-    }
-    bail!("xcrun --show-sdk-version failed");
+    sdk_identity_with_queries(root.as_deref(), env, |arguments| xcrun(arguments, env)).map(Some)
 }
 
-#[cfg(target_os = "macos")]
-fn xcrun_identity(sdk: &str, env: &InvocationEnv) -> Option<String> {
-    let version = xcrun(&["--sdk", sdk, "--show-sdk-version"], env)?;
-    let build = xcrun(&["--sdk", sdk, "--show-sdk-build-version"], env)?;
-    Some(format!("{version} ({build})"))
+#[cfg(any(test, target_os = "macos"))]
+fn sdk_identity_with_queries(
+    root: Option<&str>,
+    env: &InvocationEnv,
+    mut query: impl FnMut(&[&str]) -> Result<String>,
+) -> Result<String> {
+    let sdk = root.unwrap_or("macosx");
+    let metadata = (|| -> Result<String> {
+        let version = query(&["--sdk", sdk, "--show-sdk-version"])?;
+        let build = query(&["--sdk", sdk, "--show-sdk-build-version"])?;
+        Ok(format!("{version} ({build})"))
+    })();
+    let probe_error = match metadata {
+        Ok(identity) => return Ok(identity),
+        Err(error) => error,
+    };
+    if let Some(root) = root {
+        let path = env
+            .resolve(Path::new(root))
+            .context("resolving selected SDK root")?;
+        if path.is_dir() {
+            return identity_from_sdk_root(&path);
+        }
+    }
+    let selected = query(&["--sdk", sdk, "--show-sdk-path"]).with_context(|| {
+        format!("locating SDK {sdk} after metadata query failed: {probe_error:#}")
+    })?;
+    let path = env
+        .resolve(Path::new(&selected))
+        .context("resolving located SDK path")?;
+    identity_from_sdk_root(&path)
 }
 
 /// `ProductVersion` / `ProductBuildVersion` as `xcrun --show-sdk-version` and
@@ -412,13 +761,8 @@ fn xcrun_identity(sdk: &str, env: &InvocationEnv) -> Option<String> {
 #[cfg(any(test, target_os = "macos"))]
 fn identity_from_sdk_root(root: &Path) -> Result<String> {
     let plist = root.join("System/Library/CoreServices/SystemVersion.plist");
-    let body = std::fs::read_to_string(&plist).with_context(|| {
-        format!(
-            "xcrun rejected --sdk {} and {} is unreadable",
-            root.display(),
-            plist.display()
-        )
-    })?;
+    let body = std::fs::read_to_string(&plist)
+        .with_context(|| format!("reading SDK identity from {}", plist.display()))?;
     let version = plist_string(&body, "ProductVersion").ok_or_else(|| {
         anyhow::anyhow!(
             "{} has no ProductVersion; not a usable macOS SDK",
@@ -458,18 +802,26 @@ pub(crate) fn sdk_identity_for_invocation(
 }
 
 #[cfg(target_os = "macos")]
-fn xcrun(arguments: &[&str], env: &InvocationEnv) -> Option<String> {
+fn xcrun(arguments: &[&str], env: &InvocationEnv) -> Result<String> {
+    let description = format!("xcrun {}", arguments.join(" "));
     let output = env
         .command("xcrun")
-        .ok()?
+        .with_context(|| format!("resolving {description}"))?
         .args(arguments)
         .invocation_output()
-        .ok()?;
-    output
-        .status
-        .success()
-        .then(|| String::from_utf8_lossy(&output.stdout).trim().to_owned())
-        .filter(|value| !value.is_empty())
+        .with_context(|| format!("running {description}"))?;
+    anyhow::ensure!(
+        output.status.success(),
+        "{description} failed ({}): {}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr).trim(),
+    );
+    let value = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+    anyhow::ensure!(
+        !value.is_empty(),
+        "{description} returned an empty SDK identity"
+    );
+    Ok(value)
 }
 
 /// Encode resolved CRT objects as a stable `name=digest` list.
@@ -509,6 +861,27 @@ pub(crate) struct WindowsMsvcIdentity {
 }
 
 impl WindowsMsvcIdentity {
+    /// Keys explicit default libraries using the runtime's LINK search results.
+    ///
+    /// `default:index:name` entries record request presence and order even though
+    /// the runtime map already contains the selected bytes for each name.
+    /// Missing libraries fail closed even when NODEFAULTLIB might suppress them.
+    pub(crate) fn with_default_libraries(
+        mut self,
+        libraries: &[WindowsDefaultLibrary],
+    ) -> Result<Self> {
+        for (index, WindowsDefaultLibrary(name)) in libraries.iter().enumerate() {
+            let digest = self
+                .libraries
+                .get(*name)
+                .with_context(|| format!("DEFAULTLIB:{name} has no selected runtime library"))?
+                .clone();
+            self.libraries
+                .insert(format!("default:{index}:{name}"), digest);
+        }
+        Ok(self)
+    }
+
     /// Stable, sorted representation suitable for a length-prefixed key field.
     pub(crate) fn encode(&self) -> String {
         let mut fields = vec![
@@ -542,6 +915,8 @@ pub(crate) struct WindowsProbeEnvironment {
     pub(crate) variables: BTreeMap<String, String>,
     pub(crate) path: Vec<PathBuf>,
     pub(crate) cwd: Option<PathBuf>,
+    /// Only explicit DEFAULTLIB requests opt into closed-container validation.
+    pub(crate) requested_default_libraries: Vec<WindowsDefaultLibrary>,
     /// The tool directories of rustc's sysroots (see [`rustc_tool_dir`]).
     /// rustc puts them before `PATH` for the linker it runs, so a linker
     /// named without a directory is looked up there first.
@@ -858,12 +1233,11 @@ pub(crate) fn is_windows_msvc_target(target: &str) -> bool {
 /// Whether a `-C link-arg`/`link-args` value hands the COFF linker an input
 /// the native MSVC identity does not hash.
 ///
-/// The key folds the argument *text*, not the bytes of the files that text
-/// names. A `.res`, `.def` or `.obj` rebuilt in place under the same OUT_DIR
-/// name would then restore a stale executable, so every such argument fails
-/// closed and the link passes through. Two shapes are recognised, after the
-/// value is split on the commas and whitespace that `-Wl,` and `link-args`
-/// use to carry several tokens:
+/// Argument text alone does not key the bytes a path names. The caller must
+/// either identify and hash a supported input with
+/// [`windows_link_argument_input_files`] or refuse the link. Two shapes are
+/// recognised after splitting the commas and whitespace that `-Wl,` and
+/// `link-args` use to carry several tokens:
 ///
 /// - a token naming a linker input by extension (`.lib`, `.a`, `.obj`, `.o`,
 ///   `.res`, `.def`, `.exp`, `.manifest`), bare or as an option value;
@@ -878,11 +1252,25 @@ pub(crate) fn is_windows_msvc_target(target: &str) -> bool {
 /// and `@response` files are refused earlier by the generic side-file check.
 /// Libraries requested through `-l` never reach this function; they are
 /// resolved and hashed by [`hash_windows_selected_libraries`].
+/// `NODEFAULTLIB` names exclusions, not input files. Single DEFAULTLIB options
+/// for modeled CRT names are parsed by [`windows_link_argument_input_files`]
+/// before this conservative file-input check;
+/// [`WindowsMsvcIdentity::with_default_libraries`] requires their selected hashes.
 pub(crate) fn windows_link_argument_has_unmodeled_input(value: &str) -> bool {
     value
         .split([',', ' ', '\t', '\n', '\r'])
         .map(|token| token.trim_matches('"'))
-        .any(|token| link_token_names_input_file(token) || windows_link_token_is_file_option(token))
+        .any(|token| {
+            if let Some(option) = token.strip_prefix(['/', '-']) {
+                let name = option
+                    .split_once([':', '='])
+                    .map_or(option, |(name, _)| name);
+                if name.eq_ignore_ascii_case("NODEFAULTLIB") {
+                    return false;
+                }
+            }
+            link_token_names_input_file(token) || windows_link_token_is_file_option(token)
+        })
 }
 
 /// A bare or option-value token whose extension marks a linker input file.
@@ -897,9 +1285,9 @@ pub(crate) fn link_token_names_input_file(token: &str) -> bool {
         || ends_with_ignore_ascii_case(token, ".manifest")
 }
 
-/// A `/NAME:value` or `-NAME=value` option whose value is a file the identity
-/// neither hashes nor captures. A bare `/WHOLEARCHIVE` applies to the inputs
-/// rustc already passes and carries no file of its own.
+/// A `/NAME:value` or `-NAME=value` option that needs file handling beyond
+/// its argument text. A bare `/WHOLEARCHIVE` applies to the inputs rustc
+/// already passes and carries no file of its own.
 fn windows_link_token_is_file_option(token: &str) -> bool {
     let Some(option) = token.strip_prefix(['/', '-']) else {
         return false;
@@ -926,6 +1314,78 @@ fn windows_link_token_is_file_option(token: &str) -> bool {
         || named("PDB")
         || named("IMPLIB")
         || named("ILK")
+        || (named("MANIFEST") && !manifest_value_writes_no_side_file(value))
+}
+
+/// Whether a `/MANIFEST` value keeps LINK from writing a side-by-side
+/// `<output>.manifest` file, which the cache never captures: `NO`, or
+/// `EMBED` (with or without `,ID=n`, whose comma splits it off before this).
+fn manifest_value_writes_no_side_file(value: Option<&str>) -> bool {
+    value.is_some_and(|value| {
+        value.eq_ignore_ascii_case("NO") || value.eq_ignore_ascii_case("EMBED")
+    })
+}
+
+/// Holds modeled inputs in Windows linker argument order.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub(crate) struct WindowsLinkArgumentInputs {
+    pub files: Vec<PathBuf>,
+    pub default_libraries: Vec<WindowsDefaultLibrary>,
+}
+
+/// Parses modeled inputs carried by one link-arg or link-args value.
+///
+/// Absolute compiled-resource files carried by one link-arg or
+/// whitespace-split link-args value. Their binary format is checked by the
+/// hasher. Objects and archives can name further inputs; XML manifests need
+/// a separate proof of the merger's external-file behavior. Both stay refused.
+///
+/// A bare token is a possible input even without a recognized extension.
+/// Embedded quotes, relative paths and C-driver spellings stay outside this
+/// parser's accepted subset. Plain LINK options retain the existing guards.
+/// DEFAULTLIB requests are limited to modeled CRT names and retain their order.
+pub(crate) fn windows_link_argument_input_files(
+    key: &str,
+    value: &str,
+) -> Option<WindowsLinkArgumentInputs> {
+    let arguments: Vec<&str> = if key == "link-args" {
+        value.split_whitespace().collect()
+    } else {
+        vec![value]
+    };
+    let mut inputs = WindowsLinkArgumentInputs::default();
+    for argument in arguments {
+        if let Some(library) = WindowsDefaultLibrary::parse(argument) {
+            inputs.default_libraries.push(library);
+        } else if windows_link_argument_has_unmodeled_input(argument) {
+            inputs
+                .files
+                .push(windows_link_argument_input_file(argument)?);
+        } else if !argument.starts_with(['/', '-']) {
+            return None;
+        }
+    }
+    Some(inputs)
+}
+
+fn windows_link_argument_input_file(argument: &str) -> Option<PathBuf> {
+    (windows_absolute_path(argument)
+        && ends_with_ignore_ascii_case(argument, ".res")
+        && !argument.contains('"'))
+    .then(|| PathBuf::from(argument))
+}
+
+/// A Windows path that does not depend on a working directory or a current
+/// drive: `C:\...` (or `C:/...`) or a UNC / device path (`\\server\share`,
+/// `\\?\C:\...`). Spelled out rather than `Path::is_absolute` so the rule is
+/// the same on every host that runs the tests.
+pub(crate) fn windows_absolute_path(path: &str) -> bool {
+    let bytes = path.as_bytes();
+    let drive = bytes.len() >= 3
+        && bytes[0].is_ascii_alphabetic()
+        && bytes[1] == b':'
+        && matches!(bytes[2], b'\\' | b'/');
+    drive || (path.len() > 2 && path.starts_with(r"\\"))
 }
 
 pub(crate) fn ends_with_ignore_ascii_case(token: &str, suffix: &str) -> bool {
@@ -1841,6 +2301,42 @@ where
     Ok(selected)
 }
 
+const MSVC_RUNTIME: &[&str] = &["libcmt.lib", "libcmtd.lib", "msvcrt.lib", "msvcrtd.lib"];
+const VCRUNTIME: &[&str] = &[
+    "vcruntime.lib",
+    "vcruntimed.lib",
+    "libvcruntime.lib",
+    "libvcruntimed.lib",
+];
+const UCRT: &[&str] = &["ucrt.lib", "ucrtd.lib", "libucrt.lib", "libucrtd.lib"];
+
+/// An explicit default library covered by the runtime dependency model.
+///
+/// Arbitrary archives are excluded: hashing their bytes does not model further
+/// inputs introduced by COFF directives. Paths and quoted or compound arguments
+/// are excluded rather than borrowing Rust's different `-l` resolution rules.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct WindowsDefaultLibrary(&'static str);
+
+impl WindowsDefaultLibrary {
+    /// Parses a single LINK default-library option for an already modeled runtime.
+    pub(crate) fn parse(argument: &str) -> Option<Self> {
+        let (option, name) = argument.strip_prefix(['/', '-'])?.split_once(':')?;
+        if !option.eq_ignore_ascii_case("DEFAULTLIB") {
+            return None;
+        }
+        MSVC_RUNTIME
+            .iter()
+            .chain(VCRUNTIME)
+            .chain(UCRT)
+            .find_map(|candidate| {
+                (name.eq_ignore_ascii_case(candidate)
+                    || name.eq_ignore_ascii_case(candidate.strip_suffix(".lib")?))
+                .then_some(Self(candidate))
+            })
+    }
+}
+
 fn hash_windows_runtime_libraries(
     environment: &WindowsProbeEnvironment,
     architecture: &str,
@@ -1864,22 +2360,14 @@ fn hash_windows_runtime_libraries(
     // copy further along is never read, so it does not enter the key. A
     // host with two toolsets, such as Firefox's mozbuild toolchain on LIB
     // beside the machine's Visual Studio, has several copies that differ.
-    const MSVC_RUNTIME: &[&str] = &["libcmt.lib", "libcmtd.lib", "msvcrt.lib", "msvcrtd.lib"];
-    const VCRUNTIME: &[&str] = &[
-        "vcruntime.lib",
-        "vcruntimed.lib",
-        "libvcruntime.lib",
-        "libvcruntimed.lib",
-    ];
-    const UCRT: &[&str] = &["ucrt.lib", "ucrtd.lib", "libucrt.lib", "libucrtd.lib"];
     let mut libraries = BTreeMap::new();
     for name in MSVC_RUNTIME.iter().chain(VCRUNTIME).chain(UCRT) {
-        let found = directories
-            .iter()
-            .map(|directory| directory.join(name))
-            .find(|path| path.is_file());
+        let found = first_windows_library(&directories, &[(*name).to_string()])?;
         if let Some(path) = found {
-            let digest = hash_file(&path)
+            let requested = environment
+                .requested_default_libraries
+                .contains(&WindowsDefaultLibrary(name));
+            let digest = hash_windows_runtime_library(&path, requested)
                 .with_context(|| format!("hashing MSVC runtime library {}", path.display()))?;
             libraries.insert((*name).to_string(), digest);
         }
@@ -1895,6 +2383,34 @@ fn hash_windows_runtime_libraries(
         bail!("no selected UCRT library was found in LIB");
     }
     Ok(libraries)
+}
+
+// Closed-runtime validation needs member contents. Cap its owned buffer; other
+// runtime hashes retain the existing streaming path and its digest format.
+const MAX_WINDOWS_DEFAULTLIB_BYTES: usize = 64 << 20;
+
+fn hash_windows_runtime_library(path: &Path, requested: bool) -> Result<String> {
+    if !requested {
+        return hash_file(path);
+    }
+    use std::io::Read;
+    let mut file = std::fs::File::open(path)
+        .with_context(|| format!("opening explicit DEFAULTLIB {}", path.display()))?;
+    let metadata = file.metadata()?;
+    if !metadata.is_file() || metadata.len() > MAX_WINDOWS_DEFAULTLIB_BYTES as u64 {
+        bail!("explicit DEFAULTLIB is not a regular file of at most 64 MiB");
+    }
+    let mut bytes = vec![0; usize::try_from(metadata.len())?];
+    file.read_exact(&mut bytes)
+        .with_context(|| format!("reading explicit DEFAULTLIB {}", path.display()))?;
+    if file.read(&mut [0_u8; 1])? != 0 {
+        bail!("explicit DEFAULTLIB changed size while being read");
+    }
+    if crate::native_archive::validate_closed_windows_runtime_archive(&bytes).is_none() {
+        bail!("explicit DEFAULTLIB is not a supported closed COFF archive");
+    }
+    // Validation and hashing consume this same read, never a reopened path.
+    Ok(blake3::hash(&bytes).to_hex().to_string())
 }
 
 /// Discover a Windows MSVC identity while honoring rustc/linker search paths
@@ -1921,6 +2437,7 @@ where
         rustc_library_dirs,
         linker_library_dirs,
         link_libraries,
+        &[],
         hash_library,
         &InvocationEnv::capture(),
     )
@@ -1933,6 +2450,7 @@ pub(crate) fn probe_windows_msvc_identity_with_library_dirs_for<HashLibrary>(
     rustc_library_dirs: &[PathBuf],
     linker_library_dirs: &[PathBuf],
     link_libraries: &[String],
+    requested_default_libraries: &[WindowsDefaultLibrary],
     hash_library: HashLibrary,
     env: &InvocationEnv,
 ) -> Result<WindowsMsvcIdentity>
@@ -1955,6 +2473,7 @@ where
         .context("capturing Windows MSVC environment")?;
     environment.root_invocation_paths(env)?;
     environment.rustc_tool_dirs = rustc_tool_dirs.to_vec();
+    environment.requested_default_libraries = requested_default_libraries.to_vec();
     environment.augment_from_installed_msvc(target_architecture, env)?;
     environment.root_invocation_paths(env)?;
     let mut identity = probe_windows_msvc_identity_with(
@@ -2218,6 +2737,320 @@ mod tests {
     use super::*;
     use crate::test_support::process_state_test_lock;
 
+    fn words(words: &[&str]) -> Vec<String> {
+        words.iter().map(|word| word.to_string()).collect()
+    }
+
+    #[test]
+    fn linker_selection_reads_link_arguments_as_the_driver_does() {
+        let selection = LinkerSelection::from_words(&words(&[
+            "-fuse-ld=gold",
+            "-Wl,--as-needed",
+            "-B",
+            "/a",
+            "-B/b",
+            "--prefix=/c",
+            "--prefix",
+            "/d",
+            "-fuse-ld=mold",
+        ]))
+        .unwrap();
+        assert_eq!(selection.fuse_ld.as_deref(), Some("mold"), "last one wins");
+        assert_eq!(selection.search_dirs, ["/a", "/b", "/c", "/d"]);
+        assert_eq!(selection.ld_path, None);
+        assert!(LinkerSelection::from_words(&words(&["-B"])).is_err());
+        assert!(LinkerSelection::from_words(&words(&["--prefix"])).is_err());
+
+        let args = crate::args::RustcArgs::parse(&words(&[
+            "rustc",
+            "--crate-type",
+            "bin",
+            "main.rs",
+            "-C",
+            "link-args=-B/x -fuse-ld=lld",
+            "-C",
+            "link-arg=--ld-path=/opt/ld",
+            "-C",
+            "opt-level=1",
+        ]))
+        .unwrap();
+        let selection = LinkerSelection::of(&args).unwrap();
+        assert_eq!(selection.search_dirs, ["/x"]);
+        assert_eq!(selection.fuse_ld.as_deref(), Some("lld"));
+        assert_eq!(selection.ld_path.as_deref(), Some("/opt/ld"));
+
+        // `link-arg` and `link-args` reach the driver in command-line order.
+        let args = crate::args::RustcArgs::parse(&words(&[
+            "rustc",
+            "--crate-type",
+            "bin",
+            "main.rs",
+            "-C",
+            "link-arg=-fuse-ld=gold",
+            "-C",
+            "link-args=-fuse-ld=mold -B/y",
+            "-C",
+            "link-arg=-fuse-ld=lld",
+        ]))
+        .unwrap();
+        assert_eq!(
+            LinkerSelection::of(&args).unwrap().fuse_ld.as_deref(),
+            Some("lld")
+        );
+    }
+
+    #[test]
+    fn linker_query_follows_the_drivers_rules() {
+        let query = |given: &[&str]| LinkerSelection::from_words(&words(given)).unwrap().query();
+        let named = |name: &str| LinkerQuery::Named(name.to_string());
+        let path = |path: &str| LinkerQuery::Path(PathBuf::from(path));
+        assert_eq!(query(&[]).unwrap(), named("ld"));
+        assert_eq!(query(&["-fuse-ld=mold"]).unwrap(), named("ld.mold"));
+        assert_eq!(
+            query(&["-fuse-ld=/opt/mold/bin/mold"]).unwrap(),
+            path("/opt/mold/bin/mold")
+        );
+        assert_eq!(query(&["-fuse-ld=bin/mold"]).unwrap(), path("bin/mold"));
+        for given in [
+            &["-fuse-ld=lld", "--ld-path=/opt/ld"][..],
+            &["--ld-path=/opt/ld", "-fuse-ld=lld"][..],
+        ] {
+            assert_eq!(query(given).unwrap(), path("/opt/ld"), "{given:?}");
+        }
+        assert_eq!(query(&["--ld-path=tools/ld"]).unwrap(), path("tools/ld"));
+        assert_eq!(
+            query(&["--ld-path=ld.mold"]).unwrap(),
+            named("ld.mold"),
+            "a bare --ld-path name is searched like any program"
+        );
+        for given in ["--ld-path=", "-fuse-ld="] {
+            assert!(query(&[given]).is_err(), "{given}");
+        }
+
+        // rustc's bundled lld is searched first and used unless the link
+        // picks its own linker.
+        let bundled = |given: &[&str]| {
+            LinkerSelection::from_words(&words(given))
+                .unwrap()
+                .with_bundled_lld(PathBuf::from("/sysroot/gcc-ld"))
+        };
+        assert_eq!(bundled(&[]).query().unwrap(), named("ld.lld"));
+        assert_eq!(
+            bundled(&["-fuse-ld=mold"]).query().unwrap(),
+            named("ld.mold")
+        );
+        assert_eq!(
+            bundled(&["-B/user"])
+                .driver_search_dirs()
+                .collect::<Vec<_>>(),
+            ["/sysroot/gcc-ld", "/user"]
+        );
+    }
+
+    /// A driver that places `-print-prog-name` names in its `-B` directories,
+    /// then its own program directory, among executable files only, echoes
+    /// anything else back, and logs every call so a test can tell a memo hit
+    /// from a probe. A relative `-B` gives a relative answer, as GCC's does.
+    #[cfg(unix)]
+    fn fake_linker_driver(root: &Path) -> (PathBuf, PathBuf) {
+        let programs = root.join("libexec");
+        let later = root.join("libexec-later");
+        std::fs::create_dir_all(&programs).unwrap();
+        let log = root.join("driver-calls");
+        let driver = root.join("cc");
+        kache_fs::testutil::write_executable(
+            &driver,
+            format!(
+                r#"#!/bin/sh
+echo "$*" >> "{log}"
+dirs=""
+for arg in "$@"; do
+    case "$arg" in
+        -B*) dirs="$dirs ${{arg#-B}}" ;;
+        -print-search-dirs) echo "programs: ={programs}:{later}"; exit 0 ;;
+        -print-prog-name=*)
+            name=${{arg#-print-prog-name=}}
+            for dir in $dirs {programs} {later}; do
+                if [ -x "$dir/$name" ]; then echo "$dir/$name"; exit 0; fi
+            done
+            echo "$name"; exit 0 ;;
+    esac
+done
+"#,
+                log = log.display(),
+                programs = programs.display(),
+                later = later.display()
+            ),
+        );
+        (driver, log)
+    }
+
+    #[cfg(unix)]
+    fn driver_calls(log: &Path) -> usize {
+        std::fs::read_to_string(log).map_or(0, |text| text.lines().count())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn the_driver_places_the_linker_it_runs() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path().canonicalize().unwrap();
+        let (driver, _) = fake_linker_driver(&root);
+        let bin = root.join("bin");
+        let extra = root.join("extra");
+        for dir in [&bin, &extra] {
+            std::fs::create_dir_all(dir).unwrap();
+        }
+        kache_fs::testutil::write_executable(&root.join("libexec/ld"), "gnu ld");
+        kache_fs::testutil::write_executable(&bin.join("ld.mold"), "mold on PATH");
+        kache_fs::testutil::write_executable(&extra.join("ld.mold"), "mold under -B");
+        let env =
+            InvocationEnv::from_parts([("PATH", &bin)], Some(root.clone()), None, root.clone());
+        let place = |given: &[&str]| {
+            place_linker(
+                &driver,
+                &LinkerSelection::from_words(&words(given)).unwrap(),
+                &env,
+            )
+        };
+
+        assert_eq!(place(&[]).unwrap(), root.join("libexec/ld"));
+        assert_eq!(place(&["-fuse-ld=mold"]).unwrap(), bin.join("ld.mold"));
+        let extra_arg = format!("-B{}", extra.display());
+        assert_eq!(
+            place(&[&extra_arg, "-fuse-ld=mold"]).unwrap(),
+            extra.join("ld.mold")
+        );
+        assert_eq!(
+            place(&["-Bextra", "-fuse-ld=mold"]).unwrap(),
+            extra.join("ld.mold"),
+            "a relative placement is the one under the working directory, not PATH's"
+        );
+        let ld_path = format!("--ld-path={}", extra.join("ld.mold").display());
+        assert_eq!(place(&[&ld_path]).unwrap(), extra.join("ld.mold"));
+        assert_eq!(
+            place(&["--ld-path=extra/ld.mold"]).unwrap(),
+            extra.join("ld.mold")
+        );
+        assert_eq!(place(&["--ld-path=ld.mold"]).unwrap(), bin.join("ld.mold"));
+
+        let missing = place(&["-fuse-ld=gold"]).unwrap_err();
+        assert!(missing.to_string().contains("not installed"), "{missing:#}");
+        let gone = format!("--ld-path={}", root.join("nowhere").display());
+        assert!(place(&[&gone]).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn location_stamps_include_the_candidates_unix_mode() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let directory = tempfile::tempdir().unwrap();
+        let candidate = directory.path().join("ld.mold");
+        std::fs::write(&candidate, "linker").unwrap();
+        std::fs::set_permissions(&candidate, std::fs::Permissions::from_mode(0o640)).unwrap();
+        let metadata = std::fs::metadata(&candidate).unwrap();
+        // Checking the mode independently of clock advancement catches a
+        // chmod within one filesystem timestamp tick on every test run.
+        assert_eq!(
+            directory_stamp(&candidate),
+            Some(format!(
+                "{}:{}:{}",
+                crate::cache_key::metadata_mtime_ns(&metadata),
+                crate::cache_key::metadata_ctime_ns(&metadata),
+                0o100640 // regular file with the permissions above
+            ))
+        );
+    }
+
+    /// The placement is remembered, a linker replaced in place re-keys
+    /// through its content, and anything that changes what the search finds
+    /// invalidates the placement: a missing PATH or driver directory created
+    /// later, a symlinked PATH directory retargeted, and an earlier candidate
+    /// made executable.
+    #[cfg(unix)]
+    #[test]
+    fn linker_placement_memo_follows_what_the_driver_would_run() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path().canonicalize().unwrap();
+        let (driver, log) = fake_linker_driver(&root);
+        let missing = root.join("missing/bin");
+        let linked = root.join("linked");
+        let empty = root.join("empty");
+        let other = root.join("other");
+        let early = root.join("early");
+        let late = root.join("late");
+        for dir in [&empty, &other, &early, &late] {
+            std::fs::create_dir_all(dir).unwrap();
+        }
+        std::os::unix::fs::symlink(&empty, &linked).unwrap();
+        kache_fs::testutil::write_executable(&late.join("ld.mold"), "mold 2.42.1");
+        let path = std::env::join_paths([&missing, &linked, &early, &late]).unwrap();
+        let env =
+            InvocationEnv::from_parts([("PATH", path)], Some(root.clone()), None, root.clone());
+        // Outside `root`: `root` is the watched ancestor of the missing PATH
+        // directory, and creating the memo directory there would change it.
+        let memo_root = tempfile::tempdir().unwrap();
+        let memo = memo_root.path().join("probes");
+        let mold = LinkerSelection::from_words(&words(&["-fuse-ld=mold"])).unwrap();
+        let identity = || {
+            let placed = place_linker_memoized_for(&memo, &driver, &mold, &env).unwrap();
+            (placed.clone(), hash_file(&placed).unwrap())
+        };
+        let placed_from_memo = || {
+            let calls = driver_calls(&log);
+            let placed = identity().0;
+            (placed, driver_calls(&log) == calls)
+        };
+
+        let (placed, old) = identity();
+        assert_eq!(placed, late.join("ld.mold"));
+        assert_eq!(
+            placed_from_memo(),
+            (late.join("ld.mold"), true),
+            "a valid memo runs no driver"
+        );
+
+        // Same driver, same flags, same path, new linker: a new identity.
+        kache_fs::testutil::write_executable(&late.join("ld.mold"), "mold 3.0.0");
+        let (placed, new) = identity();
+        assert_eq!(placed, late.join("ld.mold"));
+        assert_ne!(new, old, "an upgraded linker must change the identity");
+
+        // A candidate that is not executable is skipped, until it is.
+        std::fs::write(early.join("ld.mold"), "not yet executable").unwrap();
+        assert_eq!(identity().0, late.join("ld.mold"));
+        assert_eq!(placed_from_memo(), (late.join("ld.mold"), true));
+        let mut mode = std::fs::metadata(early.join("ld.mold"))
+            .unwrap()
+            .permissions();
+        std::os::unix::fs::PermissionsExt::set_mode(&mut mode, 0o755);
+        std::fs::set_permissions(early.join("ld.mold"), mode).unwrap();
+        assert_eq!(placed_from_memo(), (early.join("ld.mold"), false));
+
+        // Retargeting a symlinked PATH directory changes the search.
+        kache_fs::testutil::write_executable(&other.join("ld.mold"), "mold via symlink");
+        assert_eq!(placed_from_memo(), (early.join("ld.mold"), true));
+        std::fs::remove_file(&linked).unwrap();
+        std::os::unix::fs::symlink(&other, &linked).unwrap();
+        assert_eq!(placed_from_memo(), (linked.join("ld.mold"), false));
+
+        // So does creating a PATH directory that did not exist.
+        std::fs::create_dir_all(&missing).unwrap();
+        kache_fs::testutil::write_executable(&missing.join("ld.mold"), "mold, new");
+        assert_eq!(placed_from_memo(), (missing.join("ld.mold"), false));
+
+        // And a driver program directory that did not exist yet.
+        let later = root.join("libexec-later");
+        std::fs::create_dir_all(&later).unwrap();
+        kache_fs::testutil::write_executable(&later.join("ld.mold"), "mold, driver's");
+        assert_eq!(placed_from_memo(), (later.join("ld.mold"), false));
+
+        // The selection is part of the memo's identity.
+        let lld = LinkerSelection::from_words(&words(&["-fuse-ld=lld"])).unwrap();
+        assert!(place_linker_memoized_for(&memo, &driver, &lld, &env).is_err());
+    }
+
     #[cfg(unix)]
     #[test]
     fn crt_probes_and_memos_keep_relative_search_paths_client_local() {
@@ -2313,6 +3146,7 @@ esac
             let identity = probe_windows_msvc_identity_with_library_dirs_for(
                 None,
                 "x64",
+                &[],
                 &[],
                 &[],
                 &[],
@@ -3052,6 +3886,140 @@ esac
         std::fs::write(plist_dir.join("SystemVersion.plist"), body).unwrap();
     }
 
+    fn sdk_invocation(root: &Path) -> InvocationEnv {
+        InvocationEnv::from_parts(
+            std::iter::empty::<(OsString, OsString)>(),
+            Some(root.to_path_buf()),
+            None,
+            root.to_path_buf(),
+        )
+    }
+
+    #[test]
+    fn sdk_metadata_success_needs_no_filesystem_fallback() {
+        let directory = tempfile::tempdir().unwrap();
+        let env = sdk_invocation(directory.path());
+        let identity = sdk_identity_with_queries(None, &env, |arguments| {
+            assert_eq!(&arguments[..2], &["--sdk", "macosx"]);
+            match arguments[2] {
+                "--show-sdk-version" => Ok("14.4".into()),
+                "--show-sdk-build-version" => Ok("23E208".into()),
+                _ => panic!("successful metadata probe must not locate a fallback"),
+            }
+        })
+        .unwrap();
+        assert_eq!(identity, "14.4 (23E208)");
+    }
+
+    #[test]
+    fn sdk_fallback_locates_the_selected_default_or_named_sdk() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path();
+        let selected = root.join("selected.sdk");
+        write_system_version_plist(&selected, SYSTEM_VERSION_PLIST);
+        write_system_version_plist(
+            &root.join("macosx"),
+            &SYSTEM_VERSION_PLIST.replace("14.4", "99.0"),
+        );
+        let env = sdk_invocation(root);
+        for (given, expected, fail_version) in [
+            (None, "macosx", true),
+            (Some("macosx14.4"), "macosx14.4", false),
+        ] {
+            let identity = sdk_identity_with_queries(given, &env, |arguments| {
+                assert_eq!(&arguments[..2], &["--sdk", expected]);
+                match arguments[2] {
+                    "--show-sdk-version" if !fail_version => Ok("14.4".into()),
+                    "--show-sdk-path" => Ok("selected.sdk".into()),
+                    _ => bail!("metadata unavailable"),
+                }
+            })
+            .unwrap();
+            assert_eq!(identity, "14.4 (23E208)");
+        }
+    }
+
+    #[test]
+    fn sdk_fallback_keeps_explicit_filesystem_roots() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path();
+        let selected = root.join("selected.sdk");
+        write_system_version_plist(&selected, SYSTEM_VERSION_PLIST);
+        std::fs::create_dir(root.join("invalid.sdk")).unwrap();
+        let env = sdk_invocation(root);
+        for given in ["selected.sdk", "invalid.sdk"] {
+            let result = sdk_identity_with_queries(Some(given), &env, |arguments| {
+                assert_eq!(arguments, &["--sdk", given, "--show-sdk-version"]);
+                bail!("metadata unavailable")
+            });
+            if given == "selected.sdk" {
+                assert_eq!(result.unwrap(), "14.4 (23E208)");
+            } else {
+                assert!(
+                    result.is_err(),
+                    "an invalid explicit root must not use the default SDK"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn sdk_location_failures_preserve_metadata_errors_and_reject_non_sdks() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path();
+        let env = sdk_invocation(root);
+        let error = sdk_identity_with_queries(None, &env, |arguments| {
+            if arguments[2] == "--show-sdk-path" {
+                bail!("SDK path unavailable");
+            }
+            bail!("metadata unavailable")
+        })
+        .unwrap_err();
+        let message = format!("{error:#}");
+        assert!(message.contains("metadata unavailable"));
+        assert!(message.contains("SDK path unavailable"));
+        std::fs::create_dir(root.join("invalid.sdk")).unwrap();
+        for given in ["invalid.sdk", "missing.sdk"] {
+            assert!(
+                sdk_identity_with_queries(None, &env, |arguments| {
+                    if arguments[2] == "--show-sdk-path" {
+                        return Ok(given.into());
+                    }
+                    bail!("metadata unavailable")
+                })
+                .is_err()
+            );
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn default_sdk_identity_survives_failed_xcrun_metadata_queries() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path().canonicalize().unwrap();
+        let selected = root.join("selected.sdk");
+        write_system_version_plist(&selected, SYSTEM_VERSION_PLIST);
+        let tools = root.join("tools");
+        std::fs::create_dir(&tools).unwrap();
+        kache_fs::testutil::write_executable(
+            &tools.join("xcrun"),
+            "#!/bin/sh\ncase \"$3\" in\n--show-sdk-path) printf '%s\\n' \"$SELECTED_SDK\" ;;\n*) echo 'metadata query unavailable' >&2; exit 29 ;;\nesac\n",
+        );
+        let env = InvocationEnv::from_parts(
+            [
+                ("PATH", tools.into_os_string()),
+                ("SELECTED_SDK", selected.into_os_string()),
+            ],
+            Some(root.clone()),
+            None,
+            root,
+        );
+        assert_eq!(
+            sdk_identity_for_invocation(None, &env).unwrap(),
+            Some("14.4 (23E208)".to_owned()),
+        );
+    }
+
     #[test]
     fn plist_string_reads_xml_string_values_and_rejects_empty() {
         assert_eq!(
@@ -3570,6 +4538,146 @@ esac
             existing_windows_library(&file.join("child.lib")).is_err(),
             "a stat error other than NotFound must not read as absent"
         );
+    }
+
+    #[test]
+    fn windows_runtime_libraries_reject_non_file_candidates_before_fallback() {
+        let root = tempfile::tempdir().unwrap();
+        let cwd = root.path().join("cwd");
+        let lib = root.path().join("lib");
+        for directory in [&cwd, &lib] {
+            std::fs::create_dir_all(directory).unwrap();
+        }
+        for name in ["msvcrt.lib", "vcruntime.lib", "ucrt.lib"] {
+            std::fs::write(lib.join(name), name).unwrap();
+        }
+        let environment = WindowsProbeEnvironment {
+            variables: BTreeMap::from([("LIB".into(), lib.to_string_lossy().into_owned())]),
+            cwd: Some(cwd.clone()),
+            ..WindowsProbeEnvironment::default()
+        };
+        assert!(hash_windows_runtime_libraries(&environment, "x64", "10", "10", &[]).is_ok());
+        std::fs::create_dir(cwd.join("ucrt.lib")).unwrap();
+        assert!(hash_windows_runtime_libraries(&environment, "x64", "10", "10", &[]).is_err());
+    }
+
+    #[test]
+    fn windows_defaultlib_runtime_hashes_validate_the_selected_bytes_only() {
+        let root = tempfile::tempdir().unwrap();
+        let cwd = root.path().join("cwd");
+        let lib = root.path().join("lib");
+        for directory in [&cwd, &lib] {
+            std::fs::create_dir_all(directory).unwrap();
+        }
+        for name in ["msvcrt.lib", "vcruntime.lib"] {
+            std::fs::write(lib.join(name), name).unwrap();
+        }
+        let valid = crate::native_archive::closed_coff_archive_for_tests(b"first");
+        std::fs::write(lib.join("ucrt.lib"), &valid).unwrap();
+        let mut environment = WindowsProbeEnvironment {
+            variables: BTreeMap::from([("LIB".into(), lib.to_string_lossy().into_owned())]),
+            cwd: Some(cwd.clone()),
+            requested_default_libraries: vec![
+                WindowsDefaultLibrary::parse("/DEFAULTLIB:ucrt").unwrap(),
+            ],
+            ..WindowsProbeEnvironment::default()
+        };
+        let hash = |environment: &WindowsProbeEnvironment| {
+            hash_windows_runtime_libraries(environment, "x64", "10", "10", &[])
+        };
+        let first = hash(&environment).unwrap();
+        assert_eq!(first["ucrt.lib"], hash_file(&lib.join("ucrt.lib")).unwrap());
+        let changed = crate::native_archive::closed_coff_archive_for_tests(b"changed");
+        std::fs::write(lib.join("ucrt.lib"), &changed).unwrap();
+        assert_ne!(hash(&environment).unwrap()["ucrt.lib"], first["ucrt.lib"]);
+
+        std::fs::write(cwd.join("ucrt.lib"), &valid).unwrap();
+        let selected = hash(&environment).unwrap();
+        std::fs::write(lib.join("ucrt.lib"), b"invalid but shadowed").unwrap();
+        assert_eq!(hash(&environment).unwrap(), selected);
+        std::fs::write(lib.join("ucrt.lib"), &valid).unwrap();
+        for invalid in [
+            b"!<thin>\nexternal.obj".to_vec(),
+            b"unknown container".to_vec(),
+            crate::native_archive::coff_archive_with_section_for_tests(
+                b".drectve",
+                b"/DEFAULTLIB:helper.lib",
+            ),
+            crate::native_archive::coff_archive_with_section_for_tests(
+                b".debug$T",
+                b"external PDB",
+            ),
+            crate::native_archive::coff_archive_with_section_for_tests(
+                b".debug$P",
+                b"external PCH",
+            ),
+        ] {
+            std::fs::write(cwd.join("ucrt.lib"), &invalid).unwrap();
+            assert!(
+                hash(&environment).is_err(),
+                "a later valid copy must not rescue the selected input"
+            );
+            environment.requested_default_libraries.clear();
+            assert_eq!(
+                hash(&environment).unwrap()["ucrt.lib"],
+                blake3::hash(&invalid).to_hex().to_string(),
+                "unrequested runtimes keep their existing raw digest/policy"
+            );
+            environment
+                .requested_default_libraries
+                .push(WindowsDefaultLibrary::parse("/DEFAULTLIB:ucrt").unwrap());
+        }
+    }
+
+    #[test]
+    fn windows_defaultlib_runtime_reads_reject_oversized_and_non_file_inputs() {
+        assert_eq!(MAX_WINDOWS_DEFAULTLIB_BYTES, 67_108_864);
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("ucrt.lib");
+        let file = std::fs::File::create(&path).unwrap();
+        file.set_len(67_108_865).unwrap(); // One byte above the independent 64 MiB limit.
+        drop(file);
+        let error = hash_windows_runtime_library(&path, true).unwrap_err();
+        assert!(error.to_string().contains("at most 64 MiB"), "{error:#}");
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open(&path)
+            .unwrap()
+            .set_len(67_108_864)
+            .unwrap();
+        let error = hash_windows_runtime_library(&path, true).unwrap_err();
+        assert!(
+            error.to_string().contains("supported closed COFF archive"),
+            "an exactly 64 MiB regular file reaches format validation: {error:#}"
+        );
+        assert!(hash_windows_runtime_library(root.path(), true).is_err());
+    }
+
+    #[test]
+    fn windows_defaultlib_names_cover_each_modeled_runtime_family() {
+        for name in [
+            "libcmt",
+            "libcmtd",
+            "msvcrt",
+            "msvcrtd",
+            "vcruntime",
+            "vcruntimed",
+            "libvcruntime",
+            "libvcruntimed",
+            "ucrt",
+            "ucrtd",
+            "libucrt",
+            "libucrtd",
+        ] {
+            let plain = WindowsDefaultLibrary::parse(&format!("/DEFAULTLIB:{name}")).unwrap();
+            let suffixed = WindowsDefaultLibrary::parse(&format!(
+                "-defaultlib:{}.LIB",
+                name.to_ascii_uppercase()
+            ))
+            .unwrap();
+            assert_eq!(plain, suffixed);
+            assert_eq!(plain.0, format!("{name}.lib"));
+        }
     }
 
     #[test]
@@ -4503,7 +5611,6 @@ esac
             "-Wl,app.res",
             "/DEBUG app.res",
             "/OPT:REF\tapp.res",
-            "/NODEFAULTLIB:libcmt.lib",
         ] {
             assert!(
                 windows_link_argument_has_unmodeled_input(argument),
@@ -4557,6 +5664,158 @@ esac
         ] {
             assert!(
                 windows_link_argument_has_unmodeled_input(argument),
+                "{argument}"
+            );
+        }
+    }
+
+    #[test]
+    fn windows_link_inputs_by_absolute_path_are_read_by_their_bytes() {
+        for (key, value, expected) in [
+            (
+                "link-arg",
+                r"C:\w\target\debug\build\app-1\out\resource.res",
+                vec![r"C:\w\target\debug\build\app-1\out\resource.res"],
+            ),
+            (
+                "link-arg",
+                r"C:\Program Files\out dir\APP.RES",
+                vec![r"C:\Program Files\out dir\APP.RES"],
+            ),
+            ("link-arg", "C:/w/a.res", vec!["C:/w/a.res"]),
+            ("link-arg", r"\\?\C:\w\a.res", vec![r"\\?\C:\w\a.res"]),
+            (
+                "link-arg",
+                r"\\server\share\a.res",
+                vec![r"\\server\share\a.res"],
+            ),
+            (
+                "link-args",
+                r"/DEBUG C:\w\a.res /MANIFEST:EMBED,ID=2 C:\w\b.res",
+                vec![r"C:\w\a.res", r"C:\w\b.res"],
+            ),
+            ("link-arg", "/MANIFEST:EMBED", vec![]),
+            ("link-arg", "/WX", vec![]),
+        ] {
+            assert_eq!(
+                windows_link_argument_input_files(key, value),
+                Some(WindowsLinkArgumentInputs {
+                    files: expected.into_iter().map(PathBuf::from).collect(),
+                    default_libraries: Vec::new(),
+                }),
+                "{key}={value}"
+            );
+        }
+    }
+
+    #[test]
+    fn windows_link_inputs_that_cannot_be_read_by_their_bytes_stay_refused() {
+        for (key, value) in [
+            // Relative to LINK's working directory, or drive-relative.
+            ("link-arg", "app.res"),
+            ("link-arg", r"out\app.res"),
+            ("link-arg", r"C:app.res"),
+            ("link-arg", r"\w\app.res"),
+            ("link-arg", "/MANIFESTINPUT:extra.manifest"),
+            // Embedded quotes need parsing beyond this accepted subset.
+            ("link-arg", r#""C:\out dir\app.res""#),
+            ("link-arg", r#"/MANIFESTINPUT:"C:\w\Manifest.xml""#),
+            // A C driver's spelling, not a LINK argument.
+            ("link-arg", r"-Wl,C:\w\app.res"),
+            // Spaces split `link-args` into pieces that are not paths.
+            ("link-args", r"C:\out dir\app.res"),
+            // An unrecognized bare input is still a file, including beside
+            // an otherwise supported compiled resource.
+            ("link-arg", r"C:\w\opaque.dat"),
+            ("link-arg", r"C:\w\extensionless"),
+            ("link-args", r"C:\w\a.res C:\w\opaque.dat"),
+            ("link-args", r"C:\w\a.res /MANIFESTINPUT:C:\w\app.xml"),
+            ("link-arg", r"/MANIFESTINPUT:C:\w\Manifest.xml"),
+            ("link-arg", r"-manifestinput:C:\w\app.res"),
+            // Objects/archives can name further inputs through directives or
+            // thin members. Renamed containers are also checked by the hasher.
+            ("link-arg", r"C:\w\extra.obj"),
+            ("link-arg", r"C:\w\extra.o"),
+            ("link-arg", r"C:\w\foo.lib"),
+            ("link-arg", r"C:\w\foo.a"),
+            ("link-args", r"C:\w\a.res C:\w\foo.lib"),
+            // Inputs not merged as they are, or outputs beside the image.
+            ("link-arg", r"C:\w\exports.def"),
+            ("link-arg", r"C:\w\exports.exp"),
+            ("link-arg", r"/DEF:C:\w\exports.def"),
+            ("link-arg", r"/DEFAULTLIB:C:\w\foo.lib"),
+            ("link-arg", r"/NATVIS:C:\w\types.natvis"),
+            ("link-arg", r"/MANIFESTFILE:C:\w\app.exe.manifest"),
+            ("link-arg", r"/PDB:C:\w\app.pdb"),
+            ("link-arg", r"/IMPLIB:C:\w\app.lib"),
+            ("link-arg", r"/MANIFESTINPUT=C:\w\Manifest.xml"),
+            ("link-args", r"C:\w\a.res /PDBSTRIPPED:C:\w\p.pdb"),
+        ] {
+            assert_eq!(
+                windows_link_argument_input_files(key, value),
+                None,
+                "{key}={value}"
+            );
+        }
+    }
+
+    /// LINK writes `<output>.manifest` beside the image for a side-by-side
+    /// manifest; the cache stores only the image and its PDB.
+    #[test]
+    fn a_side_by_side_manifest_fails_closed() {
+        for argument in [
+            "/MANIFEST",
+            "-manifest",
+            "/MANIFEST:SIDEBYSIDE",
+            "/manifest:",
+            "/MANIFEST:EMBEDDED",
+            "/MANIFEST:EMBEDjunk",
+        ] {
+            assert!(
+                windows_link_argument_has_unmodeled_input(argument),
+                "{argument}"
+            );
+        }
+        for argument in [
+            "/MANIFEST:NO",
+            "/manifest:no",
+            "/MANIFEST:EMBED",
+            "-Manifest:Embed,ID=1",
+        ] {
+            assert!(
+                !windows_link_argument_has_unmodeled_input(argument),
+                "{argument}"
+            );
+        }
+    }
+
+    #[test]
+    fn windows_nodefaultlib_exclusions_do_not_name_input_files() {
+        for argument in [
+            "/NODEFAULTLIB:libc++.lib",
+            "/NODEFAULTLIB:libucrt.lib",
+            "/NODEFAULTLIB:libcmt.lib",
+            "-nodefaultlib:LIBCMT.LIB",
+            "/NoDefaultLib=libcmt.lib",
+        ] {
+            assert_eq!(
+                windows_link_argument_input_files("link-arg", argument),
+                Some(WindowsLinkArgumentInputs::default()),
+                "{argument}"
+            );
+            assert!(
+                windows_link_argument_has_unmodeled_input(&format!("{argument} helper.lib")),
+                "{argument}"
+            );
+        }
+        for argument in [
+            "NODEFAULTLIB:helper.lib",
+            "/NODEFAULTLIBRARY:helper.lib",
+            "/DEFAULTLIB:helper.lib",
+        ] {
+            assert_eq!(
+                windows_link_argument_input_files("link-arg", argument),
+                None,
                 "{argument}"
             );
         }

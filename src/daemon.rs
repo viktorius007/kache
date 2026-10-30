@@ -1,5 +1,5 @@
 use crate::transport::prelude::*;
-use crate::transport::{TokioListener, TokioStream, socket_name};
+use crate::transport::{TokioListener, TokioStream};
 use anyhow::{Context, Result};
 use kache_core::timeline::{
     PackedEntryTransfer, PrefetchAccounting, PrefetchOperation, PrefetchOrigin,
@@ -67,6 +67,9 @@ const REMOTE_CHECK_SINGLEFLIGHT_MAX_KEYS: usize = 4096;
 const REMOTE_CHECK_LEGACY_BUDGET_MS: u64 = 3_000;
 const UPLOAD_SPOOL_MAX_BYTES: u64 = 65_536;
 const UPLOAD_RETRY_DELAY: Duration = Duration::from_secs(5);
+#[path = "daemon_capacity.rs"]
+mod capacity;
+use capacity::DaemonCapacity;
 
 fn remote_check_budget_ms(configured_secs: u64, client_ms: Option<u64>) -> NonZeroU64 {
     let configured_ms = if configured_secs == 0 {
@@ -464,6 +467,14 @@ fn wait_for_run_lock_release(socket_path: &Path, timeout: Duration) -> Result<bo
 /// How long the daemon spends fetching one prediction row. A row saves one
 /// pre-pass, so waiting longer than a pre-pass takes would be a loss.
 const PREDICTION_FETCH_BUDGET: Duration = Duration::from_secs(2);
+
+/// Prediction lookup is optional work with a short cap, even when the
+/// configured daemon deadline is disabled or longer than the row budget.
+fn prediction_fetch_deadline(started_at: Instant, restore_timeout_secs: u64) -> RemoteDeadline {
+    RemoteDeadline::from_instant(started_at.checked_add(PREDICTION_FETCH_BUDGET)).min(
+        RemoteDeadline::from_secs_at(started_at, restore_timeout_secs),
+    )
+}
 
 /// How long a wrapper waits for a prediction row: the daemon's own budget
 /// plus the socket round trip.
@@ -980,6 +991,7 @@ fn effective_config(
     provenance: &crate::config::ConfigFileProvenance,
 ) -> EffectiveConfig {
     EffectiveConfig {
+        process: Some(crate::platform::process_context()),
         max_size: config.max_size,
         cache_dir: config.cache_dir.display().to_string(),
         runtime_dir: config.runtime_dir.display().to_string(),
@@ -1507,7 +1519,9 @@ impl ActivePlan {
                 self.used.insert(key.to_string());
             }
         }
-        if self.cancelled {
+        // `none` is the placeholder installed before candidates exist. Keep the
+        // demand, but do not treat that empty plan as a reason to cancel.
+        if self.cancelled || self.plan_source == "none" {
             return false;
         }
         let downloaded_not_demanded = self
@@ -1841,10 +1855,11 @@ pub(crate) struct Daemon {
     /// When this read-only daemon last warned that it skipped a writable
     /// build's upload.
     readonly_skip_warned: Mutex<Option<Instant>>,
-    /// Keep compile workers below the connection cap, leaving RPC capacity
-    /// for their own remote checks and publication requests.
+    /// Bound pipeline requests, leaving RPC capacity for their remote checks
+    /// and publication requests. Compiler scheduling has its own permits.
     #[cfg(any(unix, windows))]
     execution_workers: Arc<tokio::sync::Semaphore>,
+    capacity: DaemonCapacity,
 }
 
 /// Whether a rate-limited warning may fire at `now`. Records `now` when it may.
@@ -1934,12 +1949,14 @@ impl Daemon {
     #[cfg(test)]
     pub fn new(config: Config) -> Self {
         let provenance = crate::config::ConfigFileProvenance::current();
-        Self::new_with_provenance(config, &provenance)
+        let capacity = DaemonCapacity::discover(config.daemon_execution_concurrency);
+        Self::new_with_provenance(config, &provenance, capacity)
     }
 
     fn new_with_provenance(
         config: Config,
         provenance: &crate::config::ConfigFileProvenance,
+        capacity: DaemonCapacity,
     ) -> Self {
         let permits = config.s3_concurrency.max(1) as usize;
         let (warming_tx, _) = tokio::sync::watch::channel(false);
@@ -1985,11 +2002,8 @@ impl Daemon {
             gc_hint_pending: AtomicBool::new(false),
             readonly_skip_warned: Mutex::new(None),
             #[cfg(any(unix, windows))]
-            execution_workers: Arc::new(tokio::sync::Semaphore::new(
-                std::thread::available_parallelism()
-                    .map_or(1, usize::from)
-                    .min(32),
-            )),
+            execution_workers: Arc::new(tokio::sync::Semaphore::new(capacity.executions)),
+            capacity,
             config,
         }
     }
@@ -2104,6 +2118,18 @@ impl Daemon {
         let result = f(&guard);
         let import_ms = import_started.elapsed().as_millis() as u64;
         (result, lock_wait_ms, import_ms)
+    }
+
+    fn discard_uncommitted_packed_entries(
+        &self,
+        entries: &[crate::store::VerifiedRestoredEntry],
+    ) -> Result<()> {
+        self.with_store(|store| {
+            for entry in entries {
+                store.discard_uncommitted_restored_entry(&entry.cache_key)?;
+            }
+            Ok(())
+        })
     }
 
     pub(crate) fn entry_dir_for(&self, cache_key: &str) -> PathBuf {
@@ -2667,6 +2693,7 @@ impl Daemon {
             Request::CompileFinished(req) => self.handle_compile_finished(req),
             Request::Upload(_)
             | Request::ExecuteV1(_)
+            | Request::ExecutionStatus { .. }
             | Request::RemoteCheck(_)
             | Request::BatchRemoteCheck(_)
             | Request::Prefetch(_)
@@ -2832,12 +2859,23 @@ impl Daemon {
         Response::ok()
     }
 
-    /// Flush a batch of entries stored without an fsync. Uses its own store
-    /// connection, as GC does, so a sweep of slow writes never holds the
-    /// mutex a lookup needs.
+    /// Flush a batch of entries stored without an fsync, in the main store and
+    /// in each `[cache.volumes]` shard. Uses its own store connections, as GC
+    /// does, so a sweep of slow writes never holds the mutex a lookup needs.
     fn flush_pending_durability(&self) {
+        Self::flush_store_durability(&self.config);
+        for shard in &self.config.volume_stores {
+            // Opening a shard without an index would create it on a volume
+            // that may not be mounted.
+            if crate::volume_gc::shard_has_index(&shard.store) {
+                Self::flush_store_durability(&self.config.for_volume_store(shard, |_| None));
+            }
+        }
+    }
+
+    fn flush_store_durability(config: &Config) {
         let flushed = (|| -> Result<usize> {
-            let store = Store::open(&self.config)?;
+            let store = Store::open(config)?;
             if store.pending_durability()? == 0 {
                 return Ok(0);
             }
@@ -3247,7 +3285,7 @@ impl Daemon {
                     key = key_short,
                     "remote backend init failed: {e:#}"
                 );
-                return if class.poisons_breaker() {
+                return if class.is_retryable() {
                     Response::err(format!("retryable: remote backend init failed: {e:#}"))
                 } else {
                     Response::err(format!("remote backend init failed: {e:#}"))
@@ -3290,7 +3328,7 @@ impl Daemon {
                     class,
                     &format!("upload exists check failed ({class:?}): {e:#}"),
                 );
-                return if class.poisons_breaker() {
+                return if class.is_retryable() {
                     Response::err(format!("retryable: upload HEAD failed: {e:#}"))
                 } else {
                     Response::err(format!("upload HEAD failed: {e:#}"))
@@ -3464,7 +3502,7 @@ impl Daemon {
                     elapsed_ms,
                     "remote upload failed: {e:#}"
                 );
-                if class.poisons_breaker() {
+                if class.is_retryable() {
                     Response::err(format!("retryable: upload failed: {e:#}"))
                 } else {
                     Response::err(format!("upload failed: {e:#}"))
@@ -3503,16 +3541,32 @@ impl Daemon {
         if !prediction_identity_is_acceptable(&req.identity) {
             return Response::err("invalid prediction identity");
         }
+        // A row only saves a dependency pre-pass. Leave recovery probes to
+        // demand restores rather than retrying optional work while degraded.
+        let Some(breaker) = self
+            .remote_breaker
+            .try_acquire_speculative(RemoteOperation::PredictionGet)
+        else {
+            return response;
+        };
+        let deadline =
+            prediction_fetch_deadline(Instant::now(), self.config.remote_restore_timeout_secs);
         let fetch = async {
             let backend = self.get_remote_backend().await?;
             crate::remote_layout::RemoteLayout::new(backend.as_ref(), remote)
                 .download_prediction(&req.identity)
                 .await
         };
-        match tokio::time::timeout(PREDICTION_FETCH_BUDGET, fetch).await {
-            Ok(Ok(row)) => response.prediction = row,
-            Ok(Err(error)) => tracing::debug!("prediction row fetch failed: {error:#}"),
-            Err(_) => tracing::debug!("prediction row fetch timed out"),
+        match deadline.run("prediction row fetch", fetch).await {
+            Ok(row) => {
+                breaker.success();
+                response.prediction = row;
+            }
+            Err(error) => {
+                let class = classify_remote_error(&error);
+                breaker.failure(class, &format!("{error:#}"));
+                tracing::debug!("prediction row fetch failed: {error:#}");
+            }
         }
         response
     }
@@ -3727,7 +3781,7 @@ impl Daemon {
             Ok(b) => b,
             Err(e) => {
                 let class = classify_remote_error(&e);
-                return if class.poisons_breaker() {
+                return if class.is_retryable() {
                     Response::found(false)
                 } else {
                     Response::err(format!("remote backend init failed: {e}"))
@@ -4006,19 +4060,13 @@ impl Daemon {
                     timestamp: finished_at_unix_ms / 1_000,
                 })
                 .await;
-                // Feed the breaker with the failure class (#327) so a dead or
-                // stalling remote degrades and later restores skip S3
-                // entirely. A Timeout (transport deadline or the restore
-                // deadline above) reports a plain miss: the wrapper's answer
-                // is "recompile locally" either way, and an error response
-                // would suggest the check itself malfunctioned.
+                // Transport failures can degrade remote health. Exhausting
+                // Kache's own budget leaves health unchanged. Both return a
+                // miss so the wrapper can compile locally.
                 let class = classify_remote_error(&e);
                 breaker_permit
                     .failure(class, &format!("remote download failed ({class:?}): {e:#}"));
-                if matches!(
-                    class,
-                    RemoteErrorClass::Timeout | RemoteErrorClass::Transient
-                ) {
+                if class.is_retryable() {
                     tracing::warn!(
                         "remote download of {} failed after {elapsed_ms}ms — treating as miss",
                         &req.key
@@ -4576,11 +4624,14 @@ impl Daemon {
                     self.prefetch_stats
                         .pack_validation_failures
                         .fetch_add(1, Ordering::Relaxed);
-                    for (entry, _, pack_index, entry_index) in &verified {
+                    for (_, _, pack_index, entry_index) in &verified {
                         receipts[*pack_index].accounting().entries[*entry_index].outcome =
                             "import_error".to_owned();
-                        let _ =
-                            std::fs::remove_dir_all(self.entry_dir_for(&entry.restored.cache_key));
+                    }
+                    // Strict flushing can fail after registration commits.
+                    // Preserve those rows' metadata, including existing keys.
+                    if let Err(cleanup_error) = self.discard_uncommitted_packed_entries(&batch) {
+                        tracing::warn!("packed-prefetch residue cleanup failed: {cleanup_error:#}");
                     }
                 }
             }
@@ -5359,6 +5410,13 @@ impl Daemon {
                 existing.plan_id = plan.plan_id;
                 existing.plan_source = plan.plan_source;
                 existing.candidates = plan.candidates;
+                // Demands recorded against the previous candidate set, including
+                // the empty placeholder, count only where they match this plan.
+                existing.demanded_candidates = existing
+                    .demanded
+                    .intersection(&existing.candidates)
+                    .cloned()
+                    .collect();
                 existing.cancelled = false;
                 existing.last_activity_ms = plan.last_activity_ms;
                 if plan.identity_key.is_some() {
@@ -6346,13 +6404,28 @@ pub fn run_server(
     let manifest_path = crate::platform::release_daemon_working_directory(&config.runtime_dir)
         .context("releasing the build working directory")?;
 
+    let capacity = DaemonCapacity::discover(config.daemon_execution_concurrency);
+    tracing::info!(
+        pipeline_requests = capacity.executions,
+        rpc_handlers = capacity.connections,
+        blocking_threads = capacity.blocking_threads,
+        "daemon request capacity"
+    );
     let rt = tokio::runtime::Builder::new_multi_thread()
+        .max_blocking_threads(capacity.blocking_threads)
         .enable_all()
         .build()?;
 
     run_daemon_runtime(
         rt,
-        server_main(config, provenance, coord, readiness, manifest_path),
+        server_main(
+            config,
+            provenance,
+            coord,
+            readiness,
+            manifest_path,
+            capacity,
+        ),
     )
 }
 
@@ -6461,12 +6534,44 @@ fn publish_drain_warning(unpublished: usize) -> Option<String> {
     })
 }
 
+/// Drain accepted publications until the worker finishes or stops making
+/// progress, then close the upload queue.
+///
+/// Accepted hand-offs hold their key locks. The worker keeps going for as long
+/// as it makes progress: a job it never reaches is an entry the next build
+/// compiles again. Keep uploads open during that wait so entries stored by the
+/// drain can be uploaded by this daemon. If the worker stalls, close uploads
+/// anyway; durable intents it records later remain available for restart.
+pub(crate) async fn drain_publications_then_close_uploads(
+    daemon: &Daemon,
+    publish_done: tokio::sync::oneshot::Receiver<()>,
+) {
+    daemon.publish_queue().close();
+    let publish_progress = daemon.publish_queue().progress();
+    let unpublished = crate::daemon_publish::drain_publications(
+        publish_done,
+        &publish_progress,
+        crate::daemon_publish::PUBLISH_DRAIN_STALL,
+    )
+    .await;
+    if let Some(warning) = publish_drain_warning(unpublished) {
+        tracing::warn!("{warning}");
+    }
+    // Graceful shutdown: drop the daemon's sender to close the unbounded buffer.
+    // The caller then gives the entire enqueue + worker drain one shared 30s
+    // budget. The enqueue task itself can block on a full worker channel during
+    // an outage, so awaiting it outside that deadline would make restart
+    // unbounded even though every queued job is already durable on disk.
+    daemon.close_upload_queue();
+}
+
 async fn server_main(
     config: &Config,
     provenance: &crate::config::ConfigFileProvenance,
     mut coord: DaemonCoordFile,
     readiness: Option<kunobi_daemon::readiness::channel::Notifier>,
     manifest_path: PathBuf,
+    capacity: DaemonCapacity,
 ) -> Result<()> {
     let socket_path = config.socket_path();
     std::fs::create_dir_all(socket_path.parent().unwrap())?;
@@ -6482,7 +6587,11 @@ async fn server_main(
     coord.control_version = Some(kunobi_daemon::wire::VERSION);
     coord.write_phase(DaemonPhase::Starting)?;
 
-    let daemon = Arc::new(Daemon::new_with_provenance(config.clone(), provenance));
+    let daemon = Arc::new(Daemon::new_with_provenance(
+        config.clone(),
+        provenance,
+        capacity,
+    ));
 
     tracing::info!("daemon listening on {}", socket_path.display());
 
@@ -6591,7 +6700,8 @@ async fn server_main(
         }
     });
 
-    // Entries a miss stored without an fsync (`cache.deferred_durability`).
+    // Entries a miss or a download stored without an fsync
+    // (`cache.deferred_durability`).
     // Short interval: until an entry is flushed every hit on it re-reads its
     // blobs to verify them, and the wrapper hands the work here precisely so
     // the build does not wait for the disk.
@@ -6779,27 +6889,8 @@ async fn server_main(
     heartbeat_handle.abort();
     config_watch_handle.abort();
 
-    // Graceful shutdown: drop the daemon's sender to close the unbounded buffer,
-    // then give the entire enqueue + worker drain one shared 30s budget. The
-    // enqueue task itself can block on a full worker channel during an outage,
-    // so awaiting it outside this deadline would make restart unbounded even
-    // though every queued job is already durable on disk.
-    daemon.close_upload_queue();
-    // Accepted hand-offs hold their key locks. Let the worker finish them
-    // for as long as it keeps making progress: a job it never reaches is an
-    // entry the next build compiles again.
-    daemon.publish_queue().close();
-    let publish_progress = daemon.publish_queue().progress();
+    drain_publications_then_close_uploads(&daemon, publish_done).await;
     drop(daemon);
-    let unpublished = crate::daemon_publish::drain_publications(
-        publish_done,
-        &publish_progress,
-        crate::daemon_publish::PUBLISH_DRAIN_STALL,
-    )
-    .await;
-    if let Some(warning) = publish_drain_warning(unpublished) {
-        tracing::warn!("{warning}");
-    }
     if drain_upload_pipeline(enqueue_handle, upload_handles, Duration::from_secs(30)).await {
         tracing::warn!("upload drain timeout, aborting remaining upload tasks");
     }
@@ -7121,8 +7212,7 @@ async fn accept_loop(
     // Bound the number of connection handlers doing work at once. Excess
     // connections park on `acquire_owned` (cheap) instead of all running
     // concurrently, so a burst of local clients can't pile up active handlers.
-    const MAX_CONCURRENT_CONNECTIONS: usize = 128;
-    let conn_limiter = Arc::new(tokio::sync::Semaphore::new(MAX_CONCURRENT_CONNECTIONS));
+    let conn_limiter = Arc::new(tokio::sync::Semaphore::new(daemon.capacity.connections));
 
     loop {
         if !lifecycle.accepting_calls() {
@@ -7811,6 +7901,21 @@ async fn handle_connection_started_at(
         }
 
         let resp = match parsed {
+            Ok(Request::ExecutionStatus {
+                client_pid,
+                client_version,
+                trusted_pipeline,
+            }) => {
+                let mut response = Response::ok();
+                response.execution_status = Some(execution::probe(
+                    &stream,
+                    client_pid,
+                    &client_version,
+                    trusted_pipeline,
+                    daemon,
+                ));
+                response
+            }
             Ok(Request::ExecuteV1(req)) => {
                 #[cfg(any(unix, windows))]
                 {
@@ -8772,18 +8877,33 @@ pub(crate) fn send_request_with_timeout(
     }
 }
 
+pub(crate) fn compiler_execution_status(
+    config: &Config,
+) -> Result<kache_protocol::execution::ExecutionStatus> {
+    let request = Request::ExecutionStatus {
+        client_pid: std::process::id(),
+        client_version: crate::VERSION.into(),
+        trusted_pipeline: config.trust_daemon_execution,
+    };
+    let response =
+        send_request_with_timeout(&config.socket_path(), &request, Duration::from_secs(3))?;
+    let response: Response = serde_json::from_str(&response)?;
+    response
+        .execution_status
+        .filter(kache_protocol::execution::ExecutionStatus::compatible)
+        .context("daemon execution protocol differs; restart it with this release")
+}
+
 #[cfg(not(windows))]
 fn send_request_with_socket_timeout(
     socket_path: &Path,
     req: &Request,
     read_timeout: std::time::Duration,
 ) -> Result<String> {
-    use crate::transport::SyncStream;
     use interprocess::local_socket::traits::Stream as _;
     use std::io::{BufRead, Write};
 
-    let name = socket_name(socket_path)?;
-    let mut stream = SyncStream::connect(name)
+    let mut stream = crate::transport::connect_sync(socket_path, crate::transport::BUSY_PIPE_WAIT)
         .with_context(|| format!("connecting to daemon socket {}", socket_path.display()))
         .context(DaemonConnectionFailure)?;
 
@@ -8820,31 +8940,7 @@ fn send_request_with_async_timeout(
     let mut line = serde_json::to_string(req)?;
     line.push('\n');
 
-    if tokio::runtime::Handle::try_current().is_ok() {
-        let socket_path = socket_path.to_path_buf();
-        std::thread::spawn(move || {
-            send_request_with_async_timeout_blocking(&socket_path, line, read_timeout)
-        })
-        .join()
-        .map_err(|_| anyhow::anyhow!("daemon client timeout thread panicked"))?
-    } else {
-        send_request_with_async_timeout_blocking(socket_path, line, read_timeout)
-    }
-}
-
-#[cfg(windows)]
-fn send_request_with_async_timeout_blocking(
-    socket_path: &Path,
-    line: String,
-    read_timeout: std::time::Duration,
-) -> Result<String> {
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_io()
-        .enable_time()
-        .build()
-        .context("creating daemon client runtime")?;
-
-    runtime.block_on(async {
+    with_windows_client(|| async {
         tokio::time::timeout(
             read_timeout,
             send_request_with_async_transport(socket_path, line, read_timeout),
@@ -8860,17 +8956,51 @@ fn send_request_with_async_timeout_blocking(
     })
 }
 
+/// Run cancelable client I/O in an owned runtime. A caller already inside a
+/// Tokio runtime uses a joined scoped thread, never a detached I/O worker.
+#[cfg(windows)]
+fn with_windows_client<T, F>(exchange: impl FnOnce() -> F + Send) -> Result<T>
+where
+    T: Send,
+    F: std::future::Future<Output = Result<T>>,
+{
+    let run = || {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_io()
+            .enable_time()
+            .build()
+            .context("creating daemon client runtime")?;
+        runtime.block_on(exchange())
+    };
+    if tokio::runtime::Handle::try_current().is_ok() {
+        std::thread::scope(|scope| {
+            std::thread::Builder::new()
+                .name("kache-client-runtime".into())
+                .spawn_scoped(scope, run)
+                .context("starting daemon client runtime thread")?
+                .join()
+                .map_err(|_| anyhow::anyhow!("daemon client runtime thread panicked"))?
+        })
+    } else {
+        run()
+    }
+}
+
 #[cfg(any(windows, test))]
 async fn send_request_with_async_transport(
     socket_path: &Path,
     line: String,
     read_timeout: std::time::Duration,
 ) -> Result<String> {
-    let name = socket_name(socket_path)?;
-    let mut stream = TokioStream::connect(name)
+    // Busy-pipe retries are cancelable and share the caller's timeout.
+    let busy_wait = crate::transport::BUSY_PIPE_WAIT.min(read_timeout);
+    let stream = crate::transport::connect_tokio(socket_path, busy_wait)
         .await
         .with_context(|| format!("connecting to daemon socket {}", socket_path.display()))
         .context(DaemonConnectionFailure)?;
+    #[cfg(windows)]
+    let _discard = crate::transport::discard_pipe_writes_on_drop(&stream);
+    let mut stream = &stream;
 
     stream
         .write_all(line.as_bytes())
@@ -8901,19 +9031,31 @@ async fn send_request_with_async_transport(
 /// This avoids the read-timeout failures that occur when the daemon's runtime
 /// is saturated (e.g. during S3 key-cache population at startup).
 fn send_request_fire_and_forget(socket_path: &Path, req: &Request) -> Result<()> {
-    use crate::transport::SyncStream;
+    let mut line = serde_json::to_string(req)?;
+    line.push('\n');
+    send_line_fire_and_forget(socket_path, line, FIRE_AND_FORGET_SEND_WAIT)
+}
+
+/// How long a fire-and-forget request may take to hand its line to the
+/// daemon: the socket's send timeout on Unix, the helper thread's wait on
+/// Windows.
+const FIRE_AND_FORGET_SEND_WAIT: std::time::Duration = std::time::Duration::from_secs(5);
+
+#[cfg(not(windows))]
+fn send_line_fire_and_forget(
+    socket_path: &Path,
+    line: String,
+    send_wait: std::time::Duration,
+) -> Result<()> {
     use interprocess::local_socket::traits::Stream as _;
     use std::io::Write;
 
-    let name = socket_name(socket_path)?;
-    let mut stream = SyncStream::connect(name)
+    let mut stream = crate::transport::connect_sync(socket_path, crate::transport::BUSY_PIPE_WAIT)
         .with_context(|| format!("connecting to daemon socket {}", socket_path.display()))
         .context(DaemonConnectionFailure)?;
 
-    let _ = stream.set_send_timeout(Some(std::time::Duration::from_secs(5)));
+    let _ = stream.set_send_timeout(Some(send_wait));
 
-    let mut line = serde_json::to_string(req)?;
-    line.push('\n');
     stream
         .write_all(line.as_bytes())
         .context("writing request to daemon")?;
@@ -8923,6 +9065,47 @@ fn send_request_fire_and_forget(socket_path: &Path, req: &Request) -> Result<()>
     // read half after processing the line and silently skip the response write.
     Ok(())
 }
+
+/// Windows: the same exchange, bounded by `send_wait` as a whole.
+///
+/// A named pipe has no send timeout. Two reusable I/O workers bound blocked
+/// writes and flushes; queued work expires without starting. A timeout or a
+/// full queue is a best-effort failure. Upload intent is already durable.
+/// A worker flushes before closing so successful delivery does not depend on
+/// interprocess starting another, unbounded background flush.
+#[cfg(windows)]
+fn send_line_fire_and_forget_windows(
+    socket_path: &Path,
+    line: String,
+    send_wait: std::time::Duration,
+) -> Result<()> {
+    let deadline = std::time::Instant::now() + send_wait;
+    let socket = socket_path.to_path_buf();
+    let sent = crate::transport::finish_by(deadline, move || -> Result<()> {
+        use std::io::Write;
+        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+        let busy_wait = crate::transport::BUSY_PIPE_WAIT.min(remaining);
+        let stream = crate::transport::connect_sync(&socket, busy_wait)
+            .with_context(|| format!("connecting to daemon socket {}", socket.display()))
+            .context(DaemonConnectionFailure)?;
+        let _discard = crate::transport::discard_sync_pipe_writes_on_drop(&stream);
+        (&stream)
+            .write_all(line.as_bytes())
+            .context("writing request to daemon")?;
+        let crate::transport::SyncStream::NamedPipe(pipe) = &stream;
+        pipe.inner().flush().context("flushing request to daemon")?;
+        Ok(())
+    });
+    sent.unwrap_or_else(|| {
+        Err(anyhow::anyhow!(
+            "writing request to daemon socket {} took longer than {send_wait:?}",
+            socket_path.display()
+        ))
+    })
+}
+
+#[cfg(windows)]
+use self::send_line_fire_and_forget_windows as send_line_fire_and_forget;
 
 /// Start the daemon in the background and wait for it to be ready.
 ///

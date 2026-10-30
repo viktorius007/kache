@@ -26,23 +26,66 @@ mod linux;
 #[path = "daemon_execution_macos.rs"]
 mod macos;
 
-fn peer_may_delegate(stream: &TokioStream, reported_pid: u32) -> bool {
+fn peer_may_delegate(stream: &TokioStream, reported_pid: u32, trusted_pipeline: bool) -> bool {
     #[cfg(target_os = "macos")]
     {
-        macos::peer_may_delegate(stream, reported_pid)
+        macos::peer_may_delegate(stream, reported_pid, trusted_pipeline)
     }
     #[cfg(target_os = "linux")]
     {
-        linux::peer_may_delegate(
+        linux::peer_may_delegate_with_trust(
             Path::new("/proc"),
             crate::transport::peer_pid(stream),
             reported_pid,
+            trusted_pipeline,
         )
     }
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]
     {
-        let _ = (stream, reported_pid);
+        let _ = (stream, reported_pid, trusted_pipeline);
         false
+    }
+}
+
+fn trusts_pipeline(client: bool, daemon: bool) -> bool {
+    client && daemon
+}
+
+#[cfg(unix)]
+pub(super) fn probe(
+    stream: &TokioStream,
+    client_pid: u32,
+    version: &str,
+    client_trust: bool,
+    daemon: &Daemon,
+) -> kache_protocol::execution::ExecutionStatus {
+    let daemon_trust = daemon.config.trust_daemon_execution;
+    let eligible = version == daemon.version
+        && peer_may_delegate(
+            stream,
+            client_pid,
+            trusts_pipeline(client_trust, daemon_trust),
+        );
+    let detail = if version != daemon.version {
+        "client and daemon releases differ; local engine required".to_owned()
+    } else if eligible {
+        if trusts_pipeline(client_trust, daemon_trust) {
+            "client process and restore broker; trusted daemon pipeline"
+        } else {
+            "client process and restore broker"
+        }
+        .to_owned()
+    } else {
+        format!(
+            "local engine: process restrictions or security context are incompatible (client trust: {client_trust}, daemon trust: {daemon_trust})"
+        )
+    };
+    kache_protocol::execution::ExecutionStatus {
+        protocol_version: EXECUTION_VERSION,
+        eligible,
+        client_trust_enabled: client_trust,
+        daemon_trust_enabled: daemon_trust,
+        detail,
     }
 }
 
@@ -71,12 +114,13 @@ impl Prepared {
                 && request.creation_mask == kache_client::creation_mask(),
             "compiler file creation policy requires local execution"
         );
-        let ExecutionChannels::Unix {
+        let ExecutionChannels::UnixClient {
             terminal,
             jobserver,
+            ..
         } = request.channels
         else {
-            anyhow::bail!("compiler channels belong to another platform");
+            anyhow::bail!("compiler requires client-owned process creation and restores");
         };
         let vars = request
             .env
@@ -163,7 +207,7 @@ impl Prepared {
         daemon: Arc<Daemon>,
     ) -> Result<(ExecutionEntry, PathBuf, Vec<String>, InvocationContext)> {
         let jobserver = kache_ipc::jobserver::Descriptors::new(
-            descriptors.split_off(3 + usize::from(self.terminal)),
+            descriptors.split_off(3 + usize::from(self.terminal) + 2),
         )?;
         let vars = kache_ipc::jobserver::rewrite(
             &self.env.vars_os().collect::<Vec<_>>(),
@@ -184,8 +228,23 @@ impl Prepared {
             files.next().context("missing compiler stdin")?,
             files.next().context("missing compiler stdout")?,
             files.next().context("missing compiler stderr")?,
-            files.next(),
+            self.terminal.then(|| files.next()).flatten(),
         );
+        let io = {
+            let broker = crate::invocation::unix_broker::Broker::new(
+                files
+                    .next()
+                    .context("missing native process channel")?
+                    .into(),
+                files
+                    .next()
+                    .context("missing native process pipe channel")?
+                    .into(),
+                env.clone(),
+                jobserver.clone(),
+            )?;
+            io.with_unix_broker(broker)?
+        };
         Ok((
             self.entry,
             self.executable.clone(),
@@ -209,7 +268,7 @@ impl Prepared {
 }
 
 struct DescriptorChannel {
-    socket: tokio::io::unix::AsyncFd<UnixDatagram>,
+    socket: tokio::net::UnixDatagram,
     ticket: DescriptorTicket,
     _directory: tempfile::TempDir,
 }
@@ -227,7 +286,7 @@ impl DescriptorChannel {
         let mut key = [0; 16];
         getrandom::fill(&mut key).context("creating descriptor ticket")?;
         Ok(Self {
-            socket: tokio::io::unix::AsyncFd::new(socket)?,
+            socket: tokio::net::UnixDatagram::from_std(socket)?,
             ticket: DescriptorTicket {
                 endpoint: NativeString::capture(path.as_os_str()),
                 key,
@@ -237,19 +296,12 @@ impl DescriptorChannel {
     }
 
     async fn receive(&self, expected: usize) -> Result<Vec<OwnedFd>> {
-        loop {
-            let mut ready = self.socket.readable().await?;
-            match ready.try_io(|socket| {
-                kache_ipc::descriptors::receive(
-                    socket.get_ref().as_fd(),
-                    &self.ticket.key,
-                    expected,
-                )
-            }) {
-                Ok(result) => return Ok(result?),
-                Err(_) => continue,
-            }
-        }
+        Ok(self
+            .socket
+            .async_io(tokio::io::Interest::READABLE, || {
+                kache_ipc::descriptors::receive(self.socket.as_fd(), &self.ticket.key, expected)
+            })
+            .await?)
     }
 }
 
@@ -279,7 +331,15 @@ pub(super) async fn handle(
     lifecycle: &Arc<Lifecycle>,
 ) -> Result<()> {
     let client_pid = request.client_pid;
-    if !peer_may_delegate(stream, client_pid) {
+    let client_trust = matches!(
+        request.channels,
+        ExecutionChannels::UnixClient {
+            trusted_pipeline: true,
+            ..
+        }
+    );
+    let trusted_pipeline = trusts_pipeline(client_trust, daemon.config.trust_daemon_execution);
+    if !peer_may_delegate(stream, client_pid, trusted_pipeline) {
         return write_reply(
             stream,
             &ExecutionReply::Declined {
@@ -338,7 +398,7 @@ pub(super) async fn handle(
             let _ = incoming?;
             anyhow::bail!("compiler client disconnected or wrote before preparation");
         }
-        result = tokio::time::timeout(PREPARE_TIMEOUT, channel.receive(3 + usize::from(prepared.terminal) + prepared.originals.len())) => result??,
+        result = tokio::time::timeout(PREPARE_TIMEOUT, channel.receive(3 + usize::from(prepared.terminal) + 2 + prepared.originals.len())) => result??,
     };
     drop(channel);
     let cancellation = Cancellation::default();
@@ -353,7 +413,7 @@ pub(super) async fn handle(
     }.context("compiler client disconnected before Commit")?;
     let _: ExecutionCommand = serde_json::from_str(&commit)?;
     anyhow::ensure!(
-        peer_may_delegate(stream, client_pid),
+        peer_may_delegate(stream, client_pid, trusted_pipeline),
         "compiler process isolation changed before execution"
     );
     write_reply(stream, &ExecutionReply::Accepted).await?;
@@ -396,6 +456,93 @@ mod tests {
     use super::*;
     use std::os::unix::fs::PermissionsExt;
 
+    #[test]
+    fn descriptor_channel_waits_for_readiness_and_validates_the_ticket() {
+        isolated_test("descriptor_channel_waits_for_readiness_and_validates_the_ticket");
+    }
+
+    #[tokio::test]
+    #[ignore = "bounded subprocess fixture"]
+    async fn fixture_descriptor_channel_waits_for_readiness_and_validates_the_ticket() {
+        for valid_ticket in [true, false] {
+            let channel = DescriptorChannel::new().unwrap();
+            let mut receiving = std::pin::pin!(channel.receive(1));
+            assert!(futures::poll!(&mut receiving).is_pending());
+
+            let input = tempfile::NamedTempFile::new().unwrap();
+            std::fs::write(input.path(), b"descriptor input\n").unwrap();
+            let file = File::open(input.path()).unwrap();
+            let sender = UnixDatagram::unbound().unwrap();
+            sender
+                .connect(PathBuf::from(channel.ticket.endpoint.decode().unwrap()))
+                .unwrap();
+            let mut ticket = channel.ticket.key;
+            if !valid_ticket {
+                ticket[0] ^= 1;
+            }
+            kache_ipc::descriptors::send(sender.as_fd(), &ticket, &[file.as_fd()]).unwrap();
+
+            let result = tokio::time::timeout(PREPARE_TIMEOUT, receiving)
+                .await
+                .unwrap();
+            if valid_ticket {
+                let mut descriptors = result.unwrap();
+                assert_eq!(descriptors.len(), 1);
+                let mut received = File::from(descriptors.pop().unwrap());
+                let mut contents = String::new();
+                std::io::Read::read_to_string(&mut received, &mut contents).unwrap();
+                assert_eq!(contents, "descriptor input\n");
+            } else {
+                assert_eq!(
+                    result
+                        .unwrap_err()
+                        .downcast_ref::<std::io::Error>()
+                        .unwrap()
+                        .kind(),
+                    std::io::ErrorKind::InvalidData
+                );
+            }
+        }
+    }
+
+    fn isolated_test(name: &str) {
+        use std::os::unix::process::CommandExt;
+        let root = tempfile::tempdir().unwrap();
+        let stdout = root.path().join("stdout");
+        let stderr = root.path().join("stderr");
+        let mut child = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                &format!("daemon::execution::tests::fixture_{name}"),
+                "--ignored",
+                "--nocapture",
+            ])
+            .stdout(File::create(&stdout).unwrap())
+            .stderr(File::create(&stderr).unwrap())
+            .process_group(0)
+            .spawn()
+            .unwrap();
+        let deadline = Instant::now() + Duration::from_secs(15);
+        let status = loop {
+            if let Some(status) = child.try_wait().unwrap() {
+                break status;
+            }
+            if Instant::now() >= deadline {
+                unsafe {
+                    libc::kill(-(child.id() as libc::pid_t), libc::SIGKILL);
+                }
+                break child.wait().unwrap();
+            }
+            std::thread::sleep(Duration::from_millis(5));
+        };
+        assert!(
+            status.success(),
+            "{name}: {status}\n{}\n{}",
+            std::fs::read_to_string(stdout).unwrap(),
+            std::fs::read_to_string(stderr).unwrap()
+        );
+    }
+
     fn native_execution_available() -> bool {
         #[cfg(target_os = "linux")]
         if !linux::permits_delegation(Path::new("/proc"), std::process::id()).unwrap_or(false) {
@@ -407,12 +554,40 @@ mod tests {
         true
     }
 
+    #[cfg(target_os = "linux")]
+    #[test]
+    #[ignore = "requires the unavailable security-label fault injector"]
+    fn fixture_unavailable_security_labels() {
+        let error = std::fs::read("/proc/self/attr/current").unwrap_err();
+        assert_eq!(error.raw_os_error(), Some(libc::EINVAL));
+        assert!(!trusted_execution_available());
+    }
+
+    #[cfg(target_os = "linux")]
+    fn trusted_execution_available() -> bool {
+        linux::permits_delegation_with_trust(Path::new("/proc"), std::process::id(), true)
+            .unwrap_or(false)
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn trusting_the_pipeline_requires_both_peers() {
+        for (client, daemon, expected) in [
+            (false, false, false),
+            (false, true, false),
+            (true, false, false),
+            (true, true, true),
+        ] {
+            assert_eq!(trusts_pipeline(client, daemon), expected);
+        }
+    }
+
     fn fixture(root: &Path, name: &str) -> (Vec<String>, InvocationContext) {
         let root = root.join(name);
         std::fs::create_dir(&root).unwrap();
         let root = root.canonicalize().unwrap();
         let program = root.join("rustc");
-        std::fs::write(&program, b"#!/bin/sh\nprintf '%s' \"$$\" > \"$PIDFILE\"\nprintf '%s|%s\\n' \"$CLIENT\" \"$PWD\" >> \"$RECORD\"\nprintf 'metadata-%s\\n' \"$CLIENT\"\nprintf 'diagnostic-%s\\n' \"$CLIENT\" >&2\nprintf ready > \"$READY\"\ni=0\nwhile [ ! -e \"$RELEASE\" ] && [ $i -lt 400 ]; do /bin/sleep .01; i=$((i+1)); done\nexit 7\n").unwrap();
+        std::fs::write(&program, b"#!/bin/sh\nprintf '%s' \"$$\" > \"$PIDFILE\"\nprintf '%s|%s\\n' \"$CLIENT\" \"$PWD\" >> \"$RECORD\"\nprintf 'metadata-%s\\n' \"$CLIENT\"\nprintf 'diagnostic-%s\\n' \"$CLIENT\" >&2\nprintf ready > \"$READY\"\ni=0\nwhile [ ! -e \"$RELEASE\" ] && [ $i -lt 400 ]; do sleep .01; i=$((i+1)); done\nexit 7\n").unwrap();
         std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o755)).unwrap();
         std::fs::write(root.join("config.toml"), "").unwrap();
         std::fs::write(root.join("stdin"), b"input\n").unwrap();
@@ -422,7 +597,7 @@ mod tests {
                 ("KACHE_CACHE_DIR", root.join("cache").into_os_string()),
                 ("KACHE_RUNTIME_DIR", root.join("runtime").into_os_string()),
                 ("KACHE_DISABLED", "1".into()),
-                ("PATH", "/usr/bin:/bin".into()),
+                ("PATH", env!("PATH").into()),
                 ("CLIENT", name.into()),
                 ("RECORD", root.join("record").into_os_string()),
                 ("PIDFILE", root.join("pid").into_os_string()),
@@ -475,7 +650,22 @@ mod tests {
         Arc<Lifecycle>,
         tokio::task::JoinHandle<Vec<Result<()>>>,
     ) {
-        let config = super::super::tests::test_config(root);
+        server_with_trust(root, connections, workers, false).await
+    }
+
+    async fn server_with_trust(
+        root: &Path,
+        connections: usize,
+        workers: usize,
+        trust: bool,
+    ) -> (
+        PathBuf,
+        Arc<Daemon>,
+        Arc<Lifecycle>,
+        tokio::task::JoinHandle<Vec<Result<()>>>,
+    ) {
+        let mut config = super::super::tests::test_config(root);
+        config.trust_daemon_execution = trust;
         let socket = config.socket_path();
         let listener = crate::transport::bind_daemon_listener(&socket)
             .await
@@ -515,8 +705,186 @@ mod tests {
         (socket, daemon, lifecycle, task)
     }
 
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn trusted_linux_clients_stream_concurrently_and_release_worker_permits() {
+        isolated_test("trusted_linux_clients_stream_concurrently_and_release_worker_permits");
+    }
+
+    #[cfg(target_os = "linux")]
     #[tokio::test]
-    async fn execution_handoff_streams_two_compilers_without_serializing_or_mixing_clients() {
+    #[ignore = "bounded subprocess fixture"]
+    async fn fixture_trusted_linux_clients_stream_concurrently_and_release_worker_permits() {
+        let root = tempfile::tempdir().unwrap();
+        let (socket, daemon, _, server) = server_with_trust(root.path(), 3, 2, true).await;
+        let available = trusted_execution_available();
+        let mut clients = Vec::new();
+        let mut paths = Vec::new();
+        for name in ["broker-left", "broker-right"] {
+            let (args, context) = fixture(root.path(), name);
+            paths.push(context.env.cwd().unwrap().to_owned());
+            let socket = socket.clone();
+            clients.push(tokio::task::spawn_blocking(move || {
+                crate::invocation::execution::try_execute_with_trust(&socket, &args, &context, true)
+            }));
+        }
+        if available {
+            for (name, path) in ["broker-left", "broker-right"].into_iter().zip(&paths) {
+                ready(&path.join("ready")).await;
+                assert_eq!(
+                    std::fs::read_to_string(path.join("stdout")).unwrap(),
+                    format!("metadata-{name}\n")
+                );
+                assert_eq!(
+                    std::fs::read_to_string(path.join("stderr")).unwrap(),
+                    format!("diagnostic-{name}\n")
+                );
+            }
+            assert!(clients.iter().all(|client| !client.is_finished()));
+            assert_eq!(daemon.execution_workers.available_permits(), 0);
+        }
+        let (args, context) = fixture(root.path(), "untrusted-client");
+        let third = socket.clone();
+        assert_eq!(
+            tokio::task::spawn_blocking(move || {
+                crate::invocation::execution::try_execute_with_trust(&third, &args, &context, true)
+            })
+            .await
+            .unwrap()
+            .unwrap(),
+            None
+        );
+        for path in &paths {
+            std::fs::write(path.join("release"), b"go").unwrap();
+        }
+        for client in clients {
+            assert_eq!(client.await.unwrap().unwrap(), available.then_some(7));
+        }
+        assert!(
+            server
+                .await
+                .unwrap()
+                .into_iter()
+                .all(|result| result.is_ok())
+        );
+        assert_eq!(daemon.execution_workers.available_permits(), 2);
+        if !available {
+            for path in paths {
+                assert!(!path.join("record").exists());
+                assert!(!path.join("ready").exists());
+            }
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn filtered_execution_requires_both_peers_to_trust_the_pipeline() {
+        isolated_test("filtered_execution_requires_both_peers_to_trust_the_pipeline");
+    }
+
+    #[cfg(target_os = "linux")]
+    #[tokio::test]
+    #[ignore = "bounded subprocess fixture"]
+    async fn fixture_filtered_execution_requires_both_peers_to_trust_the_pipeline() {
+        let filtered =
+            !linux::permits_delegation(Path::new("/proc"), std::process::id()).unwrap_or(false);
+        let trusted_available = trusted_execution_available();
+        for (client_trust, daemon_trust) in
+            [(false, false), (true, false), (false, true), (true, true)]
+        {
+            let root = tempfile::tempdir().unwrap();
+            let (socket, _, _, server) = server_with_trust(root.path(), 1, 1, daemon_trust).await;
+            let (args, context) = fixture(root.path(), "policy-client");
+            let path = context.env.cwd().unwrap().to_owned();
+            std::fs::write(path.join("release"), b"go").unwrap();
+            let outcome = tokio::task::spawn_blocking(move || {
+                crate::invocation::execution::try_execute_with_trust(
+                    &socket,
+                    &args,
+                    &context,
+                    client_trust,
+                )
+            })
+            .await
+            .unwrap()
+            .unwrap();
+            let accepted = !filtered || (client_trust && daemon_trust && trusted_available);
+            assert_eq!(outcome, accepted.then_some(7));
+            assert_eq!(path.join("record").exists(), accepted);
+            assert!(
+                server
+                    .await
+                    .unwrap()
+                    .into_iter()
+                    .all(|result| result.is_ok())
+            );
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn execution_probe_authenticates_the_peer_and_reserves_no_worker() {
+        isolated_test("execution_probe_authenticates_the_peer_and_reserves_no_worker");
+    }
+
+    #[cfg(target_os = "linux")]
+    #[tokio::test]
+    #[ignore = "bounded subprocess fixture"]
+    async fn fixture_execution_probe_authenticates_the_peer_and_reserves_no_worker() {
+        let root = tempfile::tempdir().unwrap();
+        let (socket, daemon, _, server) = server_with_trust(root.path(), 3, 2, true).await;
+        for (pid, version, accepted) in [
+            (
+                std::process::id(),
+                crate::VERSION,
+                trusted_execution_available(),
+            ),
+            (std::process::id() + 1, crate::VERSION, false),
+            (std::process::id(), "different-release", false),
+        ] {
+            let socket = socket.clone();
+            let response = tokio::task::spawn_blocking(move || {
+                let request = Request::ExecutionStatus {
+                    client_pid: pid,
+                    client_version: version.into(),
+                    trusted_pipeline: true,
+                };
+                let response = super::super::send_request_with_timeout(
+                    &socket,
+                    &request,
+                    Duration::from_secs(3),
+                )
+                .unwrap();
+                serde_json::from_str::<Response>(&response).unwrap()
+            })
+            .await
+            .unwrap();
+            let status = response.execution_status.unwrap();
+            assert_eq!(status.eligible, accepted);
+            assert!(status.client_trust_enabled);
+            assert!(status.daemon_trust_enabled);
+            assert_eq!(daemon.execution_workers.available_permits(), 2);
+        }
+        assert!(
+            server
+                .await
+                .unwrap()
+                .into_iter()
+                .all(|result| result.is_ok())
+        );
+    }
+
+    #[test]
+    fn execution_handoff_streams_two_compilers_without_serializing_or_mixing_clients() {
+        isolated_test(
+            "execution_handoff_streams_two_compilers_without_serializing_or_mixing_clients",
+        );
+    }
+
+    #[tokio::test]
+    #[ignore = "bounded subprocess fixture"]
+    async fn fixture_execution_handoff_streams_two_compilers_without_serializing_or_mixing_clients()
+    {
         if !native_execution_available() {
             return;
         }
@@ -581,8 +949,14 @@ mod tests {
         assert_eq!(daemon.execution_workers.available_permits(), 2);
     }
 
+    #[test]
+    fn execution_keeps_a_silent_compiler_alive_past_the_daemon_idle_timeout() {
+        isolated_test("execution_keeps_a_silent_compiler_alive_past_the_daemon_idle_timeout");
+    }
+
     #[tokio::test]
-    async fn execution_keeps_a_silent_compiler_alive_past_the_daemon_idle_timeout() {
+    #[ignore = "bounded subprocess fixture"]
+    async fn fixture_execution_keeps_a_silent_compiler_alive_past_the_daemon_idle_timeout() {
         if !native_execution_available() {
             return;
         }
@@ -655,27 +1029,37 @@ mod tests {
             cache: None,
             executable: native(std::env::current_exe().unwrap().as_os_str()),
             startup_micros: 0,
-            channels: ExecutionChannels::Unix {
+            channels: ExecutionChannels::UnixClient {
                 terminal: false,
                 jobserver: vec![],
+                trusted_pipeline: false,
             },
         }
     }
 
+    #[test]
+    fn preparation_keeps_terminal_jobserver_and_environment_in_their_own_slots() {
+        isolated_test("preparation_keeps_terminal_jobserver_and_environment_in_their_own_slots");
+    }
+
     #[tokio::test]
-    async fn preparation_keeps_terminal_jobserver_and_environment_in_their_own_slots() {
+    #[ignore = "bounded subprocess fixture"]
+    async fn fixture_preparation_keeps_terminal_jobserver_and_environment_in_their_own_slots() {
         use std::io::Write;
         use std::os::fd::AsRawFd;
         use std::os::unix::fs::MetadataExt;
         use std::os::unix::net::UnixStream;
 
         let root = tempfile::tempdir().unwrap();
+        let config = super::super::tests::test_config(root.path());
+        let capacity = DaemonCapacity::discover(config.daemon_execution_concurrency);
         let daemon = Arc::new(Daemon::new_with_provenance(
-            super::super::tests::test_config(root.path()),
+            config,
             &crate::config::ConfigFileProvenance {
                 path: root.path().join("config.toml"),
                 fingerprint: "fixture".to_owned(),
             },
+            capacity,
         ));
         for terminal in [false, true] {
             for with_jobserver in [false, true] {
@@ -713,9 +1097,10 @@ mod tests {
                         NativeString::Unix(vec![255]),
                     ),
                 ]);
-                request.channels = ExecutionChannels::Unix {
+                request.channels = ExecutionChannels::UnixClient {
                     terminal,
                     jobserver: jobs.iter().map(|(original, _)| *original).collect(),
+                    trusted_pipeline: false,
                 };
                 let prepared = Prepared::decode(request, crate::VERSION).unwrap();
                 let directory = context.env.cwd().unwrap();
@@ -730,6 +1115,9 @@ mod tests {
                     .iter()
                     .map(|(original, received)| (*original, received.as_raw_fd()))
                     .collect::<std::collections::BTreeMap<_, _>>();
+                let (_client, control) = UnixStream::pair().unwrap();
+                let (_pipes_client, pipes) = UnixDatagram::pair().unwrap();
+                descriptors.extend([OwnedFd::from(control), OwnedFd::from(pipes)]);
                 descriptors.extend(jobs.into_iter().map(|(_, file)| file));
                 let (_, _, _, received) = prepared
                     .receive(descriptors, Cancellation::default(), daemon.clone())
@@ -797,8 +1185,14 @@ mod tests {
         }
     }
 
+    #[test]
+    fn aborting_the_connection_task_cancels_only_its_compiler_request() {
+        isolated_test("aborting_the_connection_task_cancels_only_its_compiler_request");
+    }
+
     #[tokio::test]
-    async fn aborting_the_connection_task_cancels_only_its_compiler_request() {
+    #[ignore = "bounded subprocess fixture"]
+    async fn fixture_aborting_the_connection_task_cancels_only_its_compiler_request() {
         use crate::invocation::process::{CancellationScope, CommandExt};
 
         let cancellation = Cancellation::default();
@@ -830,8 +1224,14 @@ mod tests {
         crate::invocation::process::check().unwrap();
     }
 
+    #[test]
+    fn only_accepted_execution_marks_build_activity() {
+        isolated_test("only_accepted_execution_marks_build_activity");
+    }
+
     #[tokio::test]
-    async fn only_accepted_execution_marks_build_activity() {
+    #[ignore = "bounded subprocess fixture"]
+    async fn fixture_only_accepted_execution_marks_build_activity() {
         if !native_execution_available() {
             return;
         }
@@ -916,8 +1316,14 @@ mod tests {
         }
     }
 
+    #[test]
+    fn original_compiler_shim_uses_the_clients_relative_path() {
+        isolated_test("original_compiler_shim_uses_the_clients_relative_path");
+    }
+
     #[tokio::test]
-    async fn original_compiler_shim_uses_the_clients_relative_path() {
+    #[ignore = "bounded subprocess fixture"]
+    async fn fixture_original_compiler_shim_uses_the_clients_relative_path() {
         if !native_execution_available() {
             return;
         }
@@ -975,8 +1381,15 @@ mod tests {
         let valid = request(&args, &context);
         assert!(Prepared::decode(valid.clone(), crate::VERSION).is_ok());
         type InvalidCase = (&'static str, fn(&mut ExecutionRequest));
-        let cases: [InvalidCase; 13] = [
+        let cases: [InvalidCase; 15] = [
             ("protocol", |r| r.version += 1),
+            ("legacy process-only protocol", |r| r.version = 1),
+            ("legacy daemon-owned processes", |r| {
+                r.channels = ExecutionChannels::Unix {
+                    terminal: false,
+                    jobserver: vec![],
+                }
+            }),
             ("missing creation policy", |r| r.creation_mask = None),
             ("different creation policy", |r| {
                 r.creation_mask = r.creation_mask.map(|mask| mask ^ 0o077)
@@ -995,6 +1408,7 @@ mod tests {
                     stdout: 2,
                     stderr: 3,
                     process_broker: false,
+                    trusted_pipeline: false,
                 }
             }),
             ("argv", |r| r.argv.clear()),
@@ -1023,9 +1437,10 @@ mod tests {
             assert!(Prepared::decode(request, crate::VERSION).is_err(), "{name}");
         }
         let mut invalid_jobs = valid.clone();
-        invalid_jobs.channels = ExecutionChannels::Unix {
+        invalid_jobs.channels = ExecutionChannels::UnixClient {
             terminal: false,
             jobserver: vec![999],
+            trusted_pipeline: false,
         };
         assert!(Prepared::decode(invalid_jobs, crate::VERSION).is_err());
         let mut native_value = valid;
@@ -1059,7 +1474,13 @@ mod tests {
         else {
             panic!("server not ready: {line}");
         };
-        let files = context.io.transfer_files().unwrap().0;
+        let mut files = context.io.transfer_files().unwrap().0;
+        let (_client, control) = std::os::unix::net::UnixStream::pair().unwrap();
+        let (_pipes_client, pipes) = UnixDatagram::pair().unwrap();
+        files.extend([
+            File::from(OwnedFd::from(control)),
+            File::from(OwnedFd::from(pipes)),
+        ]);
         let socket = UnixDatagram::unbound().unwrap();
         socket
             .connect(PathBuf::from(ticket.endpoint.decode().unwrap()))
@@ -1082,8 +1503,14 @@ mod tests {
         (stream, ticket)
     }
 
+    #[test]
+    fn prepared_compiler_never_runs_without_commit_and_releases_its_resources() {
+        isolated_test("prepared_compiler_never_runs_without_commit_and_releases_its_resources");
+    }
+
     #[tokio::test]
-    async fn prepared_compiler_never_runs_without_commit_and_releases_its_resources() {
+    #[ignore = "bounded subprocess fixture"]
+    async fn fixture_prepared_compiler_never_runs_without_commit_and_releases_its_resources() {
         if !native_execution_available() {
             return;
         }
@@ -1104,8 +1531,14 @@ mod tests {
         assert_eq!(daemon.execution_workers.available_permits(), 1);
     }
 
+    #[test]
+    fn draining_before_commit_releases_worker_without_starting_a_compiler() {
+        isolated_test("draining_before_commit_releases_worker_without_starting_a_compiler");
+    }
+
     #[tokio::test]
-    async fn draining_before_commit_releases_worker_without_starting_a_compiler() {
+    #[ignore = "bounded subprocess fixture"]
+    async fn fixture_draining_before_commit_releases_worker_without_starting_a_compiler() {
         if !native_execution_available() {
             return;
         }
@@ -1121,33 +1554,52 @@ mod tests {
         assert_eq!(daemon.execution_workers.available_permits(), 1);
     }
 
+    #[test]
+    fn disconnected_accepted_compiler_is_cancelled_and_reaped() {
+        isolated_test("disconnected_accepted_compiler_is_cancelled_and_reaped");
+    }
+
     #[tokio::test]
-    async fn disconnected_accepted_compiler_is_cancelled_and_reaped() {
+    #[ignore = "bounded subprocess fixture"]
+    async fn fixture_disconnected_accepted_compiler_is_cancelled_and_reaped() {
         if !native_execution_available() {
             return;
         }
         let root = tempfile::tempdir().unwrap();
         let (socket, daemon, _, server) = server(root.path(), 1, 1).await;
-        let (args, context) = fixture(root.path(), "disconnected");
-        let path = context.env.cwd().unwrap().to_owned();
-        let (stream, _) = prepare_client(&socket, request(&args, &context), &context).await;
-        (&stream).write_all(b"\"commit\"\n").await.unwrap();
-        let line = read_bounded_line(&mut BufReader::new(&stream), &mut Vec::new())
-            .await
-            .unwrap()
+        let path = root.path().join("disconnected");
+        let mut client = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "daemon::execution::tests::execution_cancellable_client_fixture",
+                "--ignored",
+                "--nocapture",
+            ])
+            .env("KACHE_TEST_EXECUTION_ROOT", root.path())
+            .env("KACHE_TEST_EXECUTION_SOCKET", &socket)
+            .spawn()
             .unwrap();
-        assert!(matches!(
-            serde_json::from_str(&line).unwrap(),
-            ExecutionReply::Accepted
-        ));
         ready(&path.join("ready")).await;
         let start = Instant::now();
-        drop(stream);
+        client.kill().unwrap();
+        client.wait().unwrap();
         let results = tokio::time::timeout(Duration::from_secs(2), server)
             .await
             .unwrap()
             .unwrap();
-        assert!(results[0].is_ok());
+        // The final reply can race the disconnect reader after the client dies.
+        // Either path must reap the compiler and release its worker below.
+        if let Err(error) = &results[0] {
+            assert!(
+                error.downcast_ref::<std::io::Error>().is_some_and(|error| {
+                    matches!(
+                        error.kind(),
+                        std::io::ErrorKind::BrokenPipe | std::io::ErrorKind::ConnectionReset
+                    )
+                }),
+                "{error:#}"
+            );
+        }
         assert!(start.elapsed() < Duration::from_secs(2));
         assert_eq!(
             std::fs::read_to_string(path.join("record"))
@@ -1169,6 +1621,15 @@ mod tests {
             std::io::Error::last_os_error().raw_os_error(),
             Some(libc::ECHILD)
         );
+    }
+
+    #[test]
+    #[ignore = "client process for the native cancellation regression"]
+    fn execution_cancellable_client_fixture() {
+        let root = PathBuf::from(std::env::var_os("KACHE_TEST_EXECUTION_ROOT").unwrap());
+        let socket = PathBuf::from(std::env::var_os("KACHE_TEST_EXECUTION_SOCKET").unwrap());
+        let (args, context) = fixture(&root, "disconnected");
+        let _ = crate::invocation::execution::try_execute(&socket, &args, &context);
     }
 
     #[test]
@@ -1196,8 +1657,14 @@ mod tests {
         write.write_all(b"r").unwrap();
     }
 
+    #[test]
+    fn execution_jobserver_descriptors_reach_only_the_compiler() {
+        isolated_test("execution_jobserver_descriptors_reach_only_the_compiler");
+    }
+
     #[tokio::test]
-    async fn execution_jobserver_descriptors_reach_only_the_compiler() {
+    #[ignore = "bounded subprocess fixture"]
+    async fn fixture_execution_jobserver_descriptors_reach_only_the_compiler() {
         if !native_execution_available() {
             return;
         }
@@ -1251,8 +1718,14 @@ mod tests {
         );
     }
 
+    #[test]
+    fn execution_declines_a_forged_peer_pid_before_preparing_a_worker() {
+        isolated_test("execution_declines_a_forged_peer_pid_before_preparing_a_worker");
+    }
+
     #[tokio::test]
-    async fn execution_declines_a_forged_peer_pid_before_preparing_a_worker() {
+    #[ignore = "bounded subprocess fixture"]
+    async fn fixture_execution_declines_a_forged_peer_pid_before_preparing_a_worker() {
         let root = tempfile::tempdir().unwrap();
         let (socket, daemon, _, server) = server(root.path(), 1, 1).await;
         let (args, context) = fixture(root.path(), "forged");
@@ -1284,50 +1757,89 @@ mod tests {
     fn execution_sandboxed_client_fixture() {
         let root = PathBuf::from(std::env::var_os("KACHE_TEST_EXECUTION_ROOT").unwrap());
         let socket = PathBuf::from(std::env::var_os("KACHE_TEST_EXECUTION_SOCKET").unwrap());
-        let (args, context) = fixture(&root, "restricted");
+        let (args, mut context) = fixture(&root, "restricted");
+        let trusted =
+            std::env::var_os("KACHE_TEST_TRUST").as_deref() == Some(std::ffi::OsStr::new("1"));
+        let allowed =
+            std::env::var_os("KACHE_TEST_ALLOWED").as_deref() == Some(std::ffi::OsStr::new("1"));
         let path = context.env.cwd().unwrap().to_owned();
+        let denied = root.join("denied/output");
+        context.env.set("DENIED_OUTPUT", &denied);
+        let program = PathBuf::from(&args[0]);
+        let script = std::fs::read_to_string(&program).unwrap().replacen(
+            "#!/bin/sh\n",
+            "#!/bin/sh\nif printf forbidden > \"$DENIED_OUTPUT\"; then exit 99; fi\n",
+            1,
+        );
+        std::fs::write(program, script).unwrap();
         std::fs::write(path.join("release"), b"go").unwrap();
         assert_eq!(
-            crate::invocation::execution::try_execute(&socket, &args, &context).unwrap(),
-            None
+            crate::invocation::execution::try_execute_with_trust(&socket, &args, &context, trusted)
+                .unwrap(),
+            allowed.then_some(7)
         );
-        assert!(!path.join("record").exists());
+        assert_eq!(path.join("record").exists(), allowed);
+        assert!(!denied.exists());
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn execution_rejects_sandboxed_client_using_kernel_identity() {
+        isolated_test("execution_rejects_sandboxed_client_using_kernel_identity");
     }
 
     #[cfg(target_os = "macos")]
     #[tokio::test]
-    async fn execution_rejects_sandboxed_client_using_kernel_identity() {
-        let root = tempfile::tempdir().unwrap();
-        let root_path = root.path().canonicalize().unwrap();
-        let (socket, daemon, _, server) = server(&root_path, 1, 1).await;
-        let denied = root_path.join("denied");
-        std::fs::create_dir(&denied).unwrap();
-        let profile = format!(
-            "(version 1)(allow default)(deny file-write* (subpath \"{}\"))",
-            denied.display()
-        );
-        let output = crate::platform::host_output_async(
-            tokio::process::Command::new("/usr/bin/sandbox-exec")
-                .arg("-p")
-                .arg(profile)
-                .arg(std::env::current_exe().unwrap())
-                .args([
-                    "--exact",
-                    "daemon::execution::tests::execution_sandboxed_client_fixture",
-                    "--ignored",
-                    "--nocapture",
-                ])
-                .env_clear()
-                .env("PATH", "/usr/bin:/bin")
-                .env("KACHE_TEST_EXECUTION_ROOT", &root_path)
-                .env("KACHE_TEST_EXECUTION_SOCKET", socket)
-                .kill_on_drop(true),
-        )
-        .await
-        .unwrap();
-        assert!(output.status.success(), "{output:?}");
-        assert!(server.await.unwrap()[0].is_ok());
-        assert!(!root_path.join("restricted/record").exists());
-        assert_eq!(daemon.execution_workers.available_permits(), 1);
+    #[ignore = "bounded subprocess fixture"]
+    async fn fixture_execution_rejects_sandboxed_client_using_kernel_identity() {
+        for (client_trust, daemon_trust) in
+            [(false, false), (false, true), (true, false), (true, true)]
+        {
+            let root = tempfile::tempdir().unwrap();
+            let root_path = root.path().canonicalize().unwrap();
+            let (socket, daemon, _, server) =
+                server_with_trust(&root_path, 1, 1, daemon_trust).await;
+            let denied = root_path.join("denied");
+            std::fs::create_dir(&denied).unwrap();
+            let profile = format!(
+                "(version 1)(allow default)(deny file-write* (subpath \"{}\"))",
+                denied.display()
+            );
+            let output = crate::platform::host_output_async(
+                tokio::process::Command::new("/usr/bin/sandbox-exec")
+                    .arg("-p")
+                    .arg(profile)
+                    .arg(std::env::current_exe().unwrap())
+                    .args([
+                        "--exact",
+                        "daemon::execution::tests::execution_sandboxed_client_fixture",
+                        "--ignored",
+                        "--nocapture",
+                    ])
+                    .env_clear()
+                    .env("PATH", "/usr/bin:/bin")
+                    .env("KACHE_TEST_TRUST", if client_trust { "1" } else { "0" })
+                    .env(
+                        "KACHE_TEST_ALLOWED",
+                        if client_trust && daemon_trust {
+                            "1"
+                        } else {
+                            "0"
+                        },
+                    )
+                    .env("KACHE_TEST_EXECUTION_ROOT", &root_path)
+                    .env("KACHE_TEST_EXECUTION_SOCKET", socket)
+                    .kill_on_drop(true),
+            )
+            .await
+            .unwrap();
+            assert!(output.status.success(), "{output:?}");
+            assert!(server.await.unwrap()[0].is_ok());
+            assert_eq!(
+                root_path.join("restricted/record").exists(),
+                client_trust && daemon_trust
+            );
+            assert_eq!(daemon.execution_workers.available_permits(), 1);
+        }
     }
 }

@@ -806,11 +806,17 @@ pub struct BypassReason {
     pub count: usize,
     pub failures: usize,
     pub max_elapsed_ms: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fixed_in: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BypassDetail {
     pub crate_name: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub version: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fixed_in: Option<String>,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub root: String,
     /// Package of a build-script run. Empty for compiles.
@@ -1820,7 +1826,7 @@ fn to_crate_detail(e: &BuildEvent) -> CrateDetail {
     }
 }
 
-fn build_bypass_analysis(events: &[BuildEvent], top: usize) -> BypassAnalysis {
+pub(crate) fn build_bypass_analysis(events: &[BuildEvent], top: usize) -> BypassAnalysis {
     let mut details: Vec<BypassDetail> = events
         .iter()
         .filter(|event| {
@@ -1864,12 +1870,18 @@ fn build_bypass_analysis(events: &[BuildEvent], top: usize) -> BypassAnalysis {
         .filter(|detail| detail.route == "direct")
         .count();
 
-    let mut grouped = std::collections::BTreeMap::<(String, String, String), BypassReason>::new();
+    let mut grouped = std::collections::BTreeMap::new();
     for detail in &details {
+        let fixed_in = detail.fixed_in.as_deref();
         let key = (
             detail.result.clone(),
             detail.route.clone(),
-            detail.reason.clone(),
+            if fixed_in.is_some() {
+                String::new()
+            } else {
+                detail.reason.clone()
+            },
+            fixed_in,
         );
         let entry = grouped.entry(key).or_insert_with(|| BypassReason {
             result: detail.result.clone(),
@@ -1878,6 +1890,7 @@ fn build_bypass_analysis(events: &[BuildEvent], top: usize) -> BypassAnalysis {
             count: 0,
             failures: 0,
             max_elapsed_ms: 0,
+            fixed_in: fixed_in.map(str::to_string),
         });
         entry.count += 1;
         if detail.exit_code.is_some_and(|code| code != 0) {
@@ -1933,7 +1946,11 @@ fn uncached_compile_totals(events: &[BuildEvent]) -> (usize, usize, u64) {
 /// fallback wrapper may have served its own hit without compiling.
 pub(crate) fn ran_compiler_uncached(event: &BuildEvent) -> bool {
     match event.result {
-        EventResult::Passthrough => !event.fallback && !is_probe_passthrough(event),
+        EventResult::Passthrough => {
+            !event.fallback
+                && !is_probe_passthrough(event)
+                && !event.passthrough_reason.starts_with("blaze-command|")
+        }
         EventResult::Skipped => !event.skip_reason.is_empty(),
         _ => false,
     }
@@ -1980,6 +1997,10 @@ fn to_bypass_detail(e: &BuildEvent) -> BypassDetail {
     let (start_time, end_time, start_unix_ms, end_unix_ms) = event_timeline(e);
     BypassDetail {
         crate_name: e.crate_name.clone(),
+        version: crate::tui_sessions::producer_version(&e.version)
+            .map_or_else(String::new, |_| e.version.clone()),
+        fixed_in: crate::tui_sessions::passthrough_fixed_in(&e.passthrough_reason, &e.version)
+            .map(str::to_string),
         root: e.root.clone(),
         package: e.package.clone(),
         result: e.result.to_string(),
@@ -1997,13 +2018,24 @@ fn to_bypass_detail(e: &BuildEvent) -> BypassDetail {
 }
 
 fn bypass_detail_reason(detail: &BypassDetail) -> String {
+    let reason = detail.fixed_in.as_deref().map_or_else(
+        || detail.reason.clone(),
+        crate::tui_sessions::fixed_bug_words,
+    );
     match &detail.fallback_attempt {
         Some(attempt) => format!(
             "{}; fallback `{}`: {}",
-            detail.reason, attempt.wrapper, attempt.detail
+            reason, attempt.wrapper, attempt.detail
         ),
-        None => detail.reason.clone(),
+        None => reason,
     }
+}
+
+fn bypass_reason_words(reason: &BypassReason) -> String {
+    reason.fixed_in.as_deref().map_or_else(
+        || uncached_reason_words(&reason.reason),
+        crate::tui_sessions::fixed_bug_words,
+    )
 }
 
 fn event_timeline(e: &BuildEvent) -> (String, String, i64, i64) {
@@ -2774,7 +2806,7 @@ fn push_bypass_tables(lines: &mut Vec<String>, bypass: &BypassAnalysis) {
                 "| {} | {} | {} | {} | {} | {} |",
                 reason.result,
                 reason.route,
-                markdown_cell(&reason.reason),
+                markdown_cell(&bypass_reason_words(reason)),
                 reason.count,
                 reason.failures,
                 crate::term::duration_ms(reason.max_elapsed_ms),
@@ -4305,7 +4337,7 @@ pub fn format_text(report: &BuildReport) -> String {
                     term::count(reason.failures as u64),
                     term::duration_ms(reason.max_elapsed_ms),
                     format!("{}, {}", reason.result, reason.route),
-                    uncached_reason_words(&reason.reason),
+                    bypass_reason_words(reason),
                 ]
             })
             .collect();

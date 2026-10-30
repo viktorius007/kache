@@ -17,6 +17,7 @@ pub mod sharing;
 mod store;
 #[cfg(test)]
 mod test_support;
+pub mod workspace;
 
 pub use blob_drift::{BlobRefcountDrift, blob_refcount_drift};
 pub use eviction_evidence::{EvictionEvidenceCohort, EvictionHorizonEvidence};

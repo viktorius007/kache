@@ -7,8 +7,10 @@ mod common;
 use kache_ipc::windows_process::Job;
 use serde_json::Value;
 use std::ffi::{OsStr, OsString};
-use std::io::{Read, Write};
+use std::io::{BufRead, BufReader, Read, Write};
+use std::os::windows::ffi::OsStrExt;
 use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle};
+use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Output, Stdio};
 use std::sync::{Arc, Mutex};
@@ -50,7 +52,7 @@ impl Fixture {
             std::fs::create_dir(fixture.path(name)).unwrap();
         }
         std::fs::write(fixture.path("config.toml"),
-            "[cache]\nlocal_only=true\nauto_gc=false\nindex_auto_compact=false\nscheduler=false\ndaemon_publish=false\nprefetch_enabled=false\nmin_store_compile_ms=0\n").unwrap();
+            "[cache]\ntrust_daemon_execution=true\nlocal_only=true\nauto_gc=false\nindex_auto_compact=false\nscheduler=false\ndaemon_publish=false\nprefetch_enabled=false\nmin_store_compile_ms=0\n").unwrap();
         std::fs::copy(FRONTEND, fixture.path("install/kache.exe")).unwrap();
         std::fs::copy(ENGINE, fixture.path("install/kache-engine.exe")).unwrap();
         std::fs::copy(FRONTEND, fixture.path("frontend-only/kache.exe")).unwrap();
@@ -303,6 +305,271 @@ fn cold_daemon_survives_the_client_and_warm_frontends_need_no_engine() {
     assert_eq!(events[2]["result"], "miss");
     assert_ne!(events[2]["cache_key"], events[0]["cache_key"]);
     assert_eq!(fixture.daemon_pid(), pid);
+}
+
+#[test]
+fn response_file_handles_injected_remaps_that_alone_exceed_the_windows_limit() {
+    let fixture = Fixture::new();
+    let rustc = fixture.rustc();
+    let roots: Vec<String> = (0..512)
+        .map(|index| format!("C:/kache-response-file-test/source-tree-{index:04}/a-long-prefix-for-the-remap-regression"))
+        .collect();
+    assert!(
+        roots
+            .iter()
+            .map(|root| root.encode_utf16().count())
+            .sum::<usize>()
+            > 32_767
+    );
+    let config = fixture.path("config.toml");
+    let mut contents = std::fs::read_to_string(&config).unwrap();
+    contents.push_str(&format!(
+        "\n[paths]\nbase_dirs = {}\n",
+        toml::Value::Array(roots.into_iter().map(toml::Value::String).collect())
+    ));
+    std::fs::write(config, contents).unwrap();
+    let out = fixture
+        .path("work")
+        .join("target")
+        .join("debug")
+        .join("deps");
+    std::fs::create_dir_all(&out).unwrap();
+    std::fs::write(
+        fixture.path("work/lib.rs"),
+        "pub fn answer() -> u32 { 42 }\n",
+    )
+    .unwrap();
+    common::settle_writes(&[fixture.root.path()]);
+    let build = || {
+        let mut command = fixture.command(fixture.path("install/kache.exe"));
+        command
+            .arg(&rustc)
+            .args([
+                "--crate-name",
+                "response_canary",
+                "--crate-type=rlib",
+                "--emit=link,dep-info",
+                "--out-dir",
+            ])
+            .arg(&out)
+            .arg("lib.rs");
+        command
+    };
+    fixture.success(&mut build());
+    let artifact = out.join("libresponse_canary.rlib");
+    let expected = std::fs::read(&artifact).unwrap();
+    std::fs::remove_dir_all(&out).unwrap();
+    std::fs::create_dir_all(&out).unwrap();
+    fixture.success(&mut build());
+    assert_eq!(std::fs::read(artifact).unwrap(), expected);
+    let events = fixture.events("response_canary", 2);
+    assert_eq!(events[0]["result"], "miss", "{events:#?}");
+    assert_eq!(events[1]["result"], "local_hit", "{events:#?}");
+    assert_eq!(events[0]["cache_key"], events[1]["cache_key"]);
+}
+
+#[test]
+fn local_engine_handoff_handles_a_command_that_only_fits_before_forwarding() {
+    assert_long_engine_handoff(false);
+}
+
+#[test]
+fn daemon_declined_handoff_handles_a_command_that_only_fits_before_forwarding() {
+    assert_long_engine_handoff(true);
+}
+
+fn assert_long_engine_handoff(declined: bool) {
+    let fixture = Fixture::new();
+    let rustc = fixture.rustc();
+    std::fs::create_dir(fixture.path("work/out")).unwrap();
+    std::fs::write(fixture.path("work/lib.rs"), "#[cfg(not(should_arrive))] compile_error!(\"lost trailing argv\"); pub fn answer() -> u32 {42}\n").unwrap();
+    let frontend = fixture.path("install/kache.exe");
+    let prefix = format!(
+        "\"{}\" --crate-name argv_transport --crate-type=rlib --emit=link --out-dir out --cfg ",
+        rustc.display()
+    );
+    let suffix = " --cfg should_arrive lib.rs";
+    // raw_arg gives an independent exact CreateProcessW line size: quoted
+    // program + separating space + this raw tail + terminating NUL.
+    let fixed = frontend.as_os_str().encode_wide().count()
+        + 4
+        + prefix.encode_utf16().count()
+        + suffix.encode_utf16().count();
+    let padding = "p".repeat(
+        32_750_usize
+            .checked_sub(fixed)
+            .expect("fixture path too long for 32,750-unit command"),
+    );
+    let tail = format!("{prefix}{padding}{suffix}");
+    assert_eq!(
+        frontend.as_os_str().encode_wide().count() + 4 + tail.encode_utf16().count(),
+        32_750
+    );
+    let decline_socket = fixture.path("runtime").join("declined.sock");
+    let server = declined.then(|| {
+        use kache_ipc::prelude::*;
+        let listener = kache_ipc::ListenerOptions::new()
+            .name(kache_ipc::socket_name(&decline_socket).unwrap())
+            .nonblocking(interprocess::local_socket::ListenerNonblockingMode::Accept)
+            .create_sync()
+            .unwrap();
+        std::thread::spawn(move || {
+            let deadline = Instant::now() + LIMIT;
+            for _ in 0..2 {
+                let mut stream = loop {
+                    match listener.accept() {
+                        Ok(stream) => break stream,
+                        Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                            assert!(
+                                Instant::now() < deadline,
+                                "frontend did not contact the daemon"
+                            );
+                            std::thread::sleep(Duration::from_millis(5));
+                        }
+                        Err(error) => panic!("accepting compiler request: {error}"),
+                    }
+                };
+                let mut line = String::new();
+                BufReader::new(&mut stream).read_line(&mut line).unwrap();
+                let request: kache_protocol::Request = serde_json::from_str(&line).unwrap();
+                assert!(matches!(request, kache_protocol::Request::ExecuteV1(_)));
+                let reply = kache_protocol::execution::ExecutionReply::Declined {
+                    reason: "fixture declines before Commit".into(),
+                };
+                serde_json::to_writer(&mut stream, &reply).unwrap();
+                stream.write_all(b"\n").unwrap();
+                stream.flush().unwrap();
+            }
+        })
+    });
+    let build = || {
+        let mut command = fixture.command(&frontend);
+        if declined {
+            // Keep the initial delegation attempt; skip cold-daemon bootstrap
+            // after the controlled pre-Commit refusal. No nested-wrapper flag.
+            command
+                .env("KACHE_DISABLED", "1")
+                // Windows hashes the literal path, including its separators.
+                .env("KACHE_SOCKET_PATH", &decline_socket);
+        } else {
+            command.env("KACHE_ACTIVE", "1");
+        }
+        command.raw_arg(&tail);
+        command
+    };
+    fixture.success(&mut build());
+    assert!(fixture.path("work/out/libargv_transport.rlib").is_file());
+    std::fs::write(
+        fixture.path("work/lib.rs"),
+        "compile_error!(\"argv transport compiler diagnostic\");\n",
+    )
+    .unwrap();
+    let output = fixture.run(&mut build());
+    assert_eq!(output.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("argv transport compiler diagnostic"));
+    if let Some(server) = server {
+        server.join().expect("daemon refusal fixture failed");
+    }
+}
+
+#[test]
+#[cfg(target_env = "msvc")]
+fn native_msvc_defaultlib_and_exclusion_links_restore_a_runnable_executable() {
+    let fixture = Fixture::new();
+    let rustc = fixture.rustc();
+    // Match the native spelling used when dep-info paths are restored.
+    let out = fixture
+        .path("work")
+        .join("target")
+        .join("debug")
+        .join("deps");
+    std::fs::create_dir_all(&out).unwrap();
+    std::fs::write(
+        fixture.path("work/main.rs"),
+        "fn main() {print!(\"msvc-defaultlib\");}\n",
+    )
+    .unwrap();
+    common::settle_writes(&[fixture.root.path()]);
+    let name = "defaultlib_canary";
+    let build = |frontend: &str| {
+        let mut command = fixture.command(fixture.path(frontend));
+        command
+            .arg(&rustc)
+            .args([
+                "--crate-name",
+                name,
+                "--crate-type=bin",
+                "--emit=link,dep-info",
+            ])
+            .arg("--out-dir")
+            .arg(&out)
+            .args([
+                "-Cdebuginfo=0",
+                "-Clink-args=/NODEFAULTLIB:kache-unused.lib /DEFAULTLIB:ucrt.lib",
+                "main.rs",
+            ])
+            .env("KACHE_CACHE_EXECUTABLES", "1")
+            .env_remove("OUT_DIR");
+        command
+    };
+    // Capture every generated sidecar, including a PDB if this linker emits one.
+    let outputs = || {
+        std::fs::read_dir(&out)
+            .unwrap()
+            .map(|entry| {
+                let path = entry.unwrap().path();
+                (
+                    path.file_name().unwrap().to_owned(),
+                    std::fs::read(&path).unwrap(),
+                )
+            })
+            .collect::<std::collections::BTreeMap<_, _>>()
+    };
+    fixture.success(&mut build("install/kache.exe"));
+    let expected = outputs();
+    assert!(expected.contains_key(OsStr::new("defaultlib_canary.exe")));
+    assert!(expected.contains_key(OsStr::new("defaultlib_canary.d")));
+    for name in expected.keys() {
+        std::fs::remove_file(out.join(name)).unwrap();
+    }
+    assert!(std::fs::read_dir(&out).unwrap().next().is_none());
+    fixture.success(&mut build("frontend-only/kache.exe"));
+    let events = fixture.events(name, 2);
+    assert_eq!(
+        events
+            .iter()
+            .map(|event| event["result"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        ["miss", "local_hit"],
+        "cache events: {events:#?}"
+    );
+    assert_eq!(events[0]["cache_key"], events[1]["cache_key"]);
+    assert!(
+        events[0]["cache_key"]
+            .as_str()
+            .is_some_and(|key| !key.is_empty())
+    );
+    let restored = outputs();
+    assert_eq!(
+        restored.keys().collect::<Vec<_>>(),
+        expected.keys().collect::<Vec<_>>(),
+        "the cache restores every compiler output"
+    );
+    for (name, expected) in &expected {
+        if name == OsStr::new("defaultlib_canary.d") {
+            assert_eq!(
+                std::str::from_utf8(&restored[name]).unwrap(),
+                std::str::from_utf8(expected).unwrap(),
+                "restored dep-info differs from the stored compiler output"
+            );
+        }
+        assert!(
+            restored[name] == *expected,
+            "restored {name:?} differs from the stored compiler output"
+        );
+    }
+    let restored = fixture.success(&mut fixture.command(out.join("defaultlib_canary.exe")));
+    assert_eq!(restored.stdout, b"msvc-defaultlib");
 }
 
 #[test]

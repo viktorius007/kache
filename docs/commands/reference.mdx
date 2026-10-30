@@ -17,9 +17,9 @@ The envelope is documented in [`cli.schema.json`](https://github.com/kunobi-ninj
 
 | Command | Purpose |
 | --- | --- |
-| `init` | Configure Cargo, optional C/C++ shims, test pacing, and the daemon service |
+| `init` | Configure Cargo, Unix Cargo/compiler shims, test pacing, shell completions, and the daemon service |
 | `doctor` | Diagnose setup and store integrity |
-| `config` | Open the configuration editor |
+| `config` | Edit configuration interactively or inspect/change selected file values |
 | `stats` | Hit rate, time saved and cache size; `--full` for the full build report. Alias: `status` |
 | `clean` | Free disk space: remove old target directories, or empty the cache |
 | `monitor` | Open the live dashboard |
@@ -182,6 +182,7 @@ The links point at a path that survives upgrades when one reaches the running bi
 
 ```bash
 kache doctor
+kache doctor --probe
 kache doctor --fix
 kache doctor --verify
 kache doctor --checksums
@@ -191,12 +192,23 @@ kache doctor --repair
 - `--fix` migrates from sccache: it stops a running sccache server, replaces `sccache` with `kache` in `$CARGO_HOME/config.toml`, and prints the lines to change in your shell startup files. It does not set up other missing pieces such as `rustc-wrapper` or the shims; run `kache init` for those.
 - `--purge-sccache` also deletes the sccache cache directory (`~/Library/Caches/Mozilla.sccache` on macOS, `~/.cache/sccache` on Linux) and runs `cargo uninstall sccache` when sccache was installed with Cargo. It requires `--fix`.
 - `--verify` checks entries, blobs, and metadata. It exits 1 while corrupted entries or index mismatches remain, so a scheduled job can gate on it. Orphan blobs do not count.
+- `--probe` compiles a small Rust library, removes its output, then checks that the second invocation restores identical bytes without running the compiler. It uses an isolated temporary cache and configuration, never accesses the remote, and removes its files afterwards. Each wrapped invocation has a 30-second deadline. It can also run with `--json`; findings appear in `checks` and `issues`.
 - `--checksums` also hashes blob contents and implies `--verify`.
 - `--repair` removes corrupted entries, reconciles the index with the entries on disk, reclaims orphan blobs, prunes stale C/C++ memos, input predictions and old file hashes, and compacts a large, sparse index when disk space allows. It implies `--verify`.
 
 `--purge-sccache` and `--repair` delete data. Check what they will remove before running them.
 
 Doctor reports issues and still exits 0; scripts read them from `kache doctor --json`. Only `--verify`, and the options that imply it, exit 1 for what they find.
+
+Doctor checks cache-directory write access and read/write access to existing index, WAL and SHM files. On Unix it also shows this process's soft and hard open-file limits. Run it as the same user and in the same environment as the failing build.
+
+Where volume information is available, doctor checks free space for the cache, Cargo outputs and temporary files, using existing ancestor directories for paths not created yet. The cache warning uses `cache.auto_recover_min_free_bytes`, with a minimum working reserve of 1 GiB even when automatic recovery is off. Cargo output and temporary volumes use the 1 GiB reserve.
+
+Storage rows include the volume identity when reported. Unix rows show available and total inode counts; exhausted inodes are an issue even when bytes remain free. Unreported inode capacity stays unavailable. Windows reports available bytes and a volume GUID, without inode counts. Distinct volume identities can share capacity through an APFS container, so their free-space figures are not independent. These checks do not remove anything; `kache clean --dry-run` previews tracked build directories.
+
+When a daemon answers, doctor compares its reported configuration with this process's snapshot and names differences in store paths, remote state and other reported settings. New daemons also report their PID, effective user and open-file limits captured after startup raised the limit. Older daemons show an informational notice when those fields are unavailable. The temporary cache probe checks the local Rust pipeline separately from the configured store and project-specific flags.
+
+If a build emitted a store-open warning in the last 24 hours, "Store warning history" shows when it was recorded, even when the database opens now. The marker retains no error details or Kache version. This history is informational and requires the same temporary directory. If a build still fails, rerun it with `KACHE_LOG_FILE=kache=debug,kache_store=debug` and inspect `kache.log` (see [diagnostic logs](/docs/daemon/lifecycle)).
 
 Doctor also reports, for information, how many misses in the latest build differ from the same crates built in another checkout ("Other checkouts"); `kache explain` says what to set. It reports where the running binary is installed ("Install path"), whether the C/C++ shims are active, broken, not first on `PATH` or not installed, and whether the login service runs a binary that no longer exists, is not executable, or is a different file from the running Kache. Run `kache daemon install` to fix the last one.
 
@@ -309,7 +321,7 @@ kache stats --full
 kache stats --last-build --root "$PWD"
 ```
 
-`kache stats` (alias `status`) groups its summary into Builds, Lifetime, Storage and Services. `Cache` counts registered, deduplicated blob bytes. GC compares them with `Limit`, leaving out blobs that a `target/` directory still holds as a clone, because evicting those frees no disk; `On disk` shows that split, so `Cache` can stay above `Limit` with nothing left to evict. `Volume` shows the free and total space of the volume holding the cache, and whether [free-space recovery](/docs/getting-started/configuration#target-directory-cleanup) is on; JSON carries it as `volume` (`total_bytes`, `free_bytes`, `recovery_floor_bytes`, `below_floor`, `recovers_targets`), absent on Windows. `Dedup` shows logical entry bytes and the space saved by sharing blobs. `By time` weights hits by compile work, and `Miss time` shows the time spent on misses with its share of wrapper time. Index size and WAL size stay in the summary; rowid high-water marks appear under `--full` and in JSON. `--full` prints the full build report described below.
+`kache stats` (alias `status`) groups its summary into Builds, Lifetime, Storage and Services. The Builds section shows local, prefetched and remote hit counts, duplicates and misses in its `Sources` row. `Cache` counts registered, deduplicated blob bytes. GC compares them with `Limit`, leaving out blobs that a `target/` directory still holds as a clone, because evicting those frees no disk; `On disk` shows that split, so `Cache` can stay above `Limit` with nothing left to evict. `Volume` shows the free and total space of the volume holding the cache, and whether [free-space recovery](/docs/getting-started/configuration#target-directory-cleanup) is on; JSON carries it as `volume` (`total_bytes`, `free_bytes`, `recovery_floor_bytes`, `below_floor`, `recovers_targets`), absent when the volume probe is unavailable. Free space counts bytes available to the caller; on Windows, total capacity also reflects per-user quotas. `Dedup` shows logical entry bytes and the space saved by sharing blobs. `By time` weights hits by compile work, and `Miss time` shows the time spent on misses with its share of wrapper time. Index size and WAL size stay in the summary; rowid high-water marks appear under `--full` and in JSON. `--full` prints the full build report described below.
 
 Below the window's rows, a section starting with `Since` shows totals since kache began counting: compile time avoided and the number of hits, bytes restored by reflink or hardlink against bytes copied, and store bytes GC removed, split into automatic runs (the daemon and the auto-GC worker) and `kache gc` runs you started. The event log rotates by size, so each rotation adds the events it drops to `savings.json` in the cache dir, and each GC run that frees bytes adds them there too. The totals are that file plus the events the log still holds, and volume shards add their own GC totals. The section is left out until something is counted. A crash between a rotation and its update of `savings.json` loses those events from the totals; nothing is ever counted twice. A corrupt `savings.json` is moved to `savings.json.corrupt` and counting starts over; one written by a newer kache is left alone. `kache stats --json` carries the same figures in a `lifetime` object (`since`, `hits`, `hit_compile_time_ms`, `zero_copy_bytes`, `copied_bytes`, `pruned_automatic_bytes`, `pruned_requested_bytes`).
 
@@ -351,6 +363,11 @@ The session report includes cache hits, misses, bypass reasons, restored bytes a
 JSON exposes the selection in `meta.session` (`root`, optional `session_id`, `inferred`, `inactivity_secs`); trace output carries it as `session`. In session reports, `since_secs` and `since_hours` describe the lookback to the first retained compiler start; `meta.session` defines the selection.
 
 Raw compiler events at schema 26 add `rebuilt_package`, `rebuilt_fingerprint`, `rebuilt_path` and `rebuilt_paths` when an actual successful compile produced outputs. Unknown package metadata is omitted. `rebuilt_fingerprint` is Kache's input cache key, not Cargo's on-disk freshness hash. Cache restores and Fresh Cargo artifacts do not report a rebuild. Tagged cleanup records report removed units separately from compiler `BuildEvent` records.
+
+That is the event generation which introduced these fields, not the versioned
+CLI JSON schema. Raw event logs and cache-index layouts are private interfaces;
+use the documented report/envelope schemas for scripts. See
+[Compatibility](/docs/compatibility).
 
 Every report format totals the wrapper's phases per crate: startup, key computation, lookup, scheduler wait, restore or store, and the unattributed remainder. Startup runs from process start to wrapper entry. Key computation splits out the rustc dep-info pre-pass by time and run count. Scheduler wait is the flight join plus permit acquisition. Unattributed is wrapper overhead minus every measured phase, where overhead excludes the compile on a compiled crate and is the whole wrapper time on a hit. Events written by wrappers before schema 17 report zero startup, dep-info and wait time.
 
@@ -396,11 +413,20 @@ Without a crate, `explain` reads the latest recorded build and says why it misse
 | own inputs changed | Its sources, compiler flags, profile or features, an environment variable it reads, its linker, or its path remapping changed |
 | differs from the build in another checkout | The first build of the crate in this tree, and its inputs differ from the same crate built in another checkout. `kache explain <crate>` names the input. A path into the checkout that Kache did not map needs `KACHE_BASE_DIR`; a C or C++ library a build script generated with the checkout's path or a timestamp in it needs prefix maps and `ZERO_AR_DATE`; a flag or file that really differs needs nothing |
 | no earlier compile | The first build of the crate in this tree, or older history was rotated away |
-| unexplained | Nothing recorded why; `[cache] explain_miss = true` records it from the next build |
+| miss details were not recorded | The retained event lacks key-comparison details; `[cache] explain_miss = true` records them from the next build. Older releases call this unexplained |
+
+The report shows the Kache versions that recorded the build alongside the installed version. "Earlier Kache bugs" separates recognized failures from releases before a known fix. The old prediction-metadata migration failure was fixed in v2.0.0-rc.3: Kache rebuilds those predictions and keeps compiled cache entries. There is no need to clear the cache. The same failure recorded by RC.3 or later remains a normal error, as do records whose producer version is unknown.
+
+`kache explain --all` keeps the full retained history and shows the producer version for each invocation. JSON preserves the original reasons, adds `version` to individual records, and marks recognized older failures with `fixed_in`.
 
 The report ends with the command that explains the costliest crate, and the one that writes the build's timeline as a Perfetto trace. `--root` limits it to builds of one tree. It exits 0; the hidden `kache diff` prints the miss counts and unexplained shares of the two builds and exits 1 when either grew, for scripts that gate on that. `kache why-miss` is the same command under its earlier name.
 
 ### One crate
+
+Explanations use retained historical data. Main dates the selected build and
+distinguishes missing diagnostics from a known input change. Enabling recording
+cannot reconstruct earlier data. See
+[Historical diagnostics](/docs/getting-started/troubleshooting#miss-details-or-old-errors-are-missing-from-history).
 
 ```bash
 kache explain serde
@@ -519,9 +545,18 @@ do not include setup or an explicit warm step.
 
 ```bash
 kache config
+kache config path
+kache config list --json
+kache config get cache.local_only
+kache config set --project cache.local_only true
+kache config unset --project cache.local_only
 ```
 
-This command can open even when the current config file is invalid. See [Configuration](/docs/getting-started/configuration).
+Without a subcommand, opens the interactive editor. The subcommands read or edit the selected TOML file without starting a daemon. `get` and `list` show explicit file values, excluding environment overrides, host settings and defaults. A missing key makes `get` or `unset` fail.
+
+Each subcommand accepts `--project`, `--global`, or `--file PATH`. Without one, it uses Kache's normal config-file selection. `--project` selects the nearest existing `.kache.toml`, or creates it in the current directory when setting a value. `--global` selects the user config and ignores `KACHE_CONFIG` and project files. `--file` selects an explicit path. These selectors cannot be combined.
+
+`set` validates known keys and their TOML types. Boolean, number and array values use TOML syntax; strings such as `50GiB` can be unquoted. Workspace declarations and entire tables are edited directly in TOML. Edits preserve comments and other keys, follow existing file symlinks, and replace the file atomically under a writer lock. Invalid TOML is refused. All subcommands support `--json`; the interactive editor does not. See [Configuration](/docs/getting-started/configuration).
 
 ## `kache login`
 
@@ -551,6 +586,8 @@ runner = ["kache", "test-runner"]
 Cargo runs each test binary as `kache test-runner <binary> <args>`. A test binary waits for slots in the scheduler's pool, then runs with its arguments, stdin, exit code and signals unchanged. Binaries without Cargo's hash suffix (`cargo run` targets, doctests), `--list` and `--bench` runs start at once, as does everything when the scheduler is off. Cargo is the caller, so the command is not listed in `kache --help`. See [Test runner](/docs/getting-started/configuration#test-runner).
 
 ## `kache completions`
+
+`kache init` installs and refreshes completions for Bash, Zsh, and Fish on Unix. This command prints a script for manual setup:
 
 ```bash
 kache completions zsh > ~/.zfunc/_kache

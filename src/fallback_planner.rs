@@ -97,7 +97,7 @@ pub async fn resolve_identity_candidates_speculative(
                     RemoteErrorClass::Transient => {
                         retryable_failures.push((key.clone(), class));
                     }
-                    RemoteErrorClass::Timeout => {
+                    RemoteErrorClass::Timeout | RemoteErrorClass::Deadline => {
                         return SpeculativeIdentityOutcome::NonRetryableFailures(vec![(
                             key.clone(),
                             class,
@@ -499,6 +499,7 @@ mod tests {
         remote: Option<crate::config::RemoteConfig>,
     ) -> Config {
         Config {
+            blaze: false,
             readonly_store: None,
             remote_error: None,
             socket_path_override: None,
@@ -516,8 +517,11 @@ mod tests {
             shared_hardlink_restores: false,
             deferred_discovery: true,
             out_dir_alias: true,
+            out_dir_alias_root: None,
             deferred_durability: false,
             daemon_publish: false,
+            trust_daemon_execution: false,
+            daemon_execution_concurrency: None,
             project_rules: crate::config::ProjectRules::default(),
             auto_gc: true,
             index_auto_compact: true,

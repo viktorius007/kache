@@ -470,9 +470,9 @@ jobs:
           test -s tmp/mutants/pr.diff
           # Shard 0 checks the unmutated baseline for the whole matrix.
           # The proof-only crate is compiled and exercised by the Kani job.
-          # --timeout bounds the baseline too. The kache and kache-store
-          # suites ran 146 s, 179 s and 171 s on three consecutive merges,
-          # so 180 left no room and the next test added failed the baseline.
+          # --timeout also bounds the baseline. Its full suite reached the
+          # final integration binary at 300 s in run 39962317701. Give shard
+          # zero 450 s; keep the other workers' 300 s bound.
           ./scripts/with-test-resources.sh cargo mutants \
             --workspace \
             --all-features \
@@ -485,7 +485,7 @@ jobs:
             --in-place \
             --baseline "${{ matrix.index == 0 && 'run' || 'skip' }}" \
             --caught \
-            --timeout 300 \
+            --timeout '${{ matrix.index == 0 && 450 || 300 }}' \
             --build-timeout 600 \
             --annotations github \
             --output 'tmp/mutants/diff-${{ matrix.display }}'
@@ -621,6 +621,8 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - name: Check routes and source parity
         run: bash scripts/check-docs.sh
+      - name: Test documentation install pins
+        run: python3 scripts/test-docs.py
       - name: Keep working notes out of the repository
         run: |
           tracked=$(git ls-files -- notes docs/internal)
@@ -807,7 +809,7 @@ jobs:
     if: github.event_name != 'pull_request' || needs.changes.outputs.nix == 'true'
     # A cold macOS build compiles the optimized binary and tests separately;
     # allow time for the full test suite after both compilations finish.
-    timeout-minutes: ${{ matrix.os == 'macOS' && 60 || 40 }}
+    timeout-minutes: ${{ matrix.os == 'macOS' && 75 || 40 }}
     strategy:
       fail-fast: false
       matrix:
@@ -1028,7 +1030,22 @@ jobs:
           cargo test -p kache --test integration_test test_rust_restored_outputs_allow_build_without_wrapper
           cargo test -p kache-fs --all-features
           cargo test -p kache-store --lib
-          cargo test -p kache --bins -- store:: wrapper::tests::materialize_cached_artifact
+          library_tests=(cargo test -p kache --lib)
+          for filter in store:: wrapper::tests::materialize_cached_artifact cli::doctor_storage::; do
+            selected=$("${library_tests[@]}" -- --list "$filter")
+            printf '%s\n' "$selected"
+            if ! grep -q ': test$' <<< "$selected"; then
+              echo "::error::No kache library tests selected by $filter"
+              exit 1
+            fi
+          done
+          "${library_tests[@]}" -- store:: wrapper::tests::materialize_cached_artifact cli::doctor_storage::
+      - name: Check daemon admission with unavailable security labels on btrfs
+        env:
+          KACHE_TEST_SCRATCH_DIR: /mnt/cow/scratch
+          TMPDIR: /mnt/cow/tmp
+          RUSTC_WRAPPER: ""
+        run: ./scripts/test-unavailable-proc-labels.sh
       - name: Report mount usage
         if: always()
         run: df -h /mnt/cow || true
@@ -1043,9 +1060,8 @@ jobs:
     # Expand every platform name even when docs-only changes skip the work.
     env:
       RUN_E2E: ${{ github.event_name != 'pull_request' || needs.changes.outputs.e2e == 'true' }}
-    # Per-arm cap. A hosted image or dependency download can still stall;
-    # without a job timeout the default is 6h. Normal runs are <10m.
-    timeout-minutes: 30
+    # Leave room after cold macOS/Windows builds for the harness and cleanup.
+    timeout-minutes: ${{ (matrix.os == 'macOS' || matrix.os == 'Windows') && 45 || 30 }}
     # All three arms are blocking. Windows was non-blocking while its port
     # landed (the cache store #196, the `.sh` fallback wrappers #197, the
     # rust-c-ffi cc-rs path #198, the harness `.exe`/probe/OUT_DIR fixes
@@ -1095,6 +1111,12 @@ jobs:
       - name: Install cross gcc (riscv64 + armv7)
         if: env.RUN_E2E == 'true' && runner.os == 'Linux'
         run: |
+          # A slow Azure mirror can keep delivering bytes without timing out.
+          # Prefer the image's official Ubuntu fallback when it is available.
+          if [ -f /etc/apt/apt-mirrors.txt ] &&
+             grep -q '^https://archive[.]ubuntu[.]com/ubuntu' /etc/apt/apt-mirrors.txt; then
+            sudo sed -i '/azure[.]archive[.]ubuntu[.]com/d' /etc/apt/apt-mirrors.txt
+          fi
           sudo apt-get update
           sudo apt-get install -y gcc-riscv64-linux-gnu gcc-arm-linux-gnueabihf
 
@@ -1595,10 +1617,10 @@ jobs:
         version-consistency,
       ]
     # In-org mirror of the shared release workflow, pinned to its merged commit.
-    uses: kunobi-ninja/_workflows/.github/workflows/_release-rust.yml@5c4d21956396270698b589ba5808dc51b33ffbd2
+    uses: kunobi-ninja/_workflows/.github/workflows/_release-rust.yml@d604e5a4402c5fdaf3968f897b0fa4357c8295fa
     with:
       binary_name: kache
-      companion_binary: kache-engine
+      companion_binaries: '["kache-engine"]'
       cache_windows_sysroot: true
       # Include both binaries in Debian packages and release archives.
       build_deb: true

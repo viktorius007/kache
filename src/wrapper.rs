@@ -114,23 +114,15 @@ fn print_progress(crate_name: &str, result: EventResult, elapsed_ms: u64, size: 
     ));
 }
 
-/// Build the user-facing diagnostic shown when the cache index can't be
-/// opened (e.g. `Store::open` fails with a disk I/O / locking error).
-///
-/// Kept pure — takes the error, returns the text — so it's unit-testable
-/// without touching stderr. Deliberately **generic**: it must not name any
-/// specific environment (containers, cross, podman, network mounts). The
-/// cause is described in terms of the underlying storage requirement so the
-/// guidance applies to every case where the index can't be opened.
+/// Explain the fallback without inferring a cause from a SQLite open error.
 fn store_unavailable_message(err: &anyhow::Error) -> String {
     format!(
         "[kache] the cache index could not be opened after retries ({err:#}).\n\
          [kache] Caching is disabled for this build — compilation still succeeds,\n\
          [kache] just without cache hits or stores (everything builds uncached).\n\
-         [kache] This is usually a storage issue: the cache directory is on a\n\
-         [kache] filesystem that doesn't support reliable file locking, or it is\n\
-         [kache] being accessed from more than one machine at the same time.\n\
-         [kache] → set KACHE_CACHE_DIR to a fast, local, single-machine path"
+         [kache] Run `kache doctor` to check cache permissions and file limits.\n\
+         [kache] SQLite also requires reliable file locking: use KACHE_CACHE_DIR\n\
+         [kache] to select a local, single-machine path."
     )
 }
 
@@ -1153,7 +1145,10 @@ fn lookup_or_miss_with_clock<T>(
 /// The store named by [`Config::readonly_store`], opened read-only, or `None`
 /// when none is set, when it is this process's own store, or when it cannot be
 /// opened that way (said at warn level).
-fn open_readonly_store(config: &Config, options: crate::store::StoreOptions) -> Option<Store> {
+pub(crate) fn open_readonly_store(
+    config: &Config,
+    options: crate::store::StoreOptions,
+) -> Option<Store> {
     let dir = config.readonly_store.as_ref()?;
     if *dir == config.cache_dir {
         return None;
@@ -2952,7 +2947,7 @@ fn cc_depinfo_rewrite_root(parsed: &crate::compiler::cc::CcArgs) -> Option<std::
     cc_depinfo_rewrite_root_from_cwd(parsed, parsed.invocation_env.cwd()?)
 }
 
-fn rustc_event_root(args: &RustcArgs) -> String {
+pub(crate) fn rustc_event_root(args: &RustcArgs) -> String {
     let written_to = args.out_dir.clone().or_else(|| {
         args.output
             .as_deref()
@@ -3586,6 +3581,7 @@ pub(crate) fn run_for(
     )?;
 
     if exit == 0 {
+        retire_prestaged_executables(effective_config, &compiler, &args);
         complete_current_extra_inputs_after_success(
             effective_config,
             &args,
@@ -4949,7 +4945,10 @@ fn run_parsed_rustc(
     // fault that caused it (kunobi-ninja/kache#1326).
     let degraded = kache_format::reports_debug_info_tool_failure(&result.stderr)
         .then(|| "rustc could not post-process its debug info".to_string());
-    if let Some(reason) = unaudited.or(degraded) {
+    // A Windows executable finds its `.pdb` by the GUID, age and name it
+    // records: it is cached only with that very `.pdb`, named by file name.
+    let unpaired = unpaired_executable_debug_info(args, &result.artifacts);
+    if let Some(reason) = unaudited.or(degraded).or(unpaired) {
         tracing::warn!("not caching {crate_name}: {reason}");
         let elapsed = start.elapsed().as_millis() as u64;
         log_event(
@@ -5030,12 +5029,14 @@ fn run_parsed_rustc(
 
     // Store-time debug bundle (kunobi-ninja/kache#319): a macOS `-g`
     // executable's `N_OSO` debug map points at per-build `.o` files that a
-    // restoring build won't have — so while they still exist, bake a
-    // self-contained `.dSYM` and cache it (as one flat tar; the store holds
-    // flat files only) alongside the entry. Restore unpacks it next to the
-    // binary, where lldb prefers it over the stale debug map. The staging
-    // TempDir must outlive `store.put*` below, which hashes the tar at this
-    // path — same lifetime pattern as `prepare_cc_store_files`.
+    // restoring build won't have. Unpacked debug info still has those
+    // objects, so the platform runs dsymutil. Packed debug info, including
+    // rustc's macOS default when `-Csplit-debuginfo` was not passed, already
+    // wrote the adjacent `.dSYM` (kunobi-ninja/kache#1752); that bundle is
+    // what gets cached. The store holds one flat tar. Restore unpacks it
+    // next to the binary, where lldb prefers it over the stale debug map.
+    // The staging TempDir must outlive `store.put*` below, which hashes the
+    // tar at this path — same lifetime pattern as `prepare_cc_store_files`.
     let mut _debug_bundle_staging: Option<tempfile::TempDir> = None;
     if wants_debug_bundle(args)
         && let Some((exec_path, exec_name)) =
@@ -5043,9 +5044,11 @@ fn run_parsed_rustc(
     {
         match tempfile::tempdir_in(args.invocation_env().temp_dir()) {
             Ok(staging) => {
-                match platform::current_for(args.invocation_env())
-                    .package_debug_bundle(&exec_path, staging.path())
-                {
+                match platform::current_for(args.invocation_env()).package_debug_bundle(
+                    &exec_path,
+                    staging.path(),
+                    args.get_codegen_opt("split-debuginfo"),
+                ) {
                     Ok(Some(tar_path)) => {
                         result.artifacts.push(crate::compiler::Artifact {
                             path: tar_path,
@@ -5058,9 +5061,9 @@ fn run_parsed_rustc(
                         });
                         _debug_bundle_staging = Some(staging);
                     }
-                    // None (non-macOS host, tool missing/failed) is the
-                    // documented best-effort degradation: cache the
-                    // binary without a bundle.
+                    // None (non-macOS host, packed with no bundle, tool
+                    // missing/failed) is the documented best-effort
+                    // degradation: cache the binary without a bundle.
                     Ok(None) => {}
                     Err(e) => {
                         tracing::warn!(
@@ -5419,6 +5422,22 @@ fn prepare_cc_store_files_for(
     prepare_cc_store_files_in(artifacts, depinfo_anchor, None, &[], env.temp_dir())
 }
 
+/// Tempfiles are created mode `0600`. Publishing only clears write bits, so a
+/// dep-info snapshot would be stored `0400` and another user of a shared store
+/// could not read it. `0644` becomes the `0444` of every other non-executable
+/// blob. Other staged files keep the mode copied from the compiler output.
+fn set_depinfo_staging_mode(path: &Path) -> Result<()> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o644))
+            .with_context(|| format!("setting dep-info staging mode on {}", path.display()))?;
+    }
+    #[cfg(not(unix))]
+    let _ = path;
+    Ok(())
+}
+
 /// Prepare snapshots in `staging_dir` when one
 /// is given: a hand-off then links them into place instead of copying the
 /// object a second time. An unusable directory falls back to the system
@@ -5468,6 +5487,7 @@ fn prepare_cc_store_files_in(
             );
             std::fs::write(&staged, normalized.as_bytes())
                 .context("cc store: writing normalized dep-info staging file")?;
+            set_depinfo_staging_mode(&staged).context("cc store: setting dep-info staging mode")?;
         } else if artifact.kind == ArtifactKind::DebugBundle
             && std::fs::metadata(&artifact.path).is_ok_and(|meta| meta.is_dir())
         {
@@ -5578,6 +5598,8 @@ fn prepare_rustc_store_files_for(
         staged
             .flush()
             .context("rustc store: flushing private artifact staging file")?;
+        set_depinfo_staging_mode(staged.path())
+            .context("rustc store: setting dep-info staging mode")?;
         let staged = staged.into_temp_path();
         files.push((staged.to_path_buf(), artifact.store_name.clone()));
         temporary_files.push(staged);
@@ -5667,6 +5689,37 @@ fn find_executable_output(
         .map(|a| (a.path.clone(), a.store_name.clone()))
 }
 
+/// Why a linked executable must not be cached: its selected output must be
+/// identifiable, and each PE must carry no external CodeView info or be
+/// stored with the PDB it names ([`crate::pe_pdb`]).
+fn unpaired_executable_debug_info(
+    args: &RustcArgs,
+    artifacts: &crate::compiler::ArtifactSet,
+) -> Option<String> {
+    let executable_name = match crate::pe_pdb::executable_output_name(
+        args.is_user_facing_executable() && args.emits_link(),
+        args.output.as_deref(),
+        artifacts
+            .outputs()
+            .iter()
+            .map(|artifact| artifact.store_name.as_str()),
+    ) {
+        Ok(name) => name,
+        Err(error) => {
+            return Some(format!(
+                "its executable output cannot be identified: {error:#}"
+            ));
+        }
+    };
+    let outputs = artifacts
+        .outputs()
+        .iter()
+        .map(|a| (a.path.as_path(), a.store_name.as_str()));
+    crate::pe_pdb::check_outputs(outputs, executable_name.as_deref())
+        .err()
+        .map(|error| format!("its executable cannot be cached with its .pdb: {error:#}"))
+}
+
 /// Bundle debug info for cached user binaries unless the invocation opts out
 /// of dsymutil. `get_codegen_opt` follows rustc's last-value-wins rule.
 /// Executable-cache admission has already happened before this gate.
@@ -5690,6 +5743,9 @@ fn take_prestaged(
     cached_file: &crate::store::CachedFile,
     target_path: &Path,
 ) -> bool {
+    if kache_store::workspace::current().is_some() {
+        return false;
+    }
     strategy == link::LinkStrategy::Copy
         && cached_file.size >= crate::prestage::MIN_BYTES
         && crate::prestage::take(target_path, &cached_file.hash)
@@ -5729,6 +5785,43 @@ fn rustc_output_dir(args: &RustcArgs) -> Option<PathBuf> {
     }
 }
 
+/// A miss, passthrough or differently keyed hit can leave a borrowed staged
+/// prediction unused. Retire it even when this invocation never stored an entry.
+fn retire_prestaged_executables(config: &Config, compiler: &RustcCompiler, args: &RustcArgs) {
+    if !args.emits_link() || !(args.is_executable_output() || args.is_user_facing_executable()) {
+        return;
+    }
+    let Some(target_dir) = prestage_target_dir(args) else {
+        return;
+    };
+    if !crate::prestage::has_predictions(&config.cache_dir, &target_dir) {
+        return;
+    }
+    let generation = crate::prestage::hint_generation(&config.cache_dir, &target_dir);
+    let retire = |path: &Path, name: &str| {
+        let primary = args.is_user_facing_executable()
+            && (args.output.as_deref() == Some(path)
+                || args.output_stem().as_deref() == Some(name));
+        if (compiler.classify_output(args, name).link_strategy() == link::LinkStrategy::Copy
+            || primary)
+            && let Some(dest) = args.resolve_invocation_path(path)
+        {
+            crate::prestage::complete(&config.cache_dir, &target_dir, &dest, &generation);
+        }
+    };
+    if let Some(output) = &args.output {
+        if let Some(name) = output.file_name().and_then(|name| name.to_str()) {
+            retire(output, name);
+        }
+    } else if let (Some(out_dir), Some(crate_name)) = (&args.out_dir, &args.crate_name) {
+        compile::for_each_out_dir_candidate(
+            crate_name,
+            args.extra_filename.as_deref().unwrap_or(""),
+            |name| retire(&out_dir.join(name), name),
+        );
+    }
+}
+
 /// Where a cached output goes: the exact `-o` path for the primary output
 /// in `-o` mode, the output directory for everything else.
 fn artifact_target_path(args: &RustcArgs, output_dir: &Path, name: &str) -> PathBuf {
@@ -5751,6 +5844,9 @@ fn remember_prestaged_executables(
     shared_loadable: Option<ArtifactKind>,
     meta: &crate::store::EntryMeta,
 ) {
+    if kache_store::workspace::current().is_some() {
+        return;
+    }
     let Some(target_dir) = prestage_target_dir(args) else {
         return;
     };
@@ -7156,7 +7252,6 @@ fn compute_rustc_cache_key(
     if let KeyDiscovery::Emitted(dep_info, tree) = discovery {
         crate::cache_key::provide_dep_info(dep_info, tree);
     }
-    let emitted_sources = crate::cache_key::provided_dep_info_sources_for(args.invocation_env());
     let mut file_hasher = match store {
         Some(store) => store
             .file_hasher_for(args.invocation_env())
@@ -7167,6 +7262,7 @@ fn compute_rustc_cache_key(
     .with_input_predictions(config.input_predictions)
     .with_prediction_flights(flight_dir)
     .with_own_dirs(written_while_building(config, store, args.invocation_env()));
+    let emitted_sources = crate::cache_key::provided_dep_info_sources_for(&file_hasher);
     if config.modified_input_guard || emitted {
         // Flag keyed inputs touched at/after this invocation started — their
         // content at hash time may differ from what rustc reads, so we'll look
@@ -7701,6 +7797,43 @@ fn restore_from_cache_with_memo_store(
              debug info — evicting degraded entry and recompiling",
             meta.crate_name
         );
+    }
+
+    // The key namespace excludes legacy EXE-only producers. Still validate
+    // a cached pair before touching any destination: incomplete metadata or
+    // mismatched blobs must never be published as a hit. Library-only entries
+    // do not allocate paths or open blobs for this audit.
+    let reject_pair = |error: anyhow::Error| {
+        let _ = store.remove_entry(&meta.cache_key);
+        error.context(
+            "cached executable/PDB pair is incomplete or incompatible; evicting and recompiling",
+        )
+    };
+    let executable_name = crate::pe_pdb::executable_output_name(
+        args.is_user_facing_executable() && args.emits_link(),
+        args.output.as_deref(),
+        meta.files.iter().map(|file| file.name.as_str()),
+    )
+    .map_err(reject_pair)?;
+    if executable_name.is_some()
+        || meta
+            .files
+            .iter()
+            .any(|file| crate::pe_pdb::is_windows_executable_name(&file.name))
+    {
+        let cached_outputs: Vec<_> = meta
+            .files
+            .iter()
+            .map(|file| (store.blob_path(&file.hash), file.name.as_str()))
+            .collect();
+        if let Err(error) = crate::pe_pdb::check_cached_outputs(
+            cached_outputs
+                .iter()
+                .map(|(path, name)| (path.as_path(), *name)),
+            executable_name.as_deref(),
+        ) {
+            return Err(reject_pair(error));
+        }
     }
 
     // Legacy entries may predate emit-kind metadata and therefore bypass the
@@ -9099,7 +9232,7 @@ impl<'a> EventInputs<'a> {
         self
     }
 
-    fn exit_code(mut self, exit_code: i32) -> Self {
+    pub(crate) fn exit_code(mut self, exit_code: i32) -> Self {
         self.exit_code = Some(exit_code);
         self
     }

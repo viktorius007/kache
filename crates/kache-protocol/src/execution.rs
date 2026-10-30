@@ -2,9 +2,13 @@
 use serde::{Deserialize, Serialize};
 use std::ffi::{OsStr, OsString};
 
+pub mod process;
+pub mod unix;
 pub mod windows;
+pub mod workspace;
 
-pub const EXECUTION_VERSION: u32 = 1;
+/// Version 2 requires client-owned restores on every supported platform.
+pub const EXECUTION_VERSION: u32 = 2;
 
 /// Native strings retain Unix bytes or Windows UTF-16, including values that
 /// cannot be represented by a Rust String. A receiver rejects a foreign encoding.
@@ -115,6 +119,14 @@ impl std::fmt::Debug for ExecutionRequest {
 pub enum ExecutionChannels {
     /// Descriptors arrive in stdin/stdout/stderr, optional terminal, jobserver order.
     Unix { terminal: bool, jobserver: Vec<i32> },
+    /// Unix clients retain native process creation. Two private broker
+    /// descriptors follow the standard streams and precede the jobserver.
+    UnixClient {
+        terminal: bool,
+        jobserver: Vec<i32>,
+        #[serde(default)]
+        trusted_pipeline: bool,
+    },
     /// The server duplicates these from its authenticated named-pipe peer.
     Windows {
         stdin: u64,
@@ -123,7 +135,26 @@ pub enum ExecutionChannels {
         /// Native children and console writes remain in the original client.
         #[serde(default)]
         process_broker: bool,
+        /// Permit the daemon pipeline to use its own file-access context.
+        #[serde(default)]
+        trusted_pipeline: bool,
     },
+}
+
+impl ExecutionChannels {
+    /// Both peers must opt in before the daemon uses its own access context.
+    pub fn trusted_pipeline(&self, daemon_trust: bool) -> bool {
+        daemon_trust
+            && match self {
+                Self::UnixClient {
+                    trusted_pipeline, ..
+                }
+                | Self::Windows {
+                    trusted_pipeline, ..
+                } => *trusted_pipeline,
+                Self::Unix { .. } => false,
+            }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -176,8 +207,66 @@ impl std::fmt::Debug for DescriptorTicket {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExecutionStatus {
+    #[serde(default)]
+    pub protocol_version: u32,
+    pub eligible: bool,
+    pub client_trust_enabled: bool,
+    pub daemon_trust_enabled: bool,
+    pub detail: String,
+}
+
+impl ExecutionStatus {
+    pub fn compatible(&self) -> bool {
+        self.protocol_version == EXECUTION_VERSION
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn pipeline_trust_requires_both_peers_and_defaults_to_false() {
+        use super::ExecutionChannels;
+        for platform in ["windows", "unix_client"] {
+            let legacy = if platform == "windows" {
+                r#"{"platform":"windows","stdin":0,"stdout":0,"stderr":0,"process_broker":true}"#
+            } else {
+                r#"{"platform":"unix_client","terminal":false,"jobserver":[]}"#
+            };
+            let channels: ExecutionChannels = serde_json::from_str(legacy).unwrap();
+            assert!(!channels.trusted_pipeline(true));
+            for client in [false, true] {
+                let mut json: serde_json::Value = serde_json::from_str(legacy).unwrap();
+                json["trusted_pipeline"] = client.into();
+                let channels: ExecutionChannels = serde_json::from_value(json).unwrap();
+                for daemon in [false, true] {
+                    assert_eq!(channels.trusted_pipeline(daemon), client && daemon);
+                }
+                let round_trip: ExecutionChannels =
+                    serde_json::from_str(&serde_json::to_string(&channels).unwrap()).unwrap();
+                assert_eq!(round_trip, channels);
+            }
+        }
+        assert!(
+            !ExecutionChannels::Unix {
+                terminal: false,
+                jobserver: vec![]
+            }
+            .trusted_pipeline(true)
+        );
+    }
+
+    #[test]
+    fn execution_diagnostics_reject_legacy_and_foreign_protocols() {
+        let mut status: super::ExecutionStatus = serde_json::from_str(r#"{"eligible":true,"client_trust_enabled":false,"daemon_trust_enabled":false,"detail":"old daemon"}"#).unwrap();
+        assert!(!status.compatible());
+        for (version, compatible) in [(0, false), (1, false), (2, true), (3, false)] {
+            status.protocol_version = version;
+            assert_eq!(status.compatible(), compatible);
+        }
+    }
+
     use super::*;
 
     #[test]

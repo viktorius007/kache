@@ -78,6 +78,7 @@ fn host_runner_var() -> String {
 
 /// A scratch directory holding the probe, its cache and its config.
 struct Fixture {
+    _daemon: common::DaemonGuard,
     dir: tempfile::TempDir,
 }
 
@@ -90,7 +91,10 @@ impl Fixture {
             "#!/bin/sh\n: > \"$PROBE_DIR/inner-ran\"\n",
         );
         fs::write(dir.path().join("lib.rs"), "pub fn answer() -> u8 { 42 }\n").unwrap();
-        Self { dir }
+        Self {
+            _daemon: common::DaemonGuard::new(kache_binary(), dir.path().join("cache")),
+            dir,
+        }
     }
 
     fn path(&self) -> &Path {

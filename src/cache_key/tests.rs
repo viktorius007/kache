@@ -318,6 +318,28 @@ fn crt_fold_key(
     sdk: &str,
     deployment_target: Option<&str>,
 ) -> Result<String> {
+    runtime_fold_key(
+        args,
+        rustc_version,
+        linux,
+        macos,
+        crt,
+        "ld",
+        sdk,
+        deployment_target,
+    )
+}
+
+fn runtime_fold_key(
+    args: &RustcArgs,
+    rustc_version: &str,
+    linux: bool,
+    macos: bool,
+    crt: &str,
+    linker: &str,
+    sdk: &str,
+    deployment_target: Option<&str>,
+) -> Result<String> {
     let mut hasher = blake3::Hasher::new();
     hasher.update(b"base-key");
     fold_native_link_runtime_identity(
@@ -334,6 +356,7 @@ fn crt_fold_key(
             }
             Ok(objects)
         },
+        |_, _| Ok(linker.to_string()),
         |_| Ok(sdk.to_string()),
         &KeyEnv::from_parts(
             deployment_target.map(|target| ("MACOSX_DEPLOYMENT_TARGET", target)),
@@ -433,6 +456,7 @@ fn native_linux_crt_probe_fails_closed() {
         true,
         false,
         |_| anyhow::bail!("no startup object"),
+        |_, _| unreachable!("the linker is placed after the CRT objects"),
         |_| unreachable!("linux fold must not probe the macOS SDK"),
         &KeyEnv::default(),
     )
@@ -441,6 +465,261 @@ fn native_linux_crt_probe_fails_closed() {
         err.to_string()
             .contains("determining native Linux CRT/libc identity")
     );
+}
+
+#[test]
+fn native_linux_links_key_the_linker_their_driver_runs() {
+    let args = parsed_linked_bin(None);
+    let key = |linker: &str| {
+        runtime_fold_key(
+            &args,
+            GNU_RUSTC_VERSION,
+            true,
+            false,
+            "crt1.o=aaa;libc.so.6=bbb",
+            linker,
+            "",
+            None,
+        )
+        .unwrap()
+    };
+    assert_ne!(
+        key("mold-2.42.1-digest"),
+        key("mold-3.0.0-digest"),
+        "a new linker behind the same driver must re-key the link"
+    );
+}
+
+#[test]
+fn native_linux_linker_probe_fails_closed() {
+    let bin = parsed_linked_bin(None);
+    let err = fold_native_link_runtime_identity(
+        &mut blake3::Hasher::new(),
+        &bin,
+        GNU_RUSTC_VERSION,
+        true,
+        false,
+        |_| {
+            Ok(BTreeMap::from([
+                ("crt1.o".to_string(), "aaa".to_string()),
+                ("libc.so.6".to_string(), "bbb".to_string()),
+            ]))
+        },
+        |_, _| anyhow::bail!("ld.mold is not installed"),
+        |_| unreachable!("linux fold must not probe the macOS SDK"),
+        &KeyEnv::default(),
+    )
+    .unwrap_err();
+    assert!(
+        format!("{err:#}").contains("identifying the linker the native Linux link runs"),
+        "{err:#}"
+    );
+}
+
+#[test]
+fn rustc_runs_bundled_lld_only_where_it_is_the_default() {
+    let bin = |flags: &[&str], target: Option<&str>| {
+        let mut argv: Vec<String> = [
+            "rustc",
+            "--crate-name",
+            "probe",
+            "--crate-type",
+            "bin",
+            "src/main.rs",
+        ]
+        .into_iter()
+        .map(str::to_string)
+        .collect();
+        argv.extend(flags.iter().map(|flag| flag.to_string()));
+        if let Some(target) = target {
+            argv.extend(["--target".to_string(), target.to_string()]);
+        }
+        RustcArgs::parse(&argv).unwrap()
+    };
+    let x86_64 = |release: &str| {
+        format!("rustc {release}\nhost: x86_64-unknown-linux-gnu\nrelease: {release}\n")
+    };
+    assert!(rustc_defaults_to_bundled_lld(
+        &bin(&[], None),
+        &x86_64("1.90.0")
+    ));
+    assert!(rustc_defaults_to_bundled_lld(
+        &bin(&[], None),
+        &x86_64("1.99.1")
+    ));
+    assert!(rustc_defaults_to_bundled_lld(
+        &bin(&[], None),
+        &x86_64("1.100.0-nightly")
+    ));
+    assert!(!rustc_defaults_to_bundled_lld(
+        &bin(&[], None),
+        &x86_64("1.89.0")
+    ));
+    assert!(!rustc_defaults_to_bundled_lld(
+        &bin(&[], None),
+        DARWIN_RUSTC_VERSION
+    ));
+    assert!(!rustc_defaults_to_bundled_lld(
+        &bin(&[], Some("aarch64-unknown-linux-gnu")),
+        &x86_64("1.90.0")
+    ));
+    for flag in [
+        "-Clinker-features=-lld",
+        "-Clink-self-contained=-linker",
+        "-Clinker-flavor=gnu-cc",
+    ] {
+        assert!(
+            !rustc_defaults_to_bundled_lld(&bin(&[flag], None), &x86_64("1.90.0")),
+            "{flag}"
+        );
+    }
+}
+
+/// With rustc's bundled lld in the default position, the link runs the
+/// `ld.lld` in rustc's `gcc-ld`, not the system `ld` on PATH.
+#[cfg(unix)]
+#[test]
+fn rustcs_bundled_lld_is_the_linker_when_rustc_defaults_to_it() {
+    let directory = tempfile::tempdir().unwrap();
+    let root = directory.path().canonicalize().unwrap();
+    let bin = root.join("bin");
+    let sysroot = root.join("sysroot");
+    let gcc_ld = sysroot.join("lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld");
+    std::fs::create_dir_all(&bin).unwrap();
+    std::fs::create_dir_all(&gcc_ld).unwrap();
+    let driver = root.join("cc");
+    kache_fs::testutil::write_executable(
+        &driver,
+        "#!/bin/sh\ndirs=\"\"\nfor arg in \"$@\"; do case \"$arg\" in -B*) dirs=\"$dirs ${arg#-B}\" ;; -print-prog-name=*) name=${arg#-print-prog-name=}; for dir in $dirs; do if [ -x \"$dir/$name\" ]; then echo \"$dir/$name\"; exit 0; fi; done; echo \"$name\" ;; esac; done\n",
+    );
+    kache_fs::testutil::write_executable(&bin.join("ld"), "system ld");
+    kache_fs::testutil::write_executable(&bin.join("ld.lld"), "system lld");
+    kache_fs::testutil::write_executable(&gcc_ld.join("ld.lld"), "rustc's lld");
+    let env = InvocationEnv::from_parts([("PATH", &bin)], Some(root.clone()), None, root.clone());
+    let args = |flags: &[&str]| {
+        let mut argv: Vec<String> = [
+            "rustc",
+            "--crate-name",
+            "probe",
+            "--crate-type",
+            "bin",
+            "src/main.rs",
+        ]
+        .into_iter()
+        .map(str::to_string)
+        .collect();
+        argv.extend(["--sysroot".to_string(), sysroot.display().to_string()]);
+        argv.extend(flags.iter().map(|flag| flag.to_string()));
+        RustcArgs::parse_for(&argv, &env).unwrap()
+    };
+    let x86_64 = "rustc 1.90.0\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\n";
+    let linker = |flags: &[&str], version: &str| {
+        native_linker_for(&args(flags), version, &driver, None, &env).unwrap()
+    };
+
+    assert_eq!(linker(&[], x86_64), gcc_ld.join("ld.lld"));
+    assert_eq!(
+        linker(&["-Clinker-features=-lld"], x86_64),
+        bin.join("ld"),
+        "opting out of rustc's lld links with the system ld"
+    );
+    assert_eq!(
+        linker(
+            &[],
+            "rustc 1.89.0\nhost: x86_64-unknown-linux-gnu\nrelease: 1.89.0\n"
+        ),
+        bin.join("ld")
+    );
+    std::fs::remove_file(gcc_ld.join("ld.lld")).unwrap();
+    assert_eq!(
+        linker(&[], x86_64),
+        bin.join("ld"),
+        "a sysroot without rustc's lld leaves the system ld"
+    );
+}
+
+/// Placement, the production file hasher and the fold together: the same
+/// driver, flags and path with a new linker behind them give a new key.
+#[cfg(unix)]
+#[test]
+fn a_new_linker_behind_the_same_driver_changes_the_native_link_key() {
+    let directory = tempfile::tempdir().unwrap();
+    let root = directory.path().canonicalize().unwrap();
+    let bin = root.join("bin");
+    std::fs::create_dir_all(&bin).unwrap();
+    let driver = root.join("cc");
+    kache_fs::testutil::write_executable(
+        &driver,
+        "#!/bin/sh\nfor arg in \"$@\"; do case \"$arg\" in -print-prog-name=*) echo \"${arg#-print-prog-name=}\" ;; esac; done\n",
+    );
+    kache_fs::testutil::write_executable(&bin.join("ld.mold"), "mold 2.42.1");
+    let env = InvocationEnv::from_parts([("PATH", &bin)], Some(root.clone()), None, root.clone());
+    let args = RustcArgs::parse_for(
+        &[
+            "rustc".to_string(),
+            "--crate-name".to_string(),
+            "probe".to_string(),
+            "--crate-type".to_string(),
+            "bin".to_string(),
+            "src/main.rs".to_string(),
+            format!("-Clinker={}", driver.display()),
+            "-Clink-arg=-fuse-ld=mold".to_string(),
+        ],
+        &env,
+    )
+    .unwrap();
+    let memo = root.join("probes");
+    let hasher = FileHasher::new_for(&env);
+    let key = || {
+        let mut fold = blake3::Hasher::new();
+        fold_native_link_runtime_identity_for(
+            &mut fold,
+            &args,
+            GNU_RUSTC_VERSION,
+            true,
+            false,
+            |_| {
+                Ok(BTreeMap::from([
+                    ("crt1.o".to_string(), "aaa".to_string()),
+                    ("libc.so.6".to_string(), "bbb".to_string()),
+                ]))
+            },
+            |driver, rustc_version| {
+                let linker = native_linker_for(&args, rustc_version, driver, Some(&memo), &env)?;
+                hasher.hash(&linker)
+            },
+            |_| unreachable!("linux fold must not probe the macOS SDK"),
+            &KeyEnv::default(),
+            &env,
+        )
+        .unwrap();
+        fold.finalize().to_hex().to_string()
+    };
+    let old = key();
+    assert_eq!(key(), old);
+    kache_fs::testutil::write_executable(&bin.join("ld.mold"), "mold 3.0.0");
+    assert_ne!(key(), old, "an upgraded linker must re-key the link");
+}
+
+#[test]
+fn cross_target_and_library_outputs_place_no_linker() {
+    for args in [
+        parsed_linked_bin(Some("aarch64-unknown-linux-gnu")),
+        parsed_crate_type("rlib", None),
+    ] {
+        fold_native_link_runtime_identity(
+            &mut blake3::Hasher::new(),
+            &args,
+            GNU_RUSTC_VERSION,
+            true,
+            false,
+            |_| panic!("no CRT probe for {:?}", args.crate_types),
+            |_, _| panic!("no linker probe for {:?}", args.crate_types),
+            |_| panic!("no SDK probe for {:?}", args.crate_types),
+            &KeyEnv::default(),
+        )
+        .unwrap();
+    }
 }
 
 #[test]
@@ -760,6 +1039,8 @@ fn windows_native_link_search_dirs_include_l_and_libpath_and_reject_ambiguity() 
         WindowsNativeLinkSearchDirs {
             rustc: vec![native.clone()],
             linker: vec![native, libpath],
+            files: vec![],
+            default_libraries: vec![],
         }
     );
 
@@ -778,6 +1059,9 @@ fn windows_native_link_search_dirs_include_l_and_libpath_and_reject_ambiguity() 
         "/DEFAULTLIB:foo.lib",
         "app.res",
         "APP.RES",
+        r"C:\",
+        "Z:/",
+        r"\\",
         "extra.obj",
         "exports.exp",
         "/DEF:exports.def",
@@ -795,10 +1079,693 @@ fn windows_native_link_search_dirs_include_l_and_libpath_and_reject_ambiguity() 
         .unwrap();
         let error = windows_native_link_search_dirs(&args).unwrap_err();
         assert!(
-            error.to_string().contains("not hashed"),
+            error.to_string().contains("not cacheable"),
             "unmodeled Windows link input must fail closed: {linker_arg}: {error:#}"
         );
     }
+}
+
+#[test]
+fn windows_defaultlib_requests_are_not_rustc_libraries() {
+    use crate::native_link_key::WindowsDefaultLibrary;
+
+    for carrier in ["link-arg", "link-args"] {
+        let args = RustcArgs::parse(&[
+            "rustc".into(),
+            "--crate-type=bin".into(),
+            format!("-C{carrier}=/DEFAULTLIB:ucrt.lib"),
+            "-Clink-args=/DEBUG -defaultlib:MSVCRT /NODEFAULTLIB:libucrt.lib".into(),
+        ])
+        .unwrap();
+        let inputs = windows_native_link_search_dirs(&args).unwrap();
+        assert_eq!(
+            inputs.default_libraries,
+            [
+                WindowsDefaultLibrary::parse("/DEFAULTLIB:ucrt.lib").unwrap(),
+                WindowsDefaultLibrary::parse("/DEFAULTLIB:msvcrt.lib").unwrap(),
+            ]
+        );
+        assert!(args.link_libs.is_empty());
+        assert!(inputs.files.is_empty());
+    }
+    for value in [
+        "/DEFAULTLIB",
+        "/DEFAULTLIB:",
+        "/DEFAULTLIB=ucrt.lib",
+        "/DEFAULTLIB:helper.lib",
+        r"/DEFAULTLIB:C:\sdk\ucrt.lib",
+        "/DEFAULTLIB:../ucrt.lib",
+        "/DEFAULTLIB:ucrt.lib,helper.lib",
+        "/DEFAULTLIB:ucrt.lib /DEBUG",
+        r#"/DEFAULTLIB:"ucrt.lib""#,
+        "-Wl,/DEFAULTLIB:ucrt.lib",
+    ] {
+        let args = RustcArgs::parse(&[
+            "rustc".into(),
+            "--crate-type=bin".into(),
+            format!("-Clink-arg={value}"),
+        ])
+        .unwrap();
+        assert!(windows_native_link_search_dirs(&args).is_err(), "{value}");
+    }
+}
+
+#[test]
+fn windows_defaultlib_requests_change_the_folded_identity_and_require_runtime() {
+    let dir = tempfile::tempdir().unwrap();
+    let invocation = client_invocation(dir.path(), &[]);
+    let file_hasher = FileHasher::new_for(&invocation);
+    let key = |arguments: &[&str]| -> Result<String> {
+        let mut argv = vec!["rustc".into(), "--crate-type=bin".into()];
+        argv.extend(arguments.iter().map(|argument| argument.to_string()));
+        let args = RustcArgs::parse_for(&argv, &invocation).unwrap();
+        let mut hasher = blake3::Hasher::new();
+        fold_native_windows_msvc_identity_for(
+            &mut hasher,
+            &args,
+            WINDOWS_RUSTC_VERSION,
+            true,
+            &file_hasher,
+            |_, _, _, _| {
+                Ok(crate::native_link_key::WindowsMsvcIdentity {
+                    linker: "LINK 14".into(),
+                    compiler: "cl".into(),
+                    toolset: "14".into(),
+                    sdk: "10".into(),
+                    ucrt: "10".into(),
+                    architecture: "x64".into(),
+                    wrapper: None,
+                    libraries: BTreeMap::from([
+                        ("ucrt.lib".into(), "ucrt-digest".into()),
+                        ("msvcrt.lib".into(), "msvcrt-digest".into()),
+                    ]),
+                })
+            },
+            &invocation,
+        )?;
+        Ok(hasher.finalize().to_hex().to_string())
+    };
+    let requested = key(&["-Clink-arg=/DEFAULTLIB:ucrt.lib"]).unwrap();
+    assert_ne!(key(&[]).unwrap(), requested, "explicit request presence");
+    assert_eq!(
+        key(&["-Clink-args=-defaultlib:UCRT"]).unwrap(),
+        requested,
+        "both carriers use canonical runtime names"
+    );
+    assert_ne!(
+        key(&["-Clink-args=/DEFAULTLIB:ucrt /DEFAULTLIB:msvcrt"]).unwrap(),
+        key(&["-Clink-args=/DEFAULTLIB:msvcrt /DEFAULTLIB:ucrt"]).unwrap(),
+        "request order must survive identity encoding"
+    );
+    assert_ne!(
+        key(&["-Clink-args=/DEFAULTLIB:ucrt /DEFAULTLIB:ucrt"]).unwrap(),
+        requested,
+        "repeated requests retain their indices"
+    );
+    let error = key(&[
+        "-Clink-arg=/DEFAULTLIB:ucrtd",
+        "-Clink-arg=/NODEFAULTLIB:ucrtd.lib",
+    ])
+    .unwrap_err();
+    assert!(
+        format!("{error:#}").contains("DEFAULTLIB:ucrtd.lib has no selected runtime library"),
+        "{error:#}"
+    );
+}
+
+#[test]
+fn windows_nodefaultlib_admission_does_not_hide_other_inputs() {
+    let _lock = process_state_test_lock();
+    let invocation = InvocationEnv::capture();
+    let parse = |carrier: &str, value: &str| {
+        RustcArgs::parse_for(
+            &[
+                "rustc".into(),
+                "--crate-type=proc-macro".into(),
+                "src/lib.rs".into(),
+                format!("-C{carrier}={value}"),
+            ],
+            &invocation,
+        )
+        .unwrap()
+    };
+    for carrier in ["link-arg", "link-args"] {
+        for value in [
+            "/NODEFAULTLIB",
+            "/NODEFAULTLIB:libcmt.lib",
+            r#"/NODEFAULTLIB:"libcmt.lib""#,
+        ] {
+            let args = parse(carrier, value);
+            let inputs = windows_native_link_search_dirs(&args).unwrap();
+            assert!(inputs.files.is_empty(), "{carrier}={value}");
+            assert!(args.link_libs.is_empty(), "{carrier}={value}");
+        }
+        for value in [
+            "NODEFAULTLIB:helper.lib",
+            "/NODEFAULTLIBRARY:helper.lib",
+            r#""/NODEFAULTLIB:libcmt.lib""#,
+            r#"/NODEFAULTLIB:"vendor lib\helper.lib""#,
+            "/NODEFAULTLIB:libcmt.lib helper.lib",
+            "/NODEFAULTLIB:libcmt.lib\t/DEF:exports",
+            "/NODEFAULTLIB:libcmt.lib,/DEF:exports",
+        ] {
+            let error = windows_native_link_search_dirs(&parse(carrier, value)).unwrap_err();
+            assert!(
+                error.to_string().contains("not cacheable"),
+                "{carrier}={value}: {error:#}"
+            );
+        }
+    }
+    let combined = parse("link-args", "/DEBUG /NODEFAULTLIB:libcmt.lib /OPT:REF");
+    assert!(windows_native_link_search_dirs(&combined).is_ok());
+}
+
+#[test]
+fn nodefaultlib_exclusion_values_remain_in_the_cache_key() {
+    let _lock = key_test_lock();
+    let dir = tempfile::tempdir().unwrap();
+    let workspace = dir.path().canonicalize().unwrap();
+    let source = workspace.join("lib.rs");
+    std::fs::write(&source, "pub fn value() {}\n").unwrap();
+    let invocation = client_invocation(&workspace, &[("OUT_DIR", None)]);
+    let file_hasher = FileHasher::new_for(&invocation);
+    let normalizer = PathNormalizer::from_invocation(Some(&workspace), &invocation);
+    let env = KeyEnv::from_invocation(&invocation);
+    // Admission is checked above. An rlib isolates ordinary argument keying
+    // from the native linker/toolchain probes on every host.
+    let key = |carrier: &str, value: Option<&str>| {
+        let mut argv = vec![
+            "rustc".into(),
+            source.to_str().unwrap().into(),
+            "--crate-name=exclusions".into(),
+            "--crate-type=rlib".into(),
+        ];
+        if let Some(value) = value {
+            argv.push(format!("-C{carrier}={value}"));
+        }
+        let args = RustcArgs::parse_for(&argv, &invocation).unwrap();
+        provide_dep_info(
+            DepInfo {
+                source_files: vec![source.clone()],
+                env_deps: vec![],
+            },
+            None,
+        );
+        compute_cache_key(&args, &file_hasher, &normalizer, &env).unwrap()
+    };
+    for carrier in ["link-arg", "link-args"] {
+        let none = key(carrier, None);
+        let all = key(carrier, Some("/NODEFAULTLIB"));
+        let crt = key(carrier, Some("/NODEFAULTLIB:libcmt.lib"));
+        let ucrt = key(carrier, Some("/NODEFAULTLIB:libucrt.lib"));
+        assert_ne!(
+            none, all,
+            "{carrier}: ignoring all libraries changes identity"
+        );
+        assert_ne!(
+            all, crt,
+            "{carrier}: excluding one library differs from all"
+        );
+        assert_ne!(
+            crt, ucrt,
+            "{carrier}: the excluded library name stays keyed"
+        );
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn windows_defaultlib_fold_validates_the_selected_runtime_through_the_real_probe() {
+    let _lock = key_test_lock();
+    let directory = tempfile::tempdir().unwrap();
+    let root = directory.path().canonicalize().unwrap();
+    let tools = root.join("tools");
+    let priority = root.join("priority");
+    let fallback = root.join("fallback");
+    let cache = root.join("cache");
+    for path in [&tools, &priority, &fallback, &cache] {
+        std::fs::create_dir(path).unwrap();
+    }
+    for (file, banner) in [
+        (
+            "link.exe",
+            "Microsoft (R) Incremental Linker Version 14.44.35207.0",
+        ),
+        (
+            "cl.exe",
+            "Microsoft (R) C/C++ Optimizing Compiler Version 19.44.35207 for x64",
+        ),
+    ] {
+        kache_fs::testutil::write_executable(
+            &tools.join(file),
+            format!("#!/bin/sh\nprintf '%s\\n' '{banner}'\n"),
+        );
+    }
+    let invocation = InvocationEnv::from_parts(
+        [
+            ("PATH", tools.as_os_str()),
+            ("LIB", fallback.as_os_str()),
+            ("KACHE_CACHE_DIR", cache.as_os_str()),
+            ("VCToolsVersion", std::ffi::OsStr::new("14.44.35207")),
+            ("WindowsSDKVersion", std::ffi::OsStr::new("10.0.26100.0")),
+            ("UCRTVersion", std::ffi::OsStr::new("10.0.26100.0")),
+        ],
+        Some(root.clone()),
+        None,
+        root.clone(),
+    );
+    for library in ["libcmt.lib", "libvcruntime.lib"] {
+        std::fs::write(fallback.join(library), b"legacy unrequested runtime").unwrap();
+    }
+    let original = crate::native_archive::closed_coff_archive_for_tests(b"\xc3");
+    let changed = crate::native_archive::closed_coff_archive_for_tests(b"\x90\xc3");
+    let selected_path = priority.join("ucrt.lib");
+    std::fs::write(&selected_path, &original).unwrap();
+    std::fs::write(fallback.join("ucrt.lib"), &changed).unwrap();
+    let file_hasher = FileHasher::new_for(&invocation);
+    let fold = |extra: &[&str]| -> Result<(String, String)> {
+        let mut argv = vec![
+            "rustc".into(),
+            "--crate-type=bin".into(),
+            format!("-Lnative={}", priority.display()),
+        ];
+        argv.extend(extra.iter().map(|argument| argument.to_string()));
+        let args = RustcArgs::parse_for(&argv, &invocation).unwrap();
+        let mut hasher = blake3::Hasher::new();
+        let mut selected_digest = None;
+        fold_native_windows_msvc_identity_for(
+            &mut hasher,
+            &args,
+            WINDOWS_RUSTC_VERSION,
+            true,
+            &file_hasher,
+            |linker, architecture, _, search_dirs| {
+                // Only tool banners are fixtures. This is the production
+                // request forwarding, runtime selection/read and hash path.
+                let identity =
+                    crate::native_link_key::probe_windows_msvc_identity_with_library_dirs_for(
+                        linker,
+                        architecture,
+                        &[],
+                        &search_dirs.rustc,
+                        &search_dirs.linker,
+                        &args.link_libs,
+                        &search_dirs.default_libraries,
+                        |path| file_hasher.hash_static_lib(path),
+                        &invocation,
+                    )?;
+                selected_digest = identity.libraries.get("ucrt.lib").cloned();
+                Ok(identity)
+            },
+            &invocation,
+        )?;
+        Ok((
+            hasher.finalize().to_hex().to_string(),
+            selected_digest.unwrap(),
+        ))
+    };
+    let request = ["-Clink-arg=/DEFAULTLIB:ucrt.lib"];
+    let without_request = fold(&[]).unwrap();
+    let requested = fold(&request).unwrap();
+    assert_eq!(requested.1, blake3::hash(&original).to_hex().to_string());
+    assert_eq!(
+        without_request.1, requested.1,
+        "closed-runtime validation keeps the existing raw-byte digest"
+    );
+    assert_ne!(
+        without_request.0, requested.0,
+        "request presence stays folded"
+    );
+    std::fs::write(fallback.join("ucrt.lib"), &original).unwrap();
+    assert_eq!(
+        requested,
+        fold(&request).unwrap(),
+        "shadowed bytes are unused"
+    );
+    std::fs::write(&selected_path, &changed).unwrap();
+    let rebuilt = fold(&request).unwrap();
+    assert_eq!(rebuilt.1, blake3::hash(&changed).to_hex().to_string());
+    assert_ne!(
+        requested.0, rebuilt.0,
+        "selected bytes change the final fold"
+    );
+
+    std::fs::write(&selected_path, b"!<thin>\n").unwrap();
+    assert!(
+        fold(&[]).is_ok(),
+        "unrequested legacy hashing stays supported"
+    );
+    for extra in [
+        &request[..],
+        &["-Clink-args=/DEFAULTLIB:ucrt.lib /NODEFAULTLIB:ucrt.lib"][..],
+    ] {
+        let error = fold(extra).unwrap_err();
+        assert!(
+            format!("{error:#}").contains("supported closed COFF archive"),
+            "an invalid selected runtime must not use the valid fallback: {error:#}"
+        );
+    }
+}
+
+/// Compile a resource entry in the documented .res layout. Build the null
+/// header independently of the production format check.
+fn windows_test_resource(payload: &[u8]) -> Vec<u8> {
+    fn entry(bytes: &mut Vec<u8>, kind: u16, name: u16, data: &[u8]) {
+        bytes.extend_from_slice(&(data.len() as u32).to_le_bytes());
+        bytes.extend_from_slice(&32_u32.to_le_bytes());
+        for value in [u16::MAX, kind, u16::MAX, name] {
+            bytes.extend_from_slice(&value.to_le_bytes());
+        }
+        bytes.extend_from_slice(&[0; 16]);
+        bytes.extend_from_slice(data);
+        bytes.resize(bytes.len().next_multiple_of(4), 0);
+    }
+    let mut bytes = Vec::new();
+    entry(&mut bytes, 0, 0, &[]);
+    entry(&mut bytes, 10, 1, payload);
+    bytes
+}
+
+#[test]
+fn windows_absolute_paths_distinguish_roots_from_relative_names() {
+    for (path, absolute) in [
+        ("", false),
+        (r"\", false),
+        ("C:", false),
+        (r"C:\", true),
+        ("Z:/", true),
+        (r"C:resource.res", false),
+        (r"\resource.res", false),
+        (r"\\", false),
+        (r"\\server\share", true),
+        (r"\\server\share\resource.res", true),
+        (r"\\?\C:\resource.res", true),
+        ("resource.res", false),
+    ] {
+        assert_eq!(
+            crate::native_link_key::windows_absolute_path(path),
+            absolute,
+            "{path:?}"
+        );
+    }
+}
+
+#[test]
+fn windows_native_link_search_dirs_key_absolute_merged_inputs() {
+    let args = RustcArgs::parse(&[
+        "rustc".into(),
+        "--crate-type=bin".into(),
+        r"-Clink-arg=C:\w\target\debug\build\app-1\out\resource.res".into(),
+        "-Clink-arg=/MANIFEST:EMBED".into(),
+        "-Clink-arg=/WX".into(),
+        r"-Clink-args=/DEBUG C:\w\extra.res".into(),
+        r"-Clink-arg=/LIBPATH:C:\shadow".into(),
+    ])
+    .unwrap();
+    assert_eq!(
+        windows_native_link_search_dirs(&args).unwrap(),
+        WindowsNativeLinkSearchDirs {
+            rustc: vec![],
+            linker: vec![PathBuf::from(r"C:\shadow")],
+            default_libraries: vec![],
+            files: vec![
+                PathBuf::from(r"C:\w\target\debug\build\app-1\out\resource.res"),
+                PathBuf::from(r"C:\w\extra.res"),
+            ],
+        }
+    );
+}
+
+#[test]
+fn windows_resources_do_not_hide_mixed_search_paths_or_unsupported_files() {
+    for value in [
+        r"/LIBPATH:C:\shadow C:\w\a.res",
+        r"C:\w\a.res /LIBPATH:C:\shadow",
+        r"/debug C:\w\a.res -libpath=C:\shadow",
+        r"/LIBPATH:C:\shadow /MANIFESTINPUT:C:\w\app.xml",
+        r"C:\w\a.res /DEF:C:\w\exports.def",
+        r"C:\w\a.res C:\w\extra.obj",
+        r"C:\w\a.res C:\w\opaque.dat",
+        r"C:\w\a.res /MANIFESTINPUT:C:\w\app.xml",
+        r"/MANIFESTINPUT:C:\w\Manifest.xml",
+        r"C:\w\opaque.dat",
+    ] {
+        let args = RustcArgs::parse(&[
+            "rustc".into(),
+            "--crate-type=bin".into(),
+            format!("-Clink-args={value}"),
+        ])
+        .unwrap();
+        assert!(windows_native_link_search_dirs(&args).is_err(), "{value}");
+    }
+    let args = RustcArgs::parse(&[
+        "rustc".into(),
+        "--crate-type=bin".into(),
+        r"-Clink-args=C:\w\a.res @C:\w\more.rsp".into(),
+    ])
+    .unwrap();
+    assert!(native_linker_side_files_are_unmodeled(&args));
+}
+
+#[test]
+fn windows_link_argument_files_change_the_folded_key_and_fail_closed_when_gone() {
+    let dir = tempfile::tempdir().unwrap();
+    // Unix treats C:/ as relative; resolve it within the invocation instead
+    // of changing the process cwd. Windows uses real absolute fixture paths.
+    let first_arg = if cfg!(windows) {
+        dir.path().join("first.res")
+    } else {
+        PathBuf::from("C:/first.res")
+    };
+    let second_arg = if cfg!(windows) {
+        dir.path().join("second.res")
+    } else {
+        PathBuf::from("C:/second.res")
+    };
+    let invocation = client_invocation(dir.path(), &[]);
+    let file_hasher = FileHasher::new_for(&invocation);
+    let first_res = file_hasher.resolve_path(&first_arg).unwrap();
+    let second_res = file_hasher.resolve_path(&second_arg).unwrap();
+    std::fs::create_dir_all(first_res.parent().unwrap()).unwrap();
+    std::fs::write(&first_res, windows_test_resource(b"resource v1")).unwrap();
+    std::fs::write(&second_res, windows_test_resource(b"other")).unwrap();
+    let key = |files: &[&Path], extra: Option<&str>| -> Result<String> {
+        let mut argv = vec![
+            "rustc".into(),
+            "--crate-type=bin".into(),
+            "-Lnative=native-libs".into(),
+            "-lstatic=example".into(),
+            "-Clink-arg=/LIBPATH:C:/sdk-libs".into(),
+        ];
+        argv.extend(
+            files
+                .iter()
+                .map(|path| format!("-Clink-arg={}", path.display())),
+        );
+        argv.extend(extra.map(|argument| format!("-Clink-args={argument}")));
+        let args = RustcArgs::parse_for(&argv, &invocation).unwrap();
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(b"base-key");
+        fold_native_windows_msvc_identity_for(
+            &mut hasher,
+            &args,
+            WINDOWS_RUSTC_VERSION,
+            true,
+            &file_hasher,
+            |linker, architecture, host, search_dirs| {
+                assert_eq!(linker, None);
+                assert_eq!(architecture, "x64");
+                assert_eq!(host, "x86_64-pc-windows-msvc");
+                assert_eq!(args.link_libs, vec!["static=example".to_string()]);
+                assert_eq!(search_dirs.rustc, [PathBuf::from("native-libs")]);
+                assert_eq!(
+                    search_dirs.linker,
+                    [PathBuf::from("native-libs"), PathBuf::from("C:/sdk-libs")]
+                );
+                assert_eq!(
+                    search_dirs.files,
+                    files
+                        .iter()
+                        .map(|path| path.to_path_buf())
+                        .collect::<Vec<_>>()
+                );
+                Ok(crate::native_link_key::WindowsMsvcIdentity {
+                    linker: "LINK 14".into(),
+                    compiler: "cl".into(),
+                    toolset: "14".into(),
+                    sdk: "10".into(),
+                    ucrt: "10".into(),
+                    architecture: architecture.into(),
+                    wrapper: None,
+                    libraries: BTreeMap::new(),
+                })
+            },
+            &invocation,
+        )?;
+        Ok(hasher.finalize().to_hex().to_string())
+    };
+    let files = [first_arg.as_path(), second_arg.as_path()];
+    let first = key(&files, None).unwrap();
+    assert_eq!(
+        key(&files, None).unwrap(),
+        first,
+        "same bytes, same folded key"
+    );
+    assert_ne!(
+        key(&[], None).unwrap(),
+        first,
+        "resources reach the folded key"
+    );
+
+    std::fs::write(&first_res, windows_test_resource(b"resource v2")).unwrap();
+    assert_ne!(key(&files, None).unwrap(), first, "an edit reaches the key");
+    std::fs::write(&first_res, windows_test_resource(b"resource v1")).unwrap();
+    std::fs::write(&second_res, windows_test_resource(b"OTHER")).unwrap();
+    assert_ne!(
+        key(&files, None).unwrap(),
+        first,
+        "every resource reaches the key"
+    );
+    std::fs::write(&second_res, windows_test_resource(b"other")).unwrap();
+    assert_ne!(
+        key(&[second_arg.as_path(), first_arg.as_path()], None).unwrap(),
+        first,
+        "argument order reaches the key"
+    );
+    assert_eq!(
+        key(&files, None).unwrap(),
+        first,
+        "reverting recovers the old key"
+    );
+    for argument in [
+        "C:/extra.obj",
+        "/MANIFESTINPUT:C:/app.xml",
+        "/LIBPATH:C:/other C:/extra.res",
+    ] {
+        assert!(key(&files, Some(argument)).is_err(), "{argument}");
+    }
+
+    std::fs::write(&second_res, b"!<arch>\nrenamed archive").unwrap();
+    assert!(
+        key(&files, None).is_err(),
+        "format admission reaches the same folded-key path"
+    );
+    std::fs::remove_file(&second_res).unwrap();
+    assert!(
+        key(&files, None)
+            .unwrap_err()
+            .to_string()
+            .contains("not a regular file")
+    );
+    std::fs::create_dir(&second_res).unwrap();
+    assert!(
+        key(&files, None).is_err(),
+        "a directory cannot become a resource input"
+    );
+}
+
+#[test]
+fn windows_resource_hash_rejects_truncated_headers_and_renamed_containers() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("renamed.res");
+    let file_hasher = FileHasher::new();
+    let identity = || {
+        windows_link_identity_with_argument_files(
+            "linker=LINK 14".into(),
+            std::slice::from_ref(&path),
+            &file_hasher,
+        )
+    };
+    let valid = windows_test_resource(b"data");
+    assert_eq!(valid.len(), 68);
+    for len in 0..32 {
+        std::fs::write(&path, &valid[..len]).unwrap();
+        assert!(identity().is_err(), "len={len}");
+    }
+    for offset in 0..32 {
+        let mut invalid = valid.clone();
+        invalid[offset] ^= 1;
+        std::fs::write(&path, invalid).unwrap();
+        assert!(identity().is_err(), "offset={offset}");
+    }
+    for bytes in [
+        b"!<thin>\nexternal.obj".as_slice(),
+        b"!<arch>\nopaque archive".as_slice(),
+        b"\x64\x86COFF .drectve /DEFAULTLIB:helper.lib".as_slice(),
+        b"BC\xc0\xdeLLVM bitcode".as_slice(),
+        b"<assembly/>".as_slice(),
+    ] {
+        std::fs::write(&path, bytes).unwrap();
+        assert!(identity().is_err(), "{bytes:?}");
+    }
+    std::fs::write(&path, &valid).unwrap();
+    assert_eq!(
+        file_hasher.hash_windows_resource(&path).unwrap(),
+        blake3::hash(&valid).to_hex().to_string(),
+        "accepted bytes are exactly the bytes hashed"
+    );
+}
+
+#[test]
+fn windows_resources_stream_all_bytes_without_trusting_a_whole_file_memo() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("large.res");
+    let bytes = windows_test_resource(&b"a".repeat(70_000));
+    std::fs::write(&path, &bytes).unwrap();
+    let db = rusqlite::Connection::open_in_memory().unwrap();
+    ensure_file_hash_cache_schema(&db).unwrap();
+    let stamp = FileFingerprint::from_path(&path).unwrap();
+    let stale = "0".repeat(64);
+    FileHashCache::Borrowed(&db).put(&stamp, &stale).unwrap();
+    let file_hasher = FileHasher::from_cache(FileHashCache::Borrowed(&db));
+    assert_eq!(
+        file_hasher.hash_windows_resource(&path).unwrap(),
+        blake3::hash(&bytes).to_hex().to_string()
+    );
+    assert_eq!(file_hasher.stats().cache_hits, 0);
+    assert_eq!(file_hasher.stats().bytes_hashed, bytes.len() as u64);
+    assert!(file_hasher.pending_memo.borrow().is_empty());
+}
+
+#[test]
+fn windows_resource_validation_reads_after_the_guarded_stat() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("resource.res");
+    let original = windows_test_resource(b"original");
+    std::fs::write(&path, &original).unwrap();
+    let mut file_hasher = FileHasher::new();
+    file_hasher.arm_too_new_guard(1, 0);
+    set_before_read(Some(Box::new(|path| {
+        let mut thin = b"!<thin>\n".to_vec();
+        thin.resize(64, b'x');
+        std::fs::write(path, thin).unwrap();
+    })));
+    let result = file_hasher.hash_windows_resource(&path);
+    set_before_read(None);
+    assert!(
+        result.is_err(),
+        "validate the bytes read, not an earlier path check"
+    );
+
+    std::fs::write(&path, &original).unwrap();
+    set_before_read(Some(Box::new(|path| {
+        std::fs::write(path, windows_test_resource(b"changed and longer")).unwrap();
+    })));
+    let changed = file_hasher.hash_windows_resource(&path);
+    set_before_read(None);
+    assert_eq!(changed.unwrap(), hash_file(&path).unwrap());
+    assert!(file_hasher.too_new());
+    assert!(file_hasher.inputs_changed_since_keyed());
+    let guarded = file_hasher.take_guarded_inputs();
+    assert!(
+        guarded.len() >= 2,
+        "both sides of a changed read must remain guarded"
+    );
+    assert!(
+        guarded
+            .iter()
+            .any(|input| input.fingerprint.size == original.len() as i64)
+    );
 }
 
 #[test]
@@ -867,6 +1834,8 @@ fn windows_lld_libpath_preserves_shadowing_order() {
         WindowsNativeLinkSearchDirs {
             rustc: Vec::new(),
             linker: vec![first, second],
+            files: vec![],
+            default_libraries: vec![],
         }
     );
 }
@@ -913,6 +1882,8 @@ fn windows_native_link_search_dirs_honor_only_linker_visible_l_kinds() {
                 PathBuf::from(unknown.clone())
             ],
             linker: vec![native, all, bare, PathBuf::from(unknown), libpath],
+            files: vec![],
+            default_libraries: vec![],
         }
     );
 }
@@ -928,6 +1899,7 @@ fn native_macos_sdk_probe_fails_closed() {
         false,
         true,
         |_| unreachable!("macOS fold must not probe Linux CRT"),
+        |_, _| unreachable!("macOS fold must not place a Linux linker"),
         |_| anyhow::bail!("sdk missing"),
         &KeyEnv::default(),
     )
@@ -950,6 +1922,7 @@ fn the_sdk_probe_gets_sdkroot_from_the_snapshot() {
             false,
             true,
             |_| unreachable!("macOS fold must not probe Linux CRT"),
+            |_, _| unreachable!("macOS fold must not place a Linux linker"),
             |value| {
                 sdkroot = Some(value);
                 Ok("sdk".to_string())
@@ -1124,6 +2097,7 @@ fn metadata_only_outputs_do_not_probe_crt_or_sdk() {
         true,
         true,
         |_| panic!("metadata-only output must not probe CRT"),
+        |_, _| panic!("metadata-only output must not place a linker"),
         |_| panic!("metadata-only output must not probe SDK"),
         &KeyEnv::default(),
     )
@@ -9727,6 +10701,85 @@ fn diagnostic_flags_change_the_key_and_verbose_remains_unkeyed() {
     assert_eq!(base, key_of_flags(&flag_base(&source, &["--verbose"])));
 }
 
+#[test]
+fn silenced_lints_share_width_keys_but_keep_other_diagnostic_options() {
+    let _lock = key_test_lock();
+    let dir = tempfile::tempdir().unwrap();
+    let source = dir.path().join("lib.rs");
+    std::fs::write(&source, b"pub fn hello() {}\n").unwrap();
+    for cap in [vec!["--cap-lints=allow"], vec!["--cap-lints", "allow"]] {
+        let key = |extra: &[&str]| {
+            let mut flags = cap.clone();
+            flags.extend_from_slice(extra);
+            key_of_flags(&flag_base(&source, &flags))
+        };
+        let base = key(&[]);
+        for width in ["1", "80", "120", "65535"] {
+            assert_eq!(base, key(&["--diagnostic-width", width]), "{width}");
+            assert_eq!(
+                base,
+                key(&[&format!("--diagnostic-width={width}")]),
+                "{width}"
+            );
+        }
+        for flag in ["--color=always", "--error-format=json", "--json=artifacts"] {
+            let other = key(&[flag]);
+            assert_ne!(base, other, "{flag}");
+            assert_eq!(other, key(&[flag, "--diagnostic-width=80"]), "{flag}");
+        }
+    }
+}
+
+#[test]
+fn diagnostic_width_keeps_unusual_arguments_and_observable_warnings_keyed() {
+    let _lock = key_test_lock();
+    let dir = tempfile::tempdir().unwrap();
+    let source = dir.path().join("lib.rs");
+    std::fs::write(&source, b"pub fn hello() {}\n").unwrap();
+    let key = |flags: &[&str]| key_of_flags(&flag_base(&source, flags));
+    let capped = key(&["--cap-lints=allow"]);
+    for retained in [
+        vec!["--diagnostic-width"],
+        vec!["--diagnostic-width="],
+        vec!["--diagnostic-width=not-a-number"],
+        vec!["--diagnostic-width=0"],
+        vec!["--diagnostic-width=65536"],
+        vec!["--diagnostic-width=80", "--diagnostic-width=120"],
+        vec!["--diagnostic-width=80", "--diagnostic-width", "120"],
+    ] {
+        let mut flags = vec!["--cap-lints=allow"];
+        flags.extend_from_slice(&retained);
+        assert_ne!(capped, key(&flags), "{retained:?}");
+    }
+    for lint_flags in [
+        vec![],
+        vec!["--cap-lints=warn"],
+        vec!["--cap-lints=allow", "--cap-lints", "warn"],
+        vec!["--cap-lints", "allow", "--cap-lints=warn"],
+        vec!["--cap-lints=warn", "--cap-lints", "allow"],
+        vec!["--cap-lints", "warn", "--cap-lints=allow"],
+        vec!["--cap-lints=allow", "--cap-lints=allow"],
+        vec!["--cap-lints=allow", "--cap-lints"],
+        vec!["--cap-lints=allow", "--force-warn=unused"],
+        vec!["--force-warn", "unused", "--cap-lints=allow"],
+        vec!["--check-cfg", "--cap-lints=allow"],
+    ] {
+        let mut narrow = lint_flags.clone();
+        narrow.push("--diagnostic-width=80");
+        let mut wide = lint_flags.clone();
+        wide.push("--diagnostic-width=120");
+        assert_ne!(key(&narrow), key(&wide), "{lint_flags:?}");
+    }
+    for lint_flags in [
+        vec!["--cap-lints=allow", "-W", "unused"],
+        vec!["--cap-lints=allow", "-D", "warnings"],
+    ] {
+        let mut narrow = lint_flags.clone();
+        narrow.push("--diagnostic-width=80");
+        assert_eq!(key(&lint_flags), key(&narrow), "{lint_flags:?}");
+    }
+}
+
 /// kunobi-ninja/kache#399: lexical `.`/`..` collapse + separator unification.
 /// Output uses the host separator (so it lines up with canonical rule
 /// prefixes); built with MAIN_SEPARATOR so the test is host-independent.
@@ -11851,7 +12904,7 @@ fn rust_keys_reject_the_legacy_explicit_emit_recipe() {
         host_target_triple(),
     );
     let mut expected = blake3::Hasher::new();
-    expected.update(b"key_version:33\nemit_placement.v1:");
+    expected.update(format!("key_version:{CACHE_KEY_VERSION}\nemit_placement.v1:").as_bytes());
     expected.update(&14_u64.to_le_bytes());
     expected.update(b"compiler-owned");
     expected.update(identity.as_bytes());
@@ -11859,8 +12912,8 @@ fn rust_keys_reject_the_legacy_explicit_emit_recipe() {
     let compiler = &fields["compiler"];
     assert_eq!(compiler, &expected.finalize().to_hex()[..16]);
 
-    // Deleting only the emit marker must restore this unsafe schema-33 prefix.
-    let legacy = format!("key_version:33\n{identity}");
+    // Deleting only the emit marker must restore the unsafe legacy prefix.
+    let legacy = format!("key_version:{CACHE_KEY_VERSION}\n{identity}");
     let legacy_compiler = blake3::hash(legacy.as_bytes()).to_hex();
     assert_ne!(
         compiler,
@@ -12242,6 +13295,274 @@ fn runtime_env_use_scan_rejects_content_changed_after_hashing() {
     std::fs::write(&source, br#"pub const OUT: &str = env!("OUT_DIR");"#).unwrap();
 
     let error = hasher.env_dep_use(&source, "OUT_DIR").unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("changed between content hashing"),
+        "unexpected error: {error:#}"
+    );
+}
+
+#[test]
+fn env_use_scan_retains_non_utf8_runtime_value_veto() {
+    let dir = tempfile::tempdir().unwrap();
+    let blob = dir.path().join("blob.bin");
+    std::fs::write(&blob, b"\xff pub const OUT: &str = env!(\"OUT_DIR\");").unwrap();
+    // A byte-order mark is valid UTF-8, so rustc compiles this file.
+    let bom = dir.path().join("bom.rs");
+    std::fs::write(
+        &bom,
+        b"\xef\xbb\xbf pub const OUT: &str = env!(\"OUT_DIR\");",
+    )
+    .unwrap();
+
+    let hasher = FileHasher::new();
+    assert_eq!(
+        hasher.env_dep_use(&blob, "OUT_DIR").unwrap(),
+        SourceEnvDepUse::RuntimeValue
+    );
+    assert_eq!(
+        hasher.env_dep_use(&bom, "OUT_DIR").unwrap(),
+        SourceEnvDepUse::RuntimeValue
+    );
+}
+
+#[test]
+fn non_utf8_env_scan_replaces_version_five_memos() {
+    let dir = tempfile::tempdir().unwrap();
+    let blob = dir.path().join("template.rs");
+    std::fs::write(&blob, b"\xff include!(env!(\"OUT_DIR\"));").unwrap();
+    let hash = hash_file(&blob).unwrap();
+    let db = dir.path().join("idx.sqlite");
+    let cache = FileHashCache::open(&db).unwrap();
+    cache
+        .put_source_env_dep_use(
+            &hash,
+            "OUT_DIR",
+            5,
+            SourceEnvDepUse::IncludeLocator.memo_code(),
+        )
+        .unwrap();
+    drop(cache);
+
+    let hasher = FileHasher::persistent(&db);
+    assert_eq!(
+        hasher.env_dep_use(&blob, "OUT_DIR").unwrap(),
+        SourceEnvDepUse::Unused,
+        "the lossy scanner's version-five answer must be rescanned"
+    );
+    drop(hasher);
+
+    let cache = FileHashCache::open(&db).unwrap();
+    assert_eq!(
+        cache.get_source_env_dep_use(&hash, "OUT_DIR", 7).unwrap(),
+        Some(SourceEnvDepUse::Unused.memo_code())
+    );
+    drop(cache);
+
+    // A new wrapper can reuse the updated answer without reading the blob.
+    std::fs::remove_file(&blob).unwrap();
+    assert_eq!(
+        FileHasher::persistent(&db)
+            .env_dep_use_for_hash(&blob, "OUT_DIR", &hash)
+            .unwrap(),
+        SourceEnvDepUse::Unused
+    );
+}
+
+#[test]
+fn non_utf8_runtime_use_rescans_version_six_unused_memos() {
+    let dir = tempfile::tempdir().unwrap();
+    let source = dir.path().join("template.bin");
+    std::fs::write(&source, b"//\xff\npub const OUT: &str = env!(\"OUT_DIR\");").unwrap();
+    let hash = hash_file(&source).unwrap();
+    let db = dir.path().join("idx.sqlite");
+    let cache = FileHashCache::open(&db).unwrap();
+    cache
+        .put_source_env_dep_use(&hash, "OUT_DIR", 6, SourceEnvDepUse::Unused.memo_code())
+        .unwrap();
+    drop(cache);
+    let hasher = FileHasher::persistent(&db);
+    assert_eq!(
+        hasher.env_dep_use(&source, "OUT_DIR").unwrap(),
+        SourceEnvDepUse::RuntimeValue,
+        "the binary-skip scanner's version-six answer must be rescanned"
+    );
+    drop(hasher);
+    let cache = FileHashCache::open(&db).unwrap();
+    assert_eq!(
+        cache.get_source_env_dep_use(&hash, "OUT_DIR", 7).unwrap(),
+        Some(SourceEnvDepUse::RuntimeValue.memo_code())
+    );
+}
+
+#[test]
+fn non_utf8_files_cannot_supply_proof_but_retain_runtime_vetoes() {
+    let dir = tempfile::tempdir().unwrap();
+    let source = dir.path().join("lib.rs");
+    std::fs::write(&source, b"include_bytes!(env!(\"OUT_DIR\"));").unwrap();
+    let false_proof = dir.path().join("template.rs");
+    std::fs::write(&false_proof, b"\xff include!(env!(\"OUT_DIR\"));").unwrap();
+    let binary_value = dir.path().join("binary.bin");
+    std::fs::write(
+        &binary_value,
+        b"\xff pub const OUT: &str = env!(\"OUT_DIR\");",
+    )
+    .unwrap();
+    let text_value = dir.path().join("text.bin");
+    std::fs::write(&text_value, b"pub const OUT: &str = env!(\"OUT_DIR\");").unwrap();
+    let unused = dir.path().join("unused.bin");
+    std::fs::write(&unused, b"\xff\x00payload").unwrap();
+    let hasher = FileHasher::new();
+
+    assert_eq!(
+        env_dep_source_decision("OUT_DIR", &[false_proof], &hasher),
+        EnvDepNormalizationDecision::KeptAbsoluteNoIncludeProof
+    );
+    assert_eq!(
+        env_dep_source_decision("OUT_DIR", &[source.clone(), unused], &hasher),
+        EnvDepNormalizationDecision::NormalizedPathOnly
+    );
+    assert_eq!(
+        env_dep_source_decision("OUT_DIR", &[source.clone(), binary_value], &hasher),
+        EnvDepNormalizationDecision::KeptAbsoluteRuntimeUse
+    );
+    assert_eq!(
+        env_dep_source_decision("OUT_DIR", &[source, text_value], &hasher),
+        EnvDepNormalizationDecision::KeptAbsoluteRuntimeUse
+    );
+}
+
+#[test]
+fn non_utf8_env_names_and_prefixes_are_unknown_runtime_uses() {
+    let dir = tempfile::tempdir().unwrap();
+    let blob = dir.path().join("template.bin");
+    for source in [
+        b"//\xff\nenv!(\"OUT_\xffDIR\");".as_slice(),
+        b"//\xff\noption_env!(\"OUT_\xc2\x85\xffDIR\");",
+        b"//\xff\nenv!(concat!(\"OTHER_\xff\", \"VALUE\"));",
+    ] {
+        std::fs::write(&blob, source).unwrap();
+        assert_eq!(
+            FileHasher::new().env_dep_use(&blob, "OUT_DIR").unwrap(),
+            SourceEnvDepUse::RuntimeValue,
+            "an invalid literal cannot exclude the requested variable"
+        );
+    }
+}
+
+#[test]
+fn byte_env_scan_matches_lossy_char_boundaries() {
+    let characters: &[&[u8]] = &[
+        b"a",
+        "é".as_bytes(),
+        "中".as_bytes(),
+        "🦀".as_bytes(),
+        b"\xff",
+        b"\xe2\x82",
+        b"\xf0\x9f\xa6",
+    ];
+    for character in characters {
+        for (tail, expected) in [
+            (
+                b"'; const S: &str = \"env!(\\\"OUT_DIR\\\")\";".as_slice(),
+                SourceEnvDepUse::Unused,
+            ),
+            (
+                b"'\xff; const S: &str = \"env!(\\\"OUT_DIR\\\")\";",
+                SourceEnvDepUse::Unused,
+            ),
+            (b"'; env!(\"OUT_DIR\");", SourceEnvDepUse::RuntimeValue),
+            // An incomplete UTF-8 suffix must not widen the preceding char.
+            (
+                b"'\xe2'\"'; env!(\"OUT_DIR\");",
+                SourceEnvDepUse::RuntimeValue,
+            ),
+            (
+                b"'\xe2\x82'\"'; env!(\"OUT_DIR\");",
+                SourceEnvDepUse::RuntimeValue,
+            ),
+        ] {
+            let source = [b"'".as_slice(), *character, tail].concat();
+            assert_eq!(
+                source_env_dep_use_bytes(&source, "OUT_DIR"),
+                expected,
+                "{source:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn non_utf8_concat_binding_veto_survives_without_include_proof() {
+    let dir = tempfile::tempdir().unwrap();
+    let binding = dir.path().join("binding.rs");
+    let include = dir.path().join("lib.rs");
+    std::fs::write(
+        &include,
+        b"include_bytes!(env!(\"OUT_DIR\")); env!(concat!(\"OTHER_\", \"VALUE\"));",
+    )
+    .unwrap();
+    for declaration in [
+        "use custom::*;",
+        "use custom::concat;",
+        "#[macro_use] extern crate custom;",
+    ] {
+        std::fs::write(
+            &binding,
+            [
+                b"//\xff\n".as_slice(),
+                declaration.as_bytes(),
+                b" include_bytes!(env!(\"OUT_DIR\"));",
+            ]
+            .concat(),
+        )
+        .unwrap();
+        let hasher = FileHasher::new();
+        assert_eq!(
+            hasher.env_dep_use(&binding, "OUT_DIR").unwrap(),
+            SourceEnvDepUse::ConcatBinding {
+                include_locator: false
+            }
+        );
+        assert_eq!(
+            env_dep_source_decision("OUT_DIR", &[binding.clone(), include.clone()], &hasher),
+            EnvDepNormalizationDecision::KeptAbsoluteRuntimeUse
+        );
+    }
+}
+
+#[test]
+fn non_utf8_concat_prefix_does_not_supply_include_proof() {
+    let dir = tempfile::tempdir().unwrap();
+    let source = dir.path().join("template.rs");
+    std::fs::write(
+        &source,
+        b"//\xff\ninclude_bytes!(env!(\"OUT_DIR\")); env!(concat!(\"OTHER_\", \"VALUE\"));",
+    )
+    .unwrap();
+    let hasher = FileHasher::new();
+    assert_eq!(
+        hasher.env_dep_use(&source, "OUT_DIR").unwrap(),
+        SourceEnvDepUse::ConcatPrefix {
+            include_locator: false
+        }
+    );
+    assert_eq!(
+        env_dep_source_decision("OUT_DIR", &[source], &hasher),
+        EnvDepNormalizationDecision::KeptAbsoluteNoIncludeProof
+    );
+}
+
+#[test]
+fn non_utf8_env_scan_checks_content_before_classification() {
+    let dir = tempfile::tempdir().unwrap();
+    let blob = dir.path().join("blob.bin");
+    std::fs::write(&blob, b"\xff").unwrap();
+    let old_hash = blake3::hash(b"previous contents").to_hex().to_string();
+    let error = FileHasher::new()
+        .scan_env_dep_use(&blob, "OUT_DIR", &old_hash)
+        .unwrap_err();
     assert!(
         error
             .to_string()
@@ -13497,7 +14818,6 @@ fn guarded_inputs_keep_when_they_were_observed() {
             input.fingerprint,
             FileFingerprint::from_path(&file).unwrap()
         );
-        assert!(!input.settled(), "written a moment ago");
     }
 }
 
@@ -17949,4 +19269,856 @@ fn concurrent_key_env_snapshots_do_not_use_the_servers_values() {
         );
         assert!(key_env_guard_in(&patterns, env).is_some());
     }
+}
+
+#[test]
+fn non_utf8_proc_macro_template_keeps_runtime_env_absolute() {
+    let _lock = key_test_lock();
+    let invocation = InvocationEnv::capture();
+    let rustc = invocation.var_os("RUSTC").unwrap_or_else(|| "rustc".into());
+    let compiler = || {
+        let mut command = invocation.command(&rustc).expect("resolve native rustc");
+        for name in [
+            "RUSTC_WRAPPER",
+            "RUSTC_WORKSPACE_WRAPPER",
+            "CARGO_BUILD_RUSTC_WRAPPER",
+        ] {
+            command.env_remove(name);
+        }
+        command
+    };
+    fn run(command: &mut std::process::Command) -> std::process::Output {
+        use crate::invocation::process::CommandExt as _;
+        let output = command.invocation_output().expect("run compiler control");
+        assert!(
+            output.status.success(),
+            "{}\n{}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr)
+        );
+        output
+    }
+
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    let decoder = root.join("decoder.rs");
+    std::fs::write(
+        &decoder,
+        r#"extern crate proc_macro;
+#[proc_macro]
+pub fn decode(_: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+    let path = std::path::Path::new(&root).join("template.bin");
+    let bytes = std::fs::read(&path).unwrap();
+    let decoded = String::from_utf8_lossy(&bytes);
+    format!("const _: &[u8] = include_bytes!({:?});\n{}", path.to_str().unwrap(), decoded)
+        .parse().unwrap()
+}
+"#,
+    )
+    .unwrap();
+    let template = root.join("template.bin");
+    std::fs::write(
+        &template,
+        b"//\xff\npub const OUT_VALUE: &str = env!(\"OUT_DIR\");\n",
+    )
+    .unwrap();
+    let source = root.join("main.rs");
+    std::fs::write(
+        &source,
+        r#"decoder::decode!();
+const _: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/payload.bin"));
+fn main() { println!("{OUT_VALUE}"); }
+"#,
+    )
+    .unwrap();
+    let library = root.join(format!(
+        "{}decoder{}",
+        std::env::consts::DLL_PREFIX,
+        std::env::consts::DLL_SUFFIX
+    ));
+    run(compiler()
+        .args([
+            "--edition=2021",
+            "--crate-type=proc-macro",
+            "--crate-name=decoder",
+        ])
+        .arg(&decoder)
+        .arg("-o")
+        .arg(&library));
+
+    let normalizer = PathNormalizer::empty().with_base_dirs(&[root.to_string_lossy().into_owned()]);
+    let mut values = Vec::new();
+    for location in ["a", "b"] {
+        let build = root.join(location);
+        let out = build.join("consumer-0123456789abcdef/out");
+        std::fs::create_dir_all(&out).unwrap();
+        let payload = out.join("payload.bin");
+        std::fs::write(&payload, b"same payload").unwrap();
+        let dep_file = build.join("consumer.d");
+        let binary = build.join(format!("consumer{}", std::env::consts::EXE_SUFFIX));
+        run(compiler()
+            .args(["--edition=2021", "--crate-name=consumer"])
+            .arg(&source)
+            .arg("--extern")
+            .arg(format!("decoder={}", library.display()))
+            .arg(format!("--emit=link,dep-info={}", dep_file.display()))
+            .arg("-o")
+            .arg(&binary)
+            .env("CARGO_MANIFEST_DIR", &root)
+            .env("OUT_DIR", &out));
+
+        let printed = run(&mut invocation.command(&binary).unwrap());
+        let printed = String::from_utf8(printed.stdout).unwrap();
+        let expected = out.to_str().unwrap();
+        assert_eq!(printed.trim_end(), expected);
+        let dep_info = read_dep_info_file(&dep_file).unwrap();
+        let sources = parse_dep_info(&dep_info);
+        for input in [&source, &template, &payload] {
+            assert!(
+                sources
+                    .iter()
+                    .any(|path| path_probe(path) == path_probe(input)),
+                "rustc did not track {}: {dep_info}",
+                input.display()
+            );
+        }
+        assert_eq!(
+            parse_env_dep_info(&dep_info)
+                .into_iter()
+                .find(|(name, _)| name == "OUT_DIR")
+                .expect("rustc tracked OUT_DIR")
+                .1,
+            Some(expected.to_string())
+        );
+        let normalized = normalize_env_dep_value_in(
+            "consumer",
+            "OUT_DIR",
+            expected,
+            &sources,
+            &normalizer,
+            Some(out.as_os_str()),
+        );
+        assert_eq!(
+            normalized.decision,
+            EnvDepNormalizationDecision::KeptAbsoluteRuntimeUse
+        );
+        assert_eq!(normalized.value, expected);
+        values.push(normalized.value);
+    }
+    assert_ne!(values[0], values[1]);
+}
+
+mod build_script_target_paths {
+    use super::*;
+
+    struct Unit {
+        workspace: PathBuf,
+        source: PathBuf,
+        invocation: InvocationEnv,
+    }
+
+    impl Unit {
+        fn new(root: &Path) -> Self {
+            // Cargo uses ordinary Windows paths. A verbatim prefix makes
+            // PathBuf::push normalize away the parent components tested below.
+            let workspace = PathBuf::from(crate::path_normalizer::canonical_string(root).unwrap());
+            let source = workspace.join("lib.rs");
+            std::fs::write(
+                &source,
+                b"#[link(name = \"foo\", kind = \"static\")] unsafe extern \"C\" {}",
+            )
+            .unwrap();
+            let invocation = client_invocation(
+                &workspace,
+                &[
+                    ("OUT_DIR", None),
+                    ("RUSTFLAGS", None),
+                    ("CARGO_ENCODED_RUSTFLAGS", None),
+                    ("KACHE_BASE_DIR", None),
+                    ("KACHE_RUSTC_PATH_NORMALIZE", Some(OsStr::new("1"))),
+                ],
+            );
+            Self {
+                workspace,
+                source,
+                invocation,
+            }
+        }
+
+        fn out_dir(target: &Path) -> PathBuf {
+            let out = target.join("debug/build/foo-sys-0123456789abcdef/out");
+            std::fs::create_dir_all(&out).unwrap();
+            std::fs::write(
+                out.join("libfoo.a"),
+                gnu_ar_named_object("foo.o", b"object"),
+            )
+            .unwrap();
+            out
+        }
+
+        fn key(
+            &self,
+            target: Option<&Path>,
+            out_dir: Option<&Path>,
+            search: &[String],
+            crate_type: &str,
+            extra: &[&str],
+            generated: Option<&Path>,
+        ) -> (String, KeyOutputs) {
+            // Capture once per fixture. Every key gets the same snapshot with
+            // only OUT_DIR changed; no test mutates the process environment.
+            let vars = self
+                .invocation
+                .vars_os()
+                .filter(|(name, _)| name.as_os_str() != OsStr::new("OUT_DIR"))
+                .chain(out_dir.map(|out| ("OUT_DIR".into(), out.as_os_str().to_owned())));
+            let invocation = InvocationEnv::from_parts(
+                vars,
+                Some(self.workspace.clone()),
+                self.invocation.home_dir().map(Path::to_path_buf),
+                self.invocation.temp_dir().to_path_buf(),
+            );
+            let mut argv = vec![
+                "rustc".into(),
+                "--crate-name=mylib".into(),
+                format!("--crate-type={crate_type}"),
+                self.source.to_str().unwrap().into(),
+            ];
+            if let Some(target) = target {
+                argv.extend([
+                    "--out-dir".into(),
+                    target.join("debug/deps").to_str().unwrap().into(),
+                ]);
+            }
+            for spec in search {
+                argv.extend(["-L".into(), spec.clone()]);
+            }
+            argv.extend(extra.iter().map(|s| s.to_string()));
+            let args = RustcArgs::parse_for(&argv, &invocation).unwrap();
+            let mut sources = vec![self.source.clone()];
+            let mut env_deps = Vec::new();
+            if let Some(generated) = generated {
+                sources.push(generated.to_path_buf());
+                env_deps.push((
+                    "OUT_DIR".into(),
+                    Some(out_dir.unwrap().to_str().unwrap().into()),
+                ));
+            }
+            provide_dep_info(
+                DepInfo {
+                    source_files: sources,
+                    env_deps,
+                },
+                None,
+            );
+            let normalizer = PathNormalizer::from_invocation(Some(&self.workspace), &invocation)
+                .with_target_dir(args.target_dir().as_deref());
+            let (key, outputs) = compute_cache_key_with_outputs(
+                &args,
+                &FileHasher::new().with_invocation_env(&invocation),
+                &normalizer,
+                &KeyEnv::from_invocation(&invocation),
+            );
+            (key.unwrap(), outputs)
+        }
+    }
+
+    fn native(path: &Path) -> String {
+        format!("native={}", path.to_str().unwrap())
+    }
+
+    fn assert_distinct_link(a: (String, KeyOutputs), b: (String, KeyOutputs), why: &str) {
+        assert_ne!(a.0, b.0, "{why}");
+        // Other groups can also keep unsafe invocations apart. Observe the
+        // search-path group itself so those cannot hide a weakened guard.
+        assert_ne!(
+            a.1.fields.unwrap()["link"],
+            b.1.fields.unwrap()["link"],
+            "{why}"
+        );
+    }
+
+    #[test]
+    fn native_rlib_search_reuses_only_identical_bundled_archives() {
+        let _lock = key_test_lock();
+        let dir = tempfile::tempdir().unwrap();
+        let unit = Unit::new(dir.path());
+        let a = unit.workspace.join("target");
+        let b = unit.workspace.join("target/integrate-clippy");
+        let out_a = Unit::out_dir(&a);
+        let out_b = Unit::out_dir(&b);
+        let key = |target: &Path, out: &Path| {
+            unit.key(Some(target), Some(out), &[native(out)], "rlib", &[], None)
+        };
+        let original = key(&a, &out_a);
+        let relocated = key(&b, &out_b);
+        assert_eq!(
+            original.0, relocated.0,
+            "native-only build-script output can share across target names"
+        );
+        assert_eq!(
+            relocated.1.native_archives.unwrap().archives,
+            [out_b.join("libfoo.a")]
+        );
+
+        std::fs::write(
+            out_b.join("libfoo.a"),
+            gnu_ar_named_object("foo.o", b"changed object"),
+        )
+        .unwrap();
+        assert_ne!(
+            original.0,
+            key(&b, &out_b).0,
+            "bundled bytes affect the key"
+        );
+        std::fs::write(
+            out_b.join("libfoo.a"),
+            gnu_ar_named_object("renamed.o", b"object"),
+        )
+        .unwrap();
+        assert_ne!(
+            original.0,
+            key(&b, &out_b).0,
+            "bundle member names affect the key"
+        );
+        let mut timestamped = gnu_ar_named_object("foo.o", b"object");
+        timestamped[8 + 16] = b'1';
+        std::fs::write(out_b.join("libfoo.a"), timestamped).unwrap();
+        assert_ne!(
+            original.0,
+            key(&b, &out_b).0,
+            "bundle member timestamps affect the key"
+        );
+        std::fs::write(
+            out_b.join("libfoo.a"),
+            gnu_ar_named_object("foo.o", b"object"),
+        )
+        .unwrap();
+        let other_unit = b.join("debug/build/foo-sys-fedcba9876543210/out");
+        std::fs::create_dir_all(other_unit.parent().unwrap()).unwrap();
+        std::fs::rename(&out_b, &other_unit).unwrap();
+        assert_distinct_link(
+            original,
+            key(&b, &other_unit),
+            "Cargo unit identity is retained",
+        );
+    }
+
+    #[test]
+    fn native_target_alias_excludes_other_search_kinds_outputs_and_unremapped_units() {
+        let _lock = key_test_lock();
+        let dir = tempfile::tempdir().unwrap();
+        let unit = Unit::new(dir.path());
+        let a = unit.workspace.join("target-a");
+        let b = unit.workspace.join("target-b");
+        let out_a = Unit::out_dir(&a);
+        let out_b = Unit::out_dir(&b);
+        for (kind, crate_type, extra) in [
+            ("all=", "rlib", &[][..]),
+            ("", "rlib", &[][..]),
+            ("framework=", "rlib", &[][..]),
+            ("native=", "staticlib", &[][..]),
+            ("native=", "rlib,staticlib", &[][..]),
+            ("native=", "lib", &["--test"][..]),
+            ("native=", "rlib", &["--test"][..]),
+            ("native=", "rlib", &["--emit=metadata"][..]),
+            ("native=", "rlib", &["-Cinstrument-coverage"][..]),
+            ("native=", "rlib", &["--cfg=trybuild"][..]),
+        ] {
+            let key = |target: &Path, out: &Path| {
+                unit.key(
+                    Some(target),
+                    Some(out),
+                    &[format!("{kind}{}", out.display())],
+                    crate_type,
+                    extra,
+                    None,
+                )
+            };
+            assert_distinct_link(
+                key(&a, &out_a),
+                key(&b, &out_b),
+                &format!("{kind} {crate_type} {extra:?}"),
+            );
+        }
+        let mut no_remap = unit;
+        no_remap.invocation = InvocationEnv::from_parts(
+            no_remap
+                .invocation
+                .vars_os()
+                .filter(|(name, _)| name.as_os_str() != OsStr::new("KACHE_RUSTC_PATH_NORMALIZE"))
+                .chain([("KACHE_RUSTC_PATH_NORMALIZE".into(), "0".into())]),
+            Some(no_remap.workspace.clone()),
+            no_remap.invocation.home_dir().map(Path::to_path_buf),
+            no_remap.invocation.temp_dir().to_path_buf(),
+        );
+        let key = |target: &Path, out: &Path| {
+            no_remap.key(Some(target), Some(out), &[native(out)], "rlib", &[], None)
+        };
+        assert_distinct_link(
+            key(&a, &out_a),
+            key(&b, &out_b),
+            "normalization opt-out retains search path identity",
+        );
+    }
+
+    #[test]
+    fn native_target_alias_requires_an_absolute_scanned_path_and_unit_target() {
+        let _lock = key_test_lock();
+        let dir = tempfile::tempdir().unwrap();
+        let unit = Unit::new(dir.path());
+        let targets = [
+            unit.workspace.join("target-a"),
+            unit.workspace.join("target-b"),
+        ];
+        let outs = targets.each_ref().map(|target| Unit::out_dir(target));
+        for case in [
+            "no-target",
+            "no-out-dir",
+            "relative-out-dir",
+            "relative-search",
+            "outside-out-dir",
+            "outside-target",
+            "parent-component",
+            "parent-escape",
+            "empty-suffix",
+        ] {
+            let keys = [0, 1].map(|i| {
+                let (target, out) = (&targets[i], &outs[i]);
+                let relative = out.strip_prefix(&unit.workspace).unwrap();
+                let search = match case {
+                    "relative-search" => relative.to_path_buf(),
+                    "outside-out-dir" => target.join("debug/build/other/out"),
+                    "outside-target" => unit
+                        .workspace
+                        .join(target.file_name().unwrap())
+                        .with_extension("external"),
+                    "parent-component" => out.join("../out"),
+                    "parent-escape" => target.join("../escape"),
+                    "empty-suffix" => target.clone(),
+                    _ => out.clone(),
+                };
+                if matches!(case, "parent-component" | "parent-escape") {
+                    assert!(
+                        search
+                            .components()
+                            .any(|part| part == std::path::Component::ParentDir),
+                        "{case} must exercise a literal parent component"
+                    );
+                }
+                std::fs::create_dir_all(unit.workspace.join(&search)).unwrap();
+                let observed_out = match case {
+                    "no-out-dir" => None,
+                    "relative-out-dir" => Some(relative),
+                    "outside-target" | "parent-escape" | "empty-suffix" => Some(search.as_path()),
+                    _ => Some(out.as_path()),
+                };
+                unit.key(
+                    (case != "no-target").then_some(target.as_path()),
+                    observed_out,
+                    &[native(&search)],
+                    "rlib",
+                    &[],
+                    None,
+                )
+            });
+            let [a, b] = keys;
+            assert_distinct_link(a, b, case);
+        }
+    }
+
+    #[test]
+    fn generated_source_file_macro_keeps_the_compiler_visible_target_name() {
+        let _lock = key_test_lock();
+        let dir = tempfile::tempdir().unwrap();
+        let unit = Unit::new(dir.path());
+        std::fs::write(
+            &unit.source,
+            "include!(concat!(env!(\"OUT_DIR\"), \"/gen.rs\"));",
+        )
+        .unwrap();
+        let targets = [
+            unit.workspace.join("target-a"),
+            unit.workspace.join("target-b"),
+        ];
+        for extra in [
+            &[][..],
+            &["--cfg=trybuild"][..],
+            &["-Cinstrument-coverage"][..],
+        ] {
+            let keys = targets.each_ref().map(|target| {
+                let out = Unit::out_dir(target);
+                let generated = out.join("gen.rs");
+                std::fs::write(&generated, "pub fn generated() -> &'static str { file!() }")
+                    .unwrap();
+                unit.key(
+                    Some(target),
+                    Some(&out),
+                    &[native(&out)],
+                    "rlib",
+                    extra,
+                    Some(&generated),
+                )
+            });
+            let [a, b] = keys;
+            assert_ne!(
+                a.0, b.0,
+                "file!() exposes the generated source's remapped spelling"
+            );
+            assert_ne!(
+                a.1.fields.unwrap()["sources"],
+                b.1.fields.unwrap()["sources"],
+                "OUT_DIR env folding cannot hide a source-path collision"
+            );
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn native_target_alias_never_admits_an_unscanned_symlink_escape() {
+        let _lock = key_test_lock();
+        let dir = tempfile::tempdir().unwrap();
+        let unit = Unit::new(dir.path());
+        let external = unit.workspace.join("external");
+        std::fs::create_dir(&external).unwrap();
+        std::fs::write(external.join("libfoo.a"), gnu_ar_one_object(b"object")).unwrap();
+        let keys = ["target-a", "target-b"].map(|name| {
+            let target = unit.workspace.join(name);
+            let out = Unit::out_dir(&target);
+            let alias = out.join("escape");
+            std::os::unix::fs::symlink(&external, &alias).unwrap();
+            unit.key(
+                Some(&target),
+                Some(&out),
+                &[native(&alias)],
+                "rlib",
+                &[],
+                None,
+            )
+        });
+        let [a, b] = keys;
+        assert_distinct_link(
+            a,
+            b,
+            "only resolved directories covered by the archive scan can alias",
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn native_and_source_identities_preserve_literal_backslashes_and_search_order() {
+        let _lock = key_test_lock();
+        let dir = tempfile::tempdir().unwrap();
+        let mut unit = Unit::new(dir.path());
+        let target = unit.workspace.join("target");
+        let out = Unit::out_dir(&target);
+        let paths = [out.join(r"a\b"), out.join("a/b")];
+        for path in &paths {
+            std::fs::create_dir_all(path).unwrap();
+            std::fs::write(path.join("libfoo.a"), gnu_ar_one_object(b"object")).unwrap();
+        }
+        let key =
+            |search: &[String]| unit.key(Some(&target), Some(&out), search, "rlib", &[], None);
+        assert_distinct_link(
+            key(&[native(&paths[0])]),
+            key(&[native(&paths[1])]),
+            "a Unix backslash is not a separator",
+        );
+        assert_distinct_link(
+            key(&[native(&paths[0]), native(&paths[1])]),
+            key(&[native(&paths[1]), native(&paths[0])]),
+            "search order is retained",
+        );
+        let empty = [out.join("left"), out.join("right")];
+        let joined = target.join(format!(
+            "{}link_search_native_out_dir.v1:{}",
+            empty[0].strip_prefix(&target).unwrap().display(),
+            empty[1].strip_prefix(&target).unwrap().display(),
+        ));
+        for path in [&empty[0], &empty[1], &joined] {
+            std::fs::create_dir_all(path).unwrap();
+        }
+        assert_distinct_link(
+            key(&[native(&joined)]),
+            key(&[native(&empty[0]), native(&empty[1])]),
+            "one path containing a field label cannot impersonate two search fields",
+        );
+        let source_keys = [out.join(r"a\b.rs"), out.join("a/b.rs")].map(|source| {
+            std::fs::write(&source, "pub fn origin() -> &'static str { file!() }").unwrap();
+            unit.source = source;
+            unit.key(Some(&target), Some(&out), &[], "rlib", &[], None)
+        });
+        let [a, b] = source_keys;
+        assert_ne!(a.0, b.0, "file!() observes the two Unix filenames");
+        assert_ne!(
+            a.1.fields.unwrap()["sources"],
+            b.1.fields.unwrap()["sources"]
+        );
+    }
+}
+
+#[test]
+fn pdb_pairing_admission_is_scoped_to_windows_or_custom_linked_executables() {
+    let _lock = key_test_lock();
+    let invocation = InvocationEnv::capture();
+    let windows = "rustc 1.99.0\nhost: x86_64-pc-windows-msvc\n";
+    let linux = "rustc 1.99.0\nhost: x86_64-unknown-linux-gnu\n";
+    let parse = |extra: &[&str]| {
+        let argv = ["rustc", "src/main.rs"]
+            .into_iter()
+            .chain(extra.iter().copied())
+            .map(str::to_string)
+            .collect::<Vec<_>>();
+        RustcArgs::parse_for(&argv, &invocation).unwrap()
+    };
+    assert!(executable_pdb_admission(&parse(&[]), windows, false));
+    assert!(!executable_pdb_admission(&parse(&[]), linux, false));
+    assert!(executable_pdb_admission(
+        &parse(&["--target=x86_64-pc-windows-msvc"]),
+        linux,
+        false
+    ));
+    assert!(executable_pdb_admission(
+        &parse(&["--target=x86_64-pc-windows-gnu"]),
+        linux,
+        false
+    ));
+    assert!(!executable_pdb_admission(
+        &parse(&["--target=x86_64-unknown-linux-gnu"]),
+        windows,
+        false
+    ));
+    assert!(!executable_pdb_admission(
+        &parse(&["--target=aarch64-apple-darwin"]),
+        windows,
+        false
+    ));
+    assert!(executable_pdb_admission(&parse(&[]), linux, true));
+    assert!(executable_pdb_admission(
+        &parse(&[]),
+        "unknown compiler host",
+        false
+    ));
+    assert!(executable_pdb_admission(
+        &parse(&["--crate-type=rlib", "--test"]),
+        windows,
+        false
+    ));
+    for args in [
+        &["--emit=metadata"][..],
+        &["--crate-type=rlib"][..],
+        &["--crate-type=staticlib"][..],
+        &["--crate-type=dylib"][..],
+        &["--crate-type=proc-macro"][..],
+    ] {
+        assert!(
+            !executable_pdb_admission(&parse(args), windows, false),
+            "{args:?}"
+        );
+        assert!(
+            !executable_pdb_admission(&parse(args), linux, true),
+            "custom {args:?}"
+        );
+    }
+}
+
+#[test]
+fn a_windows_executable_full_key_carries_the_pdb_admission_namespace() {
+    let _lock = key_test_lock();
+    let dir = tempfile::tempdir().unwrap();
+    let workspace = dir.path().canonicalize().unwrap();
+    let source = workspace.join("main.rs");
+    std::fs::write(&source, "fn main() {}\n").unwrap();
+    let invocation = client_invocation(&workspace, &[("OUT_DIR", None)]);
+    // Native MSVC identity refuses cross-architecture SDK guesses on Windows.
+    // Use that runner's actual Windows host; other hosts exercise cross-target
+    // key admission without invoking a Windows linker.
+    let target = if cfg!(windows) {
+        let version = get_rustc_version_for(Path::new("rustc"), &invocation).unwrap();
+        rustc_host_triple(&version).unwrap().to_string()
+    } else {
+        "x86_64-pc-windows-msvc".to_string()
+    };
+    let args = RustcArgs::parse_for(
+        &[
+            "rustc".into(),
+            source.to_str().unwrap().into(),
+            "--crate-name=app".into(),
+            "--crate-type=bin".into(),
+            format!("--target={target}"),
+        ],
+        &invocation,
+    )
+    .unwrap();
+    provide_dep_info(
+        DepInfo {
+            source_files: vec![source],
+            env_deps: vec![],
+        },
+        None,
+    );
+    let (key, output) = compute_cache_key_with_outputs(
+        &args,
+        &FileHasher::new_for(&invocation),
+        &PathNormalizer::from_invocation(Some(&workspace), &invocation),
+        &KeyEnv::from_invocation(&invocation),
+    );
+    key.unwrap();
+    assert!(
+        output.fields.unwrap().contains_key("pe_pdb_admission"),
+        "legacy producers cannot write this namespace"
+    );
+}
+
+#[test]
+fn custom_target_full_keys_keep_the_pdb_admission_namespace() {
+    let _lock = key_test_lock();
+    let dir = tempfile::tempdir().unwrap();
+    let workspace = dir.path().canonicalize().unwrap();
+    let source = workspace.join("main.rs");
+    std::fs::write(&source, "fn main() {}\n").unwrap();
+    let spec_name = format!(
+        "{}-custom.json",
+        workspace.file_name().unwrap().to_str().unwrap()
+    );
+    let spec = workspace.join(&spec_name);
+    std::fs::write(&spec, br#"{"llvm-target":"x86_64","data-layout":"e-m:e"}"#).unwrap();
+    // The relative spec exists in this invocation's cwd, not the daemon's.
+    assert!(!Path::new(&spec_name).is_file());
+    let invocation =
+        client_invocation(&workspace, &[("OUT_DIR", None), ("RUST_TARGET_PATH", None)]);
+    let has_namespace = |target: &str, target_path: Option<&Path>| {
+        let mut invocation = invocation.clone();
+        if let Some(path) = target_path {
+            invocation.set("RUST_TARGET_PATH", path.as_os_str());
+        }
+        let args = RustcArgs::parse_for(
+            &[
+                "rustc".into(),
+                source.to_str().unwrap().into(),
+                "--crate-name=app".into(),
+                "--crate-type=bin".into(),
+                format!("--target={target}"),
+            ],
+            &invocation,
+        )
+        .unwrap();
+        provide_dep_info(
+            DepInfo {
+                source_files: vec![source.clone()],
+                env_deps: vec![],
+            },
+            None,
+        );
+        let (key, output) = compute_cache_key_with_outputs(
+            &args,
+            &FileHasher::new_for(&invocation),
+            &PathNormalizer::from_invocation(Some(&workspace), &invocation),
+            &KeyEnv::from_invocation(&invocation),
+        );
+        key.unwrap();
+        output.fields.unwrap().contains_key("pe_pdb_admission")
+    };
+    assert!(
+        has_namespace(&spec_name, None),
+        "a relative JSON spec can select PE without naming Windows"
+    );
+    let absolute_spec = spec.to_str().unwrap();
+    assert!(
+        has_namespace(absolute_spec, None),
+        "an existing target file keeps the same admission policy"
+    );
+    let target_name = spec_name.strip_suffix(".json").unwrap();
+    assert!(
+        has_namespace(target_name, Some(&workspace)),
+        "RUST_TARGET_PATH can resolve a bare custom target name"
+    );
+    assert!(
+        !has_namespace("x86_64-unknown-linux-gnu", None),
+        "a known non-Windows built-in target keeps its previous namespace"
+    );
+}
+
+#[test]
+fn out_dir_include_spellings_share_one_collapsed_fingerprint() {
+    let dir = tempfile::tempdir().unwrap();
+    let out = dir.path().join("out");
+    let crate_dir = dir.path().join("crate");
+    std::fs::create_dir_all(&out).unwrap();
+    std::fs::create_dir_all(crate_dir.join("src")).unwrap();
+    std::fs::write(out.join("consts.rs"), "pub const N: u32 = 42;\n").unwrap();
+    std::fs::write(crate_dir.join("src/init.js"), "export {}\n").unwrap();
+
+    let env = client_invocation(&crate_dir, &[("OUT_DIR", Some(out.as_os_str()))]);
+    let hasher = FileHasher::new_for(&env);
+    let plain = out.join("consts.rs");
+    let dotted = PathBuf::from(format!("{}/./consts.rs", out.display()));
+    let collapsed = lexically_resolve_path(&plain.to_string_lossy());
+    provide_dep_info(
+        DepInfo {
+            source_files: vec![plain.clone(), dotted.clone()],
+            env_deps: vec![],
+        },
+        None,
+    );
+    let emitted_sources = provided_dep_info_sources_for(&hasher).unwrap();
+    PROVIDED_DEP_INFO.with(|cell| cell.borrow_mut().take());
+    assert_eq!(
+        emitted_sources,
+        std::collections::HashSet::from([collapsed.clone()]),
+        "the post-compile guard must use the spelling recorded by the hasher"
+    );
+    // Hash the dotted spelling first and read the fingerprint before the plain
+    // spelling can overwrite the one map entry.
+    let dotted_hash = hasher.hash(&dotted).unwrap();
+    {
+        let recent = hasher.recent_hashes.borrow();
+        assert_eq!(recent.len(), 1, "the dotted spelling is one OUT_DIR file");
+        let recorded = recent.get(Path::new(&collapsed)).expect("collapsed key");
+        let fingerprint = recorded.fingerprint.as_ref().unwrap();
+        assert_eq!(fingerprint.path, collapsed);
+        assert!(!fingerprint.path.contains("/./"));
+    }
+    let plain_hash = hasher.hash(&plain).unwrap();
+    assert_eq!(dotted_hash, plain_hash);
+    {
+        let recent = hasher.recent_hashes.borrow();
+        assert_eq!(recent.len(), 1, "both spellings stay one OUT_DIR file");
+        let fingerprint = recent
+            .get(Path::new(&collapsed))
+            .expect("collapsed key")
+            .fingerprint
+            .as_ref()
+            .unwrap();
+        assert_eq!(fingerprint.path, collapsed);
+    }
+
+    #[cfg(unix)]
+    {
+        let literal = out.join(r"a\b.rs");
+        std::fs::write(&literal, "pub const M: u32 = 1;\n").unwrap();
+        hasher.hash(&literal).unwrap();
+        let recent = hasher.recent_hashes.borrow();
+        assert!(
+            recent.values().any(|row| {
+                row.fingerprint
+                    .as_ref()
+                    .is_some_and(|fp| fp.path.contains(r"a\b.rs"))
+            }),
+            "a Unix backslash under OUT_DIR stays part of the filename"
+        );
+    }
+
+    hasher.hash(Path::new("src/./init.js")).unwrap();
+    let recent = hasher.recent_hashes.borrow();
+    assert_eq!(recent.len(), if cfg!(unix) { 3 } else { 2 });
+    assert!(
+        recent.values().any(|row| {
+            row.fingerprint
+                .as_ref()
+                .is_some_and(|fp| fp.path.contains("src/./init.js"))
+        }),
+        "a crate-relative dotted spelling stays as rustc recorded it"
+    );
 }

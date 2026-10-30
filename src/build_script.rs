@@ -25,8 +25,10 @@
 //! its previous run. A script that declares nothing depends on its whole
 //! package directory, exactly as in Cargo. Serving a recorded run under those
 //! rules is no less correct than Cargo skipping the rerun, which is what it
-//! does with a warm target directory. Entries stay in the local store; they
-//! are never published to a remote.
+//! does with a warm target directory. A run is recorded in the local store
+//! and is never published to a remote. A local miss is restored from
+//! `readonly_store` when that store has the run; the read-only store is not
+//! written.
 //!
 //! The named files are the link search paths and `-L` flags in the script's
 //! stdout. A directory Cargo fills itself (`deps`, `incremental`, `build`,
@@ -40,7 +42,7 @@ use crate::cache_key::FileHashStats;
 use crate::compiler_store::StoreHashExt as _;
 use crate::config::Config;
 use crate::events::EventResult;
-use crate::store::{EntryMeta, Store, StorePutResult, link};
+use crate::store::{EntryMeta, Store, StorePutResult};
 use crate::wrapper::EventInputs;
 use anyhow::{Context, Result};
 use std::collections::{BTreeMap, BTreeSet};
@@ -52,6 +54,7 @@ pub(crate) mod declarations;
 mod hermetic;
 pub(crate) mod inputs;
 mod outside;
+mod restore;
 mod rooted_links;
 
 use rooted_links::RootedSymlink;
@@ -218,6 +221,7 @@ pub(crate) fn install(executable: &Path) -> Result<()> {
             .write(true)
             .open(&temporary)?
             .set_times(std::fs::FileTimes::new().set_modified(modified))?;
+        wait_for_no_writers(&temporary);
         std::fs::rename(&temporary, executable)?;
         Ok(())
     })();
@@ -279,10 +283,102 @@ fn pin_kache(kache: &Path, profile: &Path) -> Result<PathBuf> {
         kache_fs::copy_writable(&kache, &staged, true)?;
     }
     kache_fs::set_writable_permissions(&staged, true)?;
+    wait_for_no_writers(&staged);
     // Replace old symlink pins atomically. Concurrent installers pin the same bytes.
     std::fs::rename(&staged, &pinned)?;
     Ok(pinned)
 }
+
+/// Longest [`wait_for_no_writers`] waits for children to drop a file.
+#[cfg(target_os = "linux")]
+const NO_WRITERS_WAIT: std::time::Duration = std::time::Duration::from_secs(2);
+
+/// Wait, at most [`NO_WRITERS_WAIT`], until no process holds `path` open for
+/// writing; whether that was seen.
+///
+/// This process writes the launcher and the pinned kache and closes them, but
+/// a child another thread forks meanwhile inherits each descriptor until it
+/// execs, and Linux refuses to exec a file open for writing (ETXTBSY). The
+/// daemon compiles for many builds at once and spawns compilers all the time,
+/// so Cargo's run of a build script right after its compile could fail with
+/// "Text file busy". A read lease is granted only while nobody has the file
+/// open for writing: once one is, those children have exec'd or exited, and
+/// with our own descriptors closed no new writer can come from here. Best
+/// effort: a file system without leases, or the deadline, returns false.
+#[cfg(target_os = "linux")]
+fn wait_for_no_writers(path: &Path) -> bool {
+    wait_for_no_writers_with(path, NO_WRITERS_WAIT, || {
+        std::thread::sleep(std::time::Duration::from_micros(500));
+    })
+}
+
+#[cfg(target_os = "linux")]
+fn wait_for_no_writers_with(
+    path: &Path,
+    timeout: std::time::Duration,
+    retry: impl FnMut(),
+) -> bool {
+    use std::os::fd::AsRawFd;
+    use std::os::unix::fs::OpenOptionsExt;
+    // Another process's write lease must not block before our retry deadline.
+    let Ok(file) = std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NONBLOCK)
+        .open(path)
+    else {
+        return false;
+    };
+    let fd = file.as_raw_fd();
+    // <fcntl.h>'s F_SETSIG, the same on every Linux architecture; the libc
+    // crate does not name it.
+    const F_SETSIG: libc::c_int = 10;
+    // A lease break signals the holder. SIGURG is ignored by default, unlike
+    // SIGIO, and applies only to this descriptor; no process handler changes.
+    // SAFETY: fcntl on a descriptor this function owns, with integer args.
+    if unsafe { libc::fcntl(fd, F_SETSIG, libc::SIGURG) } != 0 {
+        return false;
+    }
+    wait_for_read_lease(
+        std::time::Instant::now() + timeout,
+        || {
+            // SAFETY: as above. A granted read lease excludes open writers.
+            if unsafe { libc::fcntl(fd, libc::F_SETLEASE, libc::F_RDLCK) } != 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+            // Release before publishing; a fork may have inherited this fd.
+            // SAFETY: as above.
+            if unsafe { libc::fcntl(fd, libc::F_SETLEASE, libc::F_UNLCK) } != 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+            Ok(())
+        },
+        retry,
+    )
+}
+
+#[cfg(target_os = "linux")]
+fn wait_for_read_lease(
+    deadline: std::time::Instant,
+    mut acquire: impl FnMut() -> std::io::Result<()>,
+    mut retry: impl FnMut(),
+) -> bool {
+    loop {
+        match acquire() {
+            Ok(()) => return true,
+            Err(error) => {
+                let busy = error.raw_os_error() == Some(libc::EAGAIN);
+                if !busy || std::time::Instant::now() >= deadline {
+                    return false;
+                }
+                retry();
+            }
+        }
+    }
+}
+
+/// No leases outside Linux; macOS has no ETXTBSY for these files.
+#[cfg(all(unix, not(target_os = "linux")))]
+fn wait_for_no_writers(_path: &Path) {}
 
 fn with_suffix(path: &Path, suffix: &str) -> PathBuf {
     let mut name = path.as_os_str().to_os_string();
@@ -439,7 +535,11 @@ fn run_cached(real: &Path, argv: &[std::ffi::OsString]) -> Result<i32> {
         anyhow::bail!("kache is disabled");
     }
     let environment = Environment::capture()?;
-    let store = Store::open(&config)?;
+    let options = crate::store::StoreOptions::from_env(|name| std::env::var(name).ok());
+    let store = Store::open_with_options(&config, options.clone())?;
+    // Same directory as the local store, or unset: no second store, and the
+    // lookup below is the local one this function has always done.
+    let readonly = crate::wrapper::open_readonly_store(&config, options);
     let binary_hash = stored_binary_hash(real)?;
     let run = Run {
         config,
@@ -449,13 +549,23 @@ fn run_cached(real: &Path, argv: &[std::ffi::OsString]) -> Result<i32> {
         start,
     };
 
-    let prediction = run.prediction()?;
-    if let Some(prediction) = &prediction
+    let local_prediction = run.prediction()?;
+    if let Some(prediction) = &local_prediction
         && run.config.build_script_hermetic
         && let Some(code) = hermetic::run(&run, real, argv, prediction)?
     {
         return Ok(code);
     }
+    // The action key folds the declarations stored with the run. A reader
+    // that has never run this script takes them from the read-only store,
+    // which is where the entry lives too.
+    let prediction = match local_prediction {
+        Some(prediction) => Some(prediction),
+        None => match &readonly {
+            Some(store) => stored_prediction(store, &run.identity())?,
+            None => None,
+        },
+    };
     // Everything below writes into `OUT_DIR` itself.
     detach_out_dir(&run.environment.out_dir)?;
     if let Some(prediction) = &prediction {
@@ -463,11 +573,11 @@ fn run_cached(real: &Path, argv: &[std::ffi::OsString]) -> Result<i32> {
         let key = run.action_key(prediction)?;
         let key_ms = key_start.elapsed().as_millis() as u64;
         let lookup_start = std::time::Instant::now();
-        let meta = run.store.get(&key)?;
+        let found = lookup_recorded_run(&run.store, readonly.as_ref(), &key)?;
         let lookup_ms = lookup_start.elapsed().as_millis() as u64;
-        if let Some(meta) = meta {
+        if let Some((blobs, meta)) = found {
             let restore_start = std::time::Instant::now();
-            match run.restore(&meta) {
+            match run.restore_from(blobs, &meta) {
                 Ok(size) => {
                     let restore_ms = restore_start.elapsed().as_millis() as u64;
                     run.log(
@@ -609,6 +719,33 @@ fn continue_after_restore_failure(error: anyhow::Error) -> Result<()> {
     }
     tracing::debug!("build-script result not restored, running it: {error:#}");
     Ok(())
+}
+
+/// The local store answers first. The read-only store is only a miss there,
+/// and it is never the store a new run is recorded into.
+fn lookup_recorded_run<'a>(
+    local: &'a Store,
+    readonly: Option<&'a Store>,
+    key: &str,
+) -> Result<Option<(&'a Store, EntryMeta)>> {
+    if let Some(meta) = local.get(key)? {
+        return Ok(Some((local, meta)));
+    }
+    let Some(readonly) = readonly else {
+        return Ok(None);
+    };
+    Ok(readonly.get(key)?.map(|meta| (readonly, meta)))
+}
+
+fn stored_prediction(store: &Store, identity: &str) -> Result<Option<Prediction>> {
+    let Some((schema, json)) = store.file_hash_cache().get_input_prediction(identity)? else {
+        return Ok(None);
+    };
+    if schema != PREDICTION_SCHEMA {
+        return Ok(None);
+    }
+    let prediction: Prediction = serde_json::from_str(&json)?;
+    Ok((prediction.version == PREDICTION_SCHEMA).then_some(prediction))
 }
 
 /// A rejected restore whose outputs could not be removed cannot fall back to
@@ -1322,18 +1459,7 @@ impl Run {
     }
 
     fn prediction(&self) -> Result<Option<Prediction>> {
-        let Some((schema, json)) = self
-            .store
-            .file_hash_cache()
-            .get_input_prediction(&self.identity())?
-        else {
-            return Ok(None);
-        };
-        if schema != PREDICTION_SCHEMA {
-            return Ok(None);
-        }
-        let prediction: Prediction = serde_json::from_str(&json)?;
-        Ok((prediction.version == PREDICTION_SCHEMA).then_some(prediction))
+        stored_prediction(&self.store, &self.identity())
     }
 
     fn record_prediction(&self, prediction: &Prediction) -> Result<()> {
@@ -1486,14 +1612,21 @@ impl Run {
         Ok(hasher.finalize().to_hex().to_string())
     }
 
+    #[cfg(test)]
     fn restore(&self, meta: &EntryMeta) -> Result<u64> {
+        self.restore_from(&self.store, meta)
+    }
+
+    /// Restore `meta` using blobs from `blobs`. Hash memos are written to this
+    /// run's own store, so a read-only source is left unchanged.
+    fn restore_from(&self, blobs: &Store, meta: &EntryMeta) -> Result<u64> {
         let manifest = meta
             .files
             .iter()
             .find(|file| file.name == MANIFEST_NAME)
             .context("recorded run has no manifest")?;
         let manifest: Manifest =
-            serde_json::from_slice(&std::fs::read(self.store.blob_path(&manifest.hash))?)?;
+            serde_json::from_slice(&std::fs::read(blobs.blob_path(&manifest.hash))?)?;
         anyhow::ensure!(
             matches!(manifest.version, 1..=rooted_links::MANIFEST_VERSION),
             "unsupported build-script manifest"
@@ -1507,18 +1640,19 @@ impl Run {
         // The recorded run started from an empty OUT_DIR (see `record`), so
         // the restored state is exact only if this one does too.
         clear_directory(&self.environment.out_dir)?;
-        finish_restore(self.restore_outputs(meta, &manifest), || {
+        finish_restore(self.restore_outputs(blobs, meta, &manifest), || {
             clear_directory(&self.environment.out_dir)
         })
     }
 
-    fn restore_outputs(&self, meta: &EntryMeta, manifest: &Manifest) -> Result<u64> {
+    fn restore_outputs(&self, blobs: &Store, meta: &EntryMeta, manifest: &Manifest) -> Result<u64> {
         let rewritten: BTreeSet<&str> = manifest.rewritten.iter().map(String::as_str).collect();
         let out_dir = &self.environment.out_dir;
         for directory in &manifest.directories {
             std::fs::create_dir_all(out_dir.join(checked_relative(directory)?))?;
         }
-        let mut prepared = Vec::new();
+        let mut files = Vec::new();
+        let mut attributes = Vec::new();
         let mut texts = Vec::new();
         let mut size = 0;
         for cached in &meta.files {
@@ -1529,7 +1663,7 @@ impl Run {
             if let Some(parent) = target.parent() {
                 std::fs::create_dir_all(parent)?;
             }
-            let blob = self.store.blob_path(&cached.hash);
+            let blob = blobs.blob_path(&cached.hash);
             anyhow::ensure!(
                 blob.is_file(),
                 "blob for {} was evicted before restore",
@@ -1540,16 +1674,27 @@ impl Run {
                 texts.push((blob, target, cached.executable));
                 continue;
             }
-            prepared.push((
-                link::prepare_writable_target_from_file(&blob, &target)?,
-                cached.executable,
-            ));
+            files.push((blob, target));
+            attributes.push((cached.executable, cached.hash.as_str(), cached.size));
         }
-        for (artifact, executable) in prepared {
+        // Each file published here is a verbatim copy of its blob, so the
+        // blob's name is its hash: memoised at the stamp the file has once
+        // its mode is set, the units that read it next (a static library a
+        // crate links) take the hash from the memo instead of reading it.
+        let mut restored = Vec::new();
+        for (artifact, (executable, hash, size)) in
+            restore::prepare(&files)?.into_iter().zip(attributes)
+        {
             let target = artifact.target().to_path_buf();
             artifact.publish_replacing()?;
             set_executable(&target, executable)?;
+            if size >= kache_store::file_hash::MIN_PERSISTED_HASH_BYTES as u64
+                && let Ok(fingerprint) = kache_store::file_hash::FileFingerprint::from_path(&target)
+            {
+                restored.push((fingerprint, hash));
+            }
         }
+        self.store.record_verified_file_hashes(&restored);
         for (blob, target, executable) in texts {
             std::fs::write(
                 &target,
@@ -1572,7 +1717,7 @@ impl Run {
             rooted_links::restore(&self.environment, symlink)?;
         }
         rooted_links::validate_restored_relative(&self.environment, &manifest.symlinks)?;
-        size += outside::restore(&self.store, &self.environment, meta, manifest, &rewritten)?;
+        size += outside::restore(blobs, &self.environment, meta, manifest, &rewritten)?;
         replay(
             &self.environment.denormalize(manifest.stdout.as_bytes()),
             &self.environment.denormalize(manifest.stderr.as_bytes()),
@@ -2187,6 +2332,179 @@ fn package_exclusions(package: &Path, environment: &Environment) -> Vec<PathBuf>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(target_os = "linux")]
+    fn read_leases_supported(path: &Path) -> bool {
+        use std::os::fd::AsRawFd;
+        let file = std::fs::File::open(path).unwrap();
+        let fd = file.as_raw_fd();
+        // Probe independently of the helper under test. Restrict the fallback
+        // to documented unsupported/permission errors, not an arbitrary failure.
+        // SAFETY: fcntl on a descriptor owned by this fixture, with integer args.
+        let configured = unsafe { libc::fcntl(fd, 10, libc::SIGURG) } == 0;
+        // SAFETY: as above; no other thread has this private fixture open.
+        if configured && unsafe { libc::fcntl(fd, libc::F_SETLEASE, libc::F_RDLCK) } == 0 {
+            // SAFETY: as above.
+            assert_eq!(
+                unsafe { libc::fcntl(fd, libc::F_SETLEASE, libc::F_UNLCK) },
+                0
+            );
+            return true;
+        }
+        let error = std::io::Error::last_os_error();
+        assert!(
+            matches!(
+                error.raw_os_error(),
+                Some(libc::EINVAL | libc::EOPNOTSUPP | libc::ENOSYS | libc::EPERM | libc::EACCES)
+            ),
+            "unexpected uncontended lease failure: {error}"
+        );
+        false
+    }
+
+    #[cfg(target_os = "linux")]
+    struct HeldWriter {
+        release: Option<std::sync::mpsc::Sender<()>>,
+        worker: Option<std::thread::JoinHandle<()>>,
+    }
+
+    #[cfg(target_os = "linux")]
+    impl HeldWriter {
+        fn new(path: &Path) -> Self {
+            let path = path.to_path_buf();
+            let (release, released) = std::sync::mpsc::channel();
+            let (ready, writer_ready) = std::sync::mpsc::channel();
+            let worker = std::thread::spawn(move || {
+                let writer = std::fs::OpenOptions::new().write(true).open(path).unwrap();
+                ready.send(()).unwrap();
+                let _ = released.recv();
+                drop(writer);
+            });
+            let held = Self {
+                release: Some(release),
+                worker: Some(worker),
+            };
+            writer_ready
+                .recv_timeout(std::time::Duration::from_secs(5))
+                .expect("writer opens the file");
+            held
+        }
+
+        fn release(&mut self) {
+            drop(self.release.take());
+            self.worker.take().unwrap().join().unwrap();
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    impl Drop for HeldWriter {
+        fn drop(&mut self) {
+            // Disconnect before joining, including when an assertion unwinds.
+            drop(self.release.take());
+            if let Some(worker) = self.worker.take() {
+                let _ = worker.join();
+            }
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_written_executable_waits_for_a_known_writer_before_running() {
+        let _lock = crate::test_support::process_state_test_lock();
+        let dir = tempfile::tempdir().unwrap();
+        let script = dir.path().join("script");
+        kache_fs::testutil::write_executable(&script, "#!/bin/sh\nexit 0\n");
+        if !read_leases_supported(&script) {
+            assert!(!wait_for_no_writers(&script));
+            return;
+        }
+
+        let mut writer = HeldWriter::new(&script);
+        let error = std::process::Command::new(&script).status().unwrap_err();
+        assert_eq!(error.raw_os_error(), Some(libc::ETXTBSY));
+        let mut observed_busy = false;
+        assert!(wait_for_no_writers_with(&script, NO_WRITERS_WAIT, || {
+            if !observed_busy {
+                observed_busy = true;
+                writer.release();
+            } else {
+                // Another test's child may also have inherited the writer.
+                std::thread::sleep(std::time::Duration::from_micros(500));
+            }
+        }));
+        assert!(observed_busy, "success must follow an observed busy lease");
+        assert!(
+            std::process::Command::new(&script)
+                .status()
+                .unwrap()
+                .success()
+        );
+        assert!(wait_for_no_writers(&script), "an idle file needs no retry");
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn read_lease_retry_distinguishes_busy_deadline_and_unavailable_leases() {
+        use std::cell::Cell;
+        use std::time::{Duration, Instant};
+
+        let released = Cell::new(false);
+        assert!(wait_for_read_lease(
+            Instant::now() + NO_WRITERS_WAIT,
+            || {
+                if released.get() {
+                    Ok(())
+                } else {
+                    Err(std::io::Error::from_raw_os_error(libc::EAGAIN))
+                }
+            },
+            || released.set(true),
+        ));
+        assert!(released.get());
+
+        assert!(!wait_for_read_lease(
+            Instant::now() - Duration::from_secs(1),
+            || Err(std::io::Error::from_raw_os_error(libc::EAGAIN)),
+            || panic!("an expired wait must not retry"),
+        ));
+        for code in [
+            libc::EINVAL,
+            libc::EOPNOTSUPP,
+            libc::ENOSYS,
+            libc::EPERM,
+            libc::EACCES,
+            libc::EINTR,
+        ] {
+            assert!(
+                !wait_for_read_lease(
+                    Instant::now() + NO_WRITERS_WAIT,
+                    || Err(std::io::Error::from_raw_os_error(code)),
+                    || panic!("a terminal error must not retry"),
+                ),
+                "errno {code}"
+            );
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_held_writer_obeys_an_expired_deadline_and_missing_paths_fail_open() {
+        let _lock = crate::test_support::process_state_test_lock();
+        let dir = tempfile::tempdir().unwrap();
+        assert!(!wait_for_no_writers(&dir.path().join("missing")));
+        let path = dir.path().join("held");
+        kache_fs::testutil::write_executable(&path, "#!/bin/sh\nexit 0\n");
+        if !read_leases_supported(&path) {
+            assert!(!wait_for_no_writers(&path));
+            return;
+        }
+        let _writer = HeldWriter::new(&path);
+        assert!(!wait_for_no_writers_with(
+            &path,
+            std::time::Duration::ZERO,
+            || panic!("an expired lease must not sleep"),
+        ));
+    }
 
     fn environment(out_dir: &Path, manifest_dir: &Path) -> Environment {
         let mut mappings = vec![
@@ -4112,8 +4430,14 @@ mod tests {
                 start: std::time::Instant::now(),
             }
         };
-        let pc = |out: &Path| format!("prefix={}\nlibdir=${{prefix}}/lib\n", out.display());
-        let object = [
+        let pc = |out: &Path| {
+            format!(
+                "prefix={}\nlibdir=${{prefix}}/lib\n{}",
+                out.display(),
+                "padding=x\n".repeat(8 * 1024)
+            )
+        };
+        let mut object = [
             b"\x7fELF\0".as_slice(),
             dir.as_path()
                 .join("cargo/registry/src/z-1.0.0/adler32.c")
@@ -4121,6 +4445,8 @@ mod tests {
                 .as_encoded_bytes(),
         ]
         .concat();
+        object.resize(64 * 1024, 0);
+        let small = vec![b's'; 65_535];
 
         let mut a = run_in("a/target");
         a.start = std::time::Instant::now() - std::time::Duration::from_secs(2);
@@ -4128,6 +4454,8 @@ mod tests {
         std::fs::create_dir_all(out.join("lib/pkgconfig")).unwrap();
         std::fs::write(out.join("lib/pkgconfig/z.pc"), pc(out)).unwrap();
         std::fs::write(out.join("lib/adler32.o"), &object).unwrap();
+        set_executable(&out.join("lib/adler32.o"), true).unwrap();
+        std::fs::write(out.join("lib/small.a"), &small).unwrap();
         let after_the_run = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
         a.record(
             b"cargo:rerun-if-changed=build.rs\n",
@@ -4171,6 +4499,159 @@ mod tests {
             pc(out)
         );
         assert_eq!(std::fs::read(out.join("lib/adler32.o")).unwrap(), object);
+        assert_eq!(std::fs::read(out.join("lib/small.a")).unwrap(), small);
+
+        let file_hasher = b.store.file_hasher();
+        assert_eq!(
+            file_hasher.hash(&out.join("lib/adler32.o")).unwrap(),
+            kache_store::file_hash::hash_file(&out.join("lib/adler32.o")).unwrap()
+        );
+        assert_eq!(
+            file_hasher.stats().bytes_hashed,
+            0,
+            "an exact copy at the persistence floor is memoised after its mode is set"
+        );
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                std::fs::metadata(out.join("lib/adler32.o"))
+                    .unwrap()
+                    .permissions()
+                    .mode()
+                    & 0o777,
+                0o755
+            );
+        }
+
+        let rewritten = out.join("lib/pkgconfig/z.pc");
+        let fingerprint = kache_store::file_hash::FileFingerprint::from_path(&rewritten).unwrap();
+        assert!(
+            b.store
+                .file_hash_cache()
+                .get(&fingerprint)
+                .unwrap()
+                .is_none()
+        );
+        let source_hash = &meta
+            .files
+            .iter()
+            .find(|file| file.name == "out/lib/pkgconfig/z.pc")
+            .unwrap()
+            .hash;
+        let file_hasher = b.store.file_hasher();
+        let restored_hash = file_hasher.hash(&rewritten).unwrap();
+        assert_eq!(
+            restored_hash,
+            kache_store::file_hash::hash_file(&rewritten).unwrap()
+        );
+        assert_ne!(&restored_hash, source_hash);
+        assert_eq!(
+            file_hasher.stats().bytes_hashed,
+            std::fs::metadata(&rewritten).unwrap().len(),
+            "rewritten text is hashed instead of inheriting its stored blob's digest"
+        );
+
+        let file_hasher = b.store.file_hasher();
+        assert_eq!(
+            file_hasher.hash(&out.join("lib/small.a")).unwrap(),
+            kache_store::file_hash::hash_file(&out.join("lib/small.a")).unwrap()
+        );
+        assert_eq!(file_hasher.stats().bytes_hashed, 65_535);
+    }
+
+    /// A restored `OUT_DIR` file is a copy of its blob, so its hash is known:
+    /// the unit that reads it next (a crate linking the static library)
+    /// takes it from the memo. A file changed after the restore is read.
+    #[test]
+    fn restored_out_dir_files_are_memoised_at_their_stamp() {
+        let mut lock = crate::test_support::process_state_test_lock();
+        let dir = lock.enter();
+        let config = crate::test_support::test_config(dir.as_path().join("cache"));
+        let run_in = |target: &str| {
+            let environment =
+                checkout_environment(&dir.as_path().join(target), &dir.as_path().join("cargo"));
+            std::fs::create_dir_all(&environment.manifest_dir).unwrap();
+            std::fs::write(environment.manifest_dir.join("build.rs"), "fn main() {}").unwrap();
+            Run {
+                store: Store::open(&config).unwrap(),
+                config: config.clone(),
+                binary_hash: "aaaa".to_string(),
+                environment,
+                start: std::time::Instant::now(),
+            }
+        };
+        let archive = vec![b'a'; 128 * 1024];
+        let mut a = run_in("a/target");
+        a.start = std::time::Instant::now() - std::time::Duration::from_secs(2);
+        std::fs::create_dir_all(a.environment.out_dir.join("lib")).unwrap();
+        std::fs::write(a.environment.out_dir.join("lib/libz.a"), &archive).unwrap();
+        let after_the_run = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
+        a.record(
+            b"cargo:rerun-if-changed=build.rs\n",
+            b"",
+            1_300,
+            after_the_run,
+        )
+        .unwrap();
+
+        let b = run_in("b/target");
+        let prediction = b.prediction().unwrap().unwrap();
+        let meta = b
+            .store
+            .get(&b.action_key(&prediction).unwrap())
+            .unwrap()
+            .unwrap();
+        b.restore(&meta).unwrap();
+        let restored = b.environment.out_dir.join("lib/libz.a");
+        assert_eq!(std::fs::read(&restored).unwrap(), archive);
+
+        let hasher = b.store.file_hasher();
+        assert_eq!(
+            hasher.hash(&restored).unwrap(),
+            kache_store::file_hash::hash_file(&restored).unwrap()
+        );
+        assert_eq!(
+            hasher.stats().bytes_hashed,
+            0,
+            "the restored file's hash comes from the memo"
+        );
+
+        #[cfg(unix)]
+        {
+            let before = std::fs::metadata(&restored).unwrap();
+            let fingerprint =
+                kache_store::file_hash::FileFingerprint::from_metadata(&restored, &before);
+            let give_up = std::time::Instant::now() + std::time::Duration::from_secs(10);
+            while kache_store::file_hash::stamp_written_since(
+                &fingerprint,
+                kache_store::file_hash::stamp_clock_ns(),
+            ) {
+                assert!(
+                    std::time::Instant::now() < give_up,
+                    "the stamp clock never passed {fingerprint:?}"
+                );
+                std::thread::sleep(std::time::Duration::from_millis(1));
+            }
+            let mut file = std::fs::OpenOptions::new()
+                .write(true)
+                .open(&restored)
+                .unwrap();
+            std::io::Write::write_all(&mut file, &vec![b'w'; archive.len()]).unwrap();
+            drop(file);
+            filetime::set_file_mtime(
+                &restored,
+                filetime::FileTime::from_last_modification_time(&before),
+            )
+            .unwrap();
+            let hasher = b.store.file_hasher();
+            assert_eq!(
+                hasher.hash(&restored).unwrap(),
+                kache_store::file_hash::hash_file(&restored).unwrap(),
+                "a write that kept size and mtime is read, not served"
+            );
+            assert_eq!(hasher.stats().bytes_hashed, archive.len() as u64);
+        }
     }
 
     fn stored_manifest(run: &Run, meta: &EntryMeta) -> Manifest {
@@ -5960,5 +6441,300 @@ mod tests {
             .nth(fields[2].matches("../").count())
             .unwrap();
         (fields[0].to_string(), profile.join(fields[1]))
+    }
+
+    /// Puts back the process environment this module's cache tests change.
+    #[cfg(unix)]
+    struct EnvRestore {
+        saved: Vec<(&'static str, Option<std::ffi::OsString>)>,
+    }
+
+    #[cfg(unix)]
+    impl EnvRestore {
+        fn new() -> Self {
+            Self { saved: Vec::new() }
+        }
+
+        fn set(&mut self, key: &'static str, value: &std::ffi::OsStr) {
+            self.remember(key);
+            // SAFETY: the caller holds the process-state lock.
+            unsafe { std::env::set_var(key, value) };
+        }
+
+        fn unset(&mut self, key: &'static str) {
+            self.remember(key);
+            // SAFETY: the caller holds the process-state lock.
+            unsafe { std::env::remove_var(key) };
+        }
+
+        fn remember(&mut self, key: &'static str) {
+            if self.saved.iter().any(|(name, _)| *name == key) {
+                return;
+            }
+            self.saved.push((key, std::env::var_os(key)));
+        }
+    }
+
+    #[cfg(unix)]
+    impl Drop for EnvRestore {
+        fn drop(&mut self) {
+            for (key, value) in self.saved.drain(..).rev() {
+                // SAFETY: the process-state lock is still held; this guard is
+                // dropped before that lock.
+                unsafe {
+                    match value {
+                        Some(value) => std::env::set_var(key, value),
+                        None => std::env::remove_var(key),
+                    }
+                }
+            }
+        }
+    }
+
+    #[cfg(unix)]
+    fn quote_path(path: &Path) -> String {
+        toml::Value::String(path.display().to_string()).to_string()
+    }
+
+    /// `readonly` of `None` writes an empty value so a host config cannot
+    /// fill one in. An empty value is the same as leaving it unset.
+    #[cfg(unix)]
+    fn write_reader_config(path: &Path, cache: &Path, readonly: Option<&Path>) {
+        let readonly = match readonly {
+            Some(dir) => format!("readonly_store = {}\n", quote_path(dir)),
+            None => "readonly_store = \"\"\n".to_string(),
+        };
+        std::fs::write(
+            path,
+            format!(
+                "[cache]\nignore_env = true\nbuild_script_hermetic = false\nlocal_store = {}\nruntime_dir = {}\n{readonly}",
+                quote_path(cache),
+                quote_path(cache),
+            ),
+        )
+        .unwrap();
+    }
+
+    #[cfg(unix)]
+    struct ScriptFixture {
+        dir: tempfile::TempDir,
+        script: PathBuf,
+        package: PathBuf,
+        sentinel: PathBuf,
+    }
+
+    #[cfg(unix)]
+    fn script_fixture() -> ScriptFixture {
+        let dir = tempfile::tempdir().unwrap();
+        let package = dir.path().join("pkg");
+        std::fs::create_dir(&package).unwrap();
+        let build_rs = package.join("build.rs");
+        std::fs::write(&build_rs, "fn main() {}\n").unwrap();
+        filetime::set_file_mtime(
+            &build_rs,
+            filetime::FileTime::from_unix_time(1_000_000_000, 0),
+        )
+        .unwrap();
+        let script = dir.path().join("build_script_build.kache-real");
+        kache_fs::testutil::write_executable(
+            &script,
+            "#!/bin/sh\nset -e\nprintf 'from-script' > \"$OUT_DIR/marker\"\nprintf x >> \"$1\"\nprintf 'cargo:rerun-if-changed=build.rs\\n'\n",
+        );
+        let sentinel = dir.path().join("ran");
+        ScriptFixture {
+            dir,
+            script,
+            package,
+            sentinel,
+        }
+    }
+
+    #[cfg(unix)]
+    fn prepare_out(path: &Path) {
+        if path.exists() {
+            std::fs::remove_dir_all(path).unwrap();
+        }
+        std::fs::create_dir_all(path).unwrap();
+    }
+
+    #[cfg(unix)]
+    fn run_reader(
+        env: &mut EnvRestore,
+        config: &Path,
+        out: &Path,
+        package: &Path,
+        script: &Path,
+        sentinel: &Path,
+    ) -> i32 {
+        env.set("KACHE_CONFIG", config.as_os_str());
+        env.set("OUT_DIR", out.as_os_str());
+        env.set("CARGO_MANIFEST_DIR", package.as_os_str());
+        env.unset("KACHE_DISABLED");
+        env.unset("KACHE_TRUST_DOMAIN");
+        run_cached(script, &[sentinel.as_os_str().to_os_string()])
+            .unwrap_or_else(|error| panic!("{error:#}"))
+    }
+
+    #[cfg(unix)]
+    fn event_results(cache: &Path) -> Vec<String> {
+        let path = cache.join("events.jsonl");
+        if !path.is_file() {
+            return Vec::new();
+        }
+        std::fs::read_to_string(path)
+            .unwrap()
+            .lines()
+            .filter_map(|line| serde_json::from_str::<serde_json::Value>(line).ok())
+            .filter_map(|event| event["result"].as_str().map(str::to_string))
+            .collect()
+    }
+
+    #[cfg(unix)]
+    fn entry_metas(cache: &Path) -> Vec<(String, Vec<u8>)> {
+        let store = cache.join("store");
+        let mut found = Vec::new();
+        if !store.is_dir() {
+            return found;
+        }
+        let mut dirs: Vec<_> = std::fs::read_dir(&store)
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .collect();
+        dirs.sort();
+        for dir in dirs {
+            let meta = dir.join("meta.json");
+            if meta.is_file() {
+                found.push((
+                    dir.file_name().unwrap().to_string_lossy().into_owned(),
+                    std::fs::read(meta).unwrap(),
+                ));
+            }
+        }
+        found
+    }
+
+    /// The entry is only in the read-only store. The reader restores it and
+    /// that store gains no entry.
+    #[cfg(unix)]
+    #[test]
+    fn build_script_readonly_store_restores_and_gains_no_entry() {
+        let _lock = crate::test_support::process_state_test_lock();
+        let mut env = EnvRestore::new();
+        let fixture = script_fixture();
+        let root = fixture.dir.path();
+        let host = root.join("host");
+        let job = root.join("job");
+        let host_out = root.join("host-out");
+        let job_out = root.join("job-out");
+        prepare_out(&host_out);
+        prepare_out(&job_out);
+        let host_config = root.join("host.toml");
+        let job_config = root.join("job.toml");
+        write_reader_config(&host_config, &host, None);
+        write_reader_config(&job_config, &job, Some(&host));
+
+        let code = run_reader(
+            &mut env,
+            &host_config,
+            &host_out,
+            &fixture.package,
+            &fixture.script,
+            &fixture.sentinel,
+        );
+        assert_eq!(code, 0, "{}", event_results(&host).join(","));
+        assert_eq!(
+            std::fs::read(host_out.join("marker")).unwrap(),
+            b"from-script"
+        );
+        assert_eq!(std::fs::read(&fixture.sentinel).unwrap(), b"x");
+        assert_eq!(event_results(&host), ["miss"]);
+
+        let host_store = Store::open(&Config::load().unwrap()).unwrap();
+        let entries = host_store.entry_count().unwrap();
+        assert_eq!(entries, 1);
+        let metas = entry_metas(&host);
+
+        let code = run_reader(
+            &mut env,
+            &job_config,
+            &job_out,
+            &fixture.package,
+            &fixture.script,
+            &fixture.sentinel,
+        );
+        assert_eq!(
+            code,
+            0,
+            "job {:?}; host {:?}",
+            event_results(&job),
+            event_results(&host)
+        );
+        assert_eq!(
+            std::fs::read(job_out.join("marker")).unwrap(),
+            b"from-script"
+        );
+        assert_eq!(
+            std::fs::read(&fixture.sentinel).unwrap(),
+            b"x",
+            "the script ran instead of restoring from the read-only store"
+        );
+        assert_eq!(host_store.entry_count().unwrap(), entries);
+        assert_eq!(entry_metas(&host), metas);
+        assert_eq!(event_results(&job), ["local_hit"]);
+    }
+
+    /// No read-only store is configured. A miss still records into the local
+    /// store, and the next run restores that entry instead of running again.
+    #[cfg(unix)]
+    #[test]
+    fn build_script_readonly_store_unset_still_records_locally() {
+        let _lock = crate::test_support::process_state_test_lock();
+        let mut env = EnvRestore::new();
+        let fixture = script_fixture();
+        let root = fixture.dir.path();
+        let cache = root.join("cache");
+        let out = root.join("out");
+        prepare_out(&out);
+        let config = root.join("kache.toml");
+        write_reader_config(&config, &cache, None);
+
+        let code = run_reader(
+            &mut env,
+            &config,
+            &out,
+            &fixture.package,
+            &fixture.script,
+            &fixture.sentinel,
+        );
+        assert_eq!(code, 0, "{}", event_results(&cache).join(","));
+        assert_eq!(std::fs::read(out.join("marker")).unwrap(), b"from-script");
+        assert_eq!(std::fs::read(&fixture.sentinel).unwrap(), b"x");
+        let store = Store::open(&Config::load().unwrap()).unwrap();
+        assert_eq!(
+            store.entry_count().unwrap(),
+            1,
+            "{:?}",
+            event_results(&cache)
+        );
+        assert_eq!(event_results(&cache), ["miss"]);
+
+        std::fs::remove_file(out.join("marker")).unwrap();
+        let code = run_reader(
+            &mut env,
+            &config,
+            &out,
+            &fixture.package,
+            &fixture.script,
+            &fixture.sentinel,
+        );
+        assert_eq!(code, 0, "{:?}", event_results(&cache));
+        assert_eq!(std::fs::read(out.join("marker")).unwrap(), b"from-script");
+        assert_eq!(
+            std::fs::read(&fixture.sentinel).unwrap(),
+            b"x",
+            "the recorded run was executed again"
+        );
+        assert_eq!(store.entry_count().unwrap(), 1);
+        assert_eq!(event_results(&cache), ["miss", "local_hit"]);
     }
 }
