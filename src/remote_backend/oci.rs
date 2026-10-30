@@ -336,6 +336,10 @@ fn load_credentials(directory: &std::path::Path, registry: &str) -> Result<Regis
     // Exclude descriptor admission while it owns that blocking operation.
     #[cfg(unix)]
     let _admission = kache_ipc::descriptors::spawn_guard();
+    // The credential library owns process creation, so its blocking call is
+    // the narrowest available boundary for excluding executable writers.
+    #[cfg(target_os = "linux")]
+    let _executable_spawn = kache_fs::executable_admission::spawn();
     credentials(docker_credential::get_credential_from_reader(
         std::io::BufReader::new(file),
         registry,

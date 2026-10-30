@@ -45,6 +45,8 @@ pub(crate) fn host_spawn(
 ) -> std::io::Result<std::process::Child> {
     #[cfg(unix)]
     let _admission = kache_ipc::descriptors::spawn_guard();
+    #[cfg(target_os = "linux")]
+    let _executable_spawn = kache_fs::executable_admission::spawn();
     command.spawn()
 }
 
@@ -74,6 +76,8 @@ pub(crate) async fn host_output_async(
     let child = {
         #[cfg(unix)]
         let _admission = kache_ipc::descriptors::spawn_guard();
+        #[cfg(target_os = "linux")]
+        let _executable_spawn = kache_fs::executable_admission::spawn();
         command.spawn()?
     };
     child.wait_with_output().await
@@ -377,8 +381,70 @@ pub fn is_self_spawn(argv: &[String], self_spawn: Option<&std::ffi::OsStr>) -> b
     }
 }
 
+/// Observe the parent's admission state while a real child is held before exec.
+/// The child uses only read/write syscalls; it never touches a Rust lock.
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) fn observe_spawn_exclusion<T: Send>(
+    spawn: impl FnOnce(std::process::Command) -> std::io::Result<T> + Send,
+) -> (bool, T) {
+    use std::io::{Read as _, Write as _};
+    use std::os::fd::AsRawFd as _;
+    use std::os::unix::net::UnixStream;
+    use std::os::unix::process::CommandExt as _;
+
+    let (mut observer, child_barrier) = UnixStream::pair().unwrap();
+    let descriptor = child_barrier.as_raw_fd();
+    let mut command = std::process::Command::new("/bin/true");
+    // SAFETY: the post-fork closure uses async-signal-safe syscalls only.
+    // Both socket ends remain owned until spawn has finished.
+    unsafe {
+        command.pre_exec(move || {
+            let mut byte = 1_u8;
+            if libc::write(descriptor, (&byte as *const u8).cast(), 1) != 1 {
+                return Err(std::io::Error::last_os_error());
+            }
+            if libc::read(descriptor, (&mut byte as *mut u8).cast(), 1) != 1 {
+                return Err(std::io::Error::last_os_error());
+            }
+            Ok(())
+        });
+    }
+    std::thread::scope(|threads| {
+        let worker = threads.spawn(move || {
+            let _child_barrier = child_barrier;
+            spawn(command)
+        });
+        observer.read_exact(&mut [0_u8]).unwrap();
+        let excluded = kache_fs::executable_admission::materialization_is_excluded();
+        observer.write_all(&[1_u8]).unwrap();
+        (excluded, worker.join().unwrap().unwrap())
+    })
+}
+
 #[cfg(test)]
 mod tests {
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn host_spawn_excludes_executable_materialization_during_fork() {
+        let (excluded, mut child) =
+            super::observe_spawn_exclusion(|mut command| super::host_spawn(&mut command));
+        assert!(child.wait().unwrap().success());
+        assert!(excluded, "a fork must not inherit an executable writer");
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn asynchronous_host_spawn_excludes_executable_materialization_during_fork() {
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let (excluded, output) = super::observe_spawn_exclusion(|command| {
+            runtime.block_on(super::host_output_async(
+                &mut tokio::process::Command::from(command),
+            ))
+        });
+        assert!(output.status.success());
+        assert!(excluded, "a fork must not inherit an executable writer");
+    }
     #[cfg(unix)]
     #[tokio::test]
     async fn host_utilities_capture_bytes_without_request_cancellation() {

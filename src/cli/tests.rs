@@ -3403,6 +3403,7 @@ fn test_plan_cargo_wrapper_edit_rejects_malformed_toml() {
 
 #[test]
 fn test_get_workspace_crate_names_lists_members() {
+    let _process_state = crate::test_support::process_state_test_lock();
     // A two-member workspace; `cargo metadata --no-deps` should report both.
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();

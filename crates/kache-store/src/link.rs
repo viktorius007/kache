@@ -444,6 +444,12 @@ fn link_to_target_via(
     strategy: LinkStrategy,
     reflink: fn(&Path, &Path) -> Result<()>,
 ) -> Result<()> {
+    #[cfg(target_os = "linux")]
+    let _executable_writer = matches!(
+        strategy,
+        LinkStrategy::Copy | LinkStrategy::ExecutableHardlink
+    )
+    .then(kache_fs::executable_admission::materialize);
     let do_link = || -> Result<()> {
         // Remove existing file at target (link/clone calls fail if dst exists).
         clear_target(target_path)?;
@@ -1514,6 +1520,12 @@ fn clear_target(target_path: &Path) -> Result<()> {
 /// holds no matter which path materializes the file — including a future
 /// content transform applied to an executable artifact (issue #298).
 pub fn write_restored(target_path: &Path, content: &[u8], strategy: LinkStrategy) -> Result<()> {
+    #[cfg(target_os = "linux")]
+    let _executable_writer = matches!(
+        strategy,
+        LinkStrategy::Copy | LinkStrategy::ExecutableHardlink
+    )
+    .then(kache_fs::executable_admission::materialize);
     let do_write = || -> Result<()> {
         clear_target(target_path)?;
         fs::write(target_path, content)
@@ -2333,6 +2345,24 @@ pub enum DepInfoMode {
 
 #[cfg(test)]
 mod tests {
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn executable_materialization_excludes_forks_until_the_writer_closes() {
+        fn observing_clone(src: &Path, dst: &Path) -> Result<()> {
+            assert!(kache_fs::executable_admission::spawn_is_excluded());
+            fs::copy(src, dst)?;
+            Ok(())
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("blob");
+        fs::write(&source, b"executable bytes").unwrap();
+        for strategy in [LinkStrategy::Copy, LinkStrategy::ExecutableHardlink] {
+            let target = dir.path().join("restored");
+            link_to_target_via(&source, &target, strategy, observing_clone).unwrap();
+            assert_eq!(fs::read(target).unwrap(), b"executable bytes");
+        }
+    }
     use std::cell::Cell;
 
     use super::*;

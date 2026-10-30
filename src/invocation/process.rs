@@ -414,7 +414,11 @@ fn spawn(command: &mut Command, force_group: bool, io: Option<ChildIo>) -> io::R
         (windows::Child::local(command.spawn()?), None)
     };
     #[cfg(not(windows))]
-    let mut child = command.spawn()?;
+    let mut child = {
+        #[cfg(target_os = "linux")]
+        let _executable_spawn = kache_fs::executable_admission::spawn();
+        command.spawn()?
+    };
     #[cfg(unix)]
     drop(descriptor_admission);
     let stdin = child.stdin.take();
@@ -445,6 +449,15 @@ fn spawn(command: &mut Command, force_group: bool, io: Option<ChildIo>) -> io::R
 
 #[cfg(test)]
 mod tests {
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn invocation_spawn_excludes_executable_materialization_during_fork() {
+        let (excluded, mut child) =
+            crate::platform::observe_spawn_exclusion(|mut command| command.invocation_spawn());
+        assert!(child.wait().unwrap().success());
+        assert!(excluded, "a fork must not inherit an executable writer");
+    }
     use super::*;
 
     #[test]

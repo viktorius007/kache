@@ -14,6 +14,8 @@ pub mod paths;
 pub mod process_state_test;
 pub mod volume;
 
+pub mod executable_admission;
+
 mod copy;
 #[cfg(windows)]
 pub use copy::windows_cluster_size;
