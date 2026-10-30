@@ -5548,6 +5548,11 @@ Unified_mm_ettings-WrongChannel0.o: Unified_mm_ettings-WrongChannel0.mm \\
         let dir = tempfile::tempdir().unwrap();
         let blob = dir.path().join("blob");
         let target = dir.path().join("libfoo.rmeta");
+        // A plain metadata output inherits this directory's creation mode.
+        // The caller's umask may permit group writes (for example 0002).
+        let reference = dir.path().join("fresh.rmeta");
+        fs::write(&reference, b"fresh metadata").unwrap();
+        let creation_mode = mode_of(&reference);
         fs::write(&blob, b"metadata").unwrap();
         fs::set_permissions(&blob, fs::Permissions::from_mode(0o444)).unwrap();
         for existing in [false, true] {
@@ -5559,14 +5564,14 @@ Unified_mm_ettings-WrongChannel0.o: Unified_mm_ettings-WrongChannel0.mm \\
             link_to_target_via(&blob, &target, LinkStrategy::WritableCopy, no_reflink).unwrap();
             assert_eq!(crate::opcounts::thread_copied_bytes() - copied, 8);
             assert_ne!(ino_of(&target), ino_of(&blob));
-            assert_eq!(mode_of(&target), 0o644);
+            assert_eq!(mode_of(&target), creation_mode);
             assert_eq!(fs::read(&target).unwrap(), b"metadata");
             fs::write(&target, b"fixed").unwrap();
             assert_eq!(fs::read(&blob).unwrap(), b"metadata");
             assert_eq!(mode_of(&blob), 0o444);
         }
         write_restored(&target, b"in-memory metadata", LinkStrategy::WritableCopy).unwrap();
-        assert_eq!(mode_of(&target), 0o644);
+        assert_eq!(mode_of(&target), creation_mode);
         assert_eq!(fs::read(&target).unwrap(), b"in-memory metadata");
         assert_eq!(fs::read(&blob).unwrap(), b"metadata");
 
@@ -5604,6 +5609,11 @@ Unified_mm_ettings-WrongChannel0.o: Unified_mm_ettings-WrongChannel0.mm \\
         let dir = tempfile::tempdir().unwrap();
         let blob = dir.path().join("blob");
         let target = dir.path().join("libfoo.rmeta");
+        // A plain metadata output inherits this directory's creation mode.
+        // The caller's umask may permit group writes (for example 0002).
+        let reference = dir.path().join("fresh.rmeta");
+        fs::write(&reference, b"fresh metadata").unwrap();
+        let creation_mode = mode_of(&reference);
         fs::write(&blob, b"metadata").unwrap();
         // Even an executable imported blob must restore as ordinary metadata.
         fs::set_permissions(&blob, fs::Permissions::from_mode(0o555)).unwrap();
@@ -5613,7 +5623,7 @@ Unified_mm_ettings-WrongChannel0.o: Unified_mm_ettings-WrongChannel0.mm \\
         }
         link_to_target(&blob, &target, LinkStrategy::WritableCopy).unwrap();
         assert_ne!(ino_of(&target), ino_of(&blob));
-        assert_eq!(mode_of(&target), 0o644);
+        assert_eq!(mode_of(&target), creation_mode);
         assert_eq!(fs::read(&target).unwrap(), b"metadata");
         fs::write(&target, b"fixed").unwrap();
         assert_eq!(fs::read(&blob).unwrap(), b"metadata");
