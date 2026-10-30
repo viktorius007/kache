@@ -69,6 +69,9 @@ impl Fixture {
         .unwrap();
         cmd.current_dir(self.root.path())
             .env("PATH", path)
+            // Keep the fork's Cargo-home-first lookup inside this fixture.
+            // An inherited Cargo home would bypass the stand-in on PATH.
+            .env("CARGO_HOME", self.root.path().join("cargo-home"))
             .env("REAL_LOG", self.root.path().join("cargo.log"))
             .env("ENGINE_LOG", self.root.path().join("blaze.log"))
             .env("KACHE_LOG", "off")
