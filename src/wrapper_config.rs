@@ -110,6 +110,18 @@ fn cargo_rustdoc_setting_from(
     let mut resolved = None;
     for path in cargo_config_candidates(current_dir, cargo_home, home) {
         if let Some(value) = read_rustdoc_from_config(&path) {
+            // Cargo resolves executable paths containing separators against
+            // the directory above .cargo, not the command's working directory.
+            let program = Path::new(&value);
+            let value = if !program.is_absolute() && program.components().count() > 1 {
+                path.parent()?
+                    .parent()?
+                    .join(program)
+                    .to_string_lossy()
+                    .into_owned()
+            } else {
+                value
+            };
             resolved = Some((value, path));
         }
     }
@@ -319,6 +331,30 @@ mod tests {
         let setting = cargo_rustdoc_setting_from(Some(&project), None, Some(home)).unwrap();
         assert_eq!(setting.0, "/project/shim/rustdoc");
         assert_eq!(setting.1, project.join(".cargo/config.toml"));
+    }
+
+    #[test]
+    fn relative_rustdoc_paths_use_the_config_directory_and_bare_programs_keep_path_lookup() {
+        let dir = tempfile::tempdir().unwrap();
+        let cargo_home = dir.path().join(".cargo");
+        std::fs::create_dir_all(&cargo_home).unwrap();
+        let config = cargo_home.join("config.toml");
+        for (value, expected) in [
+            (
+                ".local/shims/rustdoc",
+                dir.path()
+                    .join(".local/shims/rustdoc")
+                    .to_string_lossy()
+                    .into_owned(),
+            ),
+            ("rustdoc", "rustdoc".into()),
+        ] {
+            std::fs::write(&config, format!("[build]\nrustdoc = '{value}'\n")).unwrap();
+            assert_eq!(
+                cargo_rustdoc_setting_from(None, Some(cargo_home.clone()), None),
+                Some((expected, config.clone()))
+            );
+        }
     }
 
     #[test]

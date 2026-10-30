@@ -7707,8 +7707,9 @@ pub(crate) fn doctor_shards(config: &Config) -> Vec<Check> {
 /// working directory reports EXDEV for a project whose `build.target-dir` sits
 /// on the store's mount, and a pass for one whose artifacts get copied.
 fn cargo_output_dir() -> Option<std::path::PathBuf> {
+    let cwd = std::env::current_dir().ok()?;
     cargo_output_dir_from(
-        &std::env::current_dir().ok()?,
+        &cwd,
         &CargoEnvironment {
             target_dir: std::env::var_os("CARGO_TARGET_DIR"),
             build_target_dir: std::env::var_os("CARGO_BUILD_TARGET_DIR"),
@@ -7717,6 +7718,45 @@ fn cargo_output_dir() -> Option<std::path::PathBuf> {
             home: dirs::home_dir().unwrap_or_default(),
         },
     )
+    .or_else(|| {
+        // Cargo knows templates such as {workspace-path-hash}. Ask it when the
+        // conservative seeding resolver cannot place the configured directory.
+        let output = crate::cargo_proxy::cargo_command(crate::cargo_proxy::CargoRoute::Command)
+            .and_then(|mut command| {
+                let output = command
+                    .args([
+                        "metadata",
+                        "--offline",
+                        "--no-deps",
+                        "--format-version",
+                        "1",
+                    ])
+                    .current_dir(&cwd)
+                    .output()?;
+                crate::cargo_proxy::refusal_below(&output.status, &output.stderr)?;
+                Ok(output)
+            });
+        let output = match output {
+            Ok(output) => output,
+            Err(error) if crate::cargo_proxy::is_refused(&error) => {
+                crate::cargo_proxy::exit_refused(&error)
+            }
+            Err(_) => return None,
+        };
+        if !output.status.success() {
+            return None;
+        }
+        let metadata = serde_json::from_slice(&output.stdout).ok()?;
+        closest_existing(cargo_metadata_output_dir(&metadata)?)
+    })
+}
+
+fn cargo_metadata_output_dir(metadata: &serde_json::Value) -> Option<std::path::PathBuf> {
+    let value = metadata
+        .get("build_directory")
+        .or_else(|| metadata.get("target_directory"))?;
+    let path = std::path::PathBuf::from(value.as_str()?);
+    path.is_absolute().then_some(path)
 }
 
 /// The environment Cargo resolves the output directory from, passed in so the

@@ -11461,3 +11461,28 @@ fn native_linker_check_reports_the_linker_cc_runs() {
         format!("{} (LLD 22.1.8)", bin.join("ld.alt").display())
     );
 }
+
+#[test]
+fn doctor_metadata_uses_resolved_intermediates_and_accepts_older_cargo_targets() {
+    let dir = tempfile::tempdir().unwrap();
+    let target = dir.path().join("target");
+    let build = dir.path().join("resolved-hash");
+    assert_eq!(
+        cargo_metadata_output_dir(
+            &serde_json::json!({"target_directory":target,"build_directory":build})
+        ),
+        Some(build)
+    );
+    assert_eq!(
+        cargo_metadata_output_dir(&serde_json::json!({"target_directory":target})),
+        Some(target.clone())
+    );
+    for invalid in [
+        serde_json::json!({}),
+        serde_json::json!({"target_directory":"relative"}),
+        serde_json::json!({"target_directory":target,"build_directory":""}),
+        serde_json::json!({"target_directory":42}),
+    ] {
+        assert_eq!(cargo_metadata_output_dir(&invalid), None);
+    }
+}
