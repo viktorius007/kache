@@ -1908,8 +1908,9 @@ pub fn rebase_depinfo_content(content: &str, from: &Path, to: &Path) -> Option<S
     );
     let mut outputs = outputs.split_ascii_whitespace().peekable();
     outputs.peek()?;
+    let encoded_sentinel = format!("\0{DEPINFO_ROOT_SENTINEL}");
     if outputs.any(|output| {
-        let Some(relative) = output.strip_prefix(DEPINFO_ROOT_SENTINEL) else {
+        let Some(relative) = output.strip_prefix(&encoded_sentinel) else {
             return true;
         };
         Path::new(relative)

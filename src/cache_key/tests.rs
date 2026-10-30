@@ -13355,7 +13355,9 @@ fn non_utf8_env_scan_replaces_version_five_memos() {
 
     let cache = FileHashCache::open(&db).unwrap();
     assert_eq!(
-        cache.get_source_env_dep_use(&hash, "OUT_DIR", 7).unwrap(),
+        cache
+            .get_source_env_dep_use(&hash, "OUT_DIR", SOURCE_ENV_DEP_SCANNER_VERSION)
+            .unwrap(),
         Some(SourceEnvDepUse::Unused.memo_code())
     );
     drop(cache);
@@ -13391,7 +13393,9 @@ fn non_utf8_runtime_use_rescans_version_six_unused_memos() {
     drop(hasher);
     let cache = FileHashCache::open(&db).unwrap();
     assert_eq!(
-        cache.get_source_env_dep_use(&hash, "OUT_DIR", 7).unwrap(),
+        cache
+            .get_source_env_dep_use(&hash, "OUT_DIR", SOURCE_ENV_DEP_SCANNER_VERSION)
+            .unwrap(),
         Some(SourceEnvDepUse::RuntimeValue.memo_code())
     );
 }
@@ -13521,8 +13525,12 @@ fn non_utf8_concat_binding_veto_survives_without_include_proof() {
         let hasher = FileHasher::new();
         assert_eq!(
             hasher.env_dep_use(&binding, "OUT_DIR").unwrap(),
-            SourceEnvDepUse::ConcatBinding {
-                include_locator: false
+            if declaration.contains("macro_use") {
+                SourceEnvDepUse::RuntimeValue
+            } else {
+                SourceEnvDepUse::ConcatBinding {
+                    include_locator: false,
+                }
             }
         );
         assert_eq!(
