@@ -1,7 +1,0 @@
-{"timeout_control": "pass", "post_timeout_artifact": false}
-{"measurement_status": 4, "post_failure_artifact": true, "child_pid": 28868}
-Traceback (most recent call last):
-  File "/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/investigation/proofs/nonzero_measurement_orphan.py", line 64, in <module>
-    assert not marker.exists(), 'Failed measurement returned while its child survived and wrote an artifact after failure; a subsequent gate run can share its CPU/memory/I/O load'
-           ^^^^^^^^^^^^^^^^^^^
-AssertionError: Failed measurement returned while its child survived and wrote an artifact after failure; a subsequent gate run can share its CPU/memory/I/O load

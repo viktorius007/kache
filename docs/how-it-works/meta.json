@@ -1,9 +1,0 @@
-{
-  "title": "How it works",
-  "pages": [
-    "architecture",
-    "cache-key",
-    "build-scripts",
-    "limits"
-  ]
-}

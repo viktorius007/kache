@@ -1,8 +1,0 @@
-Traceback (most recent call last):
-  File "/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/scripts/test-bench-contention.py", line 20, in <module>
-    spec.loader.exec_module(bench)
-  File "<frozen importlib._bootstrap_external>", line 850, in exec_module
-  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
-  File "/Users/viktor/Developer/github/kache-investigations/audit-benchmark-guardrails/scripts/bench-contention.py", line 21, in <module>
-    import tomllib
-ModuleNotFoundError: No module named 'tomllib'

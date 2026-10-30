@@ -1,3 +1,0 @@
-[workspace]
-members = ["helper", "consumer"]
-resolver = "3"
