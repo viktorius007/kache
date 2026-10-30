@@ -17,7 +17,9 @@ The script fast-forwards from `origin/patched`, merges `upstream/main` into the
 existing history, runs `just check`, builds and installs both binaries, restarts
 the daemon, and verifies `doctor --probe`. It commits the installation receipt
 and pushes `patched` without force. Temporary build products and rollback copies
-are removed on success or failure. A failed installation restores the previous
+are removed on success or failure. On Linux, leftover executables running from
+that build tree are stopped before deletion, so detached test daemons cannot
+recreate their fixture directories. A failed installation restores the previous
 binary pair and Cargo installation metadata.
 
 This preserves fixes from closed PRs and unsubmitted branches. It does not rebuild

@@ -6,7 +6,10 @@ import json
 import os
 from pathlib import Path
 import shutil
+import select
+import signal
 import stat
+import time
 import subprocess
 import tempfile
 import tomllib
@@ -31,6 +34,63 @@ def digest(path):
 def remove_readonly(function, path, _error):
     os.chmod(path, stat.S_IRWXU)
     function(path)
+
+
+
+def stop_build_processes(build):
+    """Stop Linux test executables that outlived their disposable build tree."""
+    if not Path("/proc").exists() or not hasattr(os, "pidfd_open"):
+        return
+    prefix = str(build.resolve()) + os.sep
+    handles = []
+    try:
+        for process in Path("/proc").iterdir():
+            if not process.name.isdigit() or int(process.name) <= 1:
+                continue
+            handle = None
+            try:
+                if process.stat().st_uid != os.geteuid() or not os.readlink(process / "exe").startswith(prefix):
+                    continue
+                handle = os.pidfd_open(int(process.name))
+                # Pin the process identity before signalling; never signal a
+                # reused PID or anything outside this build directory.
+                if not os.readlink(process / "exe").startswith(prefix):
+                    os.close(handle)
+                    continue
+                signal.pidfd_send_signal(handle, signal.SIGTERM)
+                handles.append(handle)
+            except (FileNotFoundError, ProcessLookupError, PermissionError):
+                if handle is not None:
+                    os.close(handle)
+        waiter = select.poll()
+        for handle in handles:
+            waiter.register(handle, select.POLLIN)
+        pending = set(handles)
+        for force in [False, True]:
+            if force:
+                for handle in tuple(pending):
+                    try:
+                        signal.pidfd_send_signal(handle, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pending.remove(handle)
+                        waiter.unregister(handle)
+            deadline = time.monotonic() + 2
+            while pending:
+                remaining = max(0, int((deadline - time.monotonic()) * 1000))
+                if not remaining:
+                    break
+                for handle, _event in waiter.poll(remaining):
+                    pending.discard(handle)
+                    waiter.unregister(handle)
+            if not pending:
+                break
+        if pending:
+            raise RuntimeError(f"could not stop {len(pending)} processes in {build}")
+        if handles:
+            print(f"Stopped {len(handles)} leftover build processes in {build}")
+    finally:
+        for handle in handles:
+            os.close(handle)
 
 
 def install(env, cargo, build, commit):
@@ -142,6 +202,7 @@ def main():
                 env["KACHE_VERSION"] = f"{version}+patched.{commit[:12]}"
                 install(env, cargo, build, commit)
         finally:
+            stop_build_processes(build)
             shutil.rmtree(build, onerror=remove_readonly)
     if args.push:
         run(["git", "push", "origin", "HEAD:refs/heads/patched"])
