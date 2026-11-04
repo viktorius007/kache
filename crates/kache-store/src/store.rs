@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
-use crate::config::Config;
+use crate::config::{Config, IndexMode};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct StorePutResult {
@@ -1320,7 +1320,8 @@ const COMPILE_TIME_BACKFILL_BATCH: i64 = 10_000;
 /// megabytes.
 pub const TOMBSTONE_RETENTION_DAYS: u64 = 14;
 
-const BUILD_LOCK_TIMEOUT: Duration = Duration::from_secs(600);
+/// Default maximum wait for another process to publish a key it is building.
+pub const BUILD_LOCK_TIMEOUT: Duration = Duration::from_secs(600);
 const BUILD_LOCK_POLL_INTERVAL: Duration = Duration::from_millis(100);
 
 /// How long a waiter sleeps before its next `try_lock`: 1 ms, doubling up to
@@ -1677,9 +1678,9 @@ fn is_retryable_sqlite_open_error(err: &SqlError) -> bool {
     }
 }
 
-fn initialize_db(db: &Connection) -> rusqlite::Result<()> {
+fn initialize_db(db: &Connection, mode: IndexMode) -> rusqlite::Result<()> {
     db.pragma_update(None, "journal_mode", "WAL")?;
-    db.pragma_update(None, "synchronous", "NORMAL")?;
+    db.pragma_update(None, "synchronous", mode.resolve().pragma_value())?;
     // Let concurrent writers retry for up to 5 s instead of failing immediately
     // with SQLITE_BUSY -- critical when 300+ wrapper processes hit the DB in parallel.
     db.pragma_update(None, "busy_timeout", "5000")?;
@@ -1718,6 +1719,11 @@ fn initialize_db(db: &Connection) -> rusqlite::Result<()> {
     // Whether the entry's blobs and metadata were fsynced (deferred
     // durability). Rows from before the column were always flushed on put.
     let _ = db.execute_batch("ALTER TABLE entries ADD COLUMN durable INTEGER NOT NULL DEFAULT 1");
+    db.execute_batch(
+        "CREATE INDEX IF NOT EXISTS idx_entries_durability_pending
+         ON entries(created_at, cache_key)
+         WHERE committed = 1 AND durable = 0;",
+    )?;
     // What a miss on this entry would cost to rebuild (kunobi-ninja/kache#594).
     // Recorded in every entry's meta.json since long before this column, so
     // pre-existing rows are backfilled by `backfill_compile_times` rather than
@@ -1731,6 +1737,8 @@ fn initialize_db(db: &Connection) -> rusqlite::Result<()> {
     // until the user explicitly requests a stale-schema sweep.
     let _ =
         db.execute_batch("ALTER TABLE entries ADD COLUMN key_schema INTEGER NOT NULL DEFAULT 0");
+
+    compiler_gc::ensure_schema(db)?;
 
     db.execute_batch(
         "CREATE TABLE IF NOT EXISTS blobs (
@@ -1881,7 +1889,9 @@ fn initialize_db(db: &Connection) -> rusqlite::Result<()> {
 ///    which joins it, failed there).
 /// 12: replace incompatible `record_json` prediction memos with the current
 ///    payload schema. Compiled cache entries are retained.
-const INDEX_SCHEMA_GENERATION: i64 = 12;
+/// 13: `entries.rustc_version`, for explicit compiler-version cleanup.
+/// 14: partial index for pending durability counts and ordered flush batches.
+const INDEX_SCHEMA_GENERATION: i64 = 14;
 
 /// Raise the refcount of every blob `cache_key` maps to at least the
 /// references all mappings hold on it. Run before giving this key's
@@ -1982,7 +1992,7 @@ fn record_entry_blobs(
 }
 
 pub fn open_index_db(db_path: &Path) -> Result<Connection> {
-    open_index_db_reporting_recovery(db_path).map(|(db, _)| db)
+    open_index_db_reporting_recovery(db_path, IndexMode::default()).map(|(db, _)| db)
 }
 
 /// Like [`open_index_db`], but also reports whether the index had to be
@@ -1992,15 +2002,18 @@ pub fn open_index_db(db_path: &Path) -> Result<Connection> {
 /// the blobs and every entry's `meta.json` are still on disk, so it can rebuild
 /// the rows instead of silently presenting a cold cache (#415). Callers that
 /// only need a connection use the wrapper above.
-pub fn open_index_db_reporting_recovery(db_path: &Path) -> Result<(Connection, bool)> {
-    match try_open_index_db(db_path) {
+pub fn open_index_db_reporting_recovery(
+    db_path: &Path,
+    mode: IndexMode,
+) -> Result<(Connection, bool)> {
+    match try_open_index_db(db_path, mode) {
         Ok(db) => Ok((db, false)),
         // The index is a derived, rebuildable cache — the blobs plus each
         // entry's meta.json are the source of truth — so a corrupt index must
         // not brick every command (the #412 report: macOS + Linux writing one
         // WAL index on a shared home dir left it SQLITE_CORRUPT, and every
         // command then hard-failed). Recover under a lock (#415).
-        Err(err) if is_corruption_error(&err) => recover_corrupt_index(db_path, &err),
+        Err(err) if is_corruption_error(&err) => recover_corrupt_index(db_path, mode, &err),
         Err(err) => Err(err.into()),
     }
 }
@@ -2019,14 +2032,18 @@ pub fn open_index_db_reporting_recovery(db_path: &Path) -> Result<(Connection, b
 /// and orphaning the just-written blobs). Under the lock we re-check first: a
 /// peer may have already healed it, in which case we simply open the fresh DB
 /// and report `false`, because that peer owns the rebuild.
-fn recover_corrupt_index(db_path: &Path, err: &SqlError) -> Result<(Connection, bool)> {
+fn recover_corrupt_index(
+    db_path: &Path,
+    mode: IndexMode,
+    err: &SqlError,
+) -> Result<(Connection, bool)> {
     // OS file lock, released automatically when the handle drops / the process
     // exits. Best-effort: on any lock failure we proceed unlocked, still guarded
     // by the re-check below.
     let _lock = acquire_index_recovery_lock(db_path);
 
     // Re-check under the lock: a peer may have healed it while we waited.
-    match try_open_index_db(db_path) {
+    match try_open_index_db(db_path, mode) {
         Ok(db) => return Ok((db, false)),
         Err(e) if is_corruption_error(&e) => {} // still corrupt: we heal it
         Err(e) => return Err(e.into()),
@@ -2040,7 +2057,7 @@ fn recover_corrupt_index(db_path: &Path, err: &SqlError) -> Result<(Connection, 
         "index database is corrupt ({err}); quarantined it and recreated an empty index. \
          Rebuilding the entry rows from the store; run `kache doctor` to inspect."
     );
-    let db = try_open_index_db(db_path)
+    let db = try_open_index_db(db_path, mode)
         .map_err(anyhow::Error::from)
         .with_context(|| {
             format!(
@@ -2069,12 +2086,12 @@ fn acquire_index_recovery_lock(db_path: &Path) -> Option<fs::File> {
 /// Open the index DB, retrying only *transient* open failures. Returns the raw
 /// [`SqlError`] so [`open_index_db`] can distinguish corruption (which it
 /// self-heals) from a genuine failure.
-fn try_open_index_db(db_path: &Path) -> std::result::Result<Connection, SqlError> {
+fn try_open_index_db(db_path: &Path, mode: IndexMode) -> std::result::Result<Connection, SqlError> {
     let mut last_error: Option<SqlError> = None;
 
     for attempt in 1..=STORE_OPEN_MAX_ATTEMPTS {
         match Connection::open(db_path).and_then(|db| {
-            initialize_db(&db)?;
+            initialize_db(&db, mode)?;
             Ok(db)
         }) {
             Ok(db) => return Ok(db),
@@ -2274,7 +2291,7 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
             .with_context(|| format!("creating store directory {}", store_dir.display()))?;
 
         let db_path = config.index_db_path();
-        let (db, recovered) = open_index_db_reporting_recovery(&db_path)
+        let (db, recovered) = open_index_db_reporting_recovery(&db_path, config.index_mode)
             .with_context(|| format!("opening index database {}", db_path.display()))?;
 
         let store = Self {
@@ -2799,6 +2816,7 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
             stderr,
             compile_time_ms,
             true,
+            None,
         )
     }
 
@@ -2830,6 +2848,39 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
             stderr,
             compile_time_ms,
             false,
+            None,
+        )
+    }
+
+    /// Publish a Rust compilation with its compiler identity for targeted cleanup.
+    #[allow(clippy::too_many_arguments)]
+    pub fn put_rustc_with_compile_time(
+        &self,
+        cache_key: &str,
+        crate_name: &str,
+        crate_types: &[String],
+        features: &[String],
+        target: &str,
+        profile: &str,
+        output_files: &[(PathBuf, String)],
+        stdout: &str,
+        stderr: &str,
+        compile_time_ms: u64,
+        rustc_version: Option<&str>,
+    ) -> Result<StorePutResult> {
+        self.put_with_compile_time_policy(
+            cache_key,
+            crate_name,
+            crate_types,
+            features,
+            target,
+            profile,
+            output_files,
+            stdout,
+            stderr,
+            compile_time_ms,
+            true,
+            rustc_version,
         )
     }
 
@@ -2847,6 +2898,7 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
         stderr: &str,
         compile_time_ms: u64,
         allow_source_hardlinks: bool,
+        rustc_version: Option<&str>,
     ) -> Result<StorePutResult> {
         self.refuse_write("store an entry")?;
         let entry_dir = self.entry_dir(cache_key);
@@ -2954,6 +3006,7 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
         let meta = EntryMeta {
             cache_key: cache_key.to_string(),
             key_schema: kache_format::CACHE_KEY_VERSION,
+            rustc_version: rustc_version.map(str::to_owned),
             crate_name: crate_name.to_string(),
             crate_types: crate_types.to_vec(),
             files: cached_files,
@@ -3031,8 +3084,8 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
         // rename. Keep the write lock through metadata publication.
         let durable = self.durable_writes();
         tx.execute(
-            "INSERT OR REPLACE INTO entries (cache_key, crate_name, crate_type, profile, num_features, size, content_hash, compile_time_ms, key_schema, committed, durable, compile_time_backfilled) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1, ?10, 1)",
-            params![cache_key, crate_name, crate_type_str, profile, num_features, total_size as i64, content_hash, compile_time_ms as i64, kache_format::CACHE_KEY_VERSION, false],
+            "INSERT OR REPLACE INTO entries (cache_key, crate_name, crate_type, profile, num_features, size, content_hash, compile_time_ms, key_schema, committed, durable, compile_time_backfilled, rustc_version) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1, ?10, 1, ?11)",
+            params![cache_key, crate_name, crate_type_str, profile, num_features, total_size as i64, content_hash, compile_time_ms as i64, kache_format::CACHE_KEY_VERSION, false, meta.rustc_version],
         )?;
         fs::create_dir_all(&entry_dir).context("creating entry directory")?;
         crate::atomic::atomic_replace_deferrable(&meta_path, meta_json.as_bytes(), durable)
@@ -3169,8 +3222,8 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
         }
         record_entry_blobs(&tx, cache_key, &meta.files)?;
         tx.execute(
-            "INSERT OR REPLACE INTO entries (cache_key, crate_name, crate_type, profile, num_features, size, content_hash, compile_time_ms, key_schema, committed, durable, imported_at, compile_time_backfilled) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1, ?10, unixepoch(), 1)",
-            params![cache_key, meta.crate_name, crate_type_str, meta.profile, num_features, total_size as i64, content_hash, meta.compile_time_ms as i64, meta.key_schema, false],
+            "INSERT OR REPLACE INTO entries (cache_key, crate_name, crate_type, profile, num_features, size, content_hash, compile_time_ms, key_schema, committed, durable, imported_at, compile_time_backfilled, rustc_version) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1, ?10, unixepoch(), 1, ?11)",
+            params![cache_key, meta.crate_name, crate_type_str, meta.profile, num_features, total_size as i64, content_hash, meta.compile_time_ms as i64, meta.key_schema, false, meta.rustc_version],
         )?;
         tx.commit()?;
 
@@ -3393,7 +3446,7 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
             )?;
             tx.execute("DELETE FROM blobs WHERE refcount <= 0", [])?;
             let inserted = tx.execute(
-                "INSERT OR IGNORE INTO entries (cache_key, crate_name, crate_type, profile, num_features, size, content_hash, compile_time_ms, key_schema, committed, durable, imported_at, compile_time_backfilled) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 0, ?10, unixepoch(), 1)",
+                "INSERT OR IGNORE INTO entries (cache_key, crate_name, crate_type, profile, num_features, size, content_hash, compile_time_ms, key_schema, committed, durable, imported_at, compile_time_backfilled, rustc_version) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 0, ?10, unixepoch(), 1, ?11)",
                 params![
                     entry.cache_key,
                     meta.crate_name,
@@ -3404,7 +3457,8 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
                     content_hash,
                     meta.compile_time_ms as i64,
                     meta.key_schema,
-                    false
+                    false,
+                    meta.rustc_version
                 ],
             )?;
             // A retried download can repair a missing CAS blob even when its
@@ -3805,7 +3859,7 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
         // Claim the entry row first. If it is already there, a concurrent or
         // earlier rebuild owns this entry's refcounts and we must not add more.
         let inserted = tx.execute(
-            "INSERT OR IGNORE INTO entries (cache_key, crate_name, crate_type, profile, num_features, size, content_hash, compile_time_ms, key_schema, committed, compile_time_backfilled) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1, 1)",
+            "INSERT OR IGNORE INTO entries (cache_key, crate_name, crate_type, profile, num_features, size, content_hash, compile_time_ms, key_schema, committed, compile_time_backfilled, rustc_version) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1, 1, ?10)",
             params![
                 cache_key,
                 meta.crate_name,
@@ -3815,7 +3869,8 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
                 total_size as i64,
                 content_hash,
                 meta.compile_time_ms as i64,
-                meta.key_schema
+                meta.key_schema,
+                meta.rustc_version
             ],
         )?;
         if inserted == 0 {
@@ -6958,3 +7013,7 @@ fn finish_transaction(db: &rusqlite::Connection, succeeded: bool) -> Result<()> 
 }
 #[cfg(test)]
 mod tests;
+
+#[path = "store/compiler_gc.rs"]
+mod compiler_gc;
+pub use compiler_gc::CompilerEntries;

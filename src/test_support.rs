@@ -79,6 +79,7 @@ pub(crate) fn without_terminal(command: &mut std::process::Command) -> &mut std:
 pub(crate) fn test_config(cache_dir: PathBuf) -> crate::config::Config {
     crate::config::Config {
         blaze: false,
+        separate_check_targets: true,
         fallback: None,
         key_salt: None,
         cc_extra_allowlist_flags: Vec::new(),
@@ -98,14 +99,17 @@ pub(crate) fn test_config(cache_dir: PathBuf) -> crate::config::Config {
         deferred_durability: false,
         daemon_publish: true,
         trust_daemon_execution: false,
+        native_runtime_warmup: true,
         daemon_execution_concurrency: None,
         project_rules: crate::config::ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
+        index_mode: Default::default(),
         auto_clean_orphaned_targets: false,
         auto_share_target_files: false,
         auto_clean_idle_targets_days: 0,
         auto_recover_min_free_bytes: 0,
+        restore_max_size: kache_config::config::DEFAULT_RESTORE_MAX_SIZE,
         auto_recover_targets: false,
         scheduler_memory_pressure: true,
         auto_clean_unused_units_days: 0,
@@ -153,6 +157,7 @@ pub(crate) fn test_config(cache_dir: PathBuf) -> crate::config::Config {
         daemon_idle_timeout_secs: crate::config::DEFAULT_DAEMON_IDLE_TIMEOUT_SECS,
         s3_pool_idle_secs: crate::config::DEFAULT_S3_POOL_IDLE_SECS,
         remote_restore_timeout_secs: crate::config::DEFAULT_REMOTE_RESTORE_TIMEOUT_SECS,
+        demand_timeout_secs: crate::config::DEFAULT_DEMAND_TIMEOUT_SECS,
         remote_negative_ttl_secs: crate::config::DEFAULT_REMOTE_NEGATIVE_TTL_SECS,
     }
 }

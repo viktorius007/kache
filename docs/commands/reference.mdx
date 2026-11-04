@@ -97,6 +97,28 @@ Removal rechecks each directory's identity and skips one that changed since the 
 
 The daemon removes tracked targets on its own, on a quiet machine at most once an hour: a target whose workspace was deleted, once no build has used it for a day (`auto_clean_orphaned_targets`, on by default); idle ones when `auto_clean_idle_targets_days` is set; and, when `auto_recover_targets` is on, idle ones while free disk space is below the `auto_recover_min_free_bytes` floor. See [Target directory cleanup](/docs/getting-started/configuration#target-directory-cleanup).
 
+### Cached results from an old Rust compiler
+
+```bash
+kache clean --cache --rustc-version 1.99.1 --dry-run
+kache clean --cache --rustc-version 1.99.1 --yes
+```
+
+A release selects all recorded builds of that compiler, including multiple
+nightlies with the same release number. To select one build, quote its first
+`rustc -vV` line, with or without the leading `rustc`.
+
+The preview reports selected entries and their logical size. Removal keeps
+shared blobs that other entries need, and skips entries that are in use or
+awaiting upload. The removal report distinguishes store bytes removed from
+disk space reclaimed. Target directories and remote entries stay in place.
+
+Compiler identities are recorded on new Rust compilations and carried by
+remote imports. Older entries and non-Rust results without an identity are
+kept and counted separately in the preview. `--json` previews unless `--yes`
+is set. The compatibility command `kache gc --rustc-version VERSION` performs
+the same selection without a confirmation; add `--dry-run` to preview it.
+
 ### Obsolete units in live targets
 
 ```bash
@@ -371,7 +393,7 @@ use the documented report/envelope schemas for scripts. See
 
 Every report format totals the wrapper's phases per crate: startup, key computation, lookup, scheduler wait, restore or store, and the unattributed remainder. Startup runs from process start to wrapper entry. Key computation splits out the rustc dep-info pre-pass by time and run count. Scheduler wait is the flight join plus permit acquisition. Unattributed is wrapper overhead minus every measured phase, where overhead excludes the compile on a compiled crate and is the whole wrapper time on a hit. Events written by wrappers before schema 17 report zero startup, dep-info and wait time.
 
-In the trace output each crate slice carries these numbers in its `args`. It nests one `X` slice per phase on the same lane, in this order: `startup`, `key` (with `dep-info` as its child), `lookup`, `wait`, `compile` on compiled crates, then `restore` or `store`. Phase offsets accumulate from the crate slice's start in that order; the wrapper records durations, not start times, so a phase sits where it lands in the sum. The gap after the last phase is the unattributed remainder. Durations are whole milliseconds, so a phase under 1 ms has no slice. A remote transfer that has both a start and a finish follows the crate slices as an async `b`/`e` pair with category `kache.transfer`.
+In the trace output each crate slice carries these numbers in its `args`. In JSON output, each `all_events`, `top_misses` and `top_hits` row carries them under the same names. The trace output nests one `X` slice per phase on the same lane, in this order: `startup`, `key` (with `dep-info` as its child), `lookup`, `wait`, `compile` on compiled crates, then `restore` or `store`. Phase offsets accumulate from the crate slice's start in that order; the wrapper records durations, not start times, so a phase sits where it lands in the sum. The gap after the last phase is the unattributed remainder. Durations are whole milliseconds, so a phase under 1 ms has no slice. A remote transfer that has both a start and a finish follows the crate slices as an async `b`/`e` pair with category `kache.transfer`.
 
 `--redact` applies to every format. Build roots, store paths, the cache directory and your home directory are replaced wherever they appear, including inside messages such as store errors. The `telemetry/sessions.jsonl` line is written before redaction, so its root hash comes from the real root. The line holds no cache keys. Empty fields stay empty. A C or C++ row can also carry `object_output`, the path named with `-o`. A build-script row carries `package`.
 
@@ -389,6 +411,11 @@ The payload also carries this host's shared cache: registered blob bytes (`kache
 ## `kache explain`
 
 With `[cache] explain_miss = true`, `kache explain <crate>` names compiler-reported environment variables that differ from the prior build of that unit. It compares normalized value hashes, so the log keeps variable names without their values. Older events without these hashes cannot supply the hints. The same hints appear in the JSON report.
+
+The wrapper's changed-group notice and recorded `key_diff` use the last hit
+with the same compilation-unit identity, crate name and build tree. A
+same-named library, binary or host build cannot supply another unit's baseline.
+Records without a unit identity do not supply this comparison.
 
 ```bash
 kache explain
@@ -411,7 +438,7 @@ Without a crate, `explain` reads the latest recorded build and says why it misse
 | built before with this exact key, but the entry was gone | Nothing in its inputs changed; the entry was evicted or never reached this machine |
 | downstream of a crate | A dependency changed and every crate built on it recompiled; the crate where the change started is named |
 | own inputs changed | Its sources, compiler flags, profile or features, an environment variable it reads, its linker, or its path remapping changed |
-| differs from the build in another checkout | The first build of the crate in this tree, and its inputs differ from the same crate built in another checkout. `kache explain <crate>` names the input. A path into the checkout that Kache did not map needs `KACHE_BASE_DIR`; a C or C++ library a build script generated with the checkout's path or a timestamp in it needs prefix maps and `ZERO_AR_DATE`; a flag or file that really differs needs nothing |
+| differs from the build in another checkout | The first build of the crate in this tree, and its inputs differ from the same crate built in another checkout. `kache explain <crate>` names the input. A path into the checkout that Kache did not map needs `KACHE_BASE_DIR`; a generated C or C++ library may need prefix maps or [deterministic archive settings](/docs/getting-started/troubleshooting#native-archives-change-on-every-clean-build); a flag or file that really differs needs nothing |
 | no earlier compile | The first build of the crate in this tree, or older history was rotated away |
 | miss details were not recorded | The retained event lacks key-comparison details; `[cache] explain_miss = true` records them from the next build. Older releases call this unexplained |
 
@@ -583,7 +610,7 @@ Forgets the stored planner session and asks the identity provider to revoke it.
 runner = ["kache", "test-runner"]
 ```
 
-Cargo runs each test binary as `kache test-runner <binary> <args>`. A test binary waits for slots in the scheduler's pool, then runs with its arguments, stdin, exit code and signals unchanged. Binaries without Cargo's hash suffix (`cargo run` targets, doctests), `--list` and `--bench` runs start at once, as does everything when the scheduler is off. Cargo is the caller, so the command is not listed in `kache --help`. See [Test runner](/docs/getting-started/configuration#test-runner).
+Cargo runs each test binary as `kache test-runner <binary> <args>`. A test binary waits for slots in the scheduler's pool, then runs with its arguments, stdin, exit code and signals unchanged. On macOS it also gets the `DYLD_*` variables Cargo passed, such as the `DYLD_FALLBACK_LIBRARY_PATH` that lets a binary linked against Rust dylibs (Bevy's `dynamic_linking`) find the standard library. macOS hides these variables from the signed `kache` binaries, so the runner reads them from the environment the process started with. Binaries without Cargo's hash suffix (`cargo run` targets, doctests), `--list` and `--bench` runs start at once, as does everything when the scheduler is off. Cargo is the caller, so the command is not listed in `kache --help`. See [Test runner](/docs/getting-started/configuration#test-runner).
 
 ## `kache completions`
 

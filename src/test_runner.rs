@@ -165,9 +165,7 @@ fn run_protected(
     hidden: Option<&str>,
     _lease: crate::target_use::Lease,
 ) -> i32 {
-    let mut command = Command::new(&args[0]);
-    command.args(&args[1..]);
-    set_marker(&mut command, marker);
+    let mut command = test_command(args, marker);
     hide_runner(&mut command, hidden);
     let mut child = match command.spawn() {
         Ok(child) => child,
@@ -334,13 +332,23 @@ fn hide_runner(command: &mut Command, var: Option<&str>) {
     }
 }
 
+/// The command that runs `args`, with `marker` as in [`set_marker`]. On
+/// macOS it also carries the `DYLD_*` variables dyld hid from the runner,
+/// such as Cargo's `DYLD_FALLBACK_LIBRARY_PATH` to the Rust dylibs.
+fn test_command(args: &[OsString], marker: Option<String>) -> Command {
+    let mut command = Command::new(&args[0]);
+    command.args(&args[1..]);
+    set_marker(&mut command, marker);
+    #[cfg(target_os = "macos")]
+    kache_client::restore_dyld_env(&mut command);
+    command
+}
+
 /// Run the binary as it is. On Unix the runner becomes the binary.
 /// `marker` is set as [`delegate::DELEGATE_ENV`] when a project runner
 /// comes first.
 fn exec(args: &[OsString], marker: Option<String>, hidden: Option<&str>) -> i32 {
-    let mut command = Command::new(&args[0]);
-    command.args(&args[1..]);
-    set_marker(&mut command, marker);
+    let mut command = test_command(args, marker);
     hide_runner(&mut command, hidden);
     #[cfg(unix)]
     {
@@ -373,9 +381,7 @@ fn run_scheduled(
         want,
         wait_budget(env),
     );
-    let mut command = Command::new(&args[0]);
-    command.args(&args[1..]);
-    set_marker(&mut command, marker);
+    let mut command = test_command(args, marker);
     hide_runner(&mut command, hidden);
     if let Some(lease) = &lease {
         command.envs(lease_env(want, lease.marker_path(), lease.held()));

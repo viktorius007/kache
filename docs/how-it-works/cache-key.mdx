@@ -7,6 +7,8 @@ Kache hashes the inputs that can change compiler output and normalizes machine-l
 
 ## Rust key inputs
 
+Apple targets and custom target specs use a new key namespace. Their first build after upgrading misses old Rust entries, even with deployment-target variables unset, because older entries may contain objects built for a different minimum OS version.
+
 The exact set depends on the invocation. It can include:
 
 - rustc identity and target, including the contents of a custom target spec file
@@ -22,6 +24,7 @@ The exact set depends on the invocation. It can include:
 - the contents of `--extern` dependencies
 - native static archives the unit links, found through `-L` directories, `-l` specs and `-C link-arg`
 - compile-time environment values rustc reports
+- `MACOSX_DEPLOYMENT_TARGET`, `IPHONEOS_DEPLOYMENT_TARGET`, `TVOS_DEPLOYMENT_TARGET`, `WATCHOS_DEPLOYMENT_TARGET`, and `XROS_DEPLOYMENT_TARGET` for Apple targets and custom target specs, including library and metadata compilations
 - native libc version and hashed CRT/startup objects for host-loaded Linux outputs, and the contents of the linker the C compiler driver runs for them (the driver's default `ld`, or the one `-fuse-ld`, `--ld-path` or `-B` in `-C link-arg` selects)
 - macOS SDK identity (version and build) and `MACOSX_DEPLOYMENT_TARGET`, when set, for host-loaded Darwin outputs
 - for native Windows MSVC links: the linker (`link.exe`, `lld-link.exe`, or the `rust-lld.exe` in rustc's sysroot), the MSVC, SDK and UCRT environment for the architecture, and the import and static libraries
@@ -30,7 +33,11 @@ The exact set depends on the invocation. It can include:
 
 Host-loaded Linux and macOS links, and native Windows MSVC links, pass through if those inputs cannot be resolved, so no host receives a binary built against inputs the key did not record. Links for rustc-bundled self-contained WebAssembly targets (`wasm32-unknown-unknown`, the WASI family, `wasm32v1-none`, `wasm64-unknown-unknown`) are cached. Links with `-C link-self-contained=no`, links for a WebAssembly custom target spec or emscripten, and links for any other WebAssembly target that needs an external toolchain pass through. Libraries and metadata for these targets still cache.
 
-For eligible native Windows MSVC links, absolute `.res` inputs also enter the key by content. Kache checks a resource's standard binary header and streams the file on each key. Raw `.obj`, `.o`, `.a` and `.lib` inputs, explicit `/MANIFESTINPUT` files, linker response files, and a `link-args` value that mixes `/LIBPATH` with other arguments still pass through.
+For eligible native Windows MSVC links, absolute `.res` inputs also enter the key by content. Kache checks a resource's standard binary header and streams the file on each key. Absolute `/MANIFESTINPUT:C:\path\app.manifest` inputs can cache when their XML fits the supported application-metadata subset. Pass `/MANIFEST:EMBED` as well; MSVC requires it for manifest inputs. Kache validates each manifest and hashes its original bytes from the same read on every key. Resource and manifest inputs retain their kinds and argument order.
+
+The supported XML includes assembly identity and dependencies, descriptions, execution privileges, OS compatibility, DPI awareness and long-path awareness. UTF-8 and BOM-marked UTF-16 are accepted. DTDs, general entities, processing instructions, XInclude, schema references, file/COM/type-library entries and unknown elements or attributes pass through. Manifests are limited to 1 MiB, 32 nested elements, 4096 elements, 32 attributes per element and 32 namespace bindings in scope. Raw `.obj`, `.o`, `.a` and `.lib` inputs, linker response files, side-by-side manifest outputs, and a `link-args` value that mixes `/LIBPATH` with other arguments still pass through.
+
+Manifest inputs also key the selected `mt.exe` path and original bytes. Kache searches rustc's tool directories followed by the discovered MSVC environment's PATH. Missing, unreadable or non-regular mergers, linker wrappers, and an `mt.exe` in the linker directory, working directory or Windows system directories pass through. Dangling directory links and `/MANIFESTDEPENDENCY` also pass through. Changes to the directories checked during merger selection prevent storing a result under the earlier key.
 
 `/NODEFAULTLIB` and `/NODEFAULTLIB:name` are exclusions, not file inputs; a name ending in `.lib` does not make an exclusion uncacheable. `/DEFAULTLIB:name` is a narrow exception to the file-option restriction: only names in Kache's modeled CRT, vcruntime and UCRT families are accepted, with an optional `.lib` suffix. The option and name are case-insensitive, and `-DEFAULTLIB:name` is also accepted. Paths, quoted names, `=` spellings, comma-packed arguments and arbitrary libraries remain unsupported. A `link-arg` carries one option; `link-args` may carry whitespace-separated options.
 
@@ -39,6 +46,8 @@ Each explicit default library must have a selected runtime hash, even if `NODEFA
 An explicitly requested runtime must also be a regular COFF/GNU32 archive of at most 64 MiB. Kache accepts version-0 COFF short-import members and ordinary x86, x64, Thumb-2 ARM or ARM64 COFF members without `.drectve`, `.debug$T` or `.debug$P` sections. Those sections can introduce further libraries, PDBs or precompiled type inputs. Archive member and section names are limited to 256 bytes. Thin, BSD and GNU64 archives, bigobj, LTCG, malformed containers and unsupported member formats pass through. Kache validates and hashes the same file bytes in one read; this check does not change invocations without explicit `DEFAULTLIB` requests.
 
 On macOS, every cached executable link gets ld64 `-oso_prefix` set to Cargo's profile directory, so `N_OSO` object paths in the binary are not checkout-local. A cached proc-macro link gets `-install_name @rpath/lib<crate>.dylib`. A cached executable or test binary built with debug info also stores a `.dSYM` bundle, made with `dsymutil` while its object files still exist. A restore unpacks it beside the binary, where lldb looks first. Without `dsymutil`, the binary is cached without one.
+
+Restoring one debug bundle allows up to 8 GiB of unpacked file contents in total by default. Set `cache.restore_max_size` or `KACHE_RESTORE_MAX_SIZE` to change this limit, for example `kache config set cache.restore_max_size 12GiB`. Larger bundles fall back to recompilation. Restore failures in reports and logs include the underlying cause, such as exceeding this limit. Control characters in those details become spaces, and long messages are truncated.
 
 On Windows, executable caching remains opt-in. A cached PE executable and the sibling PDB named by its CodeView record are stored and restored together after checking their GUID and executable-validation ages. The check also covers explicit `-o` names without an `.exe` suffix. Ambiguous or malformed debug records, missing or incompatible PDBs, non-sibling PDB paths, and an incremental-link `.ilk` sidecar leave the compilation uncached. A PE without a CodeView record needs no PDB; non-PE executables keep their existing handling.
 
@@ -264,7 +273,14 @@ kache explain my_crate
 
 `kache explain` with no crate explains the latest build: each cause of its misses, costliest first, against the build before it. `--root` limits it to one build tree. `kache explain my_crate` says why that crate's last compile missed and how its stored entries differ in target, profile, features and crate type.
 
-To have explain name the input groups that changed, turn on `[cache] explain_miss` (or `KACHE_EXPLAIN_MISS=1`) before the builds you want to compare; both builds need it. It records which groups changed since the last hit, plus the dependency digests and unit ids that let explain follow a miss down to the dependency that changed and, in a second checkout with no earlier build of the crate, compare with the same unit built in another checkout. Groups are hashed after path normalization, so the checkout path alone does not change them. The exception is `remap` when path remapping is off: that group keys the checkout path on purpose. Any other group that differs between checkouts is a real input difference or a path that normalization missed.
+To have explain name the input groups that changed, turn on `[cache] explain_miss` (or `KACHE_EXPLAIN_MISS=1`) before the builds you want to compare; both builds need it. The wrapper compares a miss with the last recorded hit for the same Cargo compilation unit in that build tree. A library and binary with the same crate name are separate units. If either record lacks a unit identity, the wrapper leaves its group comparison unavailable.
+
+The setting also records dependency digests and unit ids that let explain follow a miss down to the dependency that changed and, in a second checkout with no earlier build of the crate, compare with the same unit built in another checkout. Groups are hashed after path normalization, so the checkout path alone does not change them. The exception is `remap` when path remapping is off: that group keys the checkout path on purpose. Any other group that differs between checkouts is a real input difference or a path that normalization missed.
+
+A changed `link` group can include timestamps in native archives, even when
+their object code is identical. See
+[deterministic native archives](/docs/getting-started/troubleshooting#native-archives-change-on-every-clean-build)
+before changing cache settings.
 
 For individual components, run the trace command `kache explain my_crate` suggests, typically:
 

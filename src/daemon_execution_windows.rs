@@ -24,22 +24,27 @@ pub(super) fn probe(
     client_trust: bool,
     daemon: &Daemon,
 ) -> kache_protocol::execution::ExecutionStatus {
-    let eligible = version == daemon.version
-        && PeerProcess::for_connection(stream, client_pid).is_ok_and(|peer| {
-            peer.permits_delegation(client_trust && daemon.config.trust_daemon_execution)
-                .unwrap_or(false)
-        });
+    let problem = if version != daemon.version {
+        Some("client and daemon releases differ".to_owned())
+    } else {
+        match PeerProcess::for_connection(stream, client_pid).and_then(|peer| {
+            peer.delegation_problem(client_trust && daemon.config.trust_daemon_execution)
+        }) {
+            Ok(problem) => problem.map(str::to_owned),
+            Err(error) => Some(format!(
+                "cannot verify Windows process security context: {error}"
+            )),
+        }
+    };
     kache_protocol::execution::ExecutionStatus {
         protocol_version: EXECUTION_VERSION,
-        eligible,
+        eligible: problem.is_none(),
         client_trust_enabled: client_trust,
         daemon_trust_enabled: daemon.config.trust_daemon_execution,
-        detail: if eligible {
-            "client process and restore broker"
-        } else {
-            "local engine: release or process security context is incompatible"
-        }
-        .into(),
+        detail: problem.map_or_else(
+            || "client process and restore broker".to_owned(),
+            |reason| format!("local engine: {reason}"),
+        ),
     }
 }
 
@@ -81,11 +86,8 @@ impl Prepared {
                 use std::os::windows::ffi::OsStrExt;
                 let key = key.encode_wide().collect::<Vec<_>>();
                 !key.is_empty()
-                    && (!key.contains(&u16::from(b'='))
-                        || (key.len() == 3
-                            && key[0] == u16::from(b'=')
-                            && key[2] == u16::from(b':')
-                            && u8::try_from(key[1]).is_ok_and(|drive| drive.is_ascii_alphabetic())))
+                    && (key[0] != u16::from(b'=') || key.len() > 1)
+                    && !key[1..].contains(&u16::from(b'='))
             }),
             "invalid compiler environment key"
         );
@@ -236,6 +238,8 @@ pub(super) async fn handle(
     // At most 64 frontend-owned children can be pending. Their final drops
     // can happen on this async task, so cleanup has a nonblocking channel.
     let (finish, mut finished) = tokio::sync::mpsc::unbounded_channel();
+    // The pinned handle cannot name another process, whatever its PID.
+    let priority = crate::scheduler::Priority::of_windows_class(peer.priority_class());
     let broker = Arc::new(Broker::new(send, finish, peer, prepared.env.clone()));
     let context = InvocationContext {
         daemon: Some(Arc::clone(daemon)),
@@ -249,6 +253,7 @@ pub(super) async fn handle(
             .into_owned(),
         io: InvocationIo::from_broker(broker),
         cancellation: Some(cancellation.clone()),
+        priority: Some(priority),
     };
     let activity = daemon.request_clock.begin_activity();
     let mut worker = tokio::task::spawn_blocking(move || {
@@ -324,4 +329,87 @@ async fn service_call(
         let _ = sender.send(Ok(reply));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn preparation_preserves_windows_hidden_environment_entries() {
+        let root = tempfile::tempdir().unwrap();
+        let native = |value: &std::ffi::OsStr| NativeString::capture(value);
+        let request = ExecutionRequest {
+            version: EXECUTION_VERSION,
+            entry: ExecutionEntry::Compiler,
+            client_version: crate::VERSION.into(),
+            client_pid: std::process::id(),
+            creation_mask: None,
+            argv: vec![native("rustc".as_ref())],
+            env: vec![
+                (native("X".as_ref()), native("".as_ref())),
+                (native("UNICODE_🦀".as_ref()), native("value".as_ref())),
+                (native("=C:".as_ref()), native(r"C:\work".as_ref())),
+                (native("=::".as_ref()), native(r"::\".as_ref())),
+                (native("=ExitCode".as_ref()), native("00000000".as_ref())),
+            ],
+            cwd: native(root.path().as_os_str()),
+            home: None,
+            temp: native(root.path().as_os_str()),
+            cache: None,
+            executable: native(std::env::current_exe().unwrap().as_os_str()),
+            startup_micros: 0,
+            channels: ExecutionChannels::Windows {
+                stdin: 0,
+                stdout: 0,
+                stderr: 0,
+                process_broker: true,
+                trusted_pipeline: false,
+            },
+        };
+        let prepared = Prepared::decode(request.clone(), crate::VERSION).unwrap();
+        for (key, value) in request.env {
+            assert_eq!(
+                prepared
+                    .env
+                    .var_os(&key.decode().unwrap().to_string_lossy()),
+                Some(value.decode().unwrap())
+            );
+        }
+    }
+
+    #[test]
+    fn preparation_rejects_malformed_windows_environment_keys() {
+        let root = tempfile::tempdir().unwrap();
+        let native = |value: &std::ffi::OsStr| NativeString::capture(value);
+        let request = ExecutionRequest {
+            version: EXECUTION_VERSION,
+            entry: ExecutionEntry::Compiler,
+            client_version: crate::VERSION.into(),
+            client_pid: std::process::id(),
+            creation_mask: None,
+            argv: vec![native("rustc".as_ref())],
+            env: vec![],
+            cwd: native(root.path().as_os_str()),
+            home: None,
+            temp: native(root.path().as_os_str()),
+            cache: None,
+            executable: native(std::env::current_exe().unwrap().as_os_str()),
+            startup_micros: 0,
+            channels: ExecutionChannels::Windows {
+                stdin: 0,
+                stdout: 0,
+                stderr: 0,
+                process_broker: true,
+                trusted_pipeline: false,
+            },
+        };
+        for key in ["", "=", "A=B", "=A=B"] {
+            let mut request = request.clone();
+            request
+                .env
+                .push((native(key.as_ref()), native("value".as_ref())));
+            assert!(Prepared::decode(request, crate::VERSION).is_err(), "{key}");
+        }
+    }
 }

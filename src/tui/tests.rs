@@ -103,6 +103,7 @@ fn test_config() -> Config {
     };
     Config {
         blaze: false,
+        separate_check_targets: true,
         readonly_store: None,
         fallback: None,
         key_salt: None,
@@ -122,14 +123,17 @@ fn test_config() -> Config {
         deferred_durability: false,
         daemon_publish: false,
         trust_daemon_execution: false,
+        native_runtime_warmup: true,
         daemon_execution_concurrency: None,
         project_rules: crate::config::ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
+        index_mode: Default::default(),
         auto_clean_orphaned_targets: false,
         auto_share_target_files: false,
         auto_clean_idle_targets_days: 0,
         auto_recover_min_free_bytes: 0,
+        restore_max_size: kache_config::config::DEFAULT_RESTORE_MAX_SIZE,
         auto_recover_targets: false,
         scheduler_memory_pressure: true,
         auto_clean_unused_units_days: 0,
@@ -177,6 +181,7 @@ fn test_config() -> Config {
         daemon_idle_timeout_secs: DEFAULT_DAEMON_IDLE_TIMEOUT_SECS,
         s3_pool_idle_secs: DEFAULT_S3_POOL_IDLE_SECS,
         remote_restore_timeout_secs: DEFAULT_REMOTE_RESTORE_TIMEOUT_SECS,
+        demand_timeout_secs: crate::config::DEFAULT_DEMAND_TIMEOUT_SECS,
         remote_negative_ttl_secs: DEFAULT_REMOTE_NEGATIVE_TTL_SECS,
     }
 }
@@ -262,6 +267,7 @@ fn tui_uses_the_daemon_remote_status() {
             socket_path: "/shared/daemon.sock".to_string(),
             started_at_ms: 1,
             auto_recover_min_free_bytes: None,
+            restore_max_size: None,
             auto_recover_targets: None,
         }),
         ..StatsSnapshot::default()
@@ -1569,6 +1575,7 @@ fn store_names_the_daemon_and_now_leaves_the_version_off() {
         socket_path: "/daemon.sock".to_string(),
         started_at_ms: 1,
         auto_recover_min_free_bytes: None,
+        restore_max_size: None,
         auto_recover_targets: None,
     });
 

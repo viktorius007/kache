@@ -72,6 +72,7 @@ mod scheduler;
 mod service;
 mod shards;
 mod since;
+mod windows_manifest;
 // Both callers (`clean`'s classifier and `compute_link_stats`) are `cfg(unix)`,
 // because `nlink` is the signal they combine with. Windows ReFS block-cloning
 // has no read-side query to implement this against — `FSCTL_DUPLICATE_EXTENTS`
@@ -85,6 +86,7 @@ mod store_view;
 mod target_cleanup;
 mod target_dedup;
 mod target_liveness;
+mod target_processes;
 mod target_seed;
 mod target_use;
 mod term;
@@ -821,7 +823,12 @@ fn run_cli(cli: Cli, readiness: Option<kunobi_daemon::readiness::channel::Notifi
         Some(Commands::Gc {
             max_age,
             stale_schema,
+            rustc_version,
+            dry_run,
         }) => {
+            if let Some(version) = rustc_version {
+                return cli::compiler_gc::clean(&config, &version, dry_run, true, json, "gc");
+            }
             let hours = max_age
                 .as_deref()
                 .map(|value| parse_age_hours("--max-age", value))
@@ -840,8 +847,12 @@ fn run_cli(cli: Cli, readiness: Option<kunobi_daemon::readiness::channel::Notifi
             crate_name,
             stale_schema,
             units,
+            rustc_version,
             tracked: _,
         }) => {
+            if let Some(version) = rustc_version {
+                return cli::compiler_gc::clean(&config, &version, dry_run, yes, json, "clean");
+            }
             if units {
                 return cli::clean_units(&config, path, dry_run, yes, json);
             }
@@ -1452,6 +1463,7 @@ fn run_wrapper_mode(args: &[String]) -> Result<()> {
         env: invocation::InvocationEnv::capture(),
         io: invocation::io::InvocationIo::capture(),
         cancellation: None,
+        priority: None,
         #[cfg(unix)]
         jobserver: kache_ipc::jobserver::Descriptors::default(),
         started_at: opcounts::process_start().unwrap_or_else(std::time::Instant::now),
@@ -1581,6 +1593,7 @@ fn run_compiler_invocation_inner(
         shim_stem,
         io,
         cancellation: _,
+        priority,
         #[cfg(unix)]
         jobserver,
     } = context;
@@ -1628,6 +1641,8 @@ fn run_compiler_invocation_inner(
     }
     let _pressure =
         scheduler::pressure::InvocationPressureScope::enter(config.scheduler_memory_pressure);
+    let _scheduler_wait = config.scheduler.then(scheduler::InvocationWaitScope::enter);
+    let _priority = scheduler::InvocationPriorityScope::enter(priority);
 
     if config.disabled {
         // Caching off — pass straight through to the real compiler. The
@@ -2116,6 +2131,7 @@ mod tests {
                 env: invocation::InvocationEnv::default(),
                 io: invocation::io::InvocationIo::process(),
                 cancellation: Some(cancellation),
+                priority: None,
                 #[cfg(unix)]
                 jobserver: kache_ipc::jobserver::Descriptors::default(),
                 started_at: std::time::Instant::now(),
@@ -2173,6 +2189,7 @@ mod tests {
                     env: env.clone(),
                     io: invocation::io::InvocationIo::process(),
                     cancellation: None,
+                    priority: None,
                     jobserver: kache_ipc::jobserver::Descriptors::default(),
                     started_at: std::time::Instant::now(),
                     shim_stem: "kache".into(),
@@ -2266,6 +2283,7 @@ mod tests {
                                 env: env.clone(),
                                 io: invocation::io::InvocationIo::capture(),
                                 cancellation: None,
+                                priority: None,
                                 #[cfg(unix)]
                                 jobserver: kache_ipc::jobserver::Descriptors::default(),
                                 started_at: std::time::Instant::now(),
@@ -2302,6 +2320,7 @@ mod tests {
                                 env,
                                 io: invocation::io::InvocationIo::capture(),
                                 cancellation: None,
+                                priority: None,
                                 #[cfg(unix)]
                                 jobserver: kache_ipc::jobserver::Descriptors::default(),
                                 started_at: std::time::Instant::now(),

@@ -20,6 +20,7 @@ and daemon entry points.
 - Upload newly stored entries in the background.
 - Replay durable upload intents after a restart.
 - Prefetch likely entries at the start of a build session.
+- Prepare cold MSVC runtime hashes while native compiles run without caching.
 - Refresh the remote key index used by fallback planning.
 - Run garbage collection at startup and every six hours, including `[cache.volumes]` shards. When the store is over its size limit, also sweep after an upload or when a wrapper reports it.
 - Flush entries that were stored without an fsync, every two seconds.
@@ -47,6 +48,11 @@ time. A daemon crash can lose queued cache entries; the compiler outputs remain
 available to the build.
 
 Set `cache.prefetch_enabled = false` or `KACHE_PREFETCH_ENABLED=0` to disable speculative prefetch while retaining exact remote checks and uploads.
+
+Adaptive cancellation counts every entry in the selected build manifest as
+a candidate, including cheap crates skipped for download. These candidates
+stay with the build session when its planner changes. Demands outside both the
+manifest and the selected plan can still cancel unhelpful prefetch.
 
 The daemon lists the remote's keys only when `cache.remote_key_listing` is on. It is on by default for a filesystem remote and off for S3, GCS and OCI; on S3 it needs `s3:ListBucket`. Nothing is listed while `cache.prefetch_enabled` is off. The planner uses this key index for crates that no build manifest, shard or local history covers, and the daemon refreshes it every `cache.remote_key_cache_refresh_secs` (60 by default; `0` lists once). If S3 refuses the listing for lack of `s3:ListBucket`, the daemon stops listing and logs one warning.
 

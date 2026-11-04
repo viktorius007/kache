@@ -5,6 +5,152 @@ use crate::testing::{TestEnvGuard, config_path_lock, set_env_for_test};
 use std::ffi::OsString;
 
 #[test]
+fn demand_timeout_values_are_positive_and_have_a_finite_seconds_range() {
+    for (input, expected) in [
+        (0, None),
+        (1, Some(1)),
+        (60, Some(60)),
+        (4_294_967_295, Some(4_294_967_295)),
+        (4_294_967_296, None),
+        (u64::MAX, None),
+    ] {
+        assert_eq!(checked_demand_timeout_secs(input), expected, "{input}");
+    }
+}
+
+#[test]
+fn demand_timeout_resolution_uses_invocation_precedence_and_rejects_invalid_values() {
+    let root = tempfile::tempdir().unwrap();
+    let invocation = |value: Option<&str>| {
+        let vars = value
+            .map(|value| vec![("KACHE_DEMAND_TIMEOUT_SECS", value)])
+            .unwrap_or_default();
+        InvocationEnv::from_parts(
+            vars,
+            Some(root.path().to_owned()),
+            None,
+            root.path().to_owned(),
+        )
+    };
+    let file = |value: Option<u64>, ignore_env| {
+        Ok(FileConfig {
+            cache: Some(CacheFileConfig {
+                demand_timeout_secs: value,
+                ignore_env: Some(ignore_env),
+                ..Default::default()
+            }),
+            ..Default::default()
+        })
+    };
+    assert_eq!(
+        Config::load_resolved_for(&invocation(None), file(None, false))
+            .unwrap()
+            .demand_timeout_secs,
+        3
+    );
+    assert_eq!(
+        Config::load_resolved_for(&invocation(None), file(Some(30), false))
+            .unwrap()
+            .demand_timeout_secs,
+        30
+    );
+    assert_eq!(
+        Config::load_resolved_for(&invocation(Some("60")), file(Some(30), false))
+            .unwrap()
+            .demand_timeout_secs,
+        60
+    );
+    assert_eq!(
+        Config::load_resolved_for(&invocation(Some("60")), file(Some(30), true))
+            .unwrap()
+            .demand_timeout_secs,
+        30
+    );
+    assert_eq!(
+        Config::load_resolved_for(&invocation(Some("60")), file(None, true))
+            .unwrap()
+            .demand_timeout_secs,
+        3
+    );
+    for invalid in [
+        "0",
+        "-1",
+        "4294967296",
+        "18446744073709551616",
+        "not-seconds",
+    ] {
+        assert_eq!(
+            Config::load_resolved_for(&invocation(Some(invalid)), file(Some(30), false))
+                .unwrap()
+                .demand_timeout_secs,
+            30,
+            "{invalid}"
+        );
+        assert_eq!(
+            Config::load_resolved_for(&invocation(Some(invalid)), file(None, false))
+                .unwrap()
+                .demand_timeout_secs,
+            3,
+            "{invalid}"
+        );
+    }
+    for invalid in [0, 4_294_967_296, u64::MAX] {
+        assert_eq!(
+            Config::load_resolved_for(&invocation(None), file(Some(invalid), false))
+                .unwrap()
+                .demand_timeout_secs,
+            3,
+            "{invalid}"
+        );
+    }
+    assert!(IGNORE_ENV_GATED_VARS.contains(&"KACHE_DEMAND_TIMEOUT_SECS"));
+}
+
+#[test]
+fn demand_timeout_file_values_keep_invalid_waits_bounded() {
+    let root = tempfile::tempdir().unwrap();
+    let invocation = InvocationEnv::from_parts(
+        std::iter::empty::<(&str, &str)>(),
+        Some(root.path().to_owned()),
+        None,
+        root.path().to_owned(),
+    );
+    for (value, expected) in [
+        ("1", 1),
+        ("60", 60),
+        ("4294967295", 4_294_967_295),
+        ("0", 3),
+        ("4294967296", 3),
+    ] {
+        let file = toml::from_str::<FileConfig>(&format!(
+            "[cache]\nlocal_only = true\ndemand_timeout_secs = {value}\n"
+        ))
+        .unwrap();
+        let config = Config::load_resolved_for(&invocation, Ok(file)).unwrap();
+        assert_eq!(config.demand_timeout_secs, expected, "{value}");
+        assert!(
+            config.local_only,
+            "an invalid timeout must preserve other valid file settings"
+        );
+    }
+    for value in ["-1", "18446744073709551616", "1.5", "true", "\"60\""] {
+        let file =
+            toml::from_str::<FileConfig>(&format!("[cache]\ndemand_timeout_secs = {value}\n"));
+        assert!(
+            file.is_err(),
+            "{value} follows the normal unusable-file path"
+        );
+        assert_eq!(
+            Config::load_resolved_for(&invocation, file.map_err(anyhow::Error::from))
+                .unwrap()
+                .demand_timeout_secs,
+            3,
+            "{value}"
+        );
+    }
+}
+
+#[test]
 fn ignored_override_warnings_use_only_client_keys_and_never_their_values() {
     use std::sync::{Arc, Mutex};
     use tracing::{Event, Metadata, Subscriber, span};
@@ -579,6 +725,92 @@ fn index_auto_compact_is_on_by_default_and_obeys_env_precedence() {
 }
 
 #[test]
+fn index_mode_defaults_to_auto_and_obeys_invocation_precedence() {
+    let dir = tempfile::tempdir().unwrap();
+    let config_path = dir.path().join("config.toml");
+    let loaded = |value: Option<&str>| {
+        let mut vars = vec![
+            (
+                "KACHE_CONFIG".to_owned(),
+                config_path.to_string_lossy().into_owned(),
+            ),
+            ("KACHE_HOST_CONFIG".into(), String::new()),
+            ("CI".into(), "true".into()),
+            ("GITHUB_ACTIONS".into(), "true".into()),
+        ];
+        if let Some(value) = value {
+            vars.push(("KACHE_INDEX_MODE".into(), value.into()));
+        }
+        let invocation = InvocationEnv::from_parts(
+            vars,
+            Some(dir.path().to_owned()),
+            Some(dir.path().to_owned()),
+            dir.path().to_owned(),
+        );
+        Config::load_for(&invocation).unwrap().index_mode
+    };
+
+    // Even CI starts with auto, which currently resolves to conservative.
+    assert_eq!(loaded(None), IndexMode::Auto);
+
+    for (value, expected) in [
+        ("auto", IndexMode::Auto),
+        ("conservative", IndexMode::Conservative),
+        ("off", IndexMode::Off),
+    ] {
+        std::fs::write(&config_path, format!("[cache]\nindex_mode = \"{value}\"\n")).unwrap();
+        assert_eq!(loaded(None), expected);
+    }
+
+    std::fs::write(&config_path, "[cache]\nindex_mode = \"off\"\n").unwrap();
+    assert_eq!(loaded(Some(" Conservative ")), IndexMode::Conservative);
+    assert_eq!(loaded(Some("auto")), IndexMode::Auto);
+    for ignored in ["", "  ", "normal", "full"] {
+        assert_eq!(loaded(Some(ignored)), IndexMode::Off, "{ignored:?}");
+    }
+
+    std::fs::write(&config_path, "[cache]\nindex_mode = \"conservative\"\n").unwrap();
+    assert_eq!(loaded(Some("off")), IndexMode::Off);
+
+    for value in ["", "  ", "normal", "fast"] {
+        std::fs::write(&config_path, format!("[cache]\nindex_mode = \"{value}\"\n")).unwrap();
+        assert_eq!(loaded(None), IndexMode::Auto, "{value:?}");
+    }
+
+    std::fs::write(
+        &config_path,
+        "[cache]\nignore_env = true\nindex_mode = \"conservative\"\n",
+    )
+    .unwrap();
+    assert_eq!(loaded(Some("off")), IndexMode::Conservative);
+
+    std::fs::write(&config_path, "[cache]\nignore_env = true\n").unwrap();
+    assert_eq!(loaded(Some("off")), IndexMode::Auto);
+}
+
+#[test]
+fn store_config_carries_the_index_mode() {
+    let dir = tempfile::tempdir().unwrap();
+    for (value, expected) in [
+        ("auto", IndexMode::Auto),
+        ("conservative", IndexMode::Conservative),
+        ("off", IndexMode::Off),
+    ] {
+        let invocation = InvocationEnv::from_parts(
+            vec![("KACHE_INDEX_MODE", value), ("KACHE_HOST_CONFIG", "")],
+            Some(dir.path().to_owned()),
+            Some(dir.path().to_owned()),
+            dir.path().to_owned(),
+        );
+        let config = Config::load_resolved_for(&invocation, Ok(FileConfig::default())).unwrap();
+        assert_eq!(
+            kache_core::store_config::Config::from(&config).index_mode,
+            expected
+        );
+    }
+}
+
+#[test]
 fn target_cleanup_defaults_and_env_precedence() {
     let _lock = config_path_lock();
     let dir = tempfile::tempdir().unwrap();
@@ -812,6 +1044,7 @@ fn min_store_compile_is_opt_in_and_obeys_env_precedence() {
 #[test]
 fn remote_key_listing_defaults_to_on_only_for_a_filesystem_remote() {
     let filesystem = RemoteConfig {
+        restore_max_size: crate::config::DEFAULT_RESTORE_MAX_SIZE,
         prefix: "artifacts".to_string(),
         backend: RemoteBackendConfig::Filesystem(FilesystemRemoteConfig {
             root: PathBuf::from("/cache"),
@@ -819,6 +1052,7 @@ fn remote_key_listing_defaults_to_on_only_for_a_filesystem_remote() {
         }),
     };
     let s3 = RemoteConfig {
+        restore_max_size: crate::config::DEFAULT_RESTORE_MAX_SIZE,
         prefix: "artifacts".to_string(),
         backend: RemoteBackendConfig::S3(S3RemoteConfig {
             bucket: "bucket".to_string(),
@@ -1733,7 +1967,7 @@ fn a_malformed_host_file_is_ignored_and_reported() {
     let _lock = config_path_lock();
     for host_content in [
         "[cache\nthis is not toml",
-        "[cache]\nlocal_max_size = 5\n", // valid TOML, wrong type
+        "[cache]\nlocal_max_size = true\n", // valid TOML, wrong type
     ] {
         let dir = tempfile::tempdir().unwrap();
         let (host, chosen) = write_host_and_chosen(
@@ -2698,6 +2932,56 @@ fn daemon_execution_concurrency_respects_environment_file_and_automatic_mode() {
 }
 
 #[test]
+fn native_runtime_warmup_defaults_on_and_respects_file_env_and_ignore_env() {
+    let file = |text| Ok(toml::from_str::<FileConfig>(text).unwrap());
+    let invocation = |value: Option<&str>| {
+        InvocationEnv::from_parts(
+            value
+                .into_iter()
+                .map(|value| ("KACHE_NATIVE_RUNTIME_WARMUP", value)),
+            None,
+            None,
+            std::env::temp_dir(),
+        )
+    };
+    for (text, expected) in [
+        ("", true),
+        ("[cache]\nnative_runtime_warmup = false", false),
+        ("[cache]\nnative_runtime_warmup = true", true),
+    ] {
+        assert_eq!(
+            Config::native_runtime_warmup_enabled_for(&invocation(None), &file(text)),
+            expected
+        );
+        for (value, expected) in [
+            ("0", false),
+            ("false", false),
+            ("FALSE", false),
+            ("1", true),
+            ("true", true),
+        ] {
+            assert_eq!(
+                Config::native_runtime_warmup_enabled_for(&invocation(Some(value)), &file(text)),
+                expected,
+                "{text:?} {value:?}"
+            );
+        }
+    }
+    assert!(Config::native_runtime_warmup_enabled_for(
+        &invocation(Some("0")),
+        &file("[cache]\nignore_env = true")
+    ));
+    assert!(!Config::native_runtime_warmup_enabled_for(
+        &invocation(Some("1")),
+        &file("[cache]\nignore_env = true\nnative_runtime_warmup = false")
+    ));
+    assert!(Config::native_runtime_warmup_enabled_for(
+        &invocation(None),
+        &Err(anyhow::anyhow!("no config file"))
+    ));
+}
+
+#[test]
 fn trusted_daemon_execution_requires_an_explicit_setting() {
     let file = |text| Ok(toml::from_str::<FileConfig>(text).unwrap());
     let invocation = |value: Option<&str>| {
@@ -2804,6 +3088,7 @@ fn test_file_config_roundtrip() {
         workspace: None,
         cache: Some(CacheFileConfig {
             blaze: None,
+            separate_check_targets: None,
             readonly_store: None,
             bypass_env: None,
             bypass_argv: None,
@@ -2822,13 +3107,16 @@ fn test_file_config_roundtrip() {
             deferred_durability: None,
             daemon_publish: None,
             trust_daemon_execution: None,
+            native_runtime_warmup: None,
             daemon_execution_concurrency: None,
             auto_gc: None,
             index_auto_compact: None,
+            index_mode: None,
             auto_clean_orphaned_targets: None,
             auto_share_target_files: None,
             auto_clean_idle_targets_days: None,
             auto_recover_min_free_bytes: None,
+            restore_max_size: None,
             auto_recover_targets: None,
             scheduler_memory_pressure: None,
             auto_clean_unused_units_days: None,
@@ -2874,6 +3162,7 @@ fn test_file_config_roundtrip() {
             daemon_idle_timeout_secs: None,
             s3_pool_idle_secs: None,
             remote_restore_timeout_secs: None,
+            demand_timeout_secs: None,
             remote_negative_ttl_secs: None,
             remote: Some(RemoteFileConfig {
                 _type: Some("s3".to_string()),
@@ -3461,6 +3750,7 @@ fn test_env_overrides_detect() {
 fn test_config_store_dir() {
     let config = Config {
         blaze: false,
+        separate_check_targets: true,
         readonly_store: None,
         fallback: None,
         key_salt: None,
@@ -3480,14 +3770,17 @@ fn test_config_store_dir() {
         deferred_durability: false,
         daemon_publish: false,
         trust_daemon_execution: false,
+        native_runtime_warmup: true,
         daemon_execution_concurrency: None,
         project_rules: ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
+        index_mode: Default::default(),
         auto_clean_orphaned_targets: true,
         auto_share_target_files: true,
         auto_clean_idle_targets_days: 0,
         auto_recover_min_free_bytes: 0,
+        restore_max_size: crate::config::DEFAULT_RESTORE_MAX_SIZE,
         auto_recover_targets: false,
         scheduler_memory_pressure: true,
         auto_clean_unused_units_days: 0,
@@ -3535,6 +3828,7 @@ fn test_config_store_dir() {
         daemon_idle_timeout_secs: DEFAULT_DAEMON_IDLE_TIMEOUT_SECS,
         s3_pool_idle_secs: DEFAULT_S3_POOL_IDLE_SECS,
         remote_restore_timeout_secs: DEFAULT_REMOTE_RESTORE_TIMEOUT_SECS,
+        demand_timeout_secs: crate::config::DEFAULT_DEMAND_TIMEOUT_SECS,
         remote_negative_ttl_secs: DEFAULT_REMOTE_NEGATIVE_TTL_SECS,
     };
     assert_eq!(config.store_dir(), PathBuf::from("/tmp/kache/store"));
@@ -3548,6 +3842,7 @@ fn test_config_store_dir() {
 fn test_config_index_db_path() {
     let config = Config {
         blaze: false,
+        separate_check_targets: true,
         readonly_store: None,
         fallback: None,
         key_salt: None,
@@ -3567,14 +3862,17 @@ fn test_config_index_db_path() {
         deferred_durability: false,
         daemon_publish: false,
         trust_daemon_execution: false,
+        native_runtime_warmup: true,
         daemon_execution_concurrency: None,
         project_rules: ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
+        index_mode: Default::default(),
         auto_clean_orphaned_targets: true,
         auto_share_target_files: true,
         auto_clean_idle_targets_days: 0,
         auto_recover_min_free_bytes: 0,
+        restore_max_size: crate::config::DEFAULT_RESTORE_MAX_SIZE,
         auto_recover_targets: false,
         scheduler_memory_pressure: true,
         auto_clean_unused_units_days: 0,
@@ -3622,6 +3920,7 @@ fn test_config_index_db_path() {
         daemon_idle_timeout_secs: DEFAULT_DAEMON_IDLE_TIMEOUT_SECS,
         s3_pool_idle_secs: DEFAULT_S3_POOL_IDLE_SECS,
         remote_restore_timeout_secs: DEFAULT_REMOTE_RESTORE_TIMEOUT_SECS,
+        demand_timeout_secs: crate::config::DEFAULT_DEMAND_TIMEOUT_SECS,
         remote_negative_ttl_secs: DEFAULT_REMOTE_NEGATIVE_TTL_SECS,
     };
     assert_eq!(config.index_db_path(), PathBuf::from("/tmp/kache/index.db"));
@@ -3631,6 +3930,7 @@ fn test_config_index_db_path() {
 fn test_config_event_log_path() {
     let config = Config {
         blaze: false,
+        separate_check_targets: true,
         readonly_store: None,
         fallback: None,
         key_salt: None,
@@ -3650,14 +3950,17 @@ fn test_config_event_log_path() {
         deferred_durability: false,
         daemon_publish: false,
         trust_daemon_execution: false,
+        native_runtime_warmup: true,
         daemon_execution_concurrency: None,
         project_rules: ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
+        index_mode: Default::default(),
         auto_clean_orphaned_targets: true,
         auto_share_target_files: true,
         auto_clean_idle_targets_days: 0,
         auto_recover_min_free_bytes: 0,
+        restore_max_size: crate::config::DEFAULT_RESTORE_MAX_SIZE,
         auto_recover_targets: false,
         scheduler_memory_pressure: true,
         auto_clean_unused_units_days: 0,
@@ -3705,6 +4008,7 @@ fn test_config_event_log_path() {
         daemon_idle_timeout_secs: DEFAULT_DAEMON_IDLE_TIMEOUT_SECS,
         s3_pool_idle_secs: DEFAULT_S3_POOL_IDLE_SECS,
         remote_restore_timeout_secs: DEFAULT_REMOTE_RESTORE_TIMEOUT_SECS,
+        demand_timeout_secs: crate::config::DEFAULT_DEMAND_TIMEOUT_SECS,
         remote_negative_ttl_secs: DEFAULT_REMOTE_NEGATIVE_TTL_SECS,
     };
     assert_eq!(
@@ -3733,6 +4037,7 @@ fn test_config_socket_path() {
     let _env_guard = set_env_for_test("KACHE_SOCKET_PATH", None);
     let config = Config {
         blaze: false,
+        separate_check_targets: true,
         readonly_store: None,
         fallback: None,
         key_salt: None,
@@ -3752,14 +4057,17 @@ fn test_config_socket_path() {
         deferred_durability: false,
         daemon_publish: false,
         trust_daemon_execution: false,
+        native_runtime_warmup: true,
         daemon_execution_concurrency: None,
         project_rules: ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
+        index_mode: Default::default(),
         auto_clean_orphaned_targets: true,
         auto_share_target_files: true,
         auto_clean_idle_targets_days: 0,
         auto_recover_min_free_bytes: 0,
+        restore_max_size: crate::config::DEFAULT_RESTORE_MAX_SIZE,
         auto_recover_targets: false,
         scheduler_memory_pressure: true,
         auto_clean_unused_units_days: 0,
@@ -3807,6 +4115,7 @@ fn test_config_socket_path() {
         daemon_idle_timeout_secs: DEFAULT_DAEMON_IDLE_TIMEOUT_SECS,
         s3_pool_idle_secs: DEFAULT_S3_POOL_IDLE_SECS,
         remote_restore_timeout_secs: DEFAULT_REMOTE_RESTORE_TIMEOUT_SECS,
+        demand_timeout_secs: crate::config::DEFAULT_DEMAND_TIMEOUT_SECS,
         remote_negative_ttl_secs: DEFAULT_REMOTE_NEGATIVE_TTL_SECS,
     };
     assert_eq!(
@@ -4473,6 +4782,7 @@ fn test_save_and_load_file_config() {
         workspace: None,
         cache: Some(CacheFileConfig {
             blaze: None,
+            separate_check_targets: None,
             readonly_store: None,
             bypass_env: None,
             bypass_argv: None,
@@ -4491,13 +4801,16 @@ fn test_save_and_load_file_config() {
             deferred_durability: None,
             daemon_publish: None,
             trust_daemon_execution: None,
+            native_runtime_warmup: None,
             daemon_execution_concurrency: None,
             auto_gc: None,
             index_auto_compact: None,
+            index_mode: None,
             auto_clean_orphaned_targets: None,
             auto_share_target_files: None,
             auto_clean_idle_targets_days: None,
             auto_recover_min_free_bytes: None,
+            restore_max_size: None,
             auto_recover_targets: None,
             scheduler_memory_pressure: None,
             auto_clean_unused_units_days: None,
@@ -4543,6 +4856,7 @@ fn test_save_and_load_file_config() {
             daemon_idle_timeout_secs: None,
             s3_pool_idle_secs: None,
             remote_restore_timeout_secs: None,
+            demand_timeout_secs: None,
             remote_negative_ttl_secs: None,
             remote: None,
             scheduler: None,
@@ -6105,4 +6419,43 @@ fn blaze_requires_explicit_opt_in_and_honors_the_selected_file() {
     assert!(!load(&[("KACHE_BLAZE", "0")]));
     std::fs::write(&path, "[cache]\nblaze=true\nignore_env=true\n").unwrap();
     assert!(load(&[("KACHE_BLAZE", "false")]));
+}
+
+#[test]
+fn check_targets_default_on_with_file_and_environment_opt_out() {
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join(".kache.toml");
+    let load = |extra: &[(&str, &str)]| {
+        let mut vars = vec![
+            (
+                "KACHE_CONFIG".to_owned(),
+                path.to_string_lossy().into_owned(),
+            ),
+            ("KACHE_HOST_CONFIG".into(), String::new()),
+        ];
+        vars.extend(extra.iter().map(|(k, v)| (k.to_string(), v.to_string())));
+        let env = InvocationEnv::from_parts(
+            vars,
+            Some(root.path().into()),
+            Some(root.path().into()),
+            root.path().into(),
+        );
+        Config::load_for(&env).unwrap().separate_check_targets
+    };
+    std::fs::write(&path, "[cache]\n").unwrap();
+    assert!(load(&[]));
+    assert!(!load(&[("KACHE_SEPARATE_CHECK_TARGETS", "0")]));
+    assert!(!load(&[("KACHE_SEPARATE_CHECK_TARGETS", "FaLsE")]));
+    std::fs::write(&path, "[cache]\nseparate_check_targets=false\n").unwrap();
+    assert!(!load(&[]));
+    assert!(load(&[("KACHE_SEPARATE_CHECK_TARGETS", "1")]));
+    std::fs::write(
+        &path,
+        "[cache]\nseparate_check_targets=false\nignore_env=true\n",
+    )
+    .unwrap();
+    assert!(!load(&[("KACHE_SEPARATE_CHECK_TARGETS", "true")]));
+    std::fs::write(&path, "[cache]\nseparate_check_targets=true\n").unwrap();
+    assert!(load(&[]));
+    assert!(!load(&[("KACHE_SEPARATE_CHECK_TARGETS", "false")]));
 }

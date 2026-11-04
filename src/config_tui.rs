@@ -2149,6 +2149,7 @@ mod tests {
             cache: Some(CacheFileConfig {
                 readonly_store: None,
                 blaze: None,
+                separate_check_targets: None,
                 bypass_env: None,
                 bypass_argv: None,
                 bypass_crates: None,
@@ -2170,13 +2171,16 @@ mod tests {
                 deferred_durability: None,
                 daemon_publish: None,
                 trust_daemon_execution: None,
+                native_runtime_warmup: Some(false),
                 daemon_execution_concurrency: None,
                 auto_gc: None,
                 index_auto_compact: None,
+                index_mode: None,
                 auto_clean_orphaned_targets: None,
                 auto_share_target_files: None,
                 auto_clean_idle_targets_days: None,
                 auto_recover_min_free_bytes: None,
+                restore_max_size: None,
                 auto_recover_targets: None,
                 scheduler_memory_pressure: None,
                 auto_clean_unused_units_days: None,
@@ -2230,6 +2234,7 @@ mod tests {
                 daemon_idle_timeout_secs: Some(600),
                 s3_pool_idle_secs: None,
                 remote_restore_timeout_secs: Some(180),
+                demand_timeout_secs: Some(60),
                 remote_negative_ttl_secs: Some(45),
                 remote: Some(RemoteFileConfig {
                     _type: Some("s3".to_string()),
@@ -2264,10 +2269,12 @@ mod tests {
         assert_eq!(cache.prefetch_enabled, Some(false));
         assert_eq!(cache.remote_key_cache_refresh_secs, Some(900));
         assert_eq!(cache.remote_restore_timeout_secs, Some(180));
+        assert_eq!(cache.demand_timeout_secs, Some(60));
         assert_eq!(cache.remote_negative_ttl_secs, Some(45));
         assert_eq!(cache.min_store_compile_ms, Some(750));
         assert_eq!(cache.gc_max_age_hours, Some(72));
         assert_eq!(cache.scheduler, Some(false));
+        assert_eq!(cache.native_runtime_warmup, Some(false));
         assert_eq!(cache.gc_evict_shared, Some(true));
         assert_eq!(cache.daemon_idle_timeout_secs, Some(600));
         // The editor has no planner fields, but a save must preserve the

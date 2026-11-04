@@ -1,3 +1,4 @@
+pub(crate) mod compiler_gc;
 use crate::term;
 use crate::term::human_println as println;
 use anyhow::{Context, Result};
@@ -1767,6 +1768,15 @@ pub(crate) fn config_mismatch_warnings(
             "warning: {daemon_side} is read-only; {client_side} is writable, so the daemon skips \
              this process's uploads. Run `kache daemon restart` from this environment; an \
              installed service takes the setting from its own environment and config"
+        ));
+    }
+    if let Some(limit) = eff.restore_max_size
+        && limit != config.restore_max_size
+    {
+        warnings.push(format!(
+            "warning: {daemon_side} has restore_max_size={}; {client_side} says {} — {remedy}",
+            bytesize::ByteSize(limit),
+            bytesize::ByteSize(config.restore_max_size)
         ));
     }
     if let Some(floor) = eff.auto_recover_min_free_bytes
@@ -5925,6 +5935,7 @@ fn remove_targets(
     failed: &mut Vec<CleanFailed>,
 ) -> (usize, u64, u64) {
     let mut estimated_reclaimed = 0u64;
+    let programs = crate::target_processes::ActivePrograms::default();
     let mut apparent_gap = 0u64;
     let mut removed = 0usize;
     let reservation = crate::target_use::try_exclusive(cache_dir).unwrap_or_else(|error| {
@@ -5956,7 +5967,7 @@ fn remove_targets(
             });
             continue;
         }
-        if target_in_use(&target.path) {
+        if target_in_use(&target.path) || programs.uses(&target.path) {
             if human_clean_output(quiet) {
                 println!("  skipped {} — {TARGET_IN_USE}", rel.display());
             }
@@ -6042,7 +6053,11 @@ fn removal_notes(cache_dir: &std::path::Path, paths: &[&std::path::Path]) -> Vec
             "Not now: {reason}; until then `kache clean --yes` skips them."
         )];
     }
-    let in_use = paths.iter().filter(|path| target_in_use(path)).count();
+    let programs = crate::target_processes::ActivePrograms::default();
+    let in_use = paths
+        .iter()
+        .filter(|path| target_in_use(path) || programs.uses(path))
+        .count();
     if in_use == 0 {
         return Vec::new();
     }
@@ -6056,7 +6071,7 @@ fn human_clean_output(quiet: bool) -> bool {
     !quiet
 }
 
-const TARGET_IN_USE: &str = "in use by a running Cargo command or test";
+const TARGET_IN_USE: &str = "in use by a running command or program";
 
 /// Whether a Cargo process holds one of `target`'s build locks. Cargo takes
 /// an exclusive lock on `<profile>/.cargo-lock` (and
@@ -11063,12 +11078,11 @@ impl RecoverySettings {
         let ignore_env = file("ignore_env").and_then(|value| value.as_bool()) == Some(true);
         let env = |name: &str| if ignore_env { None } else { env(name) };
         let floor = env("KACHE_AUTO_RECOVER_MIN_FREE_BYTES")
-            .and_then(|value| value.parse().ok())
-            .or_else(|| {
-                file("auto_recover_min_free_bytes")?
-                    .as_integer()?
-                    .try_into()
-                    .ok()
+            .and_then(|value| crate::config::parse_size(&value))
+            .or_else(|| match file("auto_recover_min_free_bytes")? {
+                toml::Value::Integer(bytes) => bytes.try_into().ok(),
+                toml::Value::String(size) => crate::config::parse_size(&size),
+                _ => None,
             })
             .unwrap_or_else(|| crate::config::default_recovery_floor(in_ci));
         Self {

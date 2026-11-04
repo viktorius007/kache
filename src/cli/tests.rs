@@ -2811,6 +2811,28 @@ fn test_parse_cargo_lock_crate_names_from_valid_missing_and_bad_files() {
 
 #[test]
 fn test_is_macos_protected() {
+    #[cfg(target_os = "macos")]
+    if std::env::var_os("KACHE_TEST_MACOS_PROTECTED_CHILD").is_none() {
+        // The prefix cache captures HOME once. Other tests temporarily change
+        // HOME, so check it in a fresh process with a fixed home directory.
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "cli::tests::test_is_macos_protected",
+                "--nocapture",
+            ])
+            .env("KACHE_TEST_MACOS_PROTECTED_CHILD", "1")
+            .env("HOME", "/Users/kache-protected-test")
+            .output()
+            .unwrap();
+        assert!(
+            String::from_utf8_lossy(&output.stdout).contains("running 1 test"),
+            "{output:?}"
+        );
+        assert!(output.status.success(), "{output:?}");
+        return;
+    }
+
     // On non-macOS the stub always returns false — verify that invariant
     // and skip the positive-match assertions.
     if !cfg!(target_os = "macos") {
@@ -3816,6 +3838,7 @@ fn save_manifest_config(
     };
     Config {
         blaze: false,
+        separate_check_targets: true,
         remote_error: None,
         socket_path_override: None,
         fallback: None,
@@ -3837,14 +3860,17 @@ fn save_manifest_config(
         deferred_durability: false,
         daemon_publish: false,
         trust_daemon_execution: false,
+        native_runtime_warmup: true,
         daemon_execution_concurrency: None,
         project_rules: crate::config::ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
+        index_mode: Default::default(),
         auto_clean_orphaned_targets: false,
         auto_share_target_files: false,
         auto_clean_idle_targets_days: 0,
         auto_recover_min_free_bytes: 0,
+        restore_max_size: kache_config::config::DEFAULT_RESTORE_MAX_SIZE,
         auto_recover_targets: false,
         scheduler_memory_pressure: true,
         auto_clean_unused_units_days: 0,
@@ -3890,6 +3916,7 @@ fn save_manifest_config(
         daemon_idle_timeout_secs: DEFAULT_DAEMON_IDLE_TIMEOUT_SECS,
         s3_pool_idle_secs: DEFAULT_S3_POOL_IDLE_SECS,
         remote_restore_timeout_secs: DEFAULT_REMOTE_RESTORE_TIMEOUT_SECS,
+        demand_timeout_secs: crate::config::DEFAULT_DEMAND_TIMEOUT_SECS,
         remote_negative_ttl_secs: DEFAULT_REMOTE_NEGATIVE_TTL_SECS,
     }
 }
@@ -5191,6 +5218,7 @@ fn effective_config_like(config: &Config) -> crate::daemon::EffectiveConfig {
         socket_path: config.socket_path().display().to_string(),
         started_at_ms: 1_700_000_000_000,
         auto_recover_min_free_bytes: None,
+        restore_max_size: None,
         auto_recover_targets: None,
     }
 }
@@ -5286,6 +5314,18 @@ fn config_mismatch_warnings_name_both_sides_per_field() {
     // Full agreement is silent.
     let eff = effective_config_like(&config);
     assert!(config_mismatch_warnings(&config, &same, &eff).is_empty());
+
+    let mut restore_limit = eff.clone();
+    restore_limit.restore_max_size = Some(config.restore_max_size);
+    assert!(config_mismatch_warnings(&config, &same, &restore_limit).is_empty());
+    restore_limit.restore_max_size = Some(12_884_901_888);
+    let warnings = config_mismatch_warnings(&config, &same, &restore_limit);
+    assert_eq!(warnings.len(), 1);
+    assert!(
+        warnings[0].contains("restore_max_size=12.0 GiB"),
+        "{warnings:?}"
+    );
+    assert!(warnings[0].contains("says 8.0 GiB"), "{warnings:?}");
 
     // LIST cadence is irrelevant when neither side has a remote. A
     // stale/default cadence alone must not produce a mismatch warning.
@@ -6214,6 +6254,7 @@ fn diff_meta(
     crate::store::EntryMeta {
         cache_key: "k".to_string(),
         key_schema: crate::cache_key::CACHE_KEY_VERSION,
+        rustc_version: None,
         crate_name: "c".to_string(),
         crate_types: crate_types.iter().map(|v| (*v).to_string()).collect(),
         files: Vec::new(),
@@ -8712,6 +8753,50 @@ fn remove_targets_refuses_a_directory_replaced_after_scan() {
     );
 }
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+#[test]
+fn clean_skips_a_directly_started_program_but_removes_an_idle_sibling() {
+    let root = tempfile::tempdir().unwrap();
+    let cache = tempfile::tempdir().unwrap();
+    let busy = root.path().join("busy");
+    let idle = root.path().join("idle");
+    std::fs::create_dir(&idle).unwrap();
+    let child = crate::target_processes::tests::RunningProgram::start(&busy);
+    let to_remove: Vec<_> = [&busy, &idle]
+        .into_iter()
+        .map(|path| RemovalTarget {
+            path: path.clone(),
+            scanned_identity: directory_identity(path),
+            estimated_reclaimable: 100,
+            apparent_gap: 0,
+        })
+        .collect();
+    assert_eq!(
+        removal_notes(cache.path(), &[&busy, &idle]),
+        [format!("Not now: 1 target {TARGET_IN_USE}.")]
+    );
+    let mut skipped = Vec::new();
+    let mut failed = Vec::new();
+    assert_eq!(
+        remove_targets(
+            &to_remove,
+            root.path(),
+            cache.path(),
+            true,
+            &mut skipped,
+            &mut Vec::new(),
+            &mut failed
+        ),
+        (1, 100, 0)
+    );
+    assert!(failed.is_empty());
+    assert_eq!(skipped.len(), 1);
+    assert_eq!(skipped[0].reason, TARGET_IN_USE);
+    assert!(busy.join("sleep").exists());
+    assert!(!idle.exists());
+    drop(child);
+}
+
 #[test]
 fn clean_handle_key_cancel_and_confirm() {
     use crossterm::event::KeyCode;
@@ -9953,6 +10038,32 @@ fn init_offers_recovery_with_the_floor_its_file_and_environment_set() {
     assert!(!defaults.file_decides_targets);
     assert_eq!(RecoverySettings::of("", &none, true).floor, 0, "CI default");
 
+    let unit_file = "[cache]\nauto_recover_min_free_bytes = \"100GiB\"\n";
+    assert_eq!(
+        RecoverySettings::of(unit_file, &none, false).floor,
+        107_374_182_400
+    );
+    let unit_env =
+        |key: &str| (key == "KACHE_AUTO_RECOVER_MIN_FREE_BYTES").then(|| "20GB".to_owned());
+    assert_eq!(
+        RecoverySettings::of(unit_file, &unit_env, false).floor,
+        20_000_000_000
+    );
+    for value in ["invalid", "16EiB", "-1GB"] {
+        let env =
+            |key: &str| (key == "KACHE_AUTO_RECOVER_MIN_FREE_BYTES").then(|| value.to_owned());
+        assert_eq!(
+            RecoverySettings::of(unit_file, &env, false).floor,
+            107_374_182_400
+        );
+    }
+    for raw in ["-1", "true", "\"invalid\"", "\"16EiB\""] {
+        let text = format!("[cache]\nauto_recover_min_free_bytes = {raw}\n");
+        assert_eq!(
+            RecoverySettings::of(&text, &none, false).floor,
+            crate::config::DEFAULT_RECOVERY_FLOOR
+        );
+    }
     let file = "[cache]\nauto_recover_min_free_bytes = 107374182400\n";
     assert_eq!(RecoverySettings::of(file, &none, false).floor, 100 << 30);
     let env = |name: &str| match name {

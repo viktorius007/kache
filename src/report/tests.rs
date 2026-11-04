@@ -634,6 +634,7 @@ fn write_test_events(dir: &std::path::Path) -> Config {
 
     let config = Config {
         blaze: false,
+        separate_check_targets: true,
         readonly_store: None,
         fallback: None,
         key_salt: None,
@@ -652,15 +653,18 @@ fn write_test_events(dir: &std::path::Path) -> Config {
         out_dir_alias_root: None,
         deferred_durability: false,
         daemon_publish: false,
+        native_runtime_warmup: true,
         trust_daemon_execution: false,
         daemon_execution_concurrency: None,
         project_rules: crate::config::ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
+        index_mode: Default::default(),
         auto_clean_orphaned_targets: false,
         auto_share_target_files: false,
         auto_clean_idle_targets_days: 0,
         auto_recover_min_free_bytes: 0,
+        restore_max_size: kache_config::config::DEFAULT_RESTORE_MAX_SIZE,
         auto_recover_targets: false,
         scheduler_memory_pressure: true,
         auto_clean_unused_units_days: 0,
@@ -708,6 +712,7 @@ fn write_test_events(dir: &std::path::Path) -> Config {
         daemon_idle_timeout_secs: crate::config::DEFAULT_DAEMON_IDLE_TIMEOUT_SECS,
         s3_pool_idle_secs: crate::config::DEFAULT_S3_POOL_IDLE_SECS,
         remote_restore_timeout_secs: crate::config::DEFAULT_REMOTE_RESTORE_TIMEOUT_SECS,
+        demand_timeout_secs: crate::config::DEFAULT_DEMAND_TIMEOUT_SECS,
         remote_negative_ttl_secs: crate::config::DEFAULT_REMOTE_NEGATIVE_TTL_SECS,
     };
 
@@ -1965,6 +1970,102 @@ fn trace_json_emits_each_crate_slice_followed_by_its_phases() {
     }
 }
 
+/// A hit with every wrapper phase set to a different nonzero value, and
+/// the held-pool miss from kunobi-ninja/kache#1774: a 30 s permit wait and
+/// no flight wait. No real event has both restore and store time, and a
+/// hit takes no permit; the values on this hit only need to differ.
+fn write_phase_row_events(dir: &std::path::Path) -> Config {
+    let config = write_test_events(dir);
+    events::clear_events(&config.event_log_path()).unwrap();
+    // Overhead is all 300 ms on a hit. The phases account for
+    // 3 + 40 + 6 + (11 + 23) + 52 + 9 = 144 ms, leaving 156 unattributed.
+    let mut hit = test_event("phases", EventResult::LocalHit, 300, 250, 10, "k-phases");
+    hit.startup_ms = 3;
+    hit.key_ms = 40;
+    hit.dep_info_ms = 17;
+    hit.dep_info_runs = 1;
+    hit.lookup_ms = 6;
+    hit.flight_wait_ms = 11;
+    hit.permit_wait_ms = 23;
+    hit.restore_ms = 52;
+    hit.store_ms = 9;
+    // Overhead is 30_600 - 500 = 30_100 ms, all of it permit wait except 98.
+    let mut held = test_event("held", EventResult::Miss, 30_600, 500, 10, "k-held");
+    held.permit_wait_ms = 30_002;
+    for e in [hit, held] {
+        events::log_event(&config.event_log_path(), &e).unwrap();
+    }
+    config
+}
+
+/// The row for `crate_name` in a JSON list of crate rows.
+fn json_row<'a>(rows: &'a serde_json::Value, crate_name: &str) -> &'a serde_json::Value {
+    rows.as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["crate_name"] == crate_name)
+        .unwrap_or_else(|| panic!("no {crate_name} row in {rows:#}"))
+}
+
+/// `--format json` rows carry each event's wrapper phases, the numbers the
+/// trace args already carry (kunobi-ninja/kache#1774). Every phase has its
+/// own value, so a field filled from the wrong one fails.
+#[test]
+fn json_rows_carry_each_events_wrapper_phases() {
+    let dir = tempfile::tempdir().unwrap();
+    let config = write_phase_row_events(dir.path());
+    let report = generate_report(&config, SinceWindow::DEFAULT, 10).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&format_json(&report).unwrap()).unwrap();
+    let schema: serde_json::Value = serde_json::from_str(REPORT_SCHEMA_JSON).unwrap();
+    // The validator lets through keys the schema never declares, so check
+    // that the schema documents each one.
+    let documented = &schema["definitions"]["CrateDetail"]["properties"];
+    let row = json_row(&json["all_events"], "phases");
+    let slice = json["traceEvents"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|e| e["name"] == "hit: phases")
+        .unwrap();
+    for (key, want) in [
+        ("startup_ms", 3),
+        ("key_ms", 40),
+        ("dep_info_ms", 17),
+        ("lookup_ms", 6),
+        ("wait_ms", 34),
+        ("flight_wait_ms", 11),
+        ("permit_wait_ms", 23),
+        ("restore_ms", 52),
+        ("store_ms", 9),
+        ("unattributed_ms", 156),
+    ] {
+        assert_eq!(row[key], want, "all_events row, {key}: {row:#}");
+        assert_eq!(slice["args"][key], want, "trace args, {key}");
+        assert!(
+            documented.get(key).is_some(),
+            "report.schema.json does not document CrateDetail.{key}"
+        );
+    }
+    assert_eq!(json_row(&json["top_hits"], "phases"), row);
+    validate_json_value(&json, &schema, &schema, "report");
+}
+
+/// The held-pool smoke in kunobi-ninja/kache#1774 recorded a 30 s permit
+/// wait and no flight wait, and its JSON row had neither field.
+#[test]
+fn json_rows_keep_a_permit_wait_without_a_flight_wait() {
+    let dir = tempfile::tempdir().unwrap();
+    let config = write_phase_row_events(dir.path());
+    let report = generate_report(&config, SinceWindow::DEFAULT, 10).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&format_json(&report).unwrap()).unwrap();
+    let row = json_row(&json["all_events"], "held");
+    assert_eq!(row["permit_wait_ms"], 30_002, "{row:#}");
+    assert_eq!(row["flight_wait_ms"], 0, "{row:#}");
+    assert_eq!(row["wait_ms"], 30_002, "{row:#}");
+    assert_eq!(row["unattributed_ms"], 98, "{row:#}");
+    assert_eq!(json_row(&json["top_misses"], "held"), row);
+}
+
 #[test]
 fn avg_ms_rounds_to_one_decimal_and_survives_an_empty_count() {
     assert_eq!(avg_ms(7, 2), 3.5);
@@ -2021,6 +2122,7 @@ fn test_missing_transfer_data() {
     let dir = tempfile::tempdir().unwrap();
     let config = Config {
         blaze: false,
+        separate_check_targets: true,
         readonly_store: None,
         fallback: None,
         key_salt: None,
@@ -2039,15 +2141,18 @@ fn test_missing_transfer_data() {
         out_dir_alias_root: None,
         deferred_durability: false,
         daemon_publish: false,
+        native_runtime_warmup: true,
         trust_daemon_execution: false,
         daemon_execution_concurrency: None,
         project_rules: crate::config::ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
+        index_mode: Default::default(),
         auto_clean_orphaned_targets: false,
         auto_share_target_files: false,
         auto_clean_idle_targets_days: 0,
         auto_recover_min_free_bytes: 0,
+        restore_max_size: kache_config::config::DEFAULT_RESTORE_MAX_SIZE,
         auto_recover_targets: false,
         scheduler_memory_pressure: true,
         auto_clean_unused_units_days: 0,
@@ -2095,6 +2200,7 @@ fn test_missing_transfer_data() {
         daemon_idle_timeout_secs: crate::config::DEFAULT_DAEMON_IDLE_TIMEOUT_SECS,
         s3_pool_idle_secs: crate::config::DEFAULT_S3_POOL_IDLE_SECS,
         remote_restore_timeout_secs: crate::config::DEFAULT_REMOTE_RESTORE_TIMEOUT_SECS,
+        demand_timeout_secs: crate::config::DEFAULT_DEMAND_TIMEOUT_SECS,
         remote_negative_ttl_secs: crate::config::DEFAULT_REMOTE_NEGATIVE_TTL_SECS,
     };
 
@@ -2128,6 +2234,7 @@ fn test_suggestion_high_miss_share() {
     let dir = tempfile::tempdir().unwrap();
     let config = Config {
         blaze: false,
+        separate_check_targets: true,
         readonly_store: None,
         fallback: None,
         key_salt: None,
@@ -2146,15 +2253,18 @@ fn test_suggestion_high_miss_share() {
         out_dir_alias_root: None,
         deferred_durability: false,
         daemon_publish: false,
+        native_runtime_warmup: true,
         trust_daemon_execution: false,
         daemon_execution_concurrency: None,
         project_rules: crate::config::ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
+        index_mode: Default::default(),
         auto_clean_orphaned_targets: false,
         auto_share_target_files: false,
         auto_clean_idle_targets_days: 0,
         auto_recover_min_free_bytes: 0,
+        restore_max_size: kache_config::config::DEFAULT_RESTORE_MAX_SIZE,
         auto_recover_targets: false,
         scheduler_memory_pressure: true,
         auto_clean_unused_units_days: 0,
@@ -2202,6 +2312,7 @@ fn test_suggestion_high_miss_share() {
         daemon_idle_timeout_secs: crate::config::DEFAULT_DAEMON_IDLE_TIMEOUT_SECS,
         s3_pool_idle_secs: crate::config::DEFAULT_S3_POOL_IDLE_SECS,
         remote_restore_timeout_secs: crate::config::DEFAULT_REMOTE_RESTORE_TIMEOUT_SECS,
+        demand_timeout_secs: crate::config::DEFAULT_DEMAND_TIMEOUT_SECS,
         remote_negative_ttl_secs: crate::config::DEFAULT_REMOTE_NEGATIVE_TTL_SECS,
     };
 
@@ -2234,6 +2345,7 @@ fn test_suggestion_high_hit_overhead() {
     let dir = tempfile::tempdir().unwrap();
     let config = Config {
         blaze: false,
+        separate_check_targets: true,
         readonly_store: None,
         fallback: None,
         key_salt: None,
@@ -2252,15 +2364,18 @@ fn test_suggestion_high_hit_overhead() {
         out_dir_alias_root: None,
         deferred_durability: false,
         daemon_publish: false,
+        native_runtime_warmup: true,
         trust_daemon_execution: false,
         daemon_execution_concurrency: None,
         project_rules: crate::config::ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
+        index_mode: Default::default(),
         auto_clean_orphaned_targets: false,
         auto_share_target_files: false,
         auto_clean_idle_targets_days: 0,
         auto_recover_min_free_bytes: 0,
+        restore_max_size: kache_config::config::DEFAULT_RESTORE_MAX_SIZE,
         auto_recover_targets: false,
         scheduler_memory_pressure: true,
         auto_clean_unused_units_days: 0,
@@ -2308,6 +2423,7 @@ fn test_suggestion_high_hit_overhead() {
         daemon_idle_timeout_secs: crate::config::DEFAULT_DAEMON_IDLE_TIMEOUT_SECS,
         s3_pool_idle_secs: crate::config::DEFAULT_S3_POOL_IDLE_SECS,
         remote_restore_timeout_secs: crate::config::DEFAULT_REMOTE_RESTORE_TIMEOUT_SECS,
+        demand_timeout_secs: crate::config::DEFAULT_DEMAND_TIMEOUT_SECS,
         remote_negative_ttl_secs: crate::config::DEFAULT_REMOTE_NEGATIVE_TTL_SECS,
     };
 
@@ -2341,6 +2457,7 @@ fn test_suggestion_network_download_failures_and_fanout() {
     let dir = tempfile::tempdir().unwrap();
     let config = Config {
         blaze: false,
+        separate_check_targets: true,
         readonly_store: None,
         fallback: None,
         key_salt: None,
@@ -2359,15 +2476,18 @@ fn test_suggestion_network_download_failures_and_fanout() {
         out_dir_alias_root: None,
         deferred_durability: false,
         daemon_publish: false,
+        native_runtime_warmup: true,
         trust_daemon_execution: false,
         daemon_execution_concurrency: None,
         project_rules: crate::config::ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
+        index_mode: Default::default(),
         auto_clean_orphaned_targets: false,
         auto_share_target_files: false,
         auto_clean_idle_targets_days: 0,
         auto_recover_min_free_bytes: 0,
+        restore_max_size: kache_config::config::DEFAULT_RESTORE_MAX_SIZE,
         auto_recover_targets: false,
         scheduler_memory_pressure: true,
         auto_clean_unused_units_days: 0,
@@ -2415,6 +2535,7 @@ fn test_suggestion_network_download_failures_and_fanout() {
         daemon_idle_timeout_secs: crate::config::DEFAULT_DAEMON_IDLE_TIMEOUT_SECS,
         s3_pool_idle_secs: crate::config::DEFAULT_S3_POOL_IDLE_SECS,
         remote_restore_timeout_secs: crate::config::DEFAULT_REMOTE_RESTORE_TIMEOUT_SECS,
+        demand_timeout_secs: crate::config::DEFAULT_DEMAND_TIMEOUT_SECS,
         remote_negative_ttl_secs: crate::config::DEFAULT_REMOTE_NEGATIVE_TTL_SECS,
     };
 
@@ -2453,6 +2574,7 @@ fn test_suggestion_network_latency_thresholds() {
     let dir = tempfile::tempdir().unwrap();
     let config = Config {
         blaze: false,
+        separate_check_targets: true,
         readonly_store: None,
         fallback: None,
         key_salt: None,
@@ -2471,15 +2593,18 @@ fn test_suggestion_network_latency_thresholds() {
         out_dir_alias_root: None,
         deferred_durability: false,
         daemon_publish: false,
+        native_runtime_warmup: true,
         trust_daemon_execution: false,
         daemon_execution_concurrency: None,
         project_rules: crate::config::ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
+        index_mode: Default::default(),
         auto_clean_orphaned_targets: false,
         auto_share_target_files: false,
         auto_clean_idle_targets_days: 0,
         auto_recover_min_free_bytes: 0,
+        restore_max_size: kache_config::config::DEFAULT_RESTORE_MAX_SIZE,
         auto_recover_targets: false,
         scheduler_memory_pressure: true,
         auto_clean_unused_units_days: 0,
@@ -2527,6 +2652,7 @@ fn test_suggestion_network_latency_thresholds() {
         daemon_idle_timeout_secs: crate::config::DEFAULT_DAEMON_IDLE_TIMEOUT_SECS,
         s3_pool_idle_secs: crate::config::DEFAULT_S3_POOL_IDLE_SECS,
         remote_restore_timeout_secs: crate::config::DEFAULT_REMOTE_RESTORE_TIMEOUT_SECS,
+        demand_timeout_secs: crate::config::DEFAULT_DEMAND_TIMEOUT_SECS,
         remote_negative_ttl_secs: crate::config::DEFAULT_REMOTE_NEGATIVE_TTL_SECS,
     };
 
@@ -2968,6 +3094,7 @@ fn test_empty_report() {
     let dir = tempfile::tempdir().unwrap();
     let config = Config {
         blaze: false,
+        separate_check_targets: true,
         readonly_store: None,
         fallback: None,
         key_salt: None,
@@ -2986,15 +3113,18 @@ fn test_empty_report() {
         out_dir_alias_root: None,
         deferred_durability: false,
         daemon_publish: false,
+        native_runtime_warmup: true,
         trust_daemon_execution: false,
         daemon_execution_concurrency: None,
         project_rules: crate::config::ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
+        index_mode: Default::default(),
         auto_clean_orphaned_targets: false,
         auto_share_target_files: false,
         auto_clean_idle_targets_days: 0,
         auto_recover_min_free_bytes: 0,
+        restore_max_size: kache_config::config::DEFAULT_RESTORE_MAX_SIZE,
         auto_recover_targets: false,
         scheduler_memory_pressure: true,
         auto_clean_unused_units_days: 0,
@@ -3042,6 +3172,7 @@ fn test_empty_report() {
         daemon_idle_timeout_secs: crate::config::DEFAULT_DAEMON_IDLE_TIMEOUT_SECS,
         s3_pool_idle_secs: crate::config::DEFAULT_S3_POOL_IDLE_SECS,
         remote_restore_timeout_secs: crate::config::DEFAULT_REMOTE_RESTORE_TIMEOUT_SECS,
+        demand_timeout_secs: crate::config::DEFAULT_DEMAND_TIMEOUT_SECS,
         remote_negative_ttl_secs: crate::config::DEFAULT_REMOTE_NEGATIVE_TTL_SECS,
     };
 
@@ -3456,6 +3587,7 @@ fn report_counts_each_download_transfer_format() {
     let dir = tempfile::tempdir().unwrap();
     let config = Config {
         blaze: false,
+        separate_check_targets: true,
         readonly_store: None,
         fallback: None,
         key_salt: None,
@@ -3474,15 +3606,18 @@ fn report_counts_each_download_transfer_format() {
         out_dir_alias_root: None,
         deferred_durability: false,
         daemon_publish: false,
+        native_runtime_warmup: true,
         trust_daemon_execution: false,
         daemon_execution_concurrency: None,
         project_rules: crate::config::ProjectRules::default(),
         auto_gc: true,
         index_auto_compact: true,
+        index_mode: Default::default(),
         auto_clean_orphaned_targets: false,
         auto_share_target_files: false,
         auto_clean_idle_targets_days: 0,
         auto_recover_min_free_bytes: 0,
+        restore_max_size: kache_config::config::DEFAULT_RESTORE_MAX_SIZE,
         auto_recover_targets: false,
         scheduler_memory_pressure: true,
         auto_clean_unused_units_days: 0,
@@ -3530,6 +3665,7 @@ fn report_counts_each_download_transfer_format() {
         daemon_idle_timeout_secs: crate::config::DEFAULT_DAEMON_IDLE_TIMEOUT_SECS,
         s3_pool_idle_secs: crate::config::DEFAULT_S3_POOL_IDLE_SECS,
         remote_restore_timeout_secs: crate::config::DEFAULT_REMOTE_RESTORE_TIMEOUT_SECS,
+        demand_timeout_secs: crate::config::DEFAULT_DEMAND_TIMEOUT_SECS,
         remote_negative_ttl_secs: crate::config::DEFAULT_REMOTE_NEGATIVE_TTL_SECS,
     };
     for fmt in ["v1", "v2", "weird-future-format"] {
@@ -4769,6 +4905,22 @@ fn adaptive_reasons_have_plain_words() {
         "edit rebuild: rustc rebuilt a crate still being edited incrementally (adaptive active)"
     );
     assert_eq!(uncached_reason_words("linker"), "linker");
+}
+
+#[test]
+fn native_runtime_warmup_has_plain_words_without_counting_as_an_edit() {
+    assert_eq!(
+        uncached_reason_words("native runtime warmup"),
+        "the daemon is preparing MSVC runtime hashes; this compile ran without caching"
+    );
+    assert!(!is_edit_rebuild("native runtime warmup"));
+    assert!(!is_edit_rebuild(" native runtime warmup "));
+    let mut skipped = BuildEvent::new_for_test("native", EventResult::Skipped);
+    skipped.skip_reason = "native runtime warmup".into();
+    assert_eq!(
+        uncached_compile_words(&skipped),
+        "compiled, not stored: the daemon is preparing MSVC runtime hashes; this compile ran without caching"
+    );
 }
 
 #[test]

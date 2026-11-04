@@ -1002,6 +1002,30 @@ pub struct CrateDetail {
     pub store_handed_off: bool,
     #[serde(default)]
     pub daemon_store_ms: u64,
+    /// Wrapper phases (ms), the same numbers the trace format carries in
+    /// each crate slice's args. `dep_info_ms` is inside `key_ms`; `wait_ms` is
+    /// flight plus permit; `unattributed_ms` is the overhead no phase
+    /// accounts for.
+    #[serde(default)]
+    pub startup_ms: u64,
+    #[serde(default)]
+    pub key_ms: u64,
+    #[serde(default)]
+    pub dep_info_ms: u64,
+    #[serde(default)]
+    pub lookup_ms: u64,
+    #[serde(default)]
+    pub wait_ms: u64,
+    #[serde(default)]
+    pub flight_wait_ms: u64,
+    #[serde(default)]
+    pub permit_wait_ms: u64,
+    #[serde(default)]
+    pub restore_ms: u64,
+    #[serde(default)]
+    pub store_ms: u64,
+    #[serde(default)]
+    pub unattributed_ms: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1823,6 +1847,16 @@ fn to_crate_detail(e: &BuildEvent) -> CrateDetail {
         store_error: e.store_error.clone(),
         store_handed_off: e.store_handed_off,
         daemon_store_ms: e.daemon_store_ms,
+        startup_ms: e.startup_ms,
+        key_ms: e.key_ms,
+        dep_info_ms: e.dep_info_ms,
+        lookup_ms: e.lookup_ms,
+        wait_ms: e.wait_ms(),
+        flight_wait_ms: e.flight_wait_ms,
+        permit_wait_ms: e.permit_wait_ms,
+        restore_ms: e.restore_ms,
+        store_ms: e.store_ms,
+        unattributed_ms: e.unattributed_ms(),
     }
 }
 
@@ -1960,7 +1994,10 @@ pub(crate) fn ran_compiler_uncached(event: &BuildEvent) -> bool {
 /// reason kache declined to store it.
 pub(crate) fn uncached_compile_words(event: &BuildEvent) -> String {
     if matches!(event.result, EventResult::Skipped) {
-        format!("compiled, not stored: {}", event.skip_reason)
+        format!(
+            "compiled, not stored: {}",
+            uncached_reason_words(&event.skip_reason)
+        )
     } else {
         crate::tui_sessions::passthrough_words(&event.passthrough_reason)
     }
@@ -1968,7 +2005,7 @@ pub(crate) fn uncached_compile_words(event: &BuildEvent) -> String {
 
 /// A passthrough the adaptive incremental policy chose for a crate under edit.
 pub(crate) fn is_edit_rebuild(reason: &str) -> bool {
-    uncached_reason_label(reason).is_some()
+    matches!(reason.trim(), "adaptive seed" | "adaptive active")
 }
 
 /// Plain words for the passthrough reasons a reader would not recognize, the
@@ -1976,6 +2013,9 @@ pub(crate) fn is_edit_rebuild(reason: &str) -> bool {
 /// what happened.
 pub(crate) fn uncached_reason_label(reason: &str) -> Option<&'static str> {
     match reason.trim() {
+        "native runtime warmup" => {
+            Some("the daemon is preparing MSVC runtime hashes; this compile ran without caching")
+        }
         "adaptive seed" => {
             Some("edit rebuild: rustc rebuilt the edited crate incrementally (adaptive seed)")
         }

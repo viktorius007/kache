@@ -1,6 +1,7 @@
 use crate::invocation::InvocationEnv;
 use anyhow::{Context, Result};
 use bytesize::ByteSize;
+use kache_core::store_config::IndexMode;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -73,13 +74,23 @@ pub const DISK_SHARE_FALLBACK: u64 = 50 * 1024 * 1024 * 1024;
 /// Remote resilience (kunobi-ninja/kache#327, #564). The daemon-side operation
 /// deadline matches `DEFAULT_PREFETCH_DEADLINE_SECS`: generous enough that no
 /// legitimate background transfer changes behavior while still bounding a
-/// slow-drip body. Synchronous compiler-wrapper demand separately retains its
-/// legacy three-second ceiling; this setting can only tighten that path. The
+/// slow-drip body. Synchronous compiler-wrapper demand has its own configurable
+/// budget, which this operation deadline may shorten. The
 /// negative TTL matches `DEFAULT_REMOTE_KEY_CACHE_REFRESH_SECS`: the daemon
 /// already treats LIST data of that age as authoritative for misses, so
 /// remembering a per-key definitive 404 for the same period introduces no new
 /// staleness class.
 pub const DEFAULT_REMOTE_RESTORE_TIMEOUT_SECS: u64 = 300;
+/// Default end-to-end synchronous restore wait, independently configurable.
+pub const DEFAULT_DEMAND_TIMEOUT_SECS: u64 = 3;
+
+/// A demand wait must stay positive and fit a finite, portable seconds range.
+/// This also keeps conversion to milliseconds and supported Instant clocks bounded.
+pub fn checked_demand_timeout_secs(seconds: u64) -> Option<u64> {
+    let seconds = u32::try_from(seconds).ok()?;
+    (seconds != 0).then_some(u64::from(seconds))
+}
+
 pub const DEFAULT_REMOTE_NEGATIVE_TTL_SECS: u64 = 60;
 /// Hard bound on durable upload intents. Shared by spool persistence/replay and
 /// GC protection so an overfull directory fails closed instead of leaving an
@@ -122,6 +133,9 @@ fn absolutize_volume_path(path: &Path) -> PathBuf {
 /// 20,000 of the usual 1.4 KB (kunobi-ninja/kache#1209).
 pub const DEFAULT_EVENT_LOG_MAX_SIZE: u64 = 64 * 1024 * 1024;
 
+/// Maximum bytes downloaded or unpacked for one restored entry or debug bundle.
+pub const DEFAULT_RESTORE_MAX_SIZE: u64 = 8 * 1024 * 1024 * 1024;
+
 /// Default for [`Config::auto_clean_unused_units_days`].
 pub const DEFAULT_UNUSED_UNITS_DAYS: u64 = 30;
 
@@ -154,6 +168,9 @@ pub struct Config {
     /// so ingest and restore stay on that volume.
     pub volume_stores: Vec<VolumeStore>,
     pub max_size: u64,
+    /// Per-entry remote download/extraction and debug-bundle unpack budget.
+    /// `cache.restore_max_size` / `KACHE_RESTORE_MAX_SIZE`, default 8 GiB.
+    pub restore_max_size: u64,
     pub remote: Option<RemoteConfig>,
     /// Why the remote is unavailable, when a remote *was* configured but could
     /// not be resolved. Kept as a message rather than propagated out of
@@ -165,6 +182,9 @@ pub struct Config {
     /// Route eligible local Cargo shim commands through Blaze. Off by default.
     /// `[cache] blaze` / `KACHE_BLAZE`; CI and explicit profiles stay with Cargo.
     pub blaze: bool,
+    /// Give Cargo check and Clippy their own target directory unless the user
+    /// configured an output directory. Enabled by default.
+    pub separate_check_targets: bool,
     pub cache_executables: bool,
     /// Opt-in C/C++ whole-program link caching (epic #762 / #259). Off by
     /// default until path/repro gates pass. `KACHE_CACHE_CC_LINKS` or
@@ -265,15 +285,18 @@ pub struct Config {
     /// connections silently.
     pub s3_pool_idle_secs: u64,
     /// Total daemon deadline for a remote operation, in seconds (default 300,
-    /// 0 = no daemon-configured deadline; kunobi-ninja/kache#327). A synchronous
-    /// compiler-wrapper demand always retains its legacy three-second
-    /// end-to-end ceiling, and this setting may only tighten it; background
-    /// upload/prefetch work uses the configured deadline directly. On demand
+    /// 0 = no daemon-configured deadline; kunobi-ninja/kache#327). Synchronous
+    /// demand also respects `demand_timeout_secs`; background upload/prefetch
+    /// work uses this operation deadline directly. On demand
     /// expiry the daemon reports a miss so rustc recompiles locally — the cache
     /// is an optimization, never a hard dependency. Set via
     /// `KACHE_REMOTE_RESTORE_TIMEOUT_SECS` or
     /// `[cache] remote_restore_timeout_secs`.
     pub remote_restore_timeout_secs: u64,
+    /// Maximum synchronous wrapper demand wait, in seconds (default 3).
+    /// Set on both peers and restart the daemon to allow a longer restore.
+    /// Invalid zero or out-of-range values fall back to the file or default.
+    pub demand_timeout_secs: u64,
     /// How long the daemon remembers a definitive remote miss (404 only), in
     /// seconds (default 60, 0 = disabled; kunobi-ninja/kache#564). Repeated
     /// checks for the same absent key within the TTL answer miss without
@@ -492,12 +515,21 @@ pub struct Config {
     /// `[cache] deferred_durability = false` flushes every entry inside the
     /// compile or download that stored it.
     pub deferred_durability: bool,
+    /// Local index policy: `auto` (default), `conservative`, or `off`.
+    /// Auto currently resolves to conservative (WAL + NORMAL). Off disables
+    /// index fsync and must be selected explicitly for disposable storage.
+    pub index_mode: IndexMode,
     /// Hand a finished cc compile's store put to the daemon so the wrapper
     /// returns as soon as the object is written (see `daemon_publish`). On
     /// by default; `KACHE_DAEMON_PUBLISH=0` or `[cache] daemon_publish =
     /// false` keeps every put in the wrapper. Without a reachable daemon the
     /// wrapper stores on its own either way.
     pub daemon_publish: bool,
+    /// Prepare cold MSVC runtime hashes in the daemon while native units compile.
+    /// The first units may run without caching. Disable with
+    /// `KACHE_NATIVE_RUNTIME_WARMUP=0` or `[cache] native_runtime_warmup = false`
+    /// to wait for the hashes before compiling.
+    pub native_runtime_warmup: bool,
     /// Permit a trusted daemon's pipeline to access the workspace under its
     /// own restrictions. Native children and restores still run in the client.
     /// Disabled unless `KACHE_TRUST_DAEMON_EXECUTION=1` or
@@ -565,8 +597,9 @@ pub struct Config {
     /// `KACHE_AUTO_RECOVER_TARGETS=1`/`=true` or `[cache]
     /// auto_recover_targets = true`; `kache init` offers it.
     pub auto_recover_targets: bool,
-    /// Under memory pressure, admit a compile only when no other compile
-    /// holds a scheduler slot. On by default. Set via
+    /// Under memory pressure, ordinary admission keeps compiles within a
+    /// shared ceiling of permit slots that falls while pressure lasts.
+    /// Recovery has a separate bound. On by default. Set via
     /// `KACHE_SCHEDULER_MEMORY_PRESSURE=0`/`=false` or `[cache]
     /// scheduler_memory_pressure = false` to disable.
     pub scheduler_memory_pressure: bool,
@@ -642,6 +675,7 @@ pub struct PlannerConfig {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RemoteConfig {
+    pub restore_max_size: u64,
     /// Key prefix for all remote artifacts (default: "artifacts").
     pub prefix: String,
     pub backend: RemoteBackendConfig,
@@ -762,6 +796,7 @@ impl RemoteConfig {
     #[cfg(any(test, feature = "test-support"))]
     pub fn test_s3(bucket: &str, prefix: &str) -> Self {
         Self {
+            restore_max_size: DEFAULT_RESTORE_MAX_SIZE,
             prefix: prefix.to_string(),
             backend: RemoteBackendConfig::S3(S3RemoteConfig {
                 bucket: bucket.to_string(),
@@ -902,12 +937,17 @@ pub struct CcFileConfig {
 pub struct CacheFileConfig {
     /// Optional Blaze routing for local development. See [`Config::blaze`].
     pub blaze: Option<bool>,
+    /// See [`Config::separate_check_targets`].
+    pub separate_check_targets: Option<bool>,
     pub local_store: Option<String>,
     /// Job/process-lifetime state, separate from the persistent local store.
     pub runtime_dir: Option<String>,
     /// Another store read after the local one. See [`Config::readonly_store`].
     pub readonly_store: Option<String>,
+    #[serde(default, deserialize_with = "crate::size::optional_text")]
     pub local_max_size: Option<String>,
+    #[serde(default, deserialize_with = "crate::size::optional_text")]
+    pub restore_max_size: Option<String>,
     pub remote: Option<RemoteFileConfig>,
     pub planner: Option<PlannerFileConfig>,
     /// Strict local-only mode. See [`Config::local_only`].
@@ -935,8 +975,12 @@ pub struct CacheFileConfig {
     pub out_dir_alias_root: Option<String>,
     /// Deferred store flush toggle. See [`Config::deferred_durability`].
     pub deferred_durability: Option<bool>,
+    /// Local index policy. See [`Config::index_mode`].
+    pub index_mode: Option<String>,
     /// Daemon hand-off toggle. See [`Config::daemon_publish`].
     pub daemon_publish: Option<bool>,
+    /// Background MSVC runtime hashing. See [`Config::native_runtime_warmup`].
+    pub native_runtime_warmup: Option<bool>,
     pub trust_daemon_execution: Option<bool>,
     /// See [`Config::daemon_execution_concurrency`].
     pub daemon_execution_concurrency: Option<usize>,
@@ -951,6 +995,7 @@ pub struct CacheFileConfig {
     /// See [`Config::auto_clean_idle_targets_days`].
     pub auto_clean_idle_targets_days: Option<u64>,
     /// See [`Config::auto_recover_min_free_bytes`].
+    #[serde(default, deserialize_with = "crate::size::optional_bytes")]
     pub auto_recover_min_free_bytes: Option<u64>,
     /// See [`Config::auto_recover_targets`].
     pub auto_recover_targets: Option<bool>,
@@ -991,6 +1036,7 @@ pub struct CacheFileConfig {
     pub bypass_env: Option<Vec<String>>,
     pub bypass_argv: Option<Vec<String>>,
     pub bypass_crates: Option<Vec<String>>,
+    #[serde(default, deserialize_with = "crate::size::optional_text")]
     pub event_log_max_size: Option<String>,
     pub event_log_keep_lines: Option<usize>,
     pub compression_level: Option<i32>,
@@ -999,6 +1045,7 @@ pub struct CacheFileConfig {
     pub remote_key_listing: Option<bool>,
     pub remote_key_cache_refresh_secs: Option<u64>,
     pub prefetch_max_keys: Option<u64>,
+    #[serde(default, deserialize_with = "crate::size::optional_text")]
     pub prefetch_max_bytes: Option<String>,
     pub prefetch_deadline_secs: Option<u64>,
     /// Put-side admission threshold. See [`Config::min_store_compile_ms`].
@@ -1009,6 +1056,8 @@ pub struct CacheFileConfig {
     pub s3_pool_idle_secs: Option<u64>,
     /// Restore deadline. See [`Config::remote_restore_timeout_secs`].
     pub remote_restore_timeout_secs: Option<u64>,
+    /// Synchronous demand deadline. See [`Config::demand_timeout_secs`].
+    pub demand_timeout_secs: Option<u64>,
     /// Negative-result TTL. See [`Config::remote_negative_ttl_secs`].
     pub remote_negative_ttl_secs: Option<u64>,
     /// Secondary compiler-wrapper for passed-through compiles.
@@ -1333,6 +1382,7 @@ const IGNORE_ENV_GATED_VARS: &[&str] = &[
     "KACHE_RUNTIME_DIR",
     "KACHE_READONLY_STORE",
     "KACHE_MAX_SIZE",
+    "KACHE_RESTORE_MAX_SIZE",
     "KACHE_CACHE_EXECUTABLES",
     "KACHE_CACHE_CC_LINKS",
     "KACHE_TRUST_CODEGEN_BACKENDS",
@@ -1350,6 +1400,7 @@ const IGNORE_ENV_GATED_VARS: &[&str] = &[
     "KACHE_PULL_REQUEST_PREFIX",
     "KACHE_REMOTE_KEY_CACHE_REFRESH_SECS",
     "KACHE_REMOTE_RESTORE_TIMEOUT_SECS",
+    "KACHE_DEMAND_TIMEOUT_SECS",
     "KACHE_REMOTE_NEGATIVE_TTL_SECS",
     "KACHE_MIN_STORE_COMPILE_MS",
     "KACHE_GC_MAX_AGE_HOURS",
@@ -1376,11 +1427,13 @@ const IGNORE_ENV_GATED_VARS: &[&str] = &[
     "KACHE_SHARED_HARDLINK_RESTORES",
     "KACHE_DEFERRED_DISCOVERY",
     "KACHE_DAEMON_PUBLISH",
+    "KACHE_NATIVE_RUNTIME_WARMUP",
     "KACHE_TRUST_DAEMON_EXECUTION",
     "KACHE_DAEMON_EXECUTION_CONCURRENCY",
     "KACHE_OUT_DIR_ALIAS",
     "KACHE_OUT_DIR_ALIAS_ROOT",
     "KACHE_DEFERRED_DURABILITY",
+    "KACHE_INDEX_MODE",
     "KACHE_AUTO_GC",
     "KACHE_INDEX_AUTO_COMPACT",
     "KACHE_AUTO_CLEAN_ORPHANED_TARGETS",
@@ -1396,6 +1449,7 @@ const IGNORE_ENV_GATED_VARS: &[&str] = &[
     "KACHE_HEARTBEAT_SECS",
     "KACHE_EXPLAIN_MISS",
     "KACHE_BLAZE",
+    "KACHE_SEPARATE_CHECK_TARGETS",
     "KACHE_SCHEDULER",
     "KACHE_PLANNER_ENDPOINT",
     "KACHE_PLANNER_TIMEOUT_MS",
@@ -1415,6 +1469,7 @@ const ENV_FILE_KEYS: &[(&str, &str)] = &[
     ("KACHE_RUNTIME_DIR", "cache.runtime_dir"),
     ("KACHE_READONLY_STORE", "cache.readonly_store"),
     ("KACHE_MAX_SIZE", "cache.local_max_size"),
+    ("KACHE_RESTORE_MAX_SIZE", "cache.restore_max_size"),
     ("KACHE_CACHE_EXECUTABLES", "cache.cache_executables"),
     ("KACHE_CACHE_CC_LINKS", "cache.cache_cc_links"),
     (
@@ -1450,6 +1505,7 @@ const ENV_FILE_KEYS: &[(&str, &str)] = &[
         "KACHE_REMOTE_RESTORE_TIMEOUT_SECS",
         "cache.remote_restore_timeout_secs",
     ),
+    ("KACHE_DEMAND_TIMEOUT_SECS", "cache.demand_timeout_secs"),
     (
         "KACHE_REMOTE_NEGATIVE_TTL_SECS",
         "cache.remote_negative_ttl_secs",
@@ -1488,7 +1544,9 @@ const ENV_FILE_KEYS: &[(&str, &str)] = &[
     ("KACHE_OUT_DIR_ALIAS", "cache.out_dir_alias"),
     ("KACHE_OUT_DIR_ALIAS_ROOT", "cache.out_dir_alias_root"),
     ("KACHE_DEFERRED_DURABILITY", "cache.deferred_durability"),
+    ("KACHE_INDEX_MODE", "cache.index_mode"),
     ("KACHE_DAEMON_PUBLISH", "cache.daemon_publish"),
+    ("KACHE_NATIVE_RUNTIME_WARMUP", "cache.native_runtime_warmup"),
     (
         "KACHE_TRUST_DAEMON_EXECUTION",
         "cache.trust_daemon_execution",
@@ -1530,6 +1588,10 @@ const ENV_FILE_KEYS: &[(&str, &str)] = &[
     ("KACHE_HEARTBEAT_SECS", "cache.heartbeat_secs"),
     ("KACHE_EXPLAIN_MISS", "cache.explain_miss"),
     ("KACHE_BLAZE", "cache.blaze"),
+    (
+        "KACHE_SEPARATE_CHECK_TARGETS",
+        "cache.separate_check_targets",
+    ),
     ("KACHE_SCHEDULER", "cache.scheduler"),
     ("KACHE_PLANNER_ENDPOINT", "cache.planner.endpoint"),
     ("KACHE_PLANNER_TIMEOUT_MS", "cache.planner.timeout_ms"),
@@ -1716,6 +1778,19 @@ impl Config {
             });
         let max_size = explicit_max_size
             .unwrap_or_else(|| disk_share_budget(kache_fs::volume::probe(&cache_dir).total_bytes));
+
+        let restore_max_size = env_or_ignored_for(invocation, "KACHE_RESTORE_MAX_SIZE", ignore_env)
+            .ok()
+            .and_then(|s| parse_restore_max_size(&s, "KACHE_RESTORE_MAX_SIZE"))
+            .or_else(|| {
+                file_config
+                    .as_ref()
+                    .ok()
+                    .and_then(|c| c.cache.as_ref())
+                    .and_then(|c| c.restore_max_size.as_deref())
+                    .and_then(|s| parse_restore_max_size(s, "[cache] restore_max_size"))
+            })
+            .unwrap_or(DEFAULT_RESTORE_MAX_SIZE);
 
         let cache_executables =
             env_or_ignored_for(invocation, "KACHE_CACHE_EXECUTABLES", ignore_env)
@@ -1996,6 +2071,38 @@ impl Config {
                 })
                 .unwrap_or(DEFAULT_REMOTE_RESTORE_TIMEOUT_SECS);
 
+        let demand_timeout_secs = env_or_ignored_for(
+            invocation,
+            "KACHE_DEMAND_TIMEOUT_SECS",
+            ignore_env,
+        )
+        .ok()
+        .and_then(|value| {
+            let parsed = value.parse().ok().and_then(checked_demand_timeout_secs);
+            if parsed.is_none() {
+                tracing::warn!(
+                    "ignoring invalid KACHE_DEMAND_TIMEOUT_SECS; expected positive finite seconds"
+                );
+            }
+            parsed
+        })
+        .or_else(|| {
+            let value = file_config
+                .as_ref()
+                .ok()?
+                .cache
+                .as_ref()?
+                .demand_timeout_secs?;
+            let parsed = checked_demand_timeout_secs(value);
+            if parsed.is_none() {
+                tracing::warn!(
+                    "ignoring invalid cache.demand_timeout_secs; expected positive finite seconds"
+                );
+            }
+            parsed
+        })
+        .unwrap_or(DEFAULT_DEMAND_TIMEOUT_SECS);
+
         let remote_negative_ttl_secs =
             env_or_ignored_for(invocation, "KACHE_REMOTE_NEGATIVE_TTL_SECS", ignore_env)
                 .ok()
@@ -2161,6 +2268,17 @@ impl Config {
                     .and_then(|cache| cache.blaze)
                     .unwrap_or(false)
             });
+        let separate_check_targets =
+            env_or_ignored_for(invocation, "KACHE_SEPARATE_CHECK_TARGETS", ignore_env)
+                .map(|value| value != "0" && !value.eq_ignore_ascii_case("false"))
+                .unwrap_or_else(|_| {
+                    file_config
+                        .as_ref()
+                        .ok()
+                        .and_then(|file| file.cache.as_ref())
+                        .and_then(|cache| cache.separate_check_targets)
+                        .unwrap_or(true)
+                });
         let record_sessions = Self::record_sessions_enabled_for(invocation, &file_config);
         let windows_hardlink = Self::windows_hardlink_enabled_for(invocation, &file_config);
         let shared_hardlink_restores =
@@ -2186,7 +2304,10 @@ impl Config {
             );
         }
         let deferred_durability = Self::deferred_durability_enabled_for(invocation, &file_config);
+        let index_mode = Self::index_mode_for(invocation, &file_config);
         let daemon_publish = Self::daemon_publish_enabled_for(invocation, &file_config);
+        let native_runtime_warmup =
+            Self::native_runtime_warmup_enabled_for(invocation, &file_config);
         let trust_daemon_execution = Self::trust_daemon_execution_for(invocation, &file_config);
         let daemon_execution_concurrency =
             Self::daemon_execution_concurrency_for(invocation, &file_config)?;
@@ -2239,7 +2360,7 @@ impl Config {
         // an error means the compiler never runs at all — a config typo would
         // break every build instead of costing cache hits. Record the reason and
         // continue local-only.
-        let (remote, remote_error) = if local_only {
+        let (mut remote, remote_error) = if local_only {
             (None, None)
         } else {
             match Self::load_remote_config_for(invocation, &file_config) {
@@ -2255,6 +2376,9 @@ impl Config {
                 }
             }
         };
+        if let Some(remote) = remote.as_mut() {
+            remote.restore_max_size = restore_max_size;
+        }
         let remote_key_listing = explicit_remote_key_listing
             .unwrap_or_else(|| default_remote_key_listing(remote.as_ref()));
         let pull_request_prefix =
@@ -2313,10 +2437,12 @@ impl Config {
             runtime_dir,
             socket_path_override,
             max_size,
+            restore_max_size,
             remote,
             remote_error,
             disabled,
             blaze,
+            separate_check_targets,
             local_only,
             remote_readonly,
             readonly_store,
@@ -2330,7 +2456,9 @@ impl Config {
             out_dir_alias,
             out_dir_alias_root,
             deferred_durability,
+            index_mode,
             daemon_publish,
+            native_runtime_warmup,
             trust_daemon_execution,
             daemon_execution_concurrency,
             project_rules,
@@ -2394,6 +2522,7 @@ impl Config {
             daemon_idle_timeout_secs,
             s3_pool_idle_secs,
             remote_restore_timeout_secs,
+            demand_timeout_secs,
             remote_negative_ttl_secs,
             fallback,
             key_salt,
@@ -2607,6 +2736,7 @@ impl Config {
             .and_then(|r| r.prefix.clone())
             .unwrap_or_else(|| "artifacts".to_string());
         Ok(RemoteConfig {
+            restore_max_size: crate::config::DEFAULT_RESTORE_MAX_SIZE,
             prefix: resolve_remote_prefix(&prefix)?,
             backend: RemoteBackendConfig::Gcs(GcsRemoteConfig {
                 bucket,
@@ -2647,6 +2777,7 @@ impl Config {
         };
         config.reference()?;
         Ok(RemoteConfig {
+            restore_max_size: crate::config::DEFAULT_RESTORE_MAX_SIZE,
             prefix: resolve_remote_prefix(remote.prefix.as_deref().unwrap_or("artifacts"))?,
             backend: RemoteBackendConfig::Oci(config),
         })
@@ -2768,6 +2899,7 @@ impl Config {
             }
 
             return Ok(Some(RemoteConfig {
+                restore_max_size: DEFAULT_RESTORE_MAX_SIZE,
                 prefix,
                 backend: RemoteBackendConfig::Filesystem(FilesystemRemoteConfig {
                     root,
@@ -2846,6 +2978,7 @@ impl Config {
             .filter(|s| !s.is_empty());
 
         Ok(Some(RemoteConfig {
+            restore_max_size: DEFAULT_RESTORE_MAX_SIZE,
             prefix,
             backend: RemoteBackendConfig::S3(S3RemoteConfig {
                 bucket,
@@ -3002,6 +3135,25 @@ impl Config {
             .unwrap_or(true)
     }
 
+    fn native_runtime_warmup_enabled_for(
+        invocation: &InvocationEnv,
+        file_config: &Result<FileConfig>,
+    ) -> bool {
+        if let Ok(value) = env_or_ignored_for(
+            invocation,
+            "KACHE_NATIVE_RUNTIME_WARMUP",
+            Self::ignore_env_enabled(file_config),
+        ) {
+            return !(value == "0" || value.eq_ignore_ascii_case("false"));
+        }
+        file_config
+            .as_ref()
+            .ok()
+            .and_then(|config| config.cache.as_ref())
+            .and_then(|cache| cache.native_runtime_warmup)
+            .unwrap_or(true)
+    }
+
     fn daemon_execution_concurrency_for(
         invocation: &InvocationEnv,
         file_config: &Result<FileConfig>,
@@ -3082,6 +3234,24 @@ impl Config {
             .and_then(|c| c.cache.as_ref())
             .and_then(|c| c.deferred_durability)
             .unwrap_or(true)
+    }
+
+    /// `KACHE_INDEX_MODE` (env wins), else `[cache] index_mode`,
+    /// else `auto`. See [`Config::index_mode`].
+    fn index_mode_for(invocation: &InvocationEnv, file_config: &Result<FileConfig>) -> IndexMode {
+        let ignore_env = Self::ignore_env_enabled(file_config);
+        env_or_ignored_for(invocation, "KACHE_INDEX_MODE", ignore_env)
+            .ok()
+            .and_then(|value| parse_index_mode(&value, "KACHE_INDEX_MODE"))
+            .or_else(|| {
+                file_config
+                    .as_ref()
+                    .ok()
+                    .and_then(|c| c.cache.as_ref())
+                    .and_then(|c| c.index_mode.as_deref())
+                    .and_then(|value| parse_index_mode(value, "cache.index_mode"))
+            })
+            .unwrap_or_default()
     }
 
     fn shared_hardlink_restores_enabled_for(
@@ -3302,7 +3472,7 @@ impl Config {
         let ignore_env = Self::ignore_env_enabled(file_config);
         env_or_ignored_for(invocation, "KACHE_AUTO_RECOVER_MIN_FREE_BYTES", ignore_env)
             .ok()
-            .and_then(|s| s.parse::<u64>().ok())
+            .and_then(|s| parse_size_checked(&s, "KACHE_AUTO_RECOVER_MIN_FREE_BYTES"))
             .or_else(|| {
                 file_config
                     .as_ref()
@@ -4926,8 +5096,17 @@ fn exclude_expanded_pattern_matches(expanded: &str, candidates: &[PathBuf]) -> b
         .any(|candidate| pattern.matches_path(candidate))
 }
 
+fn parse_restore_max_size(value: &str, source: &str) -> Option<u64> {
+    let bytes = parse_size_checked(value, source)?;
+    if bytes == 0 {
+        tracing::warn!(%source, "restore size limit must be greater than zero; ignoring value");
+        return None;
+    }
+    Some(bytes)
+}
+
 pub fn parse_size(s: &str) -> Option<u64> {
-    s.parse::<ByteSize>().ok().map(|b| b.as_u64())
+    crate::size::parse_size(s)
 }
 
 /// Store budget derived from the volume that holds the cache directory.
@@ -4969,6 +5148,18 @@ pub fn disk_share_note(total: u64) -> String {
         ByteSize(DISK_SHARE_FLOOR),
         ByteSize(DISK_SHARE_CAP)
     )
+}
+
+/// Parse an index policy, warning when it is set but unknown.
+fn parse_index_mode(value: &str, source: &str) -> Option<IndexMode> {
+    let parsed = IndexMode::parse(value);
+    if parsed.is_none() {
+        tracing::warn!(
+            "ignoring unknown index mode {value:?} from {source}: expected `auto`, \
+             `conservative`, or `off`; falling back to the next configured source or the default"
+        );
+    }
+    parsed
 }
 
 /// Like [`parse_size_checked`], but `"none"` is not a size: unbounded stores
@@ -5063,6 +5254,7 @@ impl From<&Config> for kache_core::store_config::Config {
             gc_evict_shared: config.gc_evict_shared,
             upload_spool_max_jobs: UPLOAD_SPOOL_MAX_JOBS,
             deferred_durability: config.deferred_durability,
+            index_mode: config.index_mode,
         }
     }
 }
@@ -5085,6 +5277,62 @@ mod invocation_tests {
             Some(root.join("home")),
             root.join("tmp"),
         )
+    }
+
+    #[test]
+    fn size_settings_resolve_units_integer_bytes_and_snapshot_overrides() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join(".kache.toml");
+        let vars = [("KACHE_HOST_CONFIG", "")];
+        let env = snapshot(root.path(), &vars);
+        for (raw, expected) in [
+            ("4096", 4096),
+            ("\"1.5GiB\"", 1_610_612_736),
+            ("\"1GB\"", 1_000_000_000),
+        ] {
+            std::fs::write(&path, format!("[cache]\nlocal_max_size = {raw}\nevent_log_max_size = {raw}\nprefetch_max_bytes = {raw}\nauto_recover_min_free_bytes = {raw}\nrestore_max_size = {raw}\n[cache.remote]\nbucket = \"test\"\n")).unwrap();
+            let config = Config::load_for(&env).unwrap();
+            assert_eq!(config.max_size, expected);
+            assert_eq!(config.event_log_max_size, expected);
+            assert_eq!(config.prefetch_max_bytes, expected);
+            assert_eq!(config.auto_recover_min_free_bytes, expected);
+            assert_eq!(config.restore_max_size, expected);
+            assert_eq!(config.remote.unwrap().restore_max_size, expected);
+        }
+        let overridden = snapshot(
+            root.path(),
+            &[
+                ("KACHE_HOST_CONFIG", ""),
+                ("KACHE_RESTORE_MAX_SIZE", "12GiB"),
+                ("KACHE_AUTO_RECOVER_MIN_FREE_BYTES", "500MB"),
+            ],
+        );
+        let config = Config::load_for(&overridden).unwrap();
+        assert_eq!(config.restore_max_size, 12_884_901_888);
+        assert_eq!(config.remote.unwrap().restore_max_size, 12_884_901_888);
+        assert_eq!(config.auto_recover_min_free_bytes, 500_000_000);
+        std::fs::write(&path, "[cache]\nignore_env = true\nrestore_max_size = \"2GiB\"\nauto_recover_min_free_bytes = \"3GiB\"\n").unwrap();
+        let config = Config::load_for(&overridden).unwrap();
+        assert_eq!(config.restore_max_size, 2_147_483_648);
+        assert_eq!(config.auto_recover_min_free_bytes, 3_221_225_472);
+        for invalid in ["0", "garbage", "16EiB"] {
+            std::fs::write(
+                &path,
+                format!("[cache]\nrestore_max_size = \"{invalid}\"\n"),
+            )
+            .unwrap();
+            let config = Config::load_for(&env).unwrap();
+            assert_eq!(config.restore_max_size, 8_589_934_592);
+        }
+        std::fs::write(&path, "[cache]\nrestore_max_size = \"2GiB\"\n").unwrap();
+        let invalid_env = snapshot(
+            root.path(),
+            &[("KACHE_HOST_CONFIG", ""), ("KACHE_RESTORE_MAX_SIZE", "0")],
+        );
+        assert_eq!(
+            Config::load_for(&invalid_env).unwrap().restore_max_size,
+            2_147_483_648
+        );
     }
 
     #[test]

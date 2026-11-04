@@ -14,7 +14,7 @@ use windows_sys::Win32::Storage::FileSystem::{
 };
 use windows_sys::Win32::System::Console::GetConsoleMode;
 use windows_sys::Win32::System::Threading::{
-    GetCurrentProcess, GetProcessId, OpenProcess, PROCESS_DUP_HANDLE,
+    GetCurrentProcess, GetPriorityClass, GetProcessId, OpenProcess, PROCESS_DUP_HANDLE,
     PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SYNCHRONIZE, WaitForSingleObject,
 };
 
@@ -34,6 +34,12 @@ pub struct CompilerHandles {
 }
 
 impl PeerProcess {
+    /// Why execution must remain in the client, without exposing token contents.
+    pub fn delegation_problem(&self, trusted_pipeline: bool) -> io::Result<Option<&'static str>> {
+        self.require_alive()?;
+        crate::windows_security::delegation_problem(self.process.as_handle(), trusted_pipeline)
+    }
+
     pub fn permits_delegation(&self, trusted_pipeline: bool) -> io::Result<bool> {
         self.require_alive()?;
         crate::windows_security::matches_daemon(self.process.as_handle(), trusted_pipeline)
@@ -127,6 +133,13 @@ impl PeerProcess {
         };
         peer.verify_connection(stream)?;
         Ok(peer)
+    }
+
+    /// The pinned client's priority class; zero when it cannot be read.
+    pub fn priority_class(&self) -> u32 {
+        // SAFETY: the handle stays open on `self` and was opened with
+        // PROCESS_QUERY_LIMITED_INFORMATION.
+        unsafe { GetPriorityClass(self.process.as_raw_handle()) }
     }
 
     pub fn verify_connection(&self, stream: &impl PeerCredentials) -> io::Result<()> {

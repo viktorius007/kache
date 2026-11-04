@@ -1,4 +1,90 @@
+mod compiler_gc_tests;
 mod cost_backfill_tests;
+
+fn connection_synchronous(db: &Connection) -> i64 {
+    db.query_row("PRAGMA synchronous", [], |row| row.get(0))
+        .unwrap()
+}
+
+#[test]
+fn index_connections_take_the_configured_synchronous_mode() {
+    const SQLITE_OFF: i64 = 0;
+    const SQLITE_NORMAL: i64 = 1;
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("index.db");
+
+    let (off, _) = open_index_db_reporting_recovery(&path, IndexMode::Off).unwrap();
+    assert_eq!(connection_synchronous(&off), SQLITE_OFF);
+    let (normal, _) = open_index_db_reporting_recovery(&path, IndexMode::Conservative).unwrap();
+    assert_eq!(connection_synchronous(&normal), SQLITE_NORMAL);
+    let (auto, _) = open_index_db_reporting_recovery(&path, IndexMode::Auto).unwrap();
+    assert_eq!(connection_synchronous(&auto), SQLITE_NORMAL);
+    assert_eq!(
+        connection_synchronous(&off),
+        SQLITE_OFF,
+        "the mode belongs to the connection, not the file"
+    );
+    assert_eq!(
+        connection_synchronous(&open_index_db(&path).unwrap()),
+        SQLITE_NORMAL
+    );
+}
+
+#[test]
+fn store_open_applies_the_configured_synchronous_mode() {
+    for (mode, pragma) in [
+        (IndexMode::Auto, 1),
+        (IndexMode::Conservative, 1),
+        (IndexMode::Off, 0),
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        let config = Config {
+            index_mode: mode,
+            ..test_config(dir.path())
+        };
+        let store = Store::open(config).unwrap();
+        assert_eq!(connection_synchronous(store.file_hash_cache().db()), pragma);
+    }
+}
+
+#[test]
+fn a_recovered_index_keeps_the_configured_synchronous_mode() {
+    for (mode, pragma) in [
+        (IndexMode::Auto, 1),
+        (IndexMode::Conservative, 1),
+        (IndexMode::Off, 0),
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("index.db");
+        fs::write(&path, b"this is not a sqlite database; it is garbage bytes").unwrap();
+
+        let (db, recovered) = open_index_db_reporting_recovery(&path, mode).unwrap();
+
+        assert!(recovered);
+        assert_eq!(connection_synchronous(&db), pragma);
+    }
+}
+
+#[test]
+fn an_unopenable_index_path_does_not_start_corruption_recovery() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("index.db");
+    fs::create_dir(&path).unwrap();
+    let marker = path.join("kept");
+    fs::write(&marker, b"keep this directory").unwrap();
+
+    let err = open_index_db_reporting_recovery(&path, IndexMode::Off).unwrap_err();
+    let sql_err = err.downcast_ref::<SqlError>().unwrap();
+    assert!(matches!(
+        sql_err,
+        SqlError::SqliteFailure(code, _) if code.code == ErrorCode::CannotOpen
+    ));
+    assert!(
+        !index_sidecar_path(&path, ".recovery-lock").exists(),
+        "an ordinary open error must not acquire the corruption-recovery lock"
+    );
+    assert_eq!(fs::read(&marker).unwrap(), b"keep this directory");
+}
 
 #[test]
 fn incompatible_predictions_are_relearned_without_removing_compiled_entries() {
@@ -79,6 +165,112 @@ fn lock_polls_back_off_from_a_millisecond_to_the_interval() {
     assert_eq!(naps, vec![1, 2, 4, 8, 16, 32, 64, 100, 100, 100]);
 }
 
+#[test]
+fn durability_poll_and_batch_use_pending_index_after_open_and_upgrade() {
+    for upgrade in [false, true] {
+        let dir = tempfile::tempdir().unwrap();
+        let config = Config {
+            deferred_durability: true,
+            ..test_config(dir.path())
+        };
+        let store = Store::open_with_options(&config, StoreOptions::from_env(|_| None)).unwrap();
+        store
+            .db
+            .execute_batch(
+                "WITH RECURSIVE rows(n) AS (
+                     SELECT 1 UNION ALL SELECT n + 1 FROM rows WHERE n < 1000
+                 )
+                 INSERT INTO entries(cache_key, crate_name, committed, durable)
+                 SELECT printf('durable-%d', n), 'crate', 1, 1 FROM rows;
+                 INSERT INTO entries(cache_key, crate_name, committed, durable)
+                 VALUES ('uncommitted', 'crate', 0, 0);",
+            )
+            .unwrap();
+        if upgrade {
+            store
+                .db
+                .execute_batch("DROP INDEX IF EXISTS idx_entries_durability_pending")
+                .unwrap();
+            store.db.pragma_update(None, "user_version", 13).unwrap();
+        }
+        drop(store);
+        let store = Store::open_with_options(&config, StoreOptions::from_env(|_| None)).unwrap();
+        assert_eq!(store.pending_durability().unwrap(), 0);
+        assert_eq!(store.flush_durability(10).unwrap(), 0);
+        for sql in [
+            "SELECT count(*) FROM entries WHERE committed = 1 AND durable = 0",
+            "SELECT cache_key FROM entries WHERE committed = 1 AND durable = 0
+             ORDER BY created_at LIMIT 10",
+        ] {
+            let mut stmt = store
+                .db
+                .prepare(&format!("EXPLAIN QUERY PLAN {sql}"))
+                .unwrap();
+            let plan: Vec<String> = stmt
+                .query_map([], |row| row.get(3))
+                .unwrap()
+                .collect::<rusqlite::Result<_>>()
+                .unwrap();
+            assert!(
+                plan.iter()
+                    .any(|step| step.contains("idx_entries_durability_pending")),
+                "upgrade={upgrade}: {plan:?}"
+            );
+            assert!(
+                plan.iter().all(|step| !step.contains("TEMP B-TREE")),
+                "{plan:?}"
+            );
+            let mut stmt = store.db.prepare(sql).unwrap();
+            let mut rows = stmt.query([]).unwrap();
+            while rows.next().unwrap().is_some() {}
+            drop(rows);
+            assert_eq!(
+                stmt.get_status(rusqlite::StatementStatus::FullscanStep),
+                0,
+                "upgrade={upgrade}: {sql}"
+            );
+        }
+
+        // Insert newest first so the batch must follow created_at rather
+        // than insertion order. Durable and uncommitted rows stay excluded.
+        for (key, created_at) in [
+            ("pending-new", "2001-01-01 00:00:00"),
+            ("pending-old", "2000-01-01 00:00:00"),
+        ] {
+            let output = dir.path().join(format!("{key}.rlib"));
+            fs::write(&output, key.as_bytes()).unwrap();
+            store
+                .put(
+                    key,
+                    "crate",
+                    &["lib".into()],
+                    &[],
+                    "target",
+                    "dev",
+                    &[(output, "libout.rlib".into())],
+                    "",
+                    "",
+                )
+                .unwrap();
+            store
+                .db
+                .execute(
+                    "UPDATE entries SET created_at = ?1 WHERE cache_key = ?2",
+                    params![created_at, key],
+                )
+                .unwrap();
+        }
+        assert_eq!(store.pending_durability().unwrap(), 2);
+        assert_eq!(store.flush_durability(0).unwrap(), 0);
+        assert_eq!(store.flush_durability(1).unwrap(), 1);
+        assert!(store.entry_is_durable("pending-old"));
+        assert!(!store.entry_is_durable("pending-new"));
+        assert_eq!(store.pending_durability().unwrap(), 1);
+        assert_eq!(store.flush_durability(1).unwrap(), 1);
+        assert_eq!(store.pending_durability().unwrap(), 0);
+    }
+}
+
 /// Opening an index runs its DDL once: the second open finds the schema
 /// generation current and skips every statement (each would otherwise
 /// take the write lock), while an index from before the stamp still
@@ -112,7 +304,8 @@ fn index_ddl_runs_once_per_schema_generation() {
     // C memo tables; the generation bump is what makes it migrate.
     db.pragma_update(None, "user_version", 1_i64).unwrap();
     db.execute_batch(
-        "ALTER TABLE entries DROP COLUMN durable;
+        "DROP INDEX idx_entries_durability_pending;
+             ALTER TABLE entries DROP COLUMN durable;
              DROP TABLE cc_mapped_hashes;
              DROP TABLE cc_asm_scans;",
     )
@@ -3362,6 +3555,7 @@ fn test_config(dir: &Path) -> Config {
         gc_evict_shared: false,
         upload_spool_max_jobs: 65_536,
         deferred_durability: false,
+        index_mode: IndexMode::default(),
     }
 }
 
@@ -4146,7 +4340,7 @@ fn is_corruption_error_flags_a_non_sqlite_file() {
     let dir = tempfile::tempdir().unwrap();
     let garbage = dir.path().join("garbage.db");
     fs::write(&garbage, b"definitely not a sqlite database").unwrap();
-    let err = try_open_index_db(&garbage).unwrap_err();
+    let err = try_open_index_db(&garbage, IndexMode::default()).unwrap_err();
     assert!(
         is_corruption_error(&err),
         "a non-sqlite file must classify as corruption: {err}"
@@ -4155,7 +4349,7 @@ fn is_corruption_error_flags_a_non_sqlite_file() {
     // A transient open failure (missing parent → CannotOpen) is NOT
     // corruption and must not be self-healed.
     let missing = dir.path().join("missing").join("index.db");
-    let err = try_open_index_db(&missing).unwrap_err();
+    let err = try_open_index_db(&missing, IndexMode::default()).unwrap_err();
     assert!(!is_corruption_error(&err));
 }
 
@@ -4575,12 +4769,12 @@ fn recover_corrupt_index_reuses_a_peer_healed_db_without_requarantine() {
     // A corruption-shaped error to pass in (as the original open would have).
     let garbage = dir.path().join("garbage.db");
     fs::write(&garbage, b"not a sqlite database").unwrap();
-    let err = try_open_index_db(&garbage).unwrap_err();
+    let err = try_open_index_db(&garbage, IndexMode::default()).unwrap_err();
 
     // The peer's freshly-healed, valid empty index now lives at db_path.
-    drop(try_open_index_db(&db_path).unwrap());
+    drop(try_open_index_db(&db_path, IndexMode::default()).unwrap());
 
-    let (db, recovered) = recover_corrupt_index(&db_path, &err).unwrap();
+    let (db, recovered) = recover_corrupt_index(&db_path, IndexMode::default(), &err).unwrap();
     let count: i64 = db
         .query_row("SELECT COUNT(*) FROM entries", [], |r| r.get(0))
         .unwrap();
@@ -5751,6 +5945,7 @@ fn import_test_entry(store: &Store, key: &str, bytes: usize) {
     let meta = EntryMeta {
         cache_key: key.to_string(),
         key_schema: kache_format::CACHE_KEY_VERSION,
+        rustc_version: None,
         crate_name: format!("{key}_crate"),
         crate_types: vec!["lib".to_string()],
         files: vec![CachedFile {
@@ -6495,6 +6690,7 @@ fn claim_build_evicts_empty_committed_entry() {
     let meta = EntryMeta {
         cache_key: cache_key.to_string(),
         key_schema: kache_format::CACHE_KEY_VERSION,
+        rustc_version: None,
         crate_name: "empty".to_string(),
         crate_types: vec!["rlib".to_string()],
         files: vec![],
@@ -7320,6 +7516,7 @@ fn extract_download(store: &Store, key: &str, outputs: &[(&str, &[u8])]) -> Entr
     let meta = EntryMeta {
         cache_key: key.to_string(),
         key_schema: kache_format::CACHE_KEY_VERSION,
+        rustc_version: None,
         crate_name: "c1".to_string(),
         crate_types: vec!["lib".to_string()],
         files,
@@ -8217,6 +8414,7 @@ fn test_store_import_downloaded_entry() {
     let meta = EntryMeta {
         cache_key: "downloaded_key".to_string(),
         key_schema: prior_schema,
+        rustc_version: None,
         crate_name: "downloaded_crate".to_string(),
         crate_types: vec!["lib".to_string()],
         files: vec![CachedFile {
@@ -8263,6 +8461,7 @@ fn test_store_import_downloaded_entry_missing_file() {
     let meta = EntryMeta {
         cache_key: "incomplete_key".to_string(),
         key_schema: kache_format::CACHE_KEY_VERSION,
+        rustc_version: None,
         crate_name: "incomplete_crate".to_string(),
         crate_types: vec!["lib".to_string()],
         files: vec![CachedFile {
@@ -8305,6 +8504,7 @@ fn failed_restore_cleanup_preserves_a_concurrent_committed_generation() {
     let meta_json = serde_json::to_string_pretty(&EntryMeta {
         cache_key: key.clone(),
         key_schema: kache_format::CACHE_KEY_VERSION,
+        rustc_version: None,
         crate_name: "published".into(),
         crate_types: vec!["lib".into()],
         files: Vec::new(),
@@ -8502,6 +8702,7 @@ fn test_import_downloaded_entry_creates_blobs() {
     let meta = EntryMeta {
         cache_key: "dl_key".to_string(),
         key_schema: kache_format::CACHE_KEY_VERSION,
+        rustc_version: None,
         crate_name: "dl_crate".to_string(),
         crate_types: vec!["lib".to_string()],
         files: vec![CachedFile {
@@ -8860,6 +9061,7 @@ fn test_store_import_rejects_size_mismatch() {
     let meta = EntryMeta {
         cache_key: "mismatch_key".to_string(),
         key_schema: kache_format::CACHE_KEY_VERSION,
+        rustc_version: None,
         crate_name: "mismatch_crate".to_string(),
         crate_types: vec!["lib".to_string()],
         files: vec![CachedFile {
@@ -8911,6 +9113,7 @@ fn import_with_poisoned_meta(
     let meta = EntryMeta {
         cache_key: key.to_string(),
         key_schema: kache_format::CACHE_KEY_VERSION,
+        rustc_version: None,
         crate_name: "c".to_string(),
         crate_types: vec!["lib".to_string()],
         files: vec![file],
@@ -9820,6 +10023,10 @@ fn publish_racing_an_unlink_never_errors() {
     let hash = crate::file_hash::hash_file(&source).unwrap();
     let blob = store.blob_path(&hash);
 
+    // Publication already takes SQLite's writer lock. Serialize the publishers
+    // here so this fixture tests rename/unlink races without exhausting the
+    // database's busy timeout. The remover keeps running without this lock.
+    let publish_lock = std::sync::Arc::new(std::sync::Mutex::new(()));
     let done = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let remover = {
         let blob = blob.clone();
@@ -9837,9 +10044,11 @@ fn publish_racing_an_unlink_never_errors() {
             let store = Store::open(&config).unwrap();
             let source = source.clone();
             let hash = hash.clone();
+            let publish_lock = std::sync::Arc::clone(&publish_lock);
             std::thread::spawn(move || {
                 for _ in 0..ROUNDS {
                     let (staged, ingest) = store.stage_blob_from_source(&source, false).unwrap();
+                    let _publish = publish_lock.lock().unwrap();
                     store
                         .publish_staged_blob(&staged, ingest, &hash, content.len() as u64)
                         .unwrap();
@@ -10934,6 +11143,7 @@ fn test_get_lazily_migrates_legacy_entry() {
     let meta = EntryMeta {
         cache_key: "old_key".to_string(),
         key_schema: kache_format::CACHE_KEY_VERSION,
+        rustc_version: None,
         crate_name: "old_crate".to_string(),
         crate_types: vec!["lib".to_string()],
         files: vec![CachedFile {
@@ -10993,6 +11203,7 @@ fn get_preserves_a_retryable_legacy_entry_when_migration_fails() {
     let meta = EntryMeta {
         cache_key: "old_bad_key".to_string(),
         key_schema: kache_format::CACHE_KEY_VERSION,
+        rustc_version: None,
         crate_name: "old_bad_crate".to_string(),
         crate_types: vec!["lib".to_string()],
         files: vec![CachedFile {
@@ -11066,6 +11277,7 @@ fn test_migrate_to_blobs_bulk() {
         let meta = EntryMeta {
             cache_key: key.to_string(),
             key_schema: kache_format::CACHE_KEY_VERSION,
+            rustc_version: None,
             crate_name: "shared_crate".to_string(),
             crate_types: vec!["lib".to_string()],
             files: vec![CachedFile {
@@ -12298,6 +12510,7 @@ fn test_migration_of_legacy_entry() {
     let meta = EntryMeta {
         cache_key: "legacy_key".to_string(),
         key_schema: kache_format::CACHE_KEY_VERSION,
+        rustc_version: None,
         crate_name: "legacy_crate".to_string(),
         crate_types: vec!["lib".to_string()],
         files: vec![
@@ -12511,6 +12724,7 @@ fn migrate_entry_to_blobs_bumps_refcount_when_insert_loses_race() {
     let meta = EntryMeta {
         cache_key: "legacy_race".to_string(),
         key_schema: kache_format::CACHE_KEY_VERSION,
+        rustc_version: None,
         crate_name: "legacy_crate".to_string(),
         crate_types: vec!["lib".to_string()],
         files: vec![CachedFile {
@@ -12807,6 +13021,7 @@ fn wasm_link_output_satisfies_the_emit_coverage_gate() {
     let meta = EntryMeta {
         cache_key: "k".into(),
         key_schema: kache_format::CACHE_KEY_VERSION,
+        rustc_version: None,
         crate_name: "rococo_runtime".into(),
         crate_types: vec!["cdylib".into()],
         files,
@@ -12881,6 +13096,7 @@ fn test_import_downloaded_entry_stores_content_hash() {
     let meta = EntryMeta {
         cache_key: "dl_ch_test".to_string(),
         key_schema: kache_format::CACHE_KEY_VERSION,
+        rustc_version: None,
         crate_name: "dlcrate".to_string(),
         crate_types: vec!["lib".to_string()],
         files: vec![CachedFile {
@@ -12936,6 +13152,7 @@ fn verified_batch_import_is_atomic_and_registers_every_entry() {
         let meta = EntryMeta {
             cache_key: key.clone(),
             key_schema: kache_format::CACHE_KEY_VERSION,
+            rustc_version: None,
             crate_name: format!("crate{index}"),
             crate_types: vec!["lib".to_string()],
             files: vec![CachedFile {
@@ -13029,6 +13246,7 @@ fn write_verified_fixture(
     let meta = EntryMeta {
         cache_key: meta_key.to_string(),
         key_schema: kache_format::CACHE_KEY_VERSION,
+        rustc_version: None,
         crate_name: "fixture".to_string(),
         crate_types: vec!["lib".to_string()],
         files: vec![CachedFile {

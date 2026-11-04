@@ -1429,7 +1429,8 @@ pub(crate) fn run_nvcc_for(
             let restore_start = std::time::Instant::now();
             if let Err(e) = restore_nvcc_from_cache(hit_store, &parsed, &meta) {
                 tracing::warn!(
-                    "restoring nvcc cache hit for {crate_name} failed: {e} — recompiling"
+                    "restoring nvcc cache hit for {crate_name} failed: {} — recompiling",
+                    store_error_for_event(&e)
                 );
                 return nvcc_passthrough_with_event(
                     config,
@@ -1437,7 +1438,7 @@ pub(crate) fn run_nvcc_for(
                     &crate_name,
                     &event_root,
                     start,
-                    format!("restore failed: {e}"),
+                    restore_failure_reason(&e),
                 );
             }
             let restore_ms = restore_start.elapsed().as_millis() as u64;
@@ -1507,7 +1508,8 @@ pub(crate) fn run_nvcc_for(
         let restore_start = std::time::Instant::now();
         if let Err(e) = restore_nvcc_from_cache(&store, &parsed, &meta) {
             tracing::warn!(
-                "restoring nvcc coalesced hit for {crate_name} failed: {e} — recompiling"
+                "restoring nvcc coalesced hit for {crate_name} failed: {} — recompiling",
+                store_error_for_event(&e)
             );
             return nvcc_passthrough_with_event(
                 config,
@@ -1515,7 +1517,7 @@ pub(crate) fn run_nvcc_for(
                 &crate_name,
                 &event_root,
                 start,
-                format!("restore failed: {e}"),
+                restore_failure_reason(&e),
             );
         }
         let restore_ms = restore_start.elapsed().as_millis() as u64;
@@ -1916,7 +1918,8 @@ fn nvcc_try_remote_hit(
     let restore_start = std::time::Instant::now();
     if let Err(e) = restore_nvcc_from_cache(store, parsed, &meta) {
         tracing::warn!(
-            "restoring nvcc remote cache hit for {crate_name} failed: {e} — recompiling"
+            "restoring nvcc remote cache hit for {crate_name} failed: {} — recompiling",
+            store_error_for_event(&e)
         );
         return Ok(Some(nvcc_passthrough_with_event(
             config,
@@ -1924,7 +1927,7 @@ fn nvcc_try_remote_hit(
             crate_name,
             event_root,
             start,
-            format!("restore failed: {e}"),
+            restore_failure_reason(&e),
         )?));
     }
     let restore_ms = restore_start.elapsed().as_millis() as u64;
@@ -2293,7 +2296,7 @@ fn run_cc_with_store(
         } else {
             let restore_start = std::time::Instant::now();
             let trace_restore = crate::phase_trace::phase("restore");
-            let restored = restore_cc_hit(hit_store, parsed, meta);
+            let restored = restore_cc_hit(config.restore_max_size, hit_store, parsed, meta);
             drop(trace_restore);
             if let Err(e) = &restored {
                 if e.downcast_ref::<PartialCcRestore>().is_some() {
@@ -2302,7 +2305,7 @@ fn run_cc_with_store(
                 tracing::warn!(
                     "restoring cc cache hit for {} failed: {} — recompiling",
                     crate_name,
-                    e
+                    store_error_for_event(e)
                 );
                 if !hit_store.is_read_only() {
                     return cc_passthrough_with_event(
@@ -2311,10 +2314,10 @@ fn run_cc_with_store(
                         crate_name,
                         event_root,
                         start,
-                        format!("restore failed: {e}"),
+                        restore_failure_reason(e),
                     );
                 }
-                lookup_rejection = format!("read-only restore failed: {e}");
+                lookup_rejection = format!("read-only {}", restore_failure_reason(e));
             }
             if let Ok(meta) = restored {
                 let restore_ms = restore_start.elapsed().as_millis() as u64;
@@ -2426,7 +2429,7 @@ fn run_cc_with_store(
         cc_restore_committed(precompiled.is_some(), cc_scheduled_hit_ok(parsed, meta))
     }) {
         let restore_start = std::time::Instant::now();
-        let restored = restore_cc_hit(store, parsed, meta);
+        let restored = restore_cc_hit(config.restore_max_size, store, parsed, meta);
         if let Err(e) = restored {
             if e.downcast_ref::<PartialCcRestore>().is_some() {
                 return Err(e);
@@ -2434,7 +2437,7 @@ fn run_cc_with_store(
             tracing::warn!(
                 "restoring cc coalesced hit for {} failed: {} — recompiling",
                 crate_name,
-                e
+                store_error_for_event(&e)
             );
             return cc_passthrough_with_event(
                 config,
@@ -2442,7 +2445,7 @@ fn run_cc_with_store(
                 crate_name,
                 event_root,
                 start,
-                format!("restore failed: {e}"),
+                restore_failure_reason(&e),
             );
         }
         let meta = restored?;
@@ -3170,6 +3173,7 @@ fn prepare_cc_cached_artifact(
 }
 
 fn apply_cc_post_publish_actions(
+    restore_max_size: u64,
     published: &[(PathBuf, ArtifactKind)],
     env: &crate::invocation::InvocationEnv,
 ) -> Result<()> {
@@ -3183,9 +3187,11 @@ fn apply_cc_post_publish_actions(
             if action.is_content_transform() {
                 continue;
             }
-            action.apply(path, &*host).with_context(|| {
-                format!("cc restore: applying {action:?} to {}", path.display())
-            })?;
+            action
+                .apply(path, &*host, restore_max_size)
+                .with_context(|| {
+                    format!("cc restore: applying {action:?} to {}", path.display())
+                })?;
         }
     }
     Ok(())
@@ -3194,11 +3200,12 @@ fn apply_cc_post_publish_actions(
 /// All finalization happens after publication, so any failure must stop the
 /// caller from invoking the compiler over the restored outputs.
 fn finalize_cc_restore(
+    restore_max_size: u64,
     published: &[(PathBuf, ArtifactKind)],
     parsed: &crate::compiler::cc::CcArgs,
 ) -> Result<()> {
     let finish = || -> Result<()> {
-        apply_cc_post_publish_actions(published, &parsed.invocation_env)?;
+        apply_cc_post_publish_actions(restore_max_size, published, &parsed.invocation_env)?;
         #[cfg(unix)]
         if parsed.mode == crate::compiler::cc::CompileMode::Link
             && let Some(output) = parsed.object_output_path()
@@ -3293,6 +3300,7 @@ fn restore_cc_stdout_from_cache(
 
 /// Decode and validate diagnostic locations before publishing any hit output.
 fn restore_cc_hit(
+    restore_max_size: u64,
     store: &Store,
     parsed: &crate::compiler::cc::CcArgs,
     mut meta: EntryMeta,
@@ -3307,7 +3315,7 @@ fn restore_cc_hit(
     {
         meta.stderr = stderr;
     }
-    restore_cc_from_cache(store, parsed, &meta)?;
+    restore_cc_from_cache(restore_max_size, store, parsed, &meta)?;
     Ok(meta)
 }
 
@@ -3318,6 +3326,7 @@ fn restore_cc_hit(
 /// after publication starts, the caller receives `PartialCcRestore` and must
 /// not run the compiler over the partially restored output set.
 fn restore_cc_from_cache(
+    restore_max_size: u64,
     store: &Store,
     parsed: &crate::compiler::cc::CcArgs,
     meta: &crate::store::EntryMeta,
@@ -3417,7 +3426,7 @@ fn restore_cc_from_cache(
         published_kinds.push((target, kind));
     }
     publish_prepared_cc_artifacts(prepared)?;
-    finalize_cc_restore(&published_kinds, parsed)
+    finalize_cc_restore(restore_max_size, &published_kinds, parsed)
 }
 
 /// After a local miss, ask the daemon for an exact remote entry.
@@ -3449,7 +3458,7 @@ fn cc_try_remote_hit(
         return Ok(None);
     };
     let restore_start = std::time::Instant::now();
-    let restored = restore_cc_hit(store, parsed, meta);
+    let restored = restore_cc_hit(config.restore_max_size, store, parsed, meta);
     if let Err(e) = restored {
         if e.downcast_ref::<PartialCcRestore>().is_some() {
             return Err(e);
@@ -3457,7 +3466,7 @@ fn cc_try_remote_hit(
         tracing::warn!(
             "restoring cc remote cache hit for {} failed: {} — recompiling",
             crate_name,
-            e
+            store_error_for_event(&e)
         );
         return Ok(Some(cc_passthrough_with_event(
             config,
@@ -3465,7 +3474,7 @@ fn cc_try_remote_hit(
             crate_name,
             event_root,
             start,
-            format!("restore failed: {e}"),
+            restore_failure_reason(&e),
         )?));
     }
     let meta = restored?;
@@ -3917,7 +3926,7 @@ fn run_parsed_rustc(
     extra_inputs_hash_stats: FileHashStats,
     extra_inputs_too_new: bool,
     extra_inputs_key_ms: u64,
-    extra_inputs_guard_inputs: Vec<crate::cache_key::ObservedFingerprint>,
+    extra_inputs_guard_inputs: crate::cache_key::GuardedInputs,
     build_script_inputs: Option<&BuildScriptInputs>,
     mut precompiled: Option<Precompiled>,
 ) -> Result<i32> {
@@ -4300,7 +4309,17 @@ fn run_parsed_rustc(
                 let _ = lease.finish(CompileOutcome::Abnormal);
             }
             // `{:#}` walks the cause chain; see `uncacheable_reason`.
-            tracing::warn!("failed to compute cache key for {}: {:#}", crate_name, e);
+            if e.downcast_ref::<crate::cache_key::NativeRuntimeHashesWarming>()
+                .is_some()
+            {
+                tracing::debug!(
+                    "native runtime hashes are warming for {}: {:#}",
+                    crate_name,
+                    e
+                );
+            } else {
+                tracing::warn!("failed to compute cache key for {}: {:#}", crate_name, e);
+            }
             return passthrough_with_event(
                 config,
                 args,
@@ -4503,7 +4522,7 @@ fn run_parsed_rustc(
                         tracing::warn!(
                             "restoring local cache hit for {} failed: {} — recompiling",
                             crate_name,
-                            e
+                            store_error_for_event(&e)
                         );
                         if !hit_store.is_read_only() {
                             return passthrough_with_event(
@@ -4512,7 +4531,7 @@ fn run_parsed_rustc(
                                 crate_name,
                                 &event_root,
                                 start,
-                                format!("restore failed: {e}"),
+                                restore_failure_reason(&e),
                                 key_record,
                             );
                         }
@@ -4543,7 +4562,7 @@ fn run_parsed_rustc(
                 tracing::warn!(
                     "restoring cache hit for {} failed: {} — recompiling",
                     crate_name,
-                    e
+                    store_error_for_event(&e)
                 );
                 return passthrough_with_event(
                     config,
@@ -4551,7 +4570,7 @@ fn run_parsed_rustc(
                     crate_name,
                     &event_root,
                     start,
-                    format!("restore failed: {e}"),
+                    restore_failure_reason(&e),
                     key_record,
                 );
             }
@@ -4669,15 +4688,19 @@ fn run_parsed_rustc(
 
     // 3. Cache miss — join the machine-wide flight, take a permit, then
     // claim the key and re-check under the build lock.
-    let (miss_guard, scheduled_hit) = admit_scheduler_miss(
-        config,
-        &store,
-        &cache_key,
-        FlightIdentity::rustc(crate_name, &args.crate_types, args.emits_link()),
-        crate_name,
-        args.invokes_linker(),
-        cache_entry_has_files,
-    );
+    let (miss_guard, scheduled_hit) = if precompiled.is_none() {
+        admit_scheduler_miss(
+            config,
+            &store,
+            &cache_key,
+            FlightIdentity::rustc(crate_name, &args.crate_types, args.emits_link()),
+            crate_name,
+            args.invokes_linker(),
+            cache_entry_has_files,
+        )
+    } else {
+        (MissGuard::empty(), None)
+    };
     let (lock, committed) = if let Some(meta) = scheduled_hit {
         (None, Some(meta))
     } else {
@@ -4721,7 +4744,7 @@ fn run_parsed_rustc(
             tracing::warn!(
                 "restoring cache hit for {} failed: {} — recompiling",
                 crate_name,
-                e
+                store_error_for_event(&e)
             );
             return passthrough_with_event(
                 config,
@@ -4729,7 +4752,7 @@ fn run_parsed_rustc(
                 crate_name,
                 &event_root,
                 start,
-                format!("restore failed: {e}"),
+                restore_failure_reason(&e),
                 key_record,
             );
         }
@@ -4819,11 +4842,10 @@ fn run_parsed_rustc(
         && extra_inputs_changed_during_compile(config, args, extra_inputs, invocation_start_ns);
     let sources_changed = emitted_sources_changed_during_compile(&written_sources, &guard_inputs);
     let key_inputs_changed = config.modified_input_guard && {
-        let hashed: Vec<_> = guard_inputs
-            .iter()
-            .chain(hashed_after_compile.iter().flatten())
-            .cloned()
-            .collect();
+        let mut hashed = guard_inputs.clone();
+        if let Some(after_compile) = &hashed_after_compile {
+            hashed.extend(after_compile.clone());
+        }
         key_inputs_changed_during_compile(key_too_new, &hashed)
     };
     if should_skip_cache_store_for_input_race(
@@ -5143,7 +5165,14 @@ fn run_parsed_rustc(
     let trace_store = crate::phase_trace::phase("store");
     let mut store_put = StorePutResult::default();
     let mut store_error = String::new();
-    let put = store.put_with_compile_time(
+    let identity_compiler = args.inner_rustc.as_deref().unwrap_or(&args.rustc);
+    let rustc_version =
+        crate::cache_key::rustc_version_text_for(identity_compiler, args.invocation_env());
+    let rustc_identity = rustc_version
+        .as_deref()
+        .and_then(|version| version.lines().next())
+        .and_then(|line| line.strip_prefix("rustc "));
+    let put = store.put_rustc_with_compile_time(
         &cache_key,
         crate_name,
         &args.crate_types,
@@ -5154,6 +5183,7 @@ fn run_parsed_rustc(
         &result.stdout,
         &result.stderr,
         compile_time_ms,
+        rustc_identity,
     );
     // A stored entry grew the store: throttled size check and a detached
     // background GC if over budget (kunobi-ninja/kache#497). A put refused for
@@ -5960,6 +5990,7 @@ enum RestoredBytes {
 ///      recompile** — never a false hit. ENOENT is called out below so the
 ///      degradation reads as the benign race it is rather than corruption.
 fn materialize_cached_artifact(
+    restore_max_size: u64,
     store: &Store,
     cached_file: &crate::store::CachedFile,
     target_path: &Path,
@@ -6132,7 +6163,7 @@ fn materialize_cached_artifact(
             continue;
         }
         let loadability = action
-            .apply(target_path, platform)
+            .apply(target_path, platform, restore_max_size)
             .with_context(|| format!("{context}: applying {action:?}"))?;
         if loadability == crate::compiler::Loadability::Verified {
             verified_now = true;
@@ -6387,11 +6418,11 @@ struct ComputedKey {
     /// Fingerprints taken before the compile while the too-new guard was
     /// armed: the extra-inputs resolve, and the key's own when the key came
     /// first. Carried past the compile for clock-independent verification.
-    guard_inputs: Vec<crate::cache_key::ObservedFingerprint>,
+    guard_inputs: crate::cache_key::GuardedInputs,
     /// `Some` for a key derived from the dep-info a compile emitted: the
     /// fingerprints its inputs had when hashed, after rustc read them. They
     /// say nothing about what the compile saw.
-    hashed_after_compile: Option<Vec<crate::cache_key::ObservedFingerprint>>,
+    hashed_after_compile: Option<crate::cache_key::GuardedInputs>,
     /// The emitted dep-info's files that `hashed_after_compile` shows written
     /// since the invocation began (see [`sources_written_since`]).
     written_sources: Vec<crate::cache_key::FileFingerprint>,
@@ -6475,7 +6506,7 @@ fn adaptive_compile_before_key(
     ctx: &CompileFirst<'_>,
     mut lease: Lease,
     tree_guard: Option<crate::cache_key::TreeGuard>,
-    guard_inputs: Vec<crate::cache_key::ObservedFingerprint>,
+    guard_inputs: crate::cache_key::GuardedInputs,
     mut key_record: KeyEventRecord,
     mut key_ms: u64,
     mut key_hash_stats: FileHashStats,
@@ -6673,7 +6704,7 @@ fn compile_before_key(
     ctx: &CompileFirst<'_>,
     stop_on_hit: bool,
     tree_guard: Option<crate::cache_key::TreeGuard>,
-    guard_inputs: Vec<crate::cache_key::ObservedFingerprint>,
+    guard_inputs: crate::cache_key::GuardedInputs,
     key_record: KeyEventRecord,
     key_ms: u64,
     key_hash_stats: FileHashStats,
@@ -7079,13 +7110,13 @@ fn sources_written_since(
 /// the stamp, so a match would prove nothing.
 fn emitted_sources_changed_during_compile(
     written: &[crate::cache_key::FileFingerprint],
-    before: &[crate::cache_key::ObservedFingerprint],
+    before: &crate::cache_key::GuardedInputs,
 ) -> bool {
     written.iter().any(|input| {
         !before.iter().any(|earlier| {
             earlier.fingerprint.path == input.path
                 && earlier.settled()
-                && FileHasher::guarded_inputs_unchanged_since_hash(std::slice::from_ref(earlier))
+                && FileHasher::guarded_inputs_unchanged_since_hash(&before.for_file(earlier))
         })
     })
 }
@@ -7110,7 +7141,7 @@ fn emitted_sources_changed_during_compile(
 /// hash and the compiler's read, keeps the fingerprint and is excused.
 fn key_inputs_changed_during_compile(
     key_too_new: bool,
-    guard_inputs: &[crate::cache_key::ObservedFingerprint],
+    guard_inputs: &crate::cache_key::GuardedInputs,
 ) -> bool {
     FileHasher::guarded_inputs_moved_since_hash(guard_inputs)
         || (key_too_new && !FileHasher::guarded_inputs_unchanged_since_hash(guard_inputs))
@@ -7211,7 +7242,7 @@ struct ExtraInputsKey<'a> {
     hash_stats: FileHashStats,
     too_new: bool,
     key_ms: u64,
-    guard_inputs: Vec<crate::cache_key::ObservedFingerprint>,
+    guard_inputs: crate::cache_key::GuardedInputs,
 }
 
 /// Compute the rustc cache key. With `store` present the hasher is backed by
@@ -7259,6 +7290,7 @@ fn compute_rustc_cache_key(
         None => crate::cache_key::FileHasher::new_for(args.invocation_env())
             .with_daemon(config.socket_path()),
     }
+    .with_native_runtime_warmup(config.native_runtime_warmup)
     .with_input_predictions(config.input_predictions)
     .with_prediction_flights(flight_dir)
     .with_own_dirs(written_while_building(config, store, args.invocation_env()));
@@ -8041,6 +8073,7 @@ fn restore_from_cache_with_memo_store(
             continue;
         }
         let restored = materialize_cached_artifact(
+            config.restore_max_size,
             store,
             cached_file,
             &target_path,
@@ -8676,7 +8709,20 @@ const UNCACHEABLE_REASON: &str = "uncacheable|";
 /// failed for src/lib.rs" and dropped rustc's own reason underneath it
 /// (kunobi-ninja/kache#431).
 fn uncacheable_reason(error: &anyhow::Error) -> String {
+    if error
+        .downcast_ref::<crate::cache_key::NativeRuntimeHashesWarming>()
+        .is_some()
+    {
+        return "native runtime warmup".to_owned();
+    }
     format!("{UNCACHEABLE_REASON}{error:#}")
+}
+
+/// Keep the root cause when a failed restore is recorded for report/explain.
+/// The chain can quote a tar entry name from a remote archive, so it gets the
+/// same guards as a store error before it is persisted.
+fn restore_failure_reason(error: &anyhow::Error) -> String {
+    format!("restore failed: {}", store_error_for_event(error))
 }
 
 /// What a passthrough reason quotes of rustc's own output. A failed pre-pass
@@ -8729,11 +8775,24 @@ fn passthrough_with_event<R: Into<String>>(
         return Ok(exit_code);
     }
     let reason = reason.into();
+    let permit = (reason == "native runtime warmup").then(|| {
+        scheduler::begin_keyless_compile(
+            &config.cache_dir,
+            config.scheduler,
+            crate_name,
+            args.invokes_linker(),
+            config.test_lease.as_deref(),
+        )
+    });
     let output = passthrough(
         args,
         config.fallback.as_deref(),
         config.preserve_incremental,
     )?;
+    if let Some(permit) = &permit {
+        permit.record_compile_rss(crate_name);
+    }
+    drop(permit);
     let elapsed = start.elapsed().as_millis() as u64;
     after_rustc_exit(output.exit_code, rustc_output_in(&reason), &args.externs);
     log_event(
@@ -9251,20 +9310,21 @@ pub(crate) fn log_event(config: &Config, inputs: EventInputs<'_>) {
     write_event(config, &event);
 }
 
-/// Render a failed `Store::put` for the event log and the report.
+/// Render a failed `Store::put`, or a failed restore through
+/// `restore_failure_reason`, for logs and reports.
 ///
 /// `{:#}` keeps anyhow's whole context chain — the outer context alone
-/// ("creating blob shard directory") never names the cause. Two guards, because
-/// unlike the `WARN` this string is persisted and re-rendered inside JSON, a
-/// text table and a markdown table:
+/// ("creating blob shard directory") never names the cause. This string reaches
+/// diagnostic logs and is persisted and re-rendered in JSON and report tables:
 /// - control characters (a newline from a nested compiler error) become spaces,
 ///   so one failure cannot break the row it is printed in;
 /// - the result is capped, so a pathological error message cannot bloat every
 ///   event line in the log.
 ///
 /// Hardening for shape, not secrecy: it does not redact. The reason is derived
-/// from filesystem and SQLite errors, so it can carry absolute paths, and a
-/// report shared outside the machine carries them too.
+/// from filesystem, SQLite and archive errors, so it can carry absolute paths
+/// and entry names from a remote archive, and a report shared outside the
+/// machine carries them too.
 pub(crate) fn store_error_for_event(error: &anyhow::Error) -> String {
     const MAX_CHARS: usize = 2048;
 
@@ -9410,7 +9470,15 @@ pub(crate) fn build_event_details(config: &Config, inputs: EventInputs<'_>) -> B
     } else {
         (String::new(), Default::default())
     };
-    let key_diff = explain_miss_diff(config, root, crate_name, result, cache_key, &key_fields);
+    let key_diff = explain_miss_diff(
+        config,
+        root,
+        crate_name,
+        &unit_id,
+        result,
+        cache_key,
+        &key_fields,
+    );
     let miss_reason = events::MissReason::classify(&passthrough_reason);
     BuildEvent {
         ts: Utc::now(),
@@ -9508,15 +9576,14 @@ pub(crate) fn recorded_object_output(path: Option<std::path::PathBuf>) -> String
 /// changed". Costs one event-log read per miss, which is why it's opt-in;
 /// returns empty (and reads nothing) when disabled, on non-miss results, or
 /// when this compile produced no group digests (cc path).
-/// Caveat (documented, not fixed): the last-hit baseline matches on
-/// `crate_name + root`, which conflates duplicate crate versions and
-/// host-vs-target units of the same crate — the named groups are then
-/// approximate. Precise unit identity would need the metadata hash, which is
-/// deliberately not keyed. Acceptable for an opt-in diagnostic.
+/// Match Cargo's recorded compilation unit as well as the name and build tree.
+/// Without a unit id, a same-named library, binary, or host build is not a
+/// reliable baseline, so leave the explanation empty.
 fn explain_miss_diff(
     config: &Config,
     root: &str,
     crate_name: &str,
+    unit_id: &str,
     result: EventResult,
     cache_key: &str,
     key_fields: &std::collections::BTreeMap<String, String>,
@@ -9524,6 +9591,7 @@ fn explain_miss_diff(
     if !config.explain_miss
         || !matches!(result, EventResult::Miss | EventResult::Dup)
         || key_fields.is_empty()
+        || unit_id.is_empty()
     {
         return Vec::new();
     }
@@ -9534,6 +9602,7 @@ fn explain_miss_diff(
     let Some(last_hit) = events.iter().rev().find(|e| {
         e.crate_name == crate_name
             && e.root == root
+            && e.unit_id == unit_id
             && !e.key_fields.is_empty()
             && matches!(
                 e.result,
