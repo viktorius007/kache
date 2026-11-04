@@ -62,8 +62,8 @@ impl Fixture {
 
     fn renamed_frontend(&self) -> PathBuf {
         let frontend = self.root.path().join("custom-kache");
-        std::fs::copy(FRONTEND, &frontend).unwrap();
-        std::fs::copy(ENGINE, self.root.path().join("kache-engine")).unwrap();
+        copy_in_child(FRONTEND, &frontend);
+        copy_in_child(ENGINE, &self.root.path().join("kache-engine"));
         assert!(!self.root.path().join("kache").exists());
         frontend
     }
@@ -113,6 +113,20 @@ impl Fixture {
         assert!(!parents.is_empty());
         parents
     }
+}
+
+/// Copy `source` to `target` in a `cp` child, as
+/// `kache_fs::testutil::write_executable` writes its scripts. A write
+/// descriptor held by this process is copied into every child a sibling test
+/// forks, and executing `target` while any such copy is open fails with
+/// ETXTBSY. The child's descriptor never enters this process.
+fn copy_in_child(source: &str, target: &std::path::Path) {
+    let status = Command::new("cp").arg(source).arg(target).status().unwrap();
+    assert!(
+        status.success(),
+        "cp {source} {} failed: {status}",
+        target.display()
+    );
 }
 
 impl Drop for Fixture {
