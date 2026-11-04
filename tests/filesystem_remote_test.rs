@@ -131,6 +131,10 @@ impl Client {
             .env("CARGO_BUILD_RUSTC_WRAPPER", "")
             .env_remove("RUSTC_WORKSPACE_WRAPPER")
             .env("CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER", "")
+            // An inherited build directory is shared by every client, so a
+            // second client's build finds the first one's fingerprints Fresh
+            // and never invokes the wrapper under test.
+            .env_remove("CARGO_BUILD_BUILD_DIR")
             // Cargo sets this test's own package. A compile that is a
             // package sets its own (`compile_unit`); the rest are bare rustc.
             .env_remove("CARGO_MANIFEST_DIR")
