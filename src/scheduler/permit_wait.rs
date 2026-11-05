@@ -12,12 +12,104 @@
 //! the slice itself is the sleep. The slice stays short of a second so a
 //! cancelled wait rechecks [`crate::invocation::process::check`] on the
 //! next pass.
+//!
+//! [`Word`] is the Linux primitive under all of it: a counter in a shared
+//! file that one process bumps and others sleep on. The pool-wide counter
+//! `wake` wakes every parked waiter; a ticket's own file wakes one waiter;
+//! `queue.wake` hands `queue.lock` from the process that drops it to one
+//! process waiting for it.
 
 use std::path::Path;
 use std::time::Duration;
 
 /// Longest a saturated waiter sleeps before scanning again.
 pub(super) const SATURATED_SLICE: Duration = Duration::from_millis(200);
+
+/// Why a wait on a [`Word`] returned.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Wake {
+    /// The word moved: someone bumped it after the waiter sampled it.
+    Told,
+    /// The limit elapsed with the word unchanged.
+    Slice,
+    /// This system cannot tell; the caller looks for itself.
+    Unknown,
+}
+
+/// Whether a [`Word`] sleeps in the kernel until it is bumped. Where it
+/// does not, a wait is a plain sleep and every return is [`Wake::Unknown`].
+pub(super) const WORDS_WAKE: bool = cfg!(target_os = "linux");
+
+/// A counter in a shared file. On Linux the file is mapped and waited on
+/// with a futex; elsewhere it is nothing, and waiting is sleeping.
+pub(super) struct Word {
+    #[cfg(target_os = "linux")]
+    inner: Option<linux::WakeWord>,
+}
+
+impl Word {
+    /// Open the counter in the file at `path`, creating it. On Linux a file
+    /// that cannot be mapped gives a word that never wakes.
+    pub(super) fn open(path: &Path) -> Self {
+        #[cfg(target_os = "linux")]
+        {
+            Self {
+                inner: linux::WakeWord::open(path),
+            }
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            let _ = path;
+            Self {}
+        }
+    }
+
+    /// The counter now; zero where there is none.
+    pub(super) fn seen(&self) -> u32 {
+        #[cfg(target_os = "linux")]
+        {
+            self.inner.as_ref().map_or(0, linux::WakeWord::load)
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            0
+        }
+    }
+
+    /// Sleep until the counter differs from `seen` or `limit` elapses.
+    pub(super) fn wait(&self, seen: u32, limit: Duration) -> Wake {
+        #[cfg(target_os = "linux")]
+        {
+            if let Some(word) = &self.inner {
+                return word.wait(seen, limit);
+            }
+        }
+        let _ = seen;
+        std::thread::sleep(limit);
+        Wake::Unknown
+    }
+
+    /// Move the counter and wake one sleeper.
+    pub(super) fn bump_one(&self) {
+        #[cfg(target_os = "linux")]
+        if let Some(word) = &self.inner {
+            word.bump(1);
+        }
+    }
+
+    /// Move the counter and wake every sleeper.
+    pub(super) fn bump_all(&self) {
+        #[cfg(target_os = "linux")]
+        if let Some(word) = &self.inner {
+            word.bump(libc::c_int::MAX as u32);
+        }
+    }
+}
+
+/// The pool-wide counter every saturated waiter without a ticket sleeps on.
+fn pool_word(root: &Path) -> std::path::PathBuf {
+    root.join("wake")
+}
 
 /// A macOS watch on the busy slot files. Empty on other systems: nothing
 /// there can report an unlock except the Linux counter.
@@ -48,7 +140,7 @@ pub(super) fn arm(root: &Path, busy: &[u32]) -> Option<Armed> {
 /// Generation the Linux waiter must see change. Zero where there is no counter.
 #[cfg(target_os = "linux")]
 pub(super) fn snapshot(root: &Path) -> u32 {
-    linux::load(root).unwrap_or(0)
+    Word::open(&pool_word(root)).seen()
 }
 
 #[cfg(not(target_os = "linux"))]
@@ -61,33 +153,35 @@ pub(super) fn snapshot(root: &Path) -> u32 {
 /// Sleep until a watched slot is unlocked, `seen` changes, or `limit` elapses.
 #[cfg(target_os = "macos")]
 #[mutants::skip]
-pub(super) fn park(root: &Path, armed: Option<Armed>, seen: u32, limit: Duration) {
+pub(super) fn park(root: &Path, armed: Option<Armed>, seen: u32, limit: Duration) -> Wake {
     if let Some(armed) = armed {
         armed.watch.stay(limit);
-        return;
+        return Wake::Unknown;
     }
     let _ = (root, seen);
     std::thread::sleep(limit);
+    Wake::Unknown
 }
 
 #[cfg(target_os = "linux")]
-pub(super) fn park(root: &Path, armed: Option<Armed>, seen: u32, limit: Duration) {
+pub(super) fn park(root: &Path, armed: Option<Armed>, seen: u32, limit: Duration) -> Wake {
     let _ = armed;
-    linux::wait(root, seen, limit);
+    Word::open(&pool_word(root)).wait(seen, limit)
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
 #[mutants::skip]
-pub(super) fn park(root: &Path, armed: Option<Armed>, seen: u32, limit: Duration) {
+pub(super) fn park(root: &Path, armed: Option<Armed>, seen: u32, limit: Duration) -> Wake {
     let _ = (root, armed, seen);
     std::thread::sleep(limit);
+    Wake::Unknown
 }
 
 /// Tell Linux waiters that a permit was dropped. Other systems hear the
 /// unlock from the kernel, or notice it on the next slice.
 #[cfg(target_os = "linux")]
 pub(super) fn notify(root: &Path) {
-    linux::bump(root);
+    Word::open(&pool_word(root)).bump_all();
 }
 
 #[cfg(not(target_os = "linux"))]
@@ -196,7 +290,7 @@ impl Drop for MacWatch {
 
 #[cfg(target_os = "linux")]
 mod linux {
-    use super::timespec;
+    use super::{Wake, timespec};
     use std::fs::OpenOptions;
     use std::os::unix::io::AsRawFd;
     use std::path::Path;
@@ -232,13 +326,13 @@ mod linux {
         libc::PROT_READ | libc::PROT_WRITE
     }
 
-    struct WakeWord {
+    pub(super) struct WakeWord {
         ptr: *mut libc::c_void,
         len: usize,
     }
 
     impl WakeWord {
-        fn open(root: &Path) -> Option<Self> {
+        pub(super) fn open(path: &Path) -> Option<Self> {
             let file = OpenOptions::new()
                 .read(true)
                 .write(true)
@@ -246,7 +340,7 @@ mod linux {
                 // The counter has to survive the next open. Truncating it
                 // would drop a wake that landed between two waits.
                 .truncate(false)
-                .open(root.join("wake"))
+                .open(path)
                 .ok()?;
             if !extend_to_word(&file) {
                 return None;
@@ -280,6 +374,33 @@ mod linux {
             // initialized bytes for as long as `self` is alive.
             unsafe { &*self.addr().cast() }
         }
+
+        pub(super) fn load(&self) -> u32 {
+            self.atomic().load(Ordering::Relaxed)
+        }
+
+        /// Move the word and wake up to `sleepers` of the processes in
+        /// [`Self::wait`] on it.
+        pub(super) fn bump(&self, sleepers: u32) {
+            // Any non-zero step wakes a waiter that sampled the old word,
+            // including one that has not reached the futex yet. The syscall
+            // below is what unblocks a waiter already inside it.
+            self.atomic().fetch_add(1, Ordering::Relaxed);
+            futex(self.addr(), FUTEX_WAKE, sleepers, std::ptr::null());
+        }
+
+        /// One wait. A bump that landed after `seen` was sampled makes the
+        /// kernel return at once. A signal does too, and reads as
+        /// [`Wake::Slice`]: the word is unchanged, so the caller parks again.
+        pub(super) fn wait(&self, seen: u32, limit: Duration) -> Wake {
+            let timeout = timespec(limit);
+            futex(self.addr(), FUTEX_WAIT, seen, &timeout);
+            if self.load() == seen {
+                Wake::Slice
+            } else {
+                Wake::Told
+            }
+        }
     }
 
     impl Drop for WakeWord {
@@ -287,38 +408,6 @@ mod linux {
             // SAFETY: `ptr` and `len` are the pair passed to `mmap`.
             unsafe { libc::munmap(self.ptr, self.len) };
         }
-    }
-
-    pub(super) fn load(root: &Path) -> Option<u32> {
-        WakeWord::open(root).map(|word| word.atomic().load(Ordering::Relaxed))
-    }
-
-    pub(super) fn bump(root: &Path) {
-        let Some(word) = WakeWord::open(root) else {
-            return;
-        };
-        // Any non-zero step wakes a waiter that sampled the old word,
-        // including one that has not reached the futex yet. The syscall
-        // below is what unblocks a waiter already inside it.
-        word.atomic().fetch_add(1, Ordering::Relaxed);
-        futex(
-            word.addr(),
-            FUTEX_WAKE,
-            libc::c_int::MAX as u32,
-            std::ptr::null(),
-        );
-    }
-
-    pub(super) fn wait(root: &Path, seen: u32, limit: Duration) {
-        let Some(word) = WakeWord::open(root) else {
-            std::thread::sleep(limit);
-            return;
-        };
-        let timeout = timespec(limit);
-        // One wait. A bump that landed after `seen` was sampled makes the
-        // kernel return at once. A signal does too; the caller scans and,
-        // if the slot is still held, parks again.
-        futex(word.addr(), FUTEX_WAIT, seen, &timeout);
     }
 
     /// `FUTEX_WAIT` / `FUTEX_WAKE` on the shared word. No `FUTEX_PRIVATE`:

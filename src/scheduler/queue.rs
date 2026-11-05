@@ -10,7 +10,9 @@
 //! content says how often the ticket has been passed and when its owner last
 //! looked, and `waiters/<id>`, which the owner holds an exclusive lock on.
 //! Every admission decision runs under `queue.lock`, so two waiters never
-//! plan with the same free slots.
+//! plan with the same free slots. The lock is handed over, not polled: a
+//! holder that drops it wakes one process waiting for it through the
+//! counter in `queue.wake`.
 //!
 //! - Rank: the arrival time in milliseconds, less [`FOREGROUND_HEAD_START`]
 //!   for a foreground build. Lower ranks go first. A ticket keeps its rank
@@ -28,9 +30,13 @@
 //!   cancelled waiter removes its ticket; a killed one leaves files whose lock
 //!   the kernel has released, and the next planner deletes them. The lock, not
 //!   a process ID, says who is alive, so a reused process ID changes nothing.
-//! - A ticket whose owner has not looked for [`STALE_AFTER`] is skipped: a
-//!   waiter the OS has starved of CPU cannot hold back the queue. It gets its
-//!   place back the next time it runs.
+//! - Whoever frees slots plans for the whole queue ([`wake_admitted`]) and
+//!   wakes each ticket the plan admits through the counter in its
+//!   `waiters/<id>` file. A parked waiter takes no lock until it is woken or
+//!   its backstop runs out (see [`super::Scheduler::park`]).
+//! - A ticket that was woken and has not claimed its slots for
+//!   [`STALE_AFTER`] is skipped: a waiter the OS has starved of CPU cannot
+//!   hold back the queue. It gets its place back the next time it runs.
 //!
 //! Wrappers of a Kache release from before this queue take free slots
 //! without a ticket. Their slots count like any other, but while releases are
@@ -42,6 +48,7 @@ use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use super::permit_wait::{WORDS_WAKE, Wake, Word};
 use super::priority::Priority;
 
 /// How far ahead of a background request a foreground one arriving at the
@@ -49,50 +56,103 @@ use super::priority::Priority;
 /// last (see [`super::budget`]), so a background request still in the queue
 /// comes to outrank foreground requests that arrive after it.
 pub(super) const FOREGROUND_HEAD_START: Duration = Duration::from_secs(10);
-/// How long a ticket counts after its owner last looked. A waiter looks at
-/// least every [`super::permit_wait::SATURATED_SLICE`].
+/// How long a woken ticket counts before it has claimed its slots.
 pub(super) const STALE_AFTER: Duration = Duration::from_secs(2);
 /// The longest a waiter waits for `queue.lock` before taking slots out of
 /// order. Planning takes microseconds; only a holder the OS stopped running
 /// keeps the lock longer.
 pub(super) const LOCK_WAIT: Duration = Duration::from_secs(1);
-/// How soon a waiter tries `queue.lock` again. A release wakes every waiter
-/// at once and each holds the lock for microseconds, so a millisecond
-/// backoff would leave the lock idle while they sleep.
+/// The longest a waiter sleeps for `queue.lock` without trying it where the
+/// holder's drop wakes it. A holder that is killed drops the lock without
+/// a wake; this bounds what that costs the next waiter.
+pub(super) const LOCK_SLICE: Duration = Duration::from_millis(50);
+/// The first sleep between tries where nothing wakes a lock waiter. It
+/// doubles on every try up to [`LOCK_BACKOFF_MAX`].
 pub(super) const LOCK_POLL: Duration = Duration::from_micros(200);
+pub(super) const LOCK_BACKOFF_MAX: Duration = Duration::from_millis(5);
 
 pub(super) fn lock_path(root: &Path) -> PathBuf {
     root.join("queue.lock")
 }
 
-/// Hold `queue.lock`, trying again every [`LOCK_POLL`] for up to `wait`.
-/// `None` when it stayed held. The file is never unlinked, so the lock on
-/// the open handle is the lock on the path.
-pub(super) fn lock(root: &Path, wait: Duration) -> Result<Option<fs::File>> {
+fn lock_wake_path(root: &Path) -> PathBuf {
+    root.join("queue.wake")
+}
+
+/// `queue.lock`, held until dropped. Dropping it wakes one process in
+/// [`lock`], which is then the first to try the lock.
+pub(super) struct QueueLock {
+    file: Option<fs::File>,
+    word: Word,
+}
+
+impl Drop for QueueLock {
+    fn drop(&mut self) {
+        // Unlock first, so the process that wakes finds the lock free.
+        drop(self.file.take());
+        self.word.bump_one();
+    }
+}
+
+/// How long a waiter sleeps before its next try of `queue.lock`.
+fn lock_slice(tries: u32, left: Duration) -> Duration {
+    let slice = if WORDS_WAKE {
+        LOCK_SLICE
+    } else {
+        LOCK_POLL
+            .saturating_mul(1 << tries.min(5))
+            .min(LOCK_BACKOFF_MAX)
+    };
+    slice.min(left)
+}
+
+/// Hold `queue.lock`, waiting up to `wait` for it. `None` when it stayed
+/// held. The file is never unlinked, so the lock on the open handle is the
+/// lock on the path.
+///
+/// A waiter sleeps on `queue.wake` until the holder drops the lock, with
+/// [`LOCK_SLICE`] as the backstop; where nothing wakes it, it tries again
+/// on a doubling backoff. A waiter that leaves without the lock passes the
+/// wake it may have taken to the next one.
+pub(super) fn lock(root: &Path, wait: Duration) -> Result<Option<QueueLock>> {
     let file = fs::OpenOptions::new()
         .read(true)
         .write(true)
         .create(true)
         .truncate(false)
         .open(lock_path(root))?;
+    let word = Word::open(&lock_wake_path(root));
     let start = std::time::Instant::now();
+    let mut tries = 0;
     loop {
-        crate::invocation::process::check()?;
+        if let Err(error) = crate::invocation::process::check() {
+            word.bump_one();
+            return Err(error.into());
+        }
         super::admission_stats::lock_attempted();
+        let seen = word.seen();
         match file.try_lock() {
             Ok(()) => {
                 super::admission_stats::lock_waited(start.elapsed(), false);
-                return Ok(Some(file));
+                return Ok(Some(QueueLock {
+                    file: Some(file),
+                    word,
+                }));
             }
             Err(fs::TryLockError::WouldBlock) => {}
-            Err(fs::TryLockError::Error(error)) => return Err(error.into()),
+            Err(fs::TryLockError::Error(error)) => {
+                word.bump_one();
+                return Err(error.into());
+            }
         }
         let left = wait.saturating_sub(start.elapsed());
         if left.is_zero() {
             super::admission_stats::lock_waited(start.elapsed(), true);
+            word.bump_one();
             return Ok(None);
         }
-        std::thread::sleep(LOCK_POLL.min(left));
+        word.wait(seen, lock_slice(tries, left));
+        tries = tries.saturating_add(1);
     }
 }
 
@@ -231,18 +291,32 @@ pub(super) struct State {
     pub(super) passes: u32,
     /// When the owner last looked, in milliseconds since the epoch.
     pub(super) seen: u64,
+    /// When a planner first told the owner its slots were free, in
+    /// milliseconds since the epoch; zero once the owner has looked since.
+    pub(super) woken: u64,
 }
 
 impl State {
+    /// Tickets written before `woken` existed have two fields.
     fn parse(text: &str) -> Option<Self> {
         let mut fields = text.split_whitespace();
         let passes = fields.next()?.parse().ok()?;
         let seen = fields.next()?.parse().ok()?;
-        Some(Self { passes, seen })
+        let woken = match fields.next() {
+            Some(field) => field.parse().ok()?,
+            None => 0,
+        };
+        Some(Self {
+            passes,
+            seen,
+            woken,
+        })
     }
 
+    /// Whether the ticket counts: its owner was not told of free slots, or
+    /// was told less than [`STALE_AFTER`] ago.
     fn fresh(self, now: SystemTime) -> bool {
-        millis(now).saturating_sub(self.seen) < STALE_AFTER.as_millis() as u64
+        self.woken == 0 || millis(now).saturating_sub(self.woken) < STALE_AFTER.as_millis() as u64
     }
 }
 
@@ -256,7 +330,7 @@ fn read_state(file: &mut fs::File) -> Option<State> {
 fn write_state(file: &mut fs::File, state: State) -> Result<()> {
     file.set_len(0)?;
     file.seek(SeekFrom::Start(0))?;
-    write!(file, "{} {}", state.passes, state.seen)?;
+    write!(file, "{} {} {}", state.passes, state.seen, state.woken)?;
     Ok(())
 }
 
@@ -398,19 +472,67 @@ pub(super) fn plan(
     reserve: u32,
     budget: u32,
     spare: bool,
+    ready: impl FnMut(&Entry) -> bool,
+    passes: impl FnMut(&Entry) -> u32,
+) -> Result<Admitted, Waiting> {
+    let assigned = assign(queue, Some(me), free, reserve, budget, spare, ready, passes);
+    let Some((_, slots)) = assigned.admitted.iter().find(|(entry, _)| entry.id == me) else {
+        return Err(Waiting {
+            saved_for_tests: assigned.saved_for_tests,
+        });
+    };
+    let spare = if spare {
+        assigned
+            .left
+            .into_iter()
+            .filter(|&index| Kind::Test.uses(index, reserve))
+            .collect()
+    } else {
+        Vec::new()
+    };
+    Ok(Admitted {
+        slots: slots.clone(),
+        passed: assigned.passed.cloned(),
+        spare,
+    })
+}
+
+/// What [`assign`] hands out.
+struct Assigned<'a> {
+    /// The tickets that take slots now, in rank order, with their slots.
+    admitted: Vec<(&'a Entry, Vec<u32>)>,
+    /// Free slots no admitted ticket took.
+    left: Vec<u32>,
+    /// The first ticket, when it did not fit and a later one took slots.
+    passed: Option<&'a Entry>,
+    /// Free slots the first ticket, a test, reserves.
+    saved_for_tests: u32,
+}
+
+/// Hand `free` slots to the tickets in `queue` in rank order. With `me`,
+/// stop once `me` has its slots or does not fit, unless `through`; without
+/// `me`, every ticket is another's and all are planned.
+fn assign<'a>(
+    queue: &'a [Entry],
+    me: Option<&str>,
+    free: &[u32],
+    reserve: u32,
+    budget: u32,
+    through: bool,
     mut ready: impl FnMut(&Entry) -> bool,
     mut passes: impl FnMut(&Entry) -> u32,
-) -> Result<Admitted, Waiting> {
+) -> Assigned<'a> {
     let mut available = free.to_vec();
     let mut saved_for_tests = 0;
     // The first ticket that counts, and whether it got its slots.
     let mut first: Option<(&Entry, bool)> = None;
-    let mut mine = None;
+    let mut admitted = Vec::new();
+    let mut mine_done = false;
     for entry in queue {
-        if mine.is_some() && !spare {
+        if mine_done && !through {
             break;
         }
-        let is_me = entry.id == me;
+        let is_me = me == Some(entry.id.as_str());
         let fit = take(&available, entry.kind, entry.need, reserve);
         if !is_me && (fit.is_some() || first.is_none()) && !ready(entry) {
             continue;
@@ -423,10 +545,11 @@ pub(super) fn plan(
                     first = Some((entry, true));
                 }
                 if is_me {
-                    mine = Some(slots);
+                    mine_done = true;
                 }
+                admitted.push((entry, slots));
             }
-            None if is_me => return Err(Waiting { saved_for_tests }),
+            None if is_me => break,
             None if is_first => {
                 first = Some((entry, false));
                 if passes(entry) >= budget {
@@ -440,26 +563,70 @@ pub(super) fn plan(
             None => {}
         }
     }
-    let Some(slots) = mine else {
-        return Err(Waiting { saved_for_tests });
-    };
     let passed = match first {
-        Some((entry, false)) => Some(entry.clone()),
+        Some((entry, false)) => Some(entry),
         _ => None,
     };
-    let spare = if spare {
-        available
-            .into_iter()
-            .filter(|&index| Kind::Test.uses(index, reserve))
-            .collect()
-    } else {
-        Vec::new()
-    };
-    Ok(Admitted {
-        slots,
+    Assigned {
+        admitted,
+        left: available,
         passed,
-        spare,
-    })
+        saved_for_tests,
+    }
+}
+
+/// Plan for the whole queue after slots were freed, and wake every ticket
+/// the plan admits. Called by whoever changed the state: a holder dropping
+/// slots, a waiter leaving. Nothing is woken when `queue.lock` stays held
+/// for [`LOCK_WAIT`]; the waiters' backstop covers that.
+pub(super) fn wake_admitted(root: &Path, pool: u32) {
+    // Without a ticket there is nobody to wake, and no lock to take.
+    if !matches!(list(root), Ok(queue) if !queue.is_empty()) {
+        return;
+    }
+    let Ok(Some(_queue)) = lock(root, LOCK_WAIT) else {
+        return;
+    };
+    let Ok(queue) = list(root) else {
+        return;
+    };
+    let free: Vec<u32> = (0..pool)
+        .filter(|index| {
+            super::slot_is_held(&super::permits_dir(root).join(index.to_string())) == Some(false)
+        })
+        .collect();
+    let now = SystemTime::now();
+    let assigned = assign(
+        &queue,
+        None,
+        &free,
+        super::reserve_for(pool),
+        pass_budget(pool),
+        true,
+        |entry| ready(root, entry, now),
+        |entry| passes(root, entry),
+    );
+    for (entry, _) in assigned.admitted {
+        wake(root, entry, now);
+    }
+}
+
+/// Tell `entry`'s owner that its slots are free. The first wake since the
+/// owner last looked is the one its [`STALE_AFTER`] runs from. Call only
+/// under `queue.lock`.
+pub(super) fn wake(root: &Path, entry: &Entry, now: SystemTime) {
+    if let Ok(mut file) = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(queue_dir(root).join(entry.name()))
+    {
+        let mut state = read_state(&mut file).unwrap_or_default();
+        if state.woken == 0 {
+            state.woken = millis(now);
+            let _ = write_state(&mut file, state);
+        }
+    }
+    Word::open(&waiters_dir(root).join(&entry.id)).bump_one();
 }
 
 /// The lowest `need` slots of `available` that `kind` can use, if there are
@@ -477,20 +644,27 @@ fn take(available: &[u32], kind: Kind, need: u32, reserve: u32) -> Option<Vec<u3
 /// A waiting request's place in the queue. Dropping it leaves the queue.
 pub(super) struct Ticket {
     root: PathBuf,
+    pool: u32,
     entry: Entry,
     state: fs::File,
+    /// The counter in `waiters/<id>` that a planner bumps to wake the owner.
+    word: Word,
+    /// The counter when the owner last looked, under `queue.lock`. A wake
+    /// after that is one the owner has not acted on.
+    seen: u32,
     // Declared last: the lock is released after both files are unlinked.
     _owner: fs::File,
     wake: bool,
 }
 
 impl Ticket {
-    /// Queue `entry`. Call only under `queue.lock`, so no planner sees the
-    /// ticket before its owner holds it.
-    pub(super) fn create(root: &Path, entry: Entry, now: SystemTime) -> Result<Self> {
+    /// Queue `entry` in a pool of `pool` slots. Call only under `queue.lock`,
+    /// so no planner sees the ticket before its owner holds it.
+    pub(super) fn create(root: &Path, entry: Entry, now: SystemTime, pool: u32) -> Result<Self> {
         fs::create_dir_all(queue_dir(root))?;
         fs::create_dir_all(waiters_dir(root))?;
         let owner = waiter_lock(&waiters_dir(root).join(&entry.id))?;
+        let word = Word::open(&waiters_dir(root).join(&entry.id));
         // From here on, dropping the ticket removes both files.
         let state = fs::OpenOptions::new()
             .read(true)
@@ -504,10 +678,14 @@ impl Ticket {
                 return Err(error.into());
             }
         };
+        let seen = word.seen();
         let mut ticket = Self {
             root: root.to_path_buf(),
+            pool,
             entry,
             state,
+            word,
+            seen,
             _owner: owner,
             wake: false,
         };
@@ -516,6 +694,7 @@ impl Ticket {
             State {
                 passes: 0,
                 seen: millis(now),
+                woken: 0,
             },
         )?;
         ticket.wake = true;
@@ -542,7 +721,14 @@ impl Ticket {
         }
         let mut state = read_state(&mut self.state).unwrap_or_default();
         state.seen = millis(now);
+        state.woken = 0;
+        self.seen = self.word.seen();
         write_state(&mut self.state, state)
+    }
+
+    /// Sleep until a planner wakes this ticket or `limit` elapses.
+    pub(super) fn park(&self, limit: Duration) -> Wake {
+        self.word.wait(self.seen, limit)
     }
 
     /// Leave the queue after taking slots. Nothing changed for the other
@@ -558,6 +744,7 @@ impl Drop for Ticket {
         let _ = fs::remove_file(waiters_dir(&self.root).join(&self.entry.id));
         if self.wake {
             // A waiter that gives up can free slots it was reserving.
+            wake_admitted(&self.root, self.pool);
             super::permit_wait::notify(&self.root);
         }
     }
@@ -584,6 +771,73 @@ mod tests {
         // `None` is returned only once the whole allowance has elapsed.
         assert!(stats.lock_wait_us >= 2000, "{stats:?}");
         drop(held);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_held_lock_is_tried_once_per_slice_not_polled() {
+        let dir = tempfile::tempdir().unwrap();
+        let held = lock(dir.path(), Duration::ZERO).unwrap().unwrap();
+        let _ = super::super::admission_stats::take();
+        let wait = LOCK_SLICE * 4;
+        assert!(lock(dir.path(), wait).unwrap().is_none());
+        let stats = super::super::admission_stats::take();
+        // One try per slice and one when the allowance runs out. Polling at
+        // `LOCK_POLL` would make a thousand.
+        assert!(
+            (2..=6).contains(&stats.lock_attempts),
+            "{} tries in {wait:?}",
+            stats.lock_attempts
+        );
+        drop(held);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn dropping_the_lock_hands_it_to_a_waiter_without_a_poll() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().to_path_buf();
+        let held = lock(&root, Duration::ZERO).unwrap().unwrap();
+        let waiter = std::thread::spawn(move || {
+            let _ = super::super::admission_stats::take();
+            let taken = lock(&root, Duration::from_secs(5)).unwrap();
+            (taken.is_some(), super::super::admission_stats::take())
+        });
+        // Long enough for the waiter to be asleep on the word, short enough
+        // that its slice has not run out.
+        std::thread::sleep(LOCK_SLICE / 2);
+        let dropped = std::time::Instant::now();
+        drop(held);
+        let (taken, stats) = waiter.join().unwrap();
+        assert!(taken);
+        assert!(
+            stats.lock_attempts <= 2,
+            "{} tries; the drop must wake the waiter, not its slice",
+            stats.lock_attempts
+        );
+        assert!(
+            dropped.elapsed() < LOCK_SLICE,
+            "woken after {:?}; the drop must wake the waiter before its slice ends",
+            dropped.elapsed()
+        );
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_waiter_that_gives_up_passes_the_wake_on() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().to_path_buf();
+        let held = lock(&root, Duration::ZERO).unwrap().unwrap();
+        let word = Word::open(&lock_wake_path(&root));
+        let seen = word.seen();
+        assert!(lock(&root, Duration::from_millis(1)).unwrap().is_none());
+        assert_eq!(
+            word.seen(),
+            seen.wrapping_add(1),
+            "giving up bumps the word"
+        );
+        drop(held);
+        assert_eq!(word.seen(), seen.wrapping_add(2), "dropping bumps it");
     }
 
     fn entry(rank: u64, kind: Kind, need: u32, id: &str) -> Entry {
@@ -696,25 +950,47 @@ mod tests {
     }
 
     #[test]
-    fn a_ticket_is_fresh_for_two_seconds_after_its_owner_looked() {
-        let state = State {
+    fn a_woken_ticket_counts_for_two_seconds_and_an_unwoken_one_always() {
+        let told = State {
             passes: 0,
             seen: 10_000,
+            woken: 10_000,
         };
-        assert!(state.fresh(at(10_000)));
-        assert!(state.fresh(at(11_999)));
-        assert!(!state.fresh(at(12_000)));
-        assert!(state.fresh(at(9_000)), "a clock step back keeps it");
+        assert!(told.fresh(at(10_000)));
+        assert!(told.fresh(at(11_999)));
+        assert!(!told.fresh(at(12_000)));
+        assert!(told.fresh(at(9_000)), "a clock step back keeps it");
+        let waiting = State {
+            passes: 0,
+            seen: 10_000,
+            woken: 0,
+        };
+        assert!(waiting.fresh(at(12_000)));
+        assert!(waiting.fresh(at(u64::MAX / 2)));
+    }
+
+    #[test]
+    fn a_ticket_state_parses_with_and_without_the_woken_field() {
+        assert_eq!(
+            State::parse("3 10000 12000"),
+            Some(State {
+                passes: 3,
+                seen: 10_000,
+                woken: 12_000,
+            })
+        );
         assert_eq!(
             State::parse("3 10000"),
             Some(State {
                 passes: 3,
-                seen: 10_000
+                seen: 10_000,
+                woken: 0,
             })
         );
         assert_eq!(State::parse("3"), None);
         assert_eq!(State::parse("x 1"), None);
         assert_eq!(State::parse("1 x"), None);
+        assert_eq!(State::parse("1 2 x"), None);
     }
 
     #[test]
@@ -989,7 +1265,7 @@ mod tests {
         let dir = root();
         assert!(list(dir.path()).unwrap().is_empty(), "no queue yet");
         let queued = entry(7, Kind::Compile, 2, "abc");
-        let ticket = Ticket::create(dir.path(), queued.clone(), at(5_000)).unwrap();
+        let mut ticket = Ticket::create(dir.path(), queued.clone(), at(5_000), 4).unwrap();
         assert_eq!(ticket.entry(), &queued);
         fs::write(queue_dir(dir.path()).join("not-a-ticket"), b"").unwrap();
         assert_eq!(list(dir.path()).unwrap(), std::slice::from_ref(&queued));
@@ -998,11 +1274,27 @@ mod tests {
             Some(true)
         );
         assert!(ready(dir.path(), &queued, at(6_000)));
-        assert!(!ready(dir.path(), &queued, at(7_000)), "stale");
+        assert!(
+            ready(dir.path(), &queued, at(60_000)),
+            "a ticket nobody woke never goes stale"
+        );
+        wake(dir.path(), &queued, at(7_000));
+        assert!(ready(dir.path(), &queued, at(8_999)));
+        assert!(!ready(dir.path(), &queued, at(9_000)), "woken, not claimed");
+        wake(dir.path(), &queued, at(9_500));
+        assert!(
+            !ready(dir.path(), &queued, at(9_600)),
+            "a second wake does not restart the clock"
+        );
         assert_eq!(
             list(dir.path()).unwrap(),
             std::slice::from_ref(&queued),
             "stale is kept"
+        );
+        ticket.refresh(2, at(9_700)).unwrap();
+        assert!(
+            ready(dir.path(), &queued, at(12_000)),
+            "the owner looking makes it count again"
         );
         drop(ticket);
         assert!(list(dir.path()).unwrap().is_empty());
@@ -1012,8 +1304,10 @@ mod tests {
     #[test]
     fn list_sorts_by_rank_and_reports_an_unreadable_queue() {
         let dir = root();
-        let _late = Ticket::create(dir.path(), entry(9, Kind::Compile, 1, "late"), at(0)).unwrap();
-        let _early = Ticket::create(dir.path(), entry(3, Kind::Test, 1, "early"), at(0)).unwrap();
+        let _late =
+            Ticket::create(dir.path(), entry(9, Kind::Compile, 1, "late"), at(0), 4).unwrap();
+        let _early =
+            Ticket::create(dir.path(), entry(3, Kind::Test, 1, "early"), at(0), 4).unwrap();
         let ids: Vec<_> = list(dir.path())
             .unwrap()
             .into_iter()
@@ -1048,7 +1342,7 @@ mod tests {
     fn a_live_ticket_with_no_state_is_not_ready() {
         let dir = root();
         let queued = entry(7, Kind::Compile, 1, "blank");
-        let _ticket = Ticket::create(dir.path(), queued.clone(), at(5_000)).unwrap();
+        let _ticket = Ticket::create(dir.path(), queued.clone(), at(5_000), 4).unwrap();
         fs::write(queue_dir(dir.path()).join(queued.name()), b"").unwrap();
         assert!(!ready(dir.path(), &queued, at(5_000)));
         assert_eq!(
@@ -1062,7 +1356,7 @@ mod tests {
     fn refreshing_a_ticket_renames_it_and_keeps_its_passes() {
         let dir = root();
         let queued = entry(7, Kind::Compile, 4, "grow");
-        let mut ticket = Ticket::create(dir.path(), queued.clone(), at(1_000)).unwrap();
+        let mut ticket = Ticket::create(dir.path(), queued.clone(), at(1_000), 4).unwrap();
         record_pass(dir.path(), &queued).unwrap();
         record_pass(dir.path(), &queued).unwrap();
         assert_eq!(passes(dir.path(), &queued), 2);
@@ -1092,11 +1386,12 @@ mod tests {
         let queued = entry(7, Kind::Compile, 1, "twice");
         fs::create_dir_all(queue_dir(dir.path())).unwrap();
         fs::write(queue_dir(dir.path()).join(queued.name()), b"").unwrap();
-        assert!(Ticket::create(dir.path(), queued, at(0)).is_err());
+        assert!(Ticket::create(dir.path(), queued, at(0), 4).is_err());
         assert!(!waiters_dir(dir.path()).join("twice").exists());
-        let held = Ticket::create(dir.path(), entry(1, Kind::Compile, 1, "held"), at(0)).unwrap();
+        let held =
+            Ticket::create(dir.path(), entry(1, Kind::Compile, 1, "held"), at(0), 4).unwrap();
         assert!(
-            Ticket::create(dir.path(), entry(2, Kind::Compile, 1, "held"), at(0)).is_err(),
+            Ticket::create(dir.path(), entry(2, Kind::Compile, 1, "held"), at(0), 4).is_err(),
             "an id another waiter holds"
         );
         assert!(waiters_dir(dir.path()).join("held").exists());
@@ -1108,11 +1403,19 @@ mod tests {
     fn only_a_ticket_that_gives_up_wakes_the_waiters() {
         let dir = root();
         let seen = super::super::permit_wait::snapshot(dir.path());
-        Ticket::create(dir.path(), entry(1, Kind::Compile, 1, "admitted"), at(0))
+        Ticket::create(dir.path(), entry(1, Kind::Compile, 1, "admitted"), at(0), 4)
             .unwrap()
             .admitted();
         assert_eq!(super::super::permit_wait::snapshot(dir.path()), seen);
-        drop(Ticket::create(dir.path(), entry(1, Kind::Compile, 1, "cancelled"), at(0)).unwrap());
+        drop(
+            Ticket::create(
+                dir.path(),
+                entry(1, Kind::Compile, 1, "cancelled"),
+                at(0),
+                4,
+            )
+            .unwrap(),
+        );
         assert_eq!(
             super::super::permit_wait::snapshot(dir.path()),
             seen.wrapping_add(1)

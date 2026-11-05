@@ -8,8 +8,9 @@
 //! Lease files live under `<cache>/scheduler/`. Each admitted compile holds
 //! an OS file lock; the kernel releases it if the wrapper dies — the same
 //! invariant as [`crate::store::Store::try_lock`]. A waiter that finds those
-//! locks held sleeps until one is released, instead of scanning the pool at
-//! [`POLL_INTERVAL`].
+//! locks held sleeps until a release hands them to it, instead of scanning
+//! the pool at [`POLL_INTERVAL`]: whoever releases slots plans for the
+//! queue and wakes the waiters the plan admits (see [`queue::wake_admitted`]).
 //!
 //! The permit pool size is [`default_pool_size`]:
 //! `std::thread::available_parallelism()`, with a floor of 1. Unmeasured
@@ -244,6 +245,7 @@ pub struct MissGuard {
 
 struct Permit {
     root: PathBuf,
+    pool: u32,
     _slots: Vec<(u32, StoreLock)>,
     _recovery: Vec<StoreLock>,
 }
@@ -253,9 +255,36 @@ impl Drop for Permit {
         // Unlock before publishing, so a waiter that wakes can take the slot.
         self._slots.clear();
         self._recovery.clear();
-        permit_wait::notify(&self.root);
+        released(&self.root, self.pool);
     }
 }
+
+/// Hand slots that were just unlocked to the queue: plan for it and wake the
+/// tickets admitted, then tell the waiters without a ticket, who sleep on
+/// the shared counter.
+fn released(root: &Path, pool: u32) {
+    queue::wake_admitted(root, pool);
+    permit_wait::notify(root);
+}
+
+/// How long a parked ticket sleeps before looking for itself, when no
+/// release wakes it: a killed holder frees its slots without a wake, and a
+/// wrapper of an older release plans for nobody. A test at the head of the
+/// queue looks first; the tests behind it wait longer the further back they
+/// are, so one lost wake costs one lock hold, not one per waiter. A compile
+/// always looks after [`queue::STALE_AFTER`]: its need shrinks while tests
+/// hold slots (see [`compile_need`]), which no release tells it.
+fn backstop(kind: queue::Kind, position: u32) -> Duration {
+    match kind {
+        queue::Kind::Compile => queue::STALE_AFTER,
+        queue::Kind::Test => queue::STALE_AFTER
+            .saturating_mul(position.saturating_add(1))
+            .min(BACKSTOP_MAX),
+    }
+}
+
+/// The longest a parked ticket goes without looking for itself.
+const BACKSTOP_MAX: Duration = Duration::from_secs(30);
 
 #[derive(Clone)]
 struct Scheduler {
@@ -628,6 +657,7 @@ impl Scheduler {
         );
         Ok(Some(Permit {
             root: self.root.clone(),
+            pool: self.pool_size,
             _slots: slots,
             _recovery: recovery,
         }))
@@ -653,10 +683,11 @@ impl Scheduler {
         if slots.len() > keep {
             slots.truncate(keep);
             // A test may be waiting for exactly these slots.
-            permit_wait::notify(&self.root);
+            released(&self.root, self.pool_size);
         }
         Permit {
             root: self.root.clone(),
+            pool: self.pool_size,
             _slots: slots,
             _recovery: Vec::new(),
         }
@@ -670,9 +701,9 @@ impl Scheduler {
     /// takes the free test slots no waiter wants.
     ///
     /// A scan that locked nothing another process is holding retries on
-    /// [`POLL_INTERVAL`]. A scan that found held slots arms a release watch
-    /// and scans once more, so an unlock during the arm is not missed, then
-    /// sleeps in [`permit_wait`].
+    /// [`POLL_INTERVAL`]. A scan that found held slots queues a ticket and
+    /// parks on it (see [`Scheduler::park`]); whoever frees the slots it
+    /// needs wakes it.
     fn wait_for_permit(
         &self,
         kind: queue::Kind,
@@ -698,25 +729,29 @@ impl Scheduler {
             crate::invocation::process::check().ok()?;
             // A need of zero would never be met.
             let asking = need(waited, request.saved_for_tests.get()).max(1);
+            // Sampled before the scan: a release after it is not missed.
+            let seen = permit_wait::snapshot(&self.root);
             match self.collect_permits(request, asking, ticket, start) {
                 WaitStep::Ready(slots) => return Some(slots),
                 WaitStep::Stop => return None,
                 WaitStep::Busy(busy) if !busy.is_empty() => {
+                    if !waited {
+                        // The need is asked again once the request has waited
+                        // (see [`compile_need`]); it may fit at once.
+                        waited = true;
+                        continue;
+                    }
                     let armed = permit_wait::arm(&self.root, &busy);
-                    let seen = permit_wait::snapshot(&self.root);
-                    match self.collect_permits(request, asking, ticket, start) {
-                        WaitStep::Ready(slots) => return Some(slots),
-                        WaitStep::Stop => return None,
-                        WaitStep::Busy(_) => {
-                            let remaining = self.wait_timeout.saturating_sub(start.elapsed());
-                            let nap = permit_wait::SATURATED_SLICE.min(remaining);
-                            #[cfg(test)]
-                            PERMIT_POLL_MAX.with(|max| max.set(max.get().max(nap)));
-                            let parked = std::time::Instant::now();
-                            permit_wait::park(&self.root, armed, seen, nap);
-                            admission_stats::parked(parked.elapsed());
+                    if !permit_wait::WORDS_WAKE {
+                        // Nothing here reports a release during the arm, so
+                        // look once more before sleeping.
+                        match self.collect_permits(request, asking, ticket, start) {
+                            WaitStep::Ready(slots) => return Some(slots),
+                            WaitStep::Stop => return None,
+                            WaitStep::Busy(_) => {}
                         }
                     }
+                    self.park(request, ticket.as_ref(), armed, seen, start)?;
                 }
                 WaitStep::Busy(_) => {
                     let remaining = self.wait_timeout.saturating_sub(start.elapsed());
@@ -727,6 +762,50 @@ impl Scheduler {
                 }
             }
             waited = true;
+        }
+    }
+
+    /// Sleep until a release hands this request its slots, or until it is
+    /// time to look for itself: its wait allowance or its [`backstop`] ran
+    /// out. `None` when the request was cancelled.
+    ///
+    /// A ticket sleeps on its own counter, which only a planner that admits
+    /// it bumps. A request without a ticket sleeps on the shared counter,
+    /// which every release bumps. A slice that ends with neither is not a
+    /// reason to take `queue.lock`: the request sleeps again, after checking
+    /// for cancellation, which is why a cancellable request sleeps at most
+    /// [`permit_wait::SATURATED_SLICE`] at a time.
+    fn park(
+        &self,
+        request: &Request,
+        ticket: Option<&queue::Ticket>,
+        mut armed: Option<permit_wait::Armed>,
+        seen: u32,
+        start: std::time::Instant,
+    ) -> Option<()> {
+        let backstop = backstop(request.kind, request.position.get());
+        let parked_at = std::time::Instant::now();
+        loop {
+            crate::invocation::process::check().ok()?;
+            let remaining = self.wait_timeout.saturating_sub(start.elapsed());
+            let mut nap = remaining.min(backstop.saturating_sub(parked_at.elapsed()));
+            if nap.is_zero() {
+                return Some(());
+            }
+            if !permit_wait::WORDS_WAKE || crate::invocation::process::current().is_some() {
+                nap = nap.min(permit_wait::SATURATED_SLICE);
+            }
+            #[cfg(test)]
+            PERMIT_POLL_MAX.with(|max| max.set(max.get().max(nap)));
+            let slice = std::time::Instant::now();
+            let wake = match ticket {
+                Some(ticket) if permit_wait::WORDS_WAKE => ticket.park(nap),
+                _ => permit_wait::park(&self.root, armed.take(), seen, nap),
+            };
+            admission_stats::parked(slice.elapsed());
+            if wake != permit_wait::Wake::Slice {
+                return Some(());
+            }
         }
     }
 
@@ -757,6 +836,8 @@ impl Scheduler {
             _markers: markers,
             marker_path: std::path::absolute(&path).unwrap_or(path),
             _slots: slots,
+            root: self.root.clone(),
+            pool: self.pool_size,
         })
     }
 
@@ -843,6 +924,16 @@ pub struct TestLease {
     _markers: Vec<StoreLock>,
     marker_path: PathBuf,
     _slots: Vec<(u32, StoreLock)>,
+    root: PathBuf,
+    pool: u32,
+}
+
+impl Drop for TestLease {
+    fn drop(&mut self) {
+        self._markers.clear();
+        self._slots.clear();
+        released(&self.root, self.pool);
+    }
 }
 
 impl TestLease {
@@ -986,6 +1077,8 @@ struct Request {
     rank: u64,
     /// What the last scan found the queue saving for a waiting test.
     saved_for_tests: std::cell::Cell<u32>,
+    /// How many tickets the last scan found ahead of this request.
+    position: std::cell::Cell<u32>,
 }
 
 impl Request {
@@ -995,6 +1088,7 @@ impl Request {
             spare,
             rank: queue::rank(SystemTime::now(), priority::current()),
             saved_for_tests: std::cell::Cell::new(0),
+            position: std::cell::Cell::new(0),
         }
     }
 }
@@ -1049,6 +1143,7 @@ impl Scheduler {
         allowance: Duration,
     ) -> Result<Collect> {
         request.saved_for_tests.set(0);
+        request.position.set(0);
         admission_stats::admit_called();
         let wait = queue::LOCK_WAIT.min(allowance);
         match queue::lock(&self.root, wait) {
@@ -1107,7 +1202,7 @@ impl Scheduler {
             }
             Collect::Busy(busy) => {
                 if ticket.is_none() {
-                    *ticket = Some(queue::Ticket::create(&self.root, me, now)?);
+                    *ticket = Some(queue::Ticket::create(&self.root, me, now, self.pool_size)?);
                 }
                 Ok(Collect::Busy(busy))
             }
@@ -1149,8 +1244,13 @@ impl Scheduler {
             }
         }
         let indexes: Vec<u32> = free.iter().map(|(index, _)| *index).collect();
+        let queue = queue::with_entry(queued, me);
+        let position = queue.iter().position(|entry| entry.id == me.id);
+        request
+            .position
+            .set(position.map_or(0, |position| position as u32));
         let plan = queue::plan(
-            &queue::with_entry(queued, me),
+            &queue,
             &me.id,
             &indexes,
             reserve_for(self.pool_size),
@@ -2209,6 +2309,7 @@ mod tests {
             kind: queue::Kind::Compile,
             spare: false,
             saved_for_tests: std::cell::Cell::new(0),
+            position: std::cell::Cell::new(0),
         };
         let mut ticket = None;
         assert!(
@@ -3456,17 +3557,21 @@ mod tests {
         );
         #[cfg(target_os = "linux")]
         {
-            // Keep admission from removing the waiter's ticket and publishing
-            // its own wake, so only dropping this permit can move the counter.
-            let _queue = queue::lock(&holder.root, Duration::from_secs(5))
-                .unwrap()
-                .unwrap();
-            let seen = permit_wait::snapshot(&holder.root);
+            // The ticket's own counter, mapped before the waiter can unlink it.
+            let ticket = queue::waiters_dir(&holder.root).join(&queued(dir.path())[0].id);
+            let word = permit_wait::Word::open(&ticket);
+            let seen = word.seen();
+            let shared = permit_wait::snapshot(&holder.root);
             drop(permit);
+            assert_eq!(
+                word.seen(),
+                seen.wrapping_add(1),
+                "dropping the permit must wake the ticket it admits"
+            );
             assert_ne!(
                 permit_wait::snapshot(&holder.root),
-                seen,
-                "dropping the permit must publish a wake"
+                shared,
+                "dropping the permit must publish a wake to waiters without a ticket"
             );
         }
         #[cfg(not(target_os = "linux"))]
@@ -3483,6 +3588,87 @@ mod tests {
             "woke after {:?}; releasing a permit has to interrupt the wait",
             started.elapsed()
         );
+    }
+
+    /// Each release wakes the one ticket the plan admits; the others sleep
+    /// on, taking no lock.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_release_wakes_only_the_ticket_it_admits() {
+        let dir = temp_cache();
+        let cache = dir.path();
+        let background = Priority::Background;
+        let holder = Requester::running(cache, 1, 1, background);
+        let waiters: Vec<Requester> = (1..=3)
+            .map(|count| Requester::queued(cache, 1, 1, background, count))
+            .collect();
+        let tickets = queued(cache);
+        let words: Vec<permit_wait::Word> = tickets
+            .iter()
+            .map(|entry| {
+                permit_wait::Word::open(&queue::waiters_dir(&scheduler_root(cache)).join(&entry.id))
+            })
+            .collect();
+        let before: Vec<u32> = words.iter().map(permit_wait::Word::seen).collect();
+        let moved = |before: &[u32]| -> usize {
+            words
+                .iter()
+                .zip(before)
+                .filter(|(word, seen)| word.seen() != **seen)
+                .count()
+        };
+        holder.finish();
+        let first = waiters
+            .iter()
+            .position(|waiter| !waiter.still_waiting())
+            .expect("the release admits one waiter");
+        assert_eq!(moved(&before), 1, "one ticket woken");
+        assert_ne!(words[0].seen(), before[0], "the ticket at the head");
+        assert_eq!(first, 0);
+        for waiter in &waiters[1..] {
+            assert!(waiter.still_waiting(), "the others keep sleeping");
+        }
+        let before: Vec<u32> = words.iter().map(permit_wait::Word::seen).collect();
+        let mut waiters = waiters.into_iter();
+        waiters.next().unwrap().finish();
+        assert_eq!(moved(&before), 1, "the next release wakes the next ticket");
+        assert_ne!(words[1].seen(), before[1]);
+        for waiter in waiters {
+            waiter.finish();
+        }
+    }
+
+    /// Parked tickets make no lock tries until they are woken.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_parked_ticket_takes_no_lock_until_woken() {
+        let dir = temp_cache();
+        let cache = dir.path();
+        let scheduler = test_scheduler(cache, 1);
+        let permit = scheduler.acquire_permit(1).unwrap();
+        let root = cache.to_path_buf();
+        let waiter = std::thread::spawn(move || {
+            // Cancellable, so it sleeps in slices of `SATURATED_SLICE`.
+            let token = crate::invocation::process::Cancellation::default();
+            let _scope = crate::invocation::process::CancellationScope::enter(Some(token));
+            let _ = admission_stats::take();
+            let admitted = test_scheduler(&root, 1).acquire_permit(1).is_some();
+            (admitted, admission_stats::take())
+        });
+        wait_until("the waiter to queue", || queued(cache).len() == 1);
+        // Long enough for slices to end without a wake.
+        std::thread::sleep(permit_wait::SATURATED_SLICE * 3);
+        drop(permit);
+        let (admitted, stats) = waiter.join().unwrap();
+        assert!(admitted);
+        assert!(stats.parks >= 2, "no slice ended: {stats:?}");
+        // The first scan, the scan after it has waited, the claim when woken.
+        assert!(
+            stats.lock_holds <= 3,
+            "{} lock holds; a slice that ends is not a reason to replan: {stats:?}",
+            stats.lock_holds
+        );
+        assert_eq!(stats.lock_gave_up, 0, "{stats:?}");
     }
 
     #[cfg(target_os = "linux")]
@@ -4855,12 +5041,13 @@ mod tests {
             &scheduler_root(cache),
             queue::Entry::new(rank, kind, need),
             seen,
+            4,
         )
         .unwrap()
     }
 
     #[test]
-    fn a_waiter_that_has_not_looked_for_a_while_is_skipped() {
+    fn a_waiter_that_was_woken_and_has_not_claimed_is_skipped() {
         let dir = temp_cache();
         let cache = dir.path();
         let scheduler = budget_scheduler(cache, 1);
@@ -4870,11 +5057,10 @@ mod tests {
             "a live ticket ahead takes the free slot first"
         );
         drop(fresh);
-        let _starved = hold_ticket(
-            cache,
-            0,
-            queue::Kind::Compile,
-            1,
+        let starved = hold_ticket(cache, 0, queue::Kind::Compile, 1, SystemTime::now());
+        queue::wake(
+            &scheduler.root,
+            starved.entry(),
             SystemTime::now() - Duration::from_secs(3),
         );
         assert!(scheduler.acquire_permit(1).is_some());
