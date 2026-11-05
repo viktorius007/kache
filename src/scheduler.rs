@@ -1263,6 +1263,11 @@ impl Scheduler {
             Ok(admitted) => admitted,
             Err(waiting) => {
                 request.saved_for_tests.set(waiting.saved_for_tests);
+                if busy.is_empty() {
+                    // Free slots the queue gave to the tickets ahead are as
+                    // good as held: their release, not a poll, hands them on.
+                    busy = indexes;
+                }
                 return Ok(Collect::Busy(busy));
             }
         };
@@ -3503,6 +3508,34 @@ mod tests {
         assert!(
             scans >= 2 && u128::from(scans) * 40 < started.elapsed().as_millis(),
             "scanned {scans} times in {:?}; a held slot must use release notifications",
+            started.elapsed()
+        );
+    }
+
+    /// A free slot the queue hands to a ticket ahead is waited for like a
+    /// held one: on a release, not on the short poll.
+    #[test]
+    fn a_request_behind_another_ticket_does_not_scan_on_the_short_poll() {
+        let dir = temp_cache();
+        let scheduler = Scheduler::open_with(
+            dir.path(),
+            1,
+            Duration::from_millis(400),
+            Duration::from_millis(5),
+        )
+        .unwrap();
+        let _ahead = hold_ticket(dir.path(), 0, queue::Kind::Compile, 1, SystemTime::now());
+        reset_permit_scans();
+        let started = std::time::Instant::now();
+        assert!(
+            scheduler
+                .wait_for_permit(queue::Kind::Compile, |_, _| 1, false)
+                .is_none()
+        );
+        let scans = permit_scans();
+        assert!(
+            scans >= 2 && u128::from(scans) * 40 < started.elapsed().as_millis(),
+            "scanned {scans} times in {:?}; the slot is free but spoken for",
             started.elapsed()
         );
     }
