@@ -34,7 +34,6 @@ ADMISSION_KEYS = (
     "pid",
     "key",
     "want",
-    "leased",
     "held",
     "wait_us",
     "admit_calls",
@@ -185,7 +184,7 @@ def aggregate_admission(lines):
         sum(1 for r in records if r.get("unordered", 0) > 0) / count
     )
     summary["not_leased_fraction"] = (
-        sum(1 for r in records if r.get("leased") is False) / count
+        sum(1 for r in records if r.get("held", 0) == 0) / count
     )
     return summary
 
@@ -413,7 +412,7 @@ def admission_rows(adm):
         ("mean hold us per acquisition", fmt(adm["mean_hold_us"])),
         ("lock_gave_up > 0", fmt(adm["gave_up_fraction"], 3)),
         ("unordered > 0", fmt(adm["unordered_fraction"], 3)),
-        ("leased == false", fmt(adm["not_leased_fraction"], 3)),
+        ("held == 0", fmt(adm["not_leased_fraction"], 3)),
     ]
     return rows
 

@@ -30,7 +30,7 @@ JUNIT = """<?xml version="1.0" encoding="UTF-8"?>
 
 def admission_line(**fields):
     record = {key: 0 for key in admission.ADMISSION_KEYS}
-    record.update({"pid": 1, "key": "k", "want": 1, "leased": True, "held": 1})
+    record.update({"pid": 1, "key": "k", "want": 1, "held": 1})
     record.update(fields)
     return json.dumps(record)
 
@@ -92,7 +92,7 @@ class AdmissionAggregateTest(unittest.TestCase):
             admission_line(lock_attempts=1, wait_us=10, lock_wait_us=5, lock_holds=1, lock_hold_us=20),
             admission_line(lock_attempts=3, wait_us=30, lock_wait_us=15, lock_holds=2, lock_hold_us=40, lock_gave_up=1),
             admission_line(lock_attempts=2, wait_us=20, lock_wait_us=10, lock_holds=1, lock_hold_us=30, unordered=2),
-            admission_line(lock_attempts=10, wait_us=100, lock_wait_us=50, lock_holds=0, lock_hold_us=0, leased=False),
+            admission_line(lock_attempts=10, wait_us=100, lock_wait_us=50, lock_holds=0, lock_hold_us=0, held=0),
         ]
         summary = admission.aggregate_admission(lines)
         self.assertEqual(summary["lines"], 4)

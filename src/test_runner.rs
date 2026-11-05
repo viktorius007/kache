@@ -268,7 +268,6 @@ struct AdmissionRecord<'a> {
     pid: u32,
     key: &'a str,
     want: u32,
-    leased: bool,
     held: u32,
     wait_us: u64,
     #[serde(flatten)]
@@ -289,10 +288,6 @@ fn append_admission_record(path: &Path, record: &AdmissionRecord<'_>) {
     {
         let _ = file.write_all(&line);
     }
-}
-
-fn micros(duration: Duration) -> u64 {
-    duration.as_micros().try_into().unwrap_or(u64::MAX)
 }
 
 /// How long to wait for a lease before running without one.
@@ -421,7 +416,7 @@ fn run_scheduled(
         want,
         wait_budget(env),
     );
-    let wait_us = micros(started.elapsed());
+    let wait_us = scheduler::admission_stats::micros(started.elapsed());
     let held = lease.as_ref().map_or(0, scheduler::TestLease::held);
     let mut command = test_command(args, marker);
     hide_runner(&mut command, hidden);
@@ -444,7 +439,6 @@ fn run_scheduled(
                 pid: std::process::id(),
                 key,
                 want,
-                leased: held > 0,
                 held,
                 wait_us,
                 stats: scheduler::admission_stats::take(),
@@ -620,7 +614,6 @@ mod tests {
             pid: 7,
             key: "test:demo:probe",
             want: 2,
-            leased: true,
             held: 2,
             wait_us: 15,
             stats: scheduler::admission_stats::AdmissionStats {
@@ -639,7 +632,6 @@ mod tests {
         assert_eq!(lines[1]["pid"], 7);
         assert_eq!(lines[1]["key"], "test:demo:probe");
         assert_eq!(lines[1]["want"], 2);
-        assert_eq!(lines[1]["leased"], true);
         assert_eq!(lines[1]["held"], 2);
         assert_eq!(lines[1]["wait_us"], 15);
         assert_eq!(lines[1]["lock_attempts"], 9, "the counts are flattened in");

@@ -96,7 +96,8 @@ pub fn take() -> AdmissionStats {
     STATS.with(|stats| stats.replace(AdmissionStats::ZERO))
 }
 
-fn micros(duration: Duration) -> u64 {
+/// Whole microseconds, saturating at `u64::MAX`.
+pub(crate) fn micros(duration: Duration) -> u64 {
     duration.as_micros().try_into().unwrap_or(u64::MAX)
 }
 

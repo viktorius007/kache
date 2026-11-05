@@ -344,7 +344,6 @@ fn a_scheduled_run_appends_its_admission_cost() {
         .collect();
     assert_eq!(records.len(), 1, "{text}");
     let record = &records[0];
-    assert_eq!(record["leased"], true, "{record}");
     assert!(record["held"].as_u64().unwrap() >= 1, "{record}");
     // An empty pool admits on the first plan, under the queue lock.
     assert_eq!(record["admit_calls"], 1, "{record}");
