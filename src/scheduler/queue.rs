@@ -94,9 +94,10 @@ impl Drop for QueueLock {
     }
 }
 
-/// How long a waiter sleeps before its next try of `queue.lock`.
-fn lock_slice(tries: u32, left: Duration) -> Duration {
-    let slice = if WORDS_WAKE {
+/// How long a waiter sleeps before its next try of `queue.lock`: a slice
+/// where a drop wakes it (`woken`), a doubling backoff where nothing does.
+fn lock_slice(woken: bool, tries: u32, left: Duration) -> Duration {
+    let slice = if woken {
         LOCK_SLICE
     } else {
         LOCK_POLL
@@ -151,7 +152,7 @@ pub(super) fn lock(root: &Path, wait: Duration) -> Result<Option<QueueLock>> {
             word.bump_one();
             return Ok(None);
         }
-        word.wait(seen, lock_slice(tries, left));
+        word.wait(seen, lock_slice(WORDS_WAKE, tries, left));
         tries = tries.saturating_add(1);
     }
 }
@@ -363,6 +364,15 @@ pub(super) fn with_entry(mut entries: Vec<Entry>, entry: &Entry) -> Vec<Entry> {
         sort(&mut entries);
     }
     entries
+}
+
+/// Where `id` stands in `queue`, counted from the head; the head when it is
+/// not listed.
+pub(super) fn position(queue: &[Entry], id: &str) -> u32 {
+    queue
+        .iter()
+        .position(|entry| entry.id == id)
+        .map_or(0, |index| index as u32)
 }
 
 /// Whether another request's ticket counts now. A ticket whose owner is gone
@@ -771,6 +781,33 @@ mod tests {
         // `None` is returned only once the whole allowance has elapsed.
         assert!(stats.lock_wait_us >= 2000, "{stats:?}");
         drop(held);
+    }
+
+    #[test]
+    fn a_waiter_sleeps_a_slice_where_a_drop_wakes_it_and_backs_off_elsewhere() {
+        let left = Duration::from_secs(1);
+        assert_eq!(lock_slice(true, 0, left), Duration::from_millis(50));
+        assert_eq!(lock_slice(true, 9, left), Duration::from_millis(50));
+        assert_eq!(lock_slice(false, 0, left), Duration::from_micros(200));
+        assert_eq!(lock_slice(false, 1, left), Duration::from_micros(400));
+        assert_eq!(lock_slice(false, 3, left), Duration::from_micros(1600));
+        assert_eq!(lock_slice(false, 9, left), Duration::from_millis(5));
+        let left = Duration::from_micros(300);
+        assert_eq!(lock_slice(true, 0, left), left, "never past the allowance");
+        assert_eq!(lock_slice(false, 4, left), left);
+    }
+
+    #[test]
+    fn position_counts_the_tickets_ahead() {
+        let queue = vec![
+            entry(1, Kind::Compile, 1, "a"),
+            entry(2, Kind::Test, 1, "b"),
+            entry(3, Kind::Compile, 1, "c"),
+        ];
+        assert_eq!(position(&queue, "a"), 0);
+        assert_eq!(position(&queue, "b"), 1);
+        assert_eq!(position(&queue, "c"), 2);
+        assert_eq!(position(&queue, "d"), 0, "an unlisted ticket looks at once");
     }
 
     #[cfg(target_os = "linux")]

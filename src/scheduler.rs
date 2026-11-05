@@ -798,8 +798,8 @@ impl Scheduler {
             #[cfg(test)]
             PERMIT_POLL_MAX.with(|max| max.set(max.get().max(nap)));
             let slice = std::time::Instant::now();
-            let wake = match ticket {
-                Some(ticket) if permit_wait::WORDS_WAKE => ticket.park(nap),
+            let wake = match (ticket, permit_wait::WORDS_WAKE) {
+                (Some(ticket), true) => ticket.park(nap),
                 _ => permit_wait::park(&self.root, armed.take(), seen, nap),
             };
             admission_stats::parked(slice.elapsed());
@@ -1245,10 +1245,7 @@ impl Scheduler {
         }
         let indexes: Vec<u32> = free.iter().map(|(index, _)| *index).collect();
         let queue = queue::with_entry(queued, me);
-        let position = queue.iter().position(|entry| entry.id == me.id);
-        request
-            .position
-            .set(position.map_or(0, |position| position as u32));
+        request.position.set(queue::position(&queue, &me.id));
         let plan = queue::plan(
             &queue,
             &me.id,
@@ -3623,6 +3620,42 @@ mod tests {
         );
     }
 
+    /// Dropping a test lease plans for the queue and wakes the ticket it
+    /// admits, as dropping a compile permit does.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn dropping_a_test_lease_wakes_the_waiter() {
+        let dir = temp_cache();
+        let cache = dir.path();
+        let wait = Duration::from_secs(5);
+        // A pool of 4 has one reserve slot and three test slots.
+        let lease = acquire_test_lease(cache, 4, TestWant::Elastic(1), wait)
+            .expect("the first lease takes every test slot");
+        assert_eq!(lease.held(), 3);
+        let root = cache.to_path_buf();
+        let waiter = std::thread::spawn(move || {
+            acquire_test_lease(&root, 4, TestWant::Fixed(1), wait).is_some()
+        });
+        wait_until("the lease waiter to queue", || queued(cache).len() == 1);
+        let scheduler = scheduler_root(cache);
+        let word =
+            permit_wait::Word::open(&queue::waiters_dir(&scheduler).join(&queued(cache)[0].id));
+        let seen = word.seen();
+        let shared = permit_wait::snapshot(&scheduler);
+        drop(lease);
+        assert_eq!(
+            word.seen(),
+            seen.wrapping_add(1),
+            "dropping the lease must wake the ticket it admits"
+        );
+        assert_ne!(
+            permit_wait::snapshot(&scheduler),
+            shared,
+            "dropping the lease must publish a wake to waiters without a ticket"
+        );
+        assert!(waiter.join().unwrap(), "the waiter must take the slots");
+    }
+
     /// Each release wakes the one ticket the plan admits; the others sleep
     /// on, taking no lock.
     #[cfg(target_os = "linux")]
@@ -3669,6 +3702,44 @@ mod tests {
         for waiter in waiters {
             waiter.finish();
         }
+    }
+
+    /// A release that admits the ticket ahead is nothing to the ticket
+    /// behind it: it sleeps on its own word, not the pool's, so it takes no
+    /// lock until a release admits it.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_ticket_behind_the_admitted_one_sleeps_through_the_release() {
+        let dir = temp_cache();
+        let cache = dir.path();
+        let background = Priority::Background;
+        let holder = Requester::running(cache, 1, 1, background);
+        let ahead = Requester::queued(cache, 1, 1, background, 1);
+        let root = cache.to_path_buf();
+        let behind = std::thread::spawn(move || {
+            // Same priority as the others, so it ranks last by arrival.
+            let _priority = InvocationPriorityScope::enter(Some(background));
+            // Cancellable, so it sleeps in slices of `SATURATED_SLICE`.
+            let token = crate::invocation::process::Cancellation::default();
+            let _scope = crate::invocation::process::CancellationScope::enter(Some(token));
+            let _ = admission_stats::take();
+            let admitted = test_scheduler(&root, 1).acquire_permit(1).is_some();
+            (admitted, admission_stats::take())
+        });
+        wait_until("the second waiter to queue", || queued(cache).len() == 2);
+        holder.finish();
+        ahead.admitted(Duration::from_secs(5));
+        // Long enough for a wake on the pool's word to have been acted on.
+        std::thread::sleep(permit_wait::SATURATED_SLICE);
+        ahead.finish();
+        let (admitted, stats) = behind.join().unwrap();
+        assert!(admitted);
+        // The scan on arrival and the claim when its own release wakes it.
+        assert!(
+            stats.lock_holds <= 2,
+            "{} lock holds; the first release was not for this ticket: {stats:?}",
+            stats.lock_holds
+        );
     }
 
     /// Parked tickets make no lock tries until they are woken.
