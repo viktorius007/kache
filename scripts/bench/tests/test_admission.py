@@ -152,17 +152,55 @@ class PercentileTest(unittest.TestCase):
 
     def test_timeseries_summary(self):
         rows = [
-            {"load1": 1.0, "queue_depth": 2, "engine_procs": 1, "ctxt_per_s": 100.0, "cpu_sys_pct": 10.0},
-            {"load1": 9.5, "queue_depth": 7, "engine_procs": 3, "ctxt_per_s": 300.0, "cpu_sys_pct": 30.0},
+            {"load1": 1.0, "procs_running": 4, "mem_avail_gb": 90.0, "queue_depth": 2, "engine_procs": 1, "ctxt_per_s": 100.0, "cpu_sys_pct": 10.0},
+            {"load1": 9.5, "procs_running": 40, "mem_avail_gb": 70.5, "queue_depth": 7, "engine_procs": 3, "ctxt_per_s": 300.0, "cpu_sys_pct": 30.0},
         ]
         summary = admission.timeseries_summary(rows)
         self.assertEqual(summary["samples"], 2)
         self.assertEqual(summary["peak_load1"], 9.5)
+        self.assertEqual(summary["peak_procs_running"], 40)
+        self.assertEqual(summary["min_mem_avail_gb"], 70.5)
         self.assertEqual(summary["peak_queue_depth"], 7)
         self.assertEqual(summary["peak_engine_procs"], 3)
         self.assertEqual(summary["mean_ctxt_per_s"], 200.0)
         self.assertEqual(summary["mean_cpu_sys_pct"], 20.0)
         self.assertEqual(admission.timeseries_summary([])["samples"], 0)
+
+
+class GuardTest(unittest.TestCase):
+    CAPS = {"load": 90.0, "running": 60, "mem_gb": 10.0}
+
+    def row(self, load1=1.0, running=5, mem=100.0):
+        return {"load1": load1, "procs_running": running, "mem_avail_gb": mem}
+
+    def test_nothing_trips_under_the_caps(self):
+        self.assertEqual(admission.guard_verdict(self.row(), self.CAPS, 0), (None, 0))
+        self.assertEqual(admission.guard_verdict(self.row(load1=90.0), self.CAPS, 0), (None, 0))
+
+    def test_load_and_memory_trip_on_one_sample(self):
+        reason, _ = admission.guard_verdict(self.row(load1=90.1), self.CAPS, 0)
+        self.assertIn("load1 90.1 over cap 90.0", reason)
+        reason, _ = admission.guard_verdict(self.row(mem=9.9), self.CAPS, 0)
+        self.assertIn("MemAvailable 9.9 GiB under floor 10.0", reason)
+
+    def test_runnable_tasks_trip_after_a_streak_and_reset_under_the_cap(self):
+        verdict = (None, 0)
+        for expected in range(1, admission.RUNNING_STREAK):
+            verdict = admission.guard_verdict(self.row(running=61), self.CAPS, verdict[1])
+            self.assertEqual(verdict, (None, expected))
+        reason, streak = admission.guard_verdict(self.row(running=61), self.CAPS, verdict[1])
+        self.assertIn("procs_running 61 over cap 60 for 3 samples", reason)
+        self.assertEqual(streak, admission.RUNNING_STREAK)
+        self.assertEqual(admission.guard_verdict(self.row(running=60), self.CAPS, 2), (None, 0))
+
+    def test_a_zero_cap_is_off(self):
+        off = {"load": 0.0, "running": 0, "mem_gb": 0.0}
+        self.assertEqual(admission.guard_verdict(self.row(load1=999.0, running=999, mem=0.1), off, 0), (None, 0))
+
+    def test_mem_available_parses_proc_meminfo(self):
+        text = "MemTotal:       123 kB\nMemAvailable:   2097152 kB\n"
+        self.assertEqual(admission.parse_mem_available_gb(text), 2.0)
+        self.assertEqual(admission.parse_mem_available_gb(""), 0.0)
 
 
 class ArgumentTest(unittest.TestCase):

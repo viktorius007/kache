@@ -51,8 +51,18 @@ NO_ADMISSION_STATS = (
 )
 TIMESERIES_HEADER = (
     "ts load1 procs_running ctxt_per_s cpu_user_pct cpu_sys_pct cpu_idle_pct "
-    "psi_cpu_some10 queue_depth engine_procs"
+    "psi_cpu_some10 queue_depth engine_procs mem_avail_gb"
 )
+# Seconds systemd gives a scope beyond the harness's own run timeout before
+# it kills the scope itself: the backstop for a harness process that is
+# starved or gone.
+SCOPE_GRACE_S = 30
+# cgroup cpu.weight for the runs (default 100): the host's shells and the
+# sampler outrank the load generator when every CPU is busy.
+RUN_CPU_WEIGHT = 50
+# Consecutive samples over the runnable-task cap before the guard trips;
+# `procs_running` is an instantaneous count and spikes on its own.
+RUNNING_STREAK = 3
 SCRUBBED_ENV = re.compile(r"^(NEXTEST.*|KACHE_CARGO_PROXY_.*|CARGO_TARGET_.*_RUNNER)$")
 NEXTEST_CONFIG = """[profile.ci]
 fail-fast = false
@@ -246,15 +256,53 @@ def timeseries_summary(rows):
             "peak_engine_procs": None,
             "mean_ctxt_per_s": None,
             "mean_cpu_sys_pct": None,
+            "peak_procs_running": None,
+            "min_mem_avail_gb": None,
         }
     return {
         "samples": len(rows),
         "peak_load1": max(r["load1"] for r in rows),
+        "peak_procs_running": max(r.get("procs_running", 0) for r in rows),
+        "min_mem_avail_gb": min(r.get("mem_avail_gb", math.inf) for r in rows),
         "peak_queue_depth": max(r["queue_depth"] for r in rows),
         "peak_engine_procs": max(r["engine_procs"] for r in rows),
         "mean_ctxt_per_s": statistics.fmean(r["ctxt_per_s"] for r in rows),
         "mean_cpu_sys_pct": statistics.fmean(r["cpu_sys_pct"] for r in rows),
     }
+
+
+def guard_verdict(row, caps, streak):
+    """Why the run must stop now, or None, plus the new over-cap streak.
+
+    `caps` has `load`, `running` and `mem_gb`; zero or None disables a cap.
+    Load and memory trip on one sample; runnable tasks trip after
+    RUNNING_STREAK consecutive samples over the cap.
+    """
+    if caps.get("load") and row["load1"] > caps["load"]:
+        return f"load1 {row['load1']:.1f} over cap {caps['load']:.1f}", streak
+    if caps.get("mem_gb") and row["mem_avail_gb"] < caps["mem_gb"]:
+        return (
+            f"MemAvailable {row['mem_avail_gb']:.1f} GiB under floor {caps['mem_gb']:.1f}",
+            streak,
+        )
+    if caps.get("running") and row["procs_running"] > caps["running"]:
+        streak += 1
+        if streak >= RUNNING_STREAK:
+            return (
+                f"procs_running {row['procs_running']} over cap {caps['running']} "
+                f"for {streak} samples",
+                streak,
+            )
+        return None, streak
+    return None, 0
+
+
+def parse_mem_available_gb(text):
+    """`MemAvailable` from /proc/meminfo text, in GiB; 0 when absent."""
+    for line in text.splitlines():
+        if line.startswith("MemAvailable:"):
+            return int(line.split()[1]) / (1024 * 1024)
+    return 0.0
 
 
 def scrub_env(env):
@@ -394,6 +442,8 @@ def timeseries_rows(ts):
     return [
         ("samples", ts["samples"]),
         ("peak load1", fmt(ts["peak_load1"], 2)),
+        ("peak procs_running", fmt(ts["peak_procs_running"])),
+        ("min MemAvailable GiB", fmt(ts["min_mem_avail_gb"])),
         ("peak queue_depth", fmt(ts["peak_queue_depth"])),
         ("peak engine_procs", fmt(ts["peak_engine_procs"])),
         ("mean ctxt/s", fmt(ts["mean_ctxt_per_s"], 0)),
@@ -431,7 +481,11 @@ def build_summary(args, results, junit_times, admission, cgroups, rows, meta):
             "cpus": args.cpus,
             "out": str(args.out),
             "run_timeout": args.run_timeout,
+            "load_cap": args.load_cap,
+            "running_cap": args.running_cap,
+            "mem_floor_gb": args.mem_floor_gb,
         },
+        "aborted": read_or_empty(args.out / "aborted").strip() or None,
         **meta,
         "runs": results,
         "junit": junit_summary(junit_times),
@@ -463,6 +517,21 @@ def parse_args(argv=None):
     parser.add_argument("--out", type=Path, default=None, help="output directory")
     parser.add_argument("--keep-extracts", action="store_true")
     parser.add_argument("--run-timeout", type=float, default=600.0)
+    parser.add_argument(
+        "--load-cap", type=float, default=0.0, help="kill every run when load1 exceeds this"
+    )
+    parser.add_argument(
+        "--running-cap",
+        type=int,
+        default=0,
+        help=f"kill every run when procs_running exceeds this for {RUNNING_STREAK} samples",
+    )
+    parser.add_argument(
+        "--mem-floor-gb",
+        type=float,
+        default=0.0,
+        help="kill every run when MemAvailable falls under this many GiB",
+    )
     args = parser.parse_args(argv)
     errors = argument_errors(args.kache, args.runs, args.threads, args.tests)
     if errors:
@@ -508,6 +577,10 @@ def launch_run(args, index, env, results):
         "--collect",
         "--unit",
         unit,
+        "-p",
+        f"RuntimeMaxSec={int(args.run_timeout) + SCOPE_GRACE_S}",
+        "-p",
+        f"CPUWeight={RUN_CPU_WEIGHT}",
         "--",
         "sh",
         "-c",
@@ -555,6 +628,7 @@ def read_sample_sources(out):
         "psi": parse_pressure_some10(read_or_empty(Path("/proc/pressure/cpu"))),
         "queue_depth": depth,
         "engine_procs": engines,
+        "mem_avail_gb": parse_mem_available_gb(read_or_empty(Path("/proc/meminfo"))),
     }
 
 
@@ -585,11 +659,26 @@ def sample_row(out, delta):
         "psi_cpu_some10": src["psi"],
         "queue_depth": src["queue_depth"],
         "engine_procs": src["engine_procs"],
+        "mem_avail_gb": src["mem_avail_gb"],
     }
 
 
-def sampler(out, stop, rows):
-    """One row per second into `timeseries.tsv` until `stop` is set, then a last row."""
+def abort_runs(args, reason):
+    """Kill every scope of this harness run at once and record why."""
+    (args.out / "aborted").write_text(f"{utc_iso()} {reason}\n")
+    subprocess.run(
+        ["systemctl", "--user", "kill", "--signal=KILL", f"admission-{args.stamp}-*.scope"],
+        check=False,
+    )
+
+
+def sampler(args, stop, rows):
+    """One row per second into `timeseries.tsv` until `stop` is set, then a
+    last row. Trips the guard, once, when a sample crosses a cap."""
+    out = args.out
+    caps = {"load": args.load_cap, "running": args.running_cap, "mem_gb": args.mem_floor_gb}
+    streak = 0
+    tripped = False
     previous = parse_proc_stat(Path("/proc/stat").read_text())
     last = time.monotonic()
     with open(out / "timeseries.tsv", "w") as sink:
@@ -607,13 +696,18 @@ def sampler(out, stop, rows):
             rows.append(row)
             sink.write("\t".join(fmt(v, 2) for v in row.values()) + "\n")
             sink.flush()
+            reason, streak = guard_verdict(row, caps, streak)
+            if reason and not tripped:
+                tripped = True
+                sys.stderr.write(f"guard: {reason}; killing every run\n")
+                abort_runs(args, reason)
 
 
 def run_all(args, env):
     results = {}
     rows = []
     stop = threading.Event()
-    sampling = threading.Thread(target=sampler, args=(args.out, stop, rows), daemon=True)
+    sampling = threading.Thread(target=sampler, args=(args, stop, rows), daemon=True)
     sampling.start()
     threads = [
         threading.Thread(target=launch_run, args=(args, i, env, results))
