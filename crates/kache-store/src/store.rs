@@ -1385,6 +1385,10 @@ fn lock_file_is_at_path(file: &fs::File, path: &Path) -> bool {
     }
 }
 
+/// Bytes of the owner's pid written in a lock file; longer content, from
+/// another writer, is cut first.
+const LOCK_OWNER_WIDTH: u64 = 10;
+
 impl StoreLock {
     fn open(path: &Path) -> Result<fs::File> {
         let parent = path
@@ -1401,10 +1405,20 @@ impl StoreLock {
 
     fn finish(mut file: fs::File) -> Result<Self> {
         // Diagnostic only: lock ownership is determined exclusively by the OS.
+        // Fixed width, overwritten in place: a truncate before the write
+        // makes the close after it start a writeback that the next taker
+        // waits for.
         use std::io::{Seek, SeekFrom, Write};
-        file.set_len(0)?;
+        if file.metadata()?.len() > LOCK_OWNER_WIDTH {
+            file.set_len(0)?;
+        }
         file.seek(SeekFrom::Start(0))?;
-        write!(file, "{}", std::process::id())?;
+        write!(
+            file,
+            "{:<width$}",
+            std::process::id(),
+            width = LOCK_OWNER_WIDTH as usize
+        )?;
         Ok(Self { file })
     }
 

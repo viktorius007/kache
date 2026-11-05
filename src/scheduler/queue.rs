@@ -328,10 +328,15 @@ fn read_state(file: &mut fs::File) -> Option<State> {
     State::parse(&text)
 }
 
+/// Fixed width, overwritten in place: a truncate before the write makes
+/// the close after it start a writeback that the next writer waits for.
 fn write_state(file: &mut fs::File, state: State) -> Result<()> {
-    file.set_len(0)?;
     file.seek(SeekFrom::Start(0))?;
-    write!(file, "{} {} {}", state.passes, state.seen, state.woken)?;
+    write!(
+        file,
+        "{:>10} {:>20} {:>20}",
+        state.passes, state.seen, state.woken
+    )?;
     Ok(())
 }
 

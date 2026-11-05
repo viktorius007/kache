@@ -12106,10 +12106,24 @@ fn acquire_reopens_when_the_lock_file_was_replaced_between_open_and_lock() {
     drop(lock);
     // Read after release: Windows refuses reads of a locked range.
     assert_eq!(
-        std::fs::read_to_string(&path).unwrap(),
-        std::process::id().to_string()
+        std::fs::read_to_string(&path).unwrap().trim_end(),
+        std::process::id().to_string(),
+        "the other claimant's longer content is gone"
     );
     assert!(StoreLock::try_acquire(&path).unwrap().is_some());
+}
+
+/// Taking a lock again overwrites the pid in place: no truncate, whose
+/// close starts a writeback the next taker waits for.
+#[test]
+fn reacquiring_a_lock_keeps_the_file_at_the_pid_width() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("key.lock");
+    drop(StoreLock::try_acquire(&path).unwrap().unwrap());
+    drop(StoreLock::try_acquire(&path).unwrap().unwrap());
+    let content = std::fs::read_to_string(&path).unwrap();
+    assert_eq!(content.len(), 10);
+    assert_eq!(content.trim_end(), std::process::id().to_string());
 }
 
 #[test]
