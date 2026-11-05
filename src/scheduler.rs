@@ -73,7 +73,20 @@ pub const RSS_BYTES_PER_SLOT: u64 = 512 * 1024 * 1024;
 /// children. Its value is the marker's absolute path.
 pub use kache_config::TEST_LEASE_ENV;
 
+/// The coordination allowance of one invocation, shared by all its waits.
 pub(crate) const WAIT_TIMEOUT: Duration = Duration::from_secs(1800);
+/// How long a compile waits for a permit, a flight or a discovery lock
+/// before running without one.
+///
+/// Half a minute in unit tests. The libtest harness has no deadline, so an
+/// admission that never came kept the test binary alive for the half hour
+/// and the mutation lane counted every mutant that hides the slots as a
+/// timeout instead of a kill.
+const PERMIT_WAIT: Duration = if cfg!(test) {
+    Duration::from_secs(30)
+} else {
+    WAIT_TIMEOUT
+};
 /// How long a test lease waits for its marker, never longer than its wait
 /// for slots.
 const MARKER_WAIT: Duration = Duration::from_secs(1);
@@ -98,7 +111,7 @@ pub(crate) fn join_discovery_flight(cache_dir: &Path, identity: &str) -> Discove
     let path = cache_dir
         .join("scheduler/discovery")
         .join(blake3::hash(identity.as_bytes()).to_hex().as_str());
-    let wait = BudgetWait::start(WAIT_TIMEOUT);
+    let wait = BudgetWait::start(PERMIT_WAIT);
     match acquire_discovery(&path, wait.timeout, POLL_INTERVAL) {
         Ok((lock, waited)) => DiscoveryFlight { lock, waited },
         Err(error) => {
@@ -392,7 +405,7 @@ enum FlightJoin {
 
 impl Scheduler {
     fn open(cache_dir: &Path) -> Result<Self> {
-        Self::open_with(cache_dir, default_pool_size(), WAIT_TIMEOUT, POLL_INTERVAL)
+        Self::open_with(cache_dir, default_pool_size(), PERMIT_WAIT, POLL_INTERVAL)
     }
 
     fn open_with(
@@ -561,7 +574,7 @@ impl Scheduler {
         request: &Request,
         ticket: &mut Option<queue::Ticket>,
     ) -> Option<Permit> {
-        let wait = BudgetWait::start(WAIT_TIMEOUT);
+        let wait = BudgetWait::start(PERMIT_WAIT);
         let started = std::time::Instant::now();
         loop {
             crate::invocation::process::check().ok()?;
