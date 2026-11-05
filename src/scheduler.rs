@@ -1038,6 +1038,22 @@ thread_local! {
 }
 
 #[cfg(test)]
+thread_local! {
+    /// Runs between the planner's slot probe and its locks, so a test can
+    /// take a planned slot in the gap.
+    static BETWEEN_PROBE_AND_TAKE: std::cell::RefCell<Option<Box<dyn FnMut()>>> =
+        const { std::cell::RefCell::new(None) };
+}
+
+#[cfg(test)]
+fn between_probe_and_take() {
+    let hook = BETWEEN_PROBE_AND_TAKE.with(|hook| hook.borrow_mut().take());
+    if let Some(mut hook) = hook {
+        hook();
+    }
+}
+
+#[cfg(test)]
 fn note_permit_scan() {
     PERMIT_SCANS.with(|scans| scans.set(scans.get().saturating_add(1)));
 }
@@ -1234,16 +1250,16 @@ impl Scheduler {
         now: SystemTime,
     ) -> Result<Collect> {
         // The whole pool, whatever the request's kind: a compile ahead of a
-        // test takes reserve slots first.
-        let mut free = Vec::new();
+        // test takes reserve slots first. A read-only probe per slot; only
+        // the slots the plan assigns are locked, below.
+        let mut indexes = Vec::new();
         let mut busy = Vec::new();
         for index in 0..self.pool_size {
-            match StoreLock::try_acquire(&self.permit_path(index))? {
-                Some(lock) => free.push((index, lock)),
-                None => busy.push(index),
+            match slot_is_held(&self.permit_path(index)) {
+                Some(false) => indexes.push(index),
+                _ => busy.push(index),
             }
         }
-        let indexes: Vec<u32> = free.iter().map(|(index, _)| *index).collect();
         let queue = queue::with_entry(queued, me);
         request.position.set(queue::position(&queue, &me.id));
         let plan = queue::plan(
@@ -1268,18 +1284,38 @@ impl Scheduler {
                 return Ok(Collect::Busy(busy));
             }
         };
+        #[cfg(test)]
+        between_probe_and_take();
+        let Some(slots) = self.take_planned(&admitted)? else {
+            // A planned slot went between the probe and the lock: only a
+            // holder that took it out of order could, so its release is
+            // what frees it.
+            return Ok(Collect::Busy(admitted.slots));
+        };
         if let Some(passed) = &admitted.passed
             && let Err(error) = queue::record_pass(&self.root, passed)
         {
             tracing::debug!("could not count a pass of the first waiter: {error:#}");
         }
-        Ok(Collect::Ready(
-            free.into_iter()
-                .filter(|(index, _)| {
-                    admitted.slots.contains(index) || admitted.spare.contains(index)
-                })
-                .collect(),
-        ))
+        Ok(Collect::Ready(slots))
+    }
+
+    /// Lock the slots a plan assigns. `None` when one of the required slots
+    /// is held after all; a spare slot that is gone is left out.
+    fn take_planned(&self, admitted: &queue::Admitted) -> Result<Option<Vec<(u32, StoreLock)>>> {
+        let mut slots = Vec::with_capacity(admitted.slots.len() + admitted.spare.len());
+        for &index in &admitted.slots {
+            match StoreLock::try_acquire(&self.permit_path(index))? {
+                Some(lock) => slots.push((index, lock)),
+                None => return Ok(None),
+            }
+        }
+        for &index in &admitted.spare {
+            if let Some(lock) = StoreLock::try_acquire(&self.permit_path(index))? {
+                slots.push((index, lock));
+            }
+        }
+        Ok(Some(slots))
     }
 }
 
@@ -1287,7 +1323,14 @@ fn try_collect_slots(scheduler: &Scheduler, range: Range<u32>, need: usize) -> R
     let mut slots = Vec::with_capacity(need);
     let mut busy = Vec::new();
     for index in range {
-        match StoreLock::try_acquire(&scheduler.permit_path(index))? {
+        let path = scheduler.permit_path(index);
+        // A held slot is seen by a read-only probe; the lock is only tried
+        // on a free one.
+        if slot_is_held(&path) != Some(false) {
+            busy.push(index);
+            continue;
+        }
+        match StoreLock::try_acquire(&path)? {
             Some(lock) => {
                 slots.push((index, lock));
                 if slots.len() == need {
@@ -5249,6 +5292,83 @@ mod tests {
         // behind; 6 and 7 are spare.
         let slots: Vec<u32> = lease._slots.iter().map(|(index, _)| *index).collect();
         assert_eq!(slots, [4, 6, 7]);
+    }
+
+    /// Take slot `index` in the gap between the planner's probe and its
+    /// lock, and hand the lock to the test.
+    fn take_between_probe_and_lock(
+        scheduler: &Scheduler,
+        index: u32,
+    ) -> std::sync::mpsc::Receiver<StoreLock> {
+        let (send, taken) = std::sync::mpsc::channel();
+        let path = scheduler.permit_path(index);
+        BETWEEN_PROBE_AND_TAKE.with(|hook| {
+            *hook.borrow_mut() = Some(Box::new(move || {
+                send.send(StoreLock::try_acquire(&path).unwrap().unwrap())
+                    .unwrap();
+            }));
+        });
+        taken
+    }
+
+    #[test]
+    fn a_planned_slot_taken_between_probe_and_lock_is_waited_for() {
+        let dir = temp_cache();
+        let cache = dir.path().to_path_buf();
+        let _ahead = hold_ticket(&cache, 0, queue::Kind::Compile, 1, SystemTime::now());
+        let (send, taken) = std::sync::mpsc::channel();
+        let waiter = {
+            let cache = cache.clone();
+            std::thread::spawn(move || {
+                let scheduler = test_scheduler(&cache, 2);
+                // Slot 0 is the ticket's; the plan gives this request slot 1.
+                send.send(take_between_probe_and_lock(&scheduler, 1))
+                    .unwrap();
+                scheduler.acquire_permit(1).map(|permit| permit._slots[0].0)
+            })
+        };
+        wait_until("the request to queue behind the ticket", || {
+            queued(&cache).len() == 2
+        });
+        assert!(
+            !waiter.is_finished(),
+            "a request whose slot went waits for it"
+        );
+        drop(taken.recv().unwrap().recv().unwrap());
+        assert_eq!(
+            waiter.join().unwrap(),
+            Some(1),
+            "it takes the slot once free"
+        );
+        assert!(queued(&cache).len() == 1, "it leaves the queue");
+    }
+
+    #[test]
+    fn a_spare_slot_taken_between_probe_and_lock_is_left_out() {
+        let dir = temp_cache();
+        let cache = dir.path();
+        let scheduler = budget_scheduler(cache, 8);
+        let now = SystemTime::now();
+        let _ahead = hold_ticket(cache, 0, queue::Kind::Test, 2, now);
+        let _behind = hold_ticket(cache, u64::MAX / 2, queue::Kind::Test, 1, now);
+        // Of the spare slots 6 and 7, 7 goes to another taker.
+        let taken = take_between_probe_and_lock(&scheduler, 7);
+        let lease = scheduler.acquire_test_lease(TestWant::Elastic(1)).unwrap();
+        let _lock = taken.recv().unwrap();
+        let slots: Vec<u32> = lease._slots.iter().map(|(index, _)| *index).collect();
+        assert_eq!(slots, [4, 6]);
+    }
+
+    #[test]
+    fn a_first_come_request_takes_the_free_slot_past_a_held_one() {
+        let dir = temp_cache();
+        let scheduler = budget_scheduler(dir.path(), 2);
+        let _held = StoreLock::try_acquire(&scheduler.permit_path(0))
+            .unwrap()
+            .unwrap();
+        let permit = scheduler.acquire_permit(1).unwrap();
+        assert_eq!(permit._slots[0].0, 1);
+        assert!(queued(dir.path()).is_empty(), "nothing else is queued");
     }
 
     #[test]
