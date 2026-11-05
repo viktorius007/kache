@@ -1197,9 +1197,14 @@ impl Scheduler {
     ) -> Result<Collect> {
         let now = SystemTime::now();
         let me = match ticket {
-            Some(ticket) => {
-                ticket.refresh(need, now)?;
-                ticket.entry().clone()
+            Some(waiting) => {
+                if let Some(slots) = self.claim_assigned(request, need, waiting)? {
+                    ticket.take().expect("the ticket was just used").admitted();
+                    admission_stats::claimed();
+                    return Ok(Collect::Ready(slots));
+                }
+                waiting.refresh(need, now)?;
+                waiting.entry().clone()
             }
             None => queue::Entry::new(request.rank, request.kind, need),
         };
@@ -1223,6 +1228,35 @@ impl Scheduler {
                 Ok(Collect::Busy(busy))
             }
         }
+    }
+
+    /// Lock the slots the releaser's plan gave `ticket`, without planning
+    /// again. `None` when the plan gave it nothing, something else than
+    /// `need` slots of its kind, a spare is wanted, or a slot is held after
+    /// all.
+    fn claim_assigned(
+        &self,
+        request: &Request,
+        need: u32,
+        ticket: &mut queue::Ticket,
+    ) -> Result<Option<Vec<(u32, StoreLock)>>> {
+        if request.spare {
+            return Ok(None);
+        }
+        let Some(slots) = ticket.assigned() else {
+            return Ok(None);
+        };
+        let reserve = reserve_for(self.pool_size);
+        if slots.len() != need as usize
+            || !slots.iter().all(|&index| request.kind.uses(index, reserve))
+        {
+            return Ok(None);
+        }
+        self.take_planned(&queue::Admitted {
+            slots,
+            passed: None,
+            spare: Vec::new(),
+        })
     }
 
     /// Take the first `need` free slots of the request's range, and with
@@ -5209,6 +5243,7 @@ mod tests {
             &scheduler.root,
             starved.entry(),
             SystemTime::now() - Duration::from_secs(3),
+            &[0],
         );
         assert!(scheduler.acquire_permit(1).is_some());
         assert_eq!(queued(cache).len(), 1, "it keeps its place for later");
@@ -5229,8 +5264,12 @@ mod tests {
             "slot 1 is the ticket's, slot 0 the older wrapper's"
         );
         drop(older);
+        // Giving up woke the ticket ahead for slot 1, which it keeps.
         let permit = scheduler.acquire_permit(1).unwrap();
-        assert_eq!(permit._slots[0].0, 1, "slot 0 is left for the ticket ahead");
+        assert_eq!(permit._slots[0].0, 0, "slot 1 is left for the ticket ahead");
+        let root = scheduler_root(cache);
+        let _queue = queue::lock(&root, Duration::from_secs(5)).unwrap().unwrap();
+        assert_eq!(queue::state(&root, _ahead.entry()).unwrap().slots, 0b10);
     }
 
     #[test]
@@ -5369,6 +5408,95 @@ mod tests {
         let permit = scheduler.acquire_permit(1).unwrap();
         assert_eq!(permit._slots[0].0, 1);
         assert!(queued(dir.path()).is_empty(), "nothing else is queued");
+    }
+
+    /// Run `acquire_permit(weight)` on its own thread and report, with the
+    /// slots, how often it claimed what a releaser assigned.
+    fn permit_on_a_thread(
+        cache: &Path,
+        pool: u32,
+        weight: u32,
+    ) -> std::thread::JoinHandle<Option<(Vec<u32>, u32)>> {
+        let cache = cache.to_path_buf();
+        std::thread::spawn(move || {
+            let _priority = InvocationPriorityScope::enter(Some(Priority::Background));
+            let scheduler = test_scheduler(&cache, pool);
+            admission_stats::take();
+            let permit = scheduler.acquire_permit(weight)?;
+            let slots = permit._slots.iter().map(|(index, _)| *index).collect();
+            Some((slots, admission_stats::take().claims))
+        })
+    }
+
+    #[test]
+    fn a_woken_waiter_takes_the_slots_the_releaser_assigned_without_planning() {
+        let dir = temp_cache();
+        let cache = dir.path();
+        let holder = Requester::running(cache, 1, 1, Priority::Background);
+        let waiter = permit_on_a_thread(cache, 1, 1);
+        wait_until("the waiter to queue", || queued(cache).len() == 1);
+        holder.finish();
+        assert_eq!(
+            waiter.join().unwrap(),
+            Some((vec![0], 1)),
+            "the release's plan assigned slot 0; the waiter claimed it"
+        );
+    }
+
+    #[test]
+    fn an_assigned_slot_that_is_held_after_all_is_planned_for_again() {
+        let dir = temp_cache();
+        let cache = dir.path();
+        let root = scheduler_root(cache);
+        let holder = Requester::running(cache, 1, 1, Priority::Background);
+        let waiter = permit_on_a_thread(cache, 1, 1);
+        wait_until("the waiter to queue", || queued(cache).len() == 1);
+        let entry = queued(cache).remove(0);
+        // A plan that was overtaken: slot 0 is still the holder's.
+        let before = queue::millis(SystemTime::now());
+        {
+            let _queue = queue::lock(&root, Duration::from_secs(5)).unwrap().unwrap();
+            queue::wake(&root, &entry, SystemTime::now(), &[0]);
+        }
+        wait_until("the waiter to look for itself", || {
+            queue::state(&root, &entry)
+                .is_some_and(|state| state.woken == 0 && state.seen >= before)
+        });
+        assert!(!waiter.is_finished(), "a held slot is not taken");
+        holder.finish();
+        assert_eq!(waiter.join().unwrap(), Some((vec![0], 1)));
+    }
+
+    #[test]
+    fn a_release_counts_the_passes_of_the_first_waiter_it_admits_past() {
+        let dir = temp_cache();
+        let cache = dir.path();
+        let background = Priority::Background;
+        let first = Requester::running(cache, 2, 1, background);
+        let second = Requester::running(cache, 2, 1, background);
+        let large = Requester::queued(cache, 2, 2, background, 1);
+        let large_rank = queued(cache)[0].rank;
+        wait_until("a later request rank", || {
+            queue::rank(SystemTime::now(), background) > large_rank
+        });
+        let small = Requester::queued(cache, 2, 1, background, 2);
+        first.finish();
+        small.admitted(Duration::from_secs(5));
+        {
+            let root = scheduler_root(cache);
+            let _queue = queue::lock(&root, Duration::from_secs(5)).unwrap().unwrap();
+            let waiting = queued(cache);
+            assert_eq!(waiting.len(), 1);
+            assert_eq!(
+                queue::passes(&root, &waiting[0]),
+                1,
+                "the release that admitted the small request past it counted"
+            );
+        }
+        small.finish();
+        second.finish();
+        large.admitted(Duration::from_secs(5));
+        large.finish();
     }
 
     #[test]

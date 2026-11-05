@@ -45,6 +45,7 @@ ADMISSION_KEYS = (
     "parks",
     "park_us",
     "unordered",
+    "claims",
 )
 NO_ADMISSION_STATS = (
     "no admission stats: the kache binary did not write KACHE_ADMISSION_STATS"
@@ -195,6 +196,9 @@ def aggregate_admission(lines):
     )
     summary["not_leased_fraction"] = (
         sum(1 for r in records if r.get("held", 0) == 0) / count
+    )
+    summary["claimed_fraction"] = (
+        sum(1 for r in records if r.get("claims", 0) > 0) / count
     )
     return summary
 
@@ -463,6 +467,7 @@ def admission_rows(adm):
         ("lock_gave_up > 0", fmt(adm["gave_up_fraction"], 3)),
         ("unordered > 0", fmt(adm["unordered_fraction"], 3)),
         ("held == 0", fmt(adm["not_leased_fraction"], 3)),
+        ("claims > 0", fmt(adm["claimed_fraction"], 3)),
     ]
     return rows
 

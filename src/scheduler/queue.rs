@@ -295,10 +295,31 @@ pub(super) struct State {
     /// When a planner first told the owner its slots were free, in
     /// milliseconds since the epoch; zero once the owner has looked since.
     pub(super) woken: u64,
+    /// The slots the last plan gave the ticket, one bit per slot index;
+    /// zero once the owner has looked since, or for a slot past 127.
+    pub(super) slots: u128,
+}
+
+/// One bit per slot; zero when a slot has no bit.
+pub(super) fn slot_mask(slots: &[u32]) -> u128 {
+    slots
+        .iter()
+        .try_fold(0u128, |mask, &index| {
+            (index < 128).then(|| mask | (1u128 << index))
+        })
+        .unwrap_or(0)
+}
+
+/// The slots of a mask, lowest first.
+fn mask_slots(mask: u128) -> Vec<u32> {
+    (0..128)
+        .filter(|index| mask & (1u128 << index) != 0)
+        .collect()
 }
 
 impl State {
-    /// Tickets written before `woken` existed have two fields.
+    /// Tickets written before `woken` existed have two fields, before
+    /// `slots` three.
     fn parse(text: &str) -> Option<Self> {
         let mut fields = text.split_whitespace();
         let passes = fields.next()?.parse().ok()?;
@@ -307,10 +328,15 @@ impl State {
             Some(field) => field.parse().ok()?,
             None => 0,
         };
+        let slots = match fields.next() {
+            Some(field) => u128::from_str_radix(field, 16).ok()?,
+            None => 0,
+        };
         Some(Self {
             passes,
             seen,
             woken,
+            slots,
         })
     }
 
@@ -334,8 +360,8 @@ fn write_state(file: &mut fs::File, state: State) -> Result<()> {
     file.seek(SeekFrom::Start(0))?;
     write!(
         file,
-        "{:>10} {:>20} {:>20}",
-        state.passes, state.seen, state.woken
+        "{:>10} {:>20} {:>20} {:032x}",
+        state.passes, state.seen, state.woken, state.slots
     )?;
     Ok(())
 }
@@ -380,21 +406,23 @@ pub(super) fn position(queue: &[Entry], id: &str) -> u32 {
         .map_or(0, |index| index as u32)
 }
 
-/// Whether another request's ticket counts now. A ticket whose owner is gone
-/// is deleted. Call only under `queue.lock`.
-pub(super) fn ready(root: &Path, entry: &Entry, now: SystemTime) -> bool {
+/// Whether another request's ticket counts now, and if so the slots the
+/// last plan gave it. A ticket whose owner is gone is deleted. Call only
+/// under `queue.lock`.
+pub(super) fn ready(root: &Path, entry: &Entry, now: SystemTime) -> Option<u128> {
     match owner_alive(&waiters_dir(root).join(&entry.id)) {
         Some(true) => {}
         Some(false) => {
             remove(root, entry);
-            return false;
+            return None;
         }
-        None => return false,
+        None => return None,
     }
     fs::File::open(queue_dir(root).join(entry.name()))
         .ok()
         .and_then(|mut file| read_state(&mut file))
-        .is_some_and(|state| state.fresh(now))
+        .filter(|state| state.fresh(now))
+        .map(|state| state.slots)
 }
 
 /// `Some(false)` when nothing holds the lock at `path` or the file is gone;
@@ -433,6 +461,14 @@ fn waiter_lock(path: &Path) -> Result<fs::File> {
 fn remove(root: &Path, entry: &Entry) {
     let _ = fs::remove_file(queue_dir(root).join(entry.name()));
     let _ = fs::remove_file(waiters_dir(root).join(&entry.id));
+}
+
+/// What `entry`'s ticket says. Call only under `queue.lock`.
+#[cfg(test)]
+pub(super) fn state(root: &Path, entry: &Entry) -> Option<State> {
+    fs::File::open(queue_dir(root).join(entry.name()))
+        .ok()
+        .and_then(|mut file| read_state(&mut file))
 }
 
 /// How often `entry` has been passed. Call only under `queue.lock`.
@@ -477,7 +513,9 @@ pub(super) struct Waiting {
 /// holds `me`, and say what `me` gets, or why it waits.
 ///
 /// `ready` is asked only about other tickets that would take slots or would
-/// be first, and `passes` only about the first ticket when it does not fit.
+/// be first, and says which slots a ticket was given before, which it keeps
+/// when they are still free; `passes` is asked only about the first ticket
+/// when it does not fit.
 /// With `spare`, the tickets after `me` take their slots too, and the test
 /// slots left over are spare.
 pub(super) fn plan(
@@ -487,7 +525,7 @@ pub(super) fn plan(
     reserve: u32,
     budget: u32,
     spare: bool,
-    ready: impl FnMut(&Entry) -> bool,
+    ready: impl FnMut(&Entry) -> Option<u128>,
     passes: impl FnMut(&Entry) -> u32,
 ) -> Result<Admitted, Waiting> {
     let assigned = assign(queue, Some(me), free, reserve, budget, spare, ready, passes);
@@ -534,7 +572,7 @@ fn assign<'a>(
     reserve: u32,
     budget: u32,
     through: bool,
-    mut ready: impl FnMut(&Entry) -> bool,
+    mut ready: impl FnMut(&Entry) -> Option<u128>,
     mut passes: impl FnMut(&Entry) -> u32,
 ) -> Assigned<'a> {
     let mut available = free.to_vec();
@@ -548,10 +586,16 @@ fn assign<'a>(
             break;
         }
         let is_me = me == Some(entry.id.as_str());
-        let fit = take(&available, entry.kind, entry.need, reserve);
-        if !is_me && (fit.is_some() || first.is_none()) && !ready(entry) {
-            continue;
-        }
+        let fits = fits(&available, entry.kind, entry.need, reserve);
+        let prior = if !is_me && (fits || first.is_none()) {
+            match ready(entry) {
+                Some(prior) => prior,
+                None => continue,
+            }
+        } else {
+            0
+        };
+        let fit = fits.then(|| take(&available, entry.kind, entry.need, reserve, prior));
         let is_first = first.is_none();
         match fit {
             Some(slots) => {
@@ -599,9 +643,17 @@ pub(super) fn wake_admitted(root: &Path, pool: u32) {
     if !matches!(list(root), Ok(queue) if !queue.is_empty()) {
         return;
     }
-    let Ok(Some(_queue)) = lock(root, LOCK_WAIT) else {
+    let Ok(Some(queue_lock)) = lock(root, LOCK_WAIT) else {
         return;
     };
+    let held = std::time::Instant::now();
+    wake_planned(root, pool);
+    drop(queue_lock);
+    super::admission_stats::lock_held(held.elapsed());
+}
+
+/// [`wake_admitted`]'s plan and wakes. Call only under `queue.lock`.
+fn wake_planned(root: &Path, pool: u32) {
     let Ok(queue) = list(root) else {
         return;
     };
@@ -621,39 +673,69 @@ pub(super) fn wake_admitted(root: &Path, pool: u32) {
         |entry| ready(root, entry, now),
         |entry| passes(root, entry),
     );
-    for (entry, _) in assigned.admitted {
-        wake(root, entry, now);
+    for (entry, slots) in &assigned.admitted {
+        if let Some(first) = assigned.passed
+            && let Err(error) = record_pass(root, first)
+        {
+            tracing::debug!("could not count a pass of the first waiter: {error:#}");
+        }
+        wake(root, entry, now, slots);
     }
 }
 
-/// Tell `entry`'s owner that its slots are free. The first wake since the
-/// owner last looked is the one its [`STALE_AFTER`] runs from. Call only
-/// under `queue.lock`.
-pub(super) fn wake(root: &Path, entry: &Entry, now: SystemTime) {
+/// Tell `entry`'s owner that `slots` are its. The first wake since the
+/// owner last looked is the one its [`STALE_AFTER`] runs from; the slots
+/// are the latest plan's. Call only under `queue.lock`.
+pub(super) fn wake(root: &Path, entry: &Entry, now: SystemTime, slots: &[u32]) {
     if let Ok(mut file) = fs::OpenOptions::new()
         .read(true)
         .write(true)
         .open(queue_dir(root).join(entry.name()))
     {
         let mut state = read_state(&mut file).unwrap_or_default();
-        if state.woken == 0 {
-            state.woken = millis(now);
+        let mask = slot_mask(slots);
+        if state.woken == 0 || state.slots != mask {
+            if state.woken == 0 {
+                state.woken = millis(now);
+            }
+            state.slots = mask;
             let _ = write_state(&mut file, state);
         }
     }
     Word::open(&waiters_dir(root).join(&entry.id)).bump_one();
 }
 
-/// The lowest `need` slots of `available` that `kind` can use, if there are
-/// that many.
-fn take(available: &[u32], kind: Kind, need: u32, reserve: u32) -> Option<Vec<u32>> {
-    let slots: Vec<u32> = available
+/// Whether `available` has `need` slots that `kind` can use.
+fn fits(available: &[u32], kind: Kind, need: u32, reserve: u32) -> bool {
+    available
+        .iter()
+        .filter(|&&index| kind.uses(index, reserve))
+        .count()
+        >= need as usize
+}
+
+/// `need` slots of `available` that `kind` can use: those in `prior`
+/// first, so a ticket keeps what an earlier plan gave it, then the lowest.
+/// Call only when [`fits`].
+fn take(available: &[u32], kind: Kind, need: u32, reserve: u32, prior: u128) -> Vec<u32> {
+    let usable = |&index: &u32| kind.uses(index, reserve);
+    let in_prior = |&index: &u32| index < 128 && prior & (1u128 << index) != 0;
+    let kept: Vec<u32> = available
         .iter()
         .copied()
-        .filter(|&index| kind.uses(index, reserve))
+        .filter(usable)
+        .filter(in_prior)
         .take(need as usize)
         .collect();
-    (slots.len() == need as usize).then_some(slots)
+    let filled = available
+        .iter()
+        .copied()
+        .filter(usable)
+        .filter(|index| !kept.contains(index))
+        .take(need as usize - kept.len());
+    let mut slots: Vec<u32> = kept.iter().copied().chain(filled).collect();
+    slots.sort_unstable();
+    slots
 }
 
 /// A waiting request's place in the queue. Dropping it leaves the queue.
@@ -710,6 +792,7 @@ impl Ticket {
                 passes: 0,
                 seen: millis(now),
                 woken: 0,
+                slots: 0,
             },
         )?;
         ticket.wake = true;
@@ -737,8 +820,16 @@ impl Ticket {
         let mut state = read_state(&mut self.state).unwrap_or_default();
         state.seen = millis(now);
         state.woken = 0;
+        state.slots = 0;
         self.seen = self.word.seen();
         write_state(&mut self.state, state)
+    }
+
+    /// The slots the last plan gave this ticket, when a planner woke it for
+    /// them and it has not looked since. Call only under `queue.lock`.
+    pub(super) fn assigned(&mut self) -> Option<Vec<u32>> {
+        let state = read_state(&mut self.state)?;
+        (state.woken != 0 && state.slots != 0).then(|| mask_slots(state.slots))
     }
 
     /// Sleep until a planner wakes this ticket or `limit` elapses.
@@ -897,7 +988,7 @@ mod tests {
 
     /// Plan with every other ticket ready and never passed.
     fn plan_all_ready(queue: &[Entry], me: &str, free: &[u32]) -> Result<Admitted, Waiting> {
-        plan(queue, me, free, 1, 4, false, |_| true, |_| 0)
+        plan(queue, me, free, 1, 4, false, |_| Some(0), |_| 0)
     }
 
     #[test]
@@ -992,11 +1083,73 @@ mod tests {
     }
 
     #[test]
+    fn a_ticket_keeps_the_slots_an_earlier_plan_gave_it() {
+        let queue = [
+            entry(1, Kind::Test, 2, "told"),
+            entry(2, Kind::Test, 1, "me"),
+        ];
+        // Told of 5 and 7; 3 freed since. It keeps 5 and 7, so the request
+        // behind gets 3 instead of 7.
+        let admitted = plan(
+            &queue,
+            "me",
+            &[3, 5, 7],
+            0,
+            4,
+            false,
+            |_| Some(slot_mask(&[5, 7])),
+            |_| 0,
+        )
+        .unwrap();
+        assert_eq!(admitted.slots, [3]);
+        // A slot it was told of that is held again is replaced by the lowest.
+        assert_eq!(
+            take(&[3, 5, 7], Kind::Test, 2, 0, slot_mask(&[7, 9])),
+            [3, 7]
+        );
+        assert_eq!(take(&[3, 5, 7], Kind::Test, 2, 0, 0), [3, 5]);
+        assert_eq!(
+            take(&[1, 3], Kind::Test, 1, 2, slot_mask(&[1])),
+            [3],
+            "a reserve slot is not a test's"
+        );
+    }
+
+    #[test]
+    fn a_slot_mask_round_trips_and_has_no_bit_past_127() {
+        assert_eq!(slot_mask(&[]), 0);
+        assert_eq!(slot_mask(&[0, 2, 127]), 1 | 4 | (1 << 127));
+        assert_eq!(mask_slots(1 | 4 | (1 << 127)), [0, 2, 127]);
+        assert_eq!(
+            slot_mask(&[1, 128]),
+            0,
+            "a slot without a bit gives up the mask"
+        );
+    }
+
+    #[test]
+    fn a_wake_records_the_slots_and_a_look_clears_them() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("scheduler");
+        let now = SystemTime::now();
+        let mut ticket = Ticket::create(&root, Entry::new(1, Kind::Test, 2), now, 4).unwrap();
+        assert_eq!(ticket.assigned(), None, "nothing planned yet");
+        wake(&root, ticket.entry(), now, &[2, 3]);
+        assert_eq!(ticket.assigned(), Some(vec![2, 3]));
+        wake(&root, ticket.entry(), now, &[1, 3]);
+        assert_eq!(ticket.assigned(), Some(vec![1, 3]), "the latest plan's");
+        ticket.refresh(2, now).unwrap();
+        assert_eq!(ticket.assigned(), None, "a look consumes the assignment");
+        ticket.admitted();
+    }
+
+    #[test]
     fn a_woken_ticket_counts_for_two_seconds_and_an_unwoken_one_always() {
         let told = State {
             passes: 0,
             seen: 10_000,
             woken: 10_000,
+            slots: 0,
         };
         assert!(told.fresh(at(10_000)));
         assert!(told.fresh(at(11_999)));
@@ -1006,19 +1159,30 @@ mod tests {
             passes: 0,
             seen: 10_000,
             woken: 0,
+            slots: 0,
         };
         assert!(waiting.fresh(at(12_000)));
         assert!(waiting.fresh(at(u64::MAX / 2)));
     }
 
     #[test]
-    fn a_ticket_state_parses_with_and_without_the_woken_field() {
+    fn a_ticket_state_parses_with_and_without_the_later_fields() {
+        assert_eq!(
+            State::parse("3 10000 12000 00000000000000000000000000000005"),
+            Some(State {
+                passes: 3,
+                seen: 10_000,
+                woken: 12_000,
+                slots: 0b101,
+            })
+        );
         assert_eq!(
             State::parse("3 10000 12000"),
             Some(State {
                 passes: 3,
                 seen: 10_000,
                 woken: 12_000,
+                slots: 0,
             })
         );
         assert_eq!(
@@ -1027,12 +1191,14 @@ mod tests {
                 passes: 3,
                 seen: 10_000,
                 woken: 0,
+                slots: 0,
             })
         );
         assert_eq!(State::parse("3"), None);
         assert_eq!(State::parse("x 1"), None);
         assert_eq!(State::parse("1 x"), None);
         assert_eq!(State::parse("1 2 x"), None);
+        assert_eq!(State::parse("1 2 3 x"), None);
     }
 
     #[test]
@@ -1058,7 +1224,7 @@ mod tests {
         assert_eq!(admitted.passed, None);
         assert!(admitted.spare.is_empty());
         let test = entry(1, Kind::Test, 2, "me");
-        let admitted = plan(&[test], "me", &[0, 1, 2], 1, 4, false, |_| true, |_| 0).unwrap();
+        let admitted = plan(&[test], "me", &[0, 1, 2], 1, 4, false, |_| Some(0), |_| 0).unwrap();
         assert_eq!(admitted.slots, [1, 2], "a test skips the reserve");
         assert_eq!(
             plan_all_ready(&[me], "me", &[1]),
@@ -1087,7 +1253,8 @@ mod tests {
             entry(1, Kind::Compile, 3, "large"),
             entry(2, Kind::Compile, 1, "me"),
         ];
-        let with_passes = |passes| plan(&queue, "me", &[0, 1], 0, 2, false, |_| true, |_| passes);
+        let with_passes =
+            |passes| plan(&queue, "me", &[0, 1], 0, 2, false, |_| Some(0), |_| passes);
         let admitted = with_passes(0).unwrap();
         assert_eq!(admitted.slots, [0]);
         assert_eq!(admitted.passed, Some(queue[0].clone()));
@@ -1106,14 +1273,14 @@ mod tests {
             entry(1, Kind::Test, 3, "test"),
             entry(2, Kind::Compile, 1, "me"),
         ];
-        let admitted = plan(&queue, "me", &[0, 2], 1, 0, false, |_| true, |_| 0).unwrap();
+        let admitted = plan(&queue, "me", &[0, 2], 1, 0, false, |_| Some(0), |_| 0).unwrap();
         assert_eq!(admitted.slots, [0], "a test cannot use slot 0");
         let queue = [
             entry(1, Kind::Compile, 3, "compile"),
             entry(2, Kind::Test, 1, "me"),
         ];
         assert_eq!(
-            plan(&queue, "me", &[0, 2], 1, 0, false, |_| true, |_| 0),
+            plan(&queue, "me", &[0, 2], 1, 0, false, |_| Some(0), |_| 0),
             Err(Waiting { saved_for_tests: 0 }),
             "a reserving compile can use every slot"
         );
@@ -1125,7 +1292,18 @@ mod tests {
             entry(1, Kind::Test, 3, "test"),
             entry(2, Kind::Compile, 2, "me"),
         ];
-        let with = |passes| plan(&queue, "me", &[0, 2, 3], 1, 1, false, |_| true, |_| passes);
+        let with = |passes| {
+            plan(
+                &queue,
+                "me",
+                &[0, 2, 3],
+                1,
+                1,
+                false,
+                |_| Some(0),
+                |_| passes,
+            )
+        };
         assert_eq!(
             with(1),
             Err(Waiting { saved_for_tests: 2 }),
@@ -1140,7 +1318,7 @@ mod tests {
             entry(1, Kind::Test, 3, "test"),
             entry(2, Kind::Compile, 1, "me"),
         ];
-        let admitted = plan(&queue, "me", &[0, 2, 3], 1, 0, false, |_| true, |_| 0).unwrap();
+        let admitted = plan(&queue, "me", &[0, 2, 3], 1, 0, false, |_| Some(0), |_| 0).unwrap();
         assert_eq!(
             admitted.slots,
             [0],
@@ -1166,7 +1344,7 @@ mod tests {
             false,
             |entry| {
                 asked.borrow_mut().push(entry.id.clone());
-                entry.id == "large"
+                (entry.id == "large").then_some(0)
             },
             |_| 0,
         )
@@ -1195,7 +1373,7 @@ mod tests {
             false,
             |entry| {
                 asked.borrow_mut().push(entry.id.clone());
-                true
+                Some(0)
             },
             |_| {
                 *passes_asked.borrow_mut() += 1;
@@ -1228,7 +1406,7 @@ mod tests {
             true,
             |_| {
                 *asked.borrow_mut() += 1;
-                true
+                Some(0)
             },
             |_| {
                 *asked.borrow_mut() += 1;
@@ -1254,7 +1432,7 @@ mod tests {
             2,
             4,
             true,
-            |_| true,
+            |_| Some(0),
             |_| 0,
         )
         .unwrap();
@@ -1271,7 +1449,7 @@ mod tests {
             2,
             4,
             false,
-            |_| true,
+            |_| Some(0),
             |_| 0,
         )
         .unwrap();
@@ -1286,7 +1464,7 @@ mod tests {
             false,
             |entry| {
                 asked.borrow_mut().push(entry.id.clone());
-                true
+                Some(0)
             },
             |_| 0,
         )
@@ -1315,17 +1493,20 @@ mod tests {
             owner_alive(&waiters_dir(dir.path()).join("abc")),
             Some(true)
         );
-        assert!(ready(dir.path(), &queued, at(6_000)));
+        assert!(ready(dir.path(), &queued, at(6_000)).is_some());
         assert!(
-            ready(dir.path(), &queued, at(60_000)),
+            ready(dir.path(), &queued, at(60_000)).is_some(),
             "a ticket nobody woke never goes stale"
         );
-        wake(dir.path(), &queued, at(7_000));
-        assert!(ready(dir.path(), &queued, at(8_999)));
-        assert!(!ready(dir.path(), &queued, at(9_000)), "woken, not claimed");
-        wake(dir.path(), &queued, at(9_500));
+        wake(dir.path(), &queued, at(7_000), &[0]);
+        assert!(ready(dir.path(), &queued, at(8_999)).is_some());
         assert!(
-            !ready(dir.path(), &queued, at(9_600)),
+            ready(dir.path(), &queued, at(9_000)).is_none(),
+            "woken, not claimed"
+        );
+        wake(dir.path(), &queued, at(9_500), &[0]);
+        assert!(
+            ready(dir.path(), &queued, at(9_600)).is_none(),
             "a second wake does not restart the clock"
         );
         assert_eq!(
@@ -1335,7 +1516,7 @@ mod tests {
         );
         ticket.refresh(2, at(9_700)).unwrap();
         assert!(
-            ready(dir.path(), &queued, at(12_000)),
+            ready(dir.path(), &queued, at(12_000)).is_some(),
             "the owner looking makes it count again"
         );
         drop(ticket);
@@ -1370,13 +1551,13 @@ mod tests {
         // What a killed owner leaves: both files, and no lock.
         fs::write(queue_dir(dir.path()).join(queued.name()), b"0 5000").unwrap();
         fs::write(waiters_dir(dir.path()).join("dead"), b"").unwrap();
-        assert!(!ready(dir.path(), &queued, at(5_000)));
+        assert!(ready(dir.path(), &queued, at(5_000)).is_none());
         assert!(list(dir.path()).unwrap().is_empty());
         assert!(!waiters_dir(dir.path()).join("dead").exists());
 
         // A ticket whose lock file is already gone.
         fs::write(queue_dir(dir.path()).join(queued.name()), b"0 5000").unwrap();
-        assert!(!ready(dir.path(), &queued, at(5_000)));
+        assert!(ready(dir.path(), &queued, at(5_000)).is_none());
         assert!(list(dir.path()).unwrap().is_empty());
     }
 
@@ -1386,7 +1567,7 @@ mod tests {
         let queued = entry(7, Kind::Compile, 1, "blank");
         let _ticket = Ticket::create(dir.path(), queued.clone(), at(5_000), 4).unwrap();
         fs::write(queue_dir(dir.path()).join(queued.name()), b"").unwrap();
-        assert!(!ready(dir.path(), &queued, at(5_000)));
+        assert!(ready(dir.path(), &queued, at(5_000)).is_none());
         assert_eq!(
             list(dir.path()).unwrap(),
             [queued],
@@ -1409,7 +1590,10 @@ mod tests {
             std::slice::from_ref(&queued),
             "same need, same name"
         );
-        assert!(ready(dir.path(), &queued, at(4_000)), "seen again at 3 s");
+        assert!(
+            ready(dir.path(), &queued, at(4_000)).is_some(),
+            "seen again at 3 s"
+        );
 
         ticket.refresh(2, at(5_000)).unwrap();
         let shrunk = entry(7, Kind::Compile, 2, "grow");
