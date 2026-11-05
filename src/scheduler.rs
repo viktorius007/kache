@@ -1148,9 +1148,13 @@ impl Scheduler {
         }
     }
 
-    /// Take `need` slots if the queue gives them to this request now, and
-    /// queue it when it does not. Should the queue be unusable, or its lock
-    /// stay held for [`queue::LOCK_WAIT`], take free slots out of order.
+    /// Take the slots a releaser's plan gave this request's ticket, or take
+    /// `need` slots if the queue gives them to this request now, and queue
+    /// it when it does not. Should the queue be unusable, or its lock stay
+    /// held for [`queue::LOCK_WAIT`], take free slots out of order.
+    ///
+    /// The claim needs no `queue.lock`: the slot locks decide a race with a
+    /// plan that gave the slot to someone else, and the loser plans again.
     fn admit(
         &self,
         request: &Request,
@@ -1161,6 +1165,13 @@ impl Scheduler {
         request.saved_for_tests.set(0);
         request.position.set(0);
         admission_stats::admit_called();
+        if let Some(waiting) = ticket {
+            if let Some(slots) = self.claim_assigned(request, need, waiting)? {
+                ticket.take().expect("the ticket was just used").admitted();
+                admission_stats::claimed();
+                return Ok(Collect::Ready(slots));
+            }
+        }
         let wait = queue::LOCK_WAIT.min(allowance);
         match queue::lock(&self.root, wait) {
             Ok(Some(queue)) => {
@@ -1198,11 +1209,6 @@ impl Scheduler {
         let now = SystemTime::now();
         let me = match ticket {
             Some(waiting) => {
-                if let Some(slots) = self.claim_assigned(request, need, waiting)? {
-                    ticket.take().expect("the ticket was just used").admitted();
-                    admission_stats::claimed();
-                    return Ok(Collect::Ready(slots));
-                }
                 waiting.refresh(need, now)?;
                 waiting.entry().clone()
             }
@@ -1231,9 +1237,9 @@ impl Scheduler {
     }
 
     /// Lock the slots the releaser's plan gave `ticket`, without planning
-    /// again. `None` when the plan gave it nothing, something else than
-    /// `need` slots of its kind, a spare is wanted, or a slot is held after
-    /// all.
+    /// again and without `queue.lock`. `None` when the plan gave it nothing,
+    /// something else than `need` slots of its kind, a spare is wanted, or
+    /// a slot is held after all.
     fn claim_assigned(
         &self,
         request: &Request,
@@ -5441,6 +5447,27 @@ mod tests {
             Some((vec![0], 1)),
             "the release's plan assigned slot 0; the waiter claimed it"
         );
+    }
+
+    #[test]
+    fn a_woken_waiter_claims_its_slots_while_queue_lock_is_held() {
+        let dir = temp_cache();
+        let cache = dir.path();
+        let scheduler = test_scheduler(cache, 1);
+        let held = StoreLock::try_acquire(&scheduler.permit_path(0))
+            .unwrap()
+            .unwrap();
+        let waiter = permit_on_a_thread(cache, 1, 1);
+        wait_until("the waiter to queue", || queued(cache).len() == 1);
+        let entry = queued(cache).remove(0);
+        let queue = queue::lock(&scheduler.root, Duration::from_secs(5))
+            .unwrap()
+            .unwrap();
+        drop(held);
+        queue::wake(&scheduler.root, &entry, SystemTime::now(), &[0]);
+        let slots = waiter.join().unwrap();
+        drop(queue);
+        assert_eq!(slots, Some((vec![0], 1)), "claimed under a held queue.lock");
     }
 
     #[test]
