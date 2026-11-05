@@ -19,10 +19,12 @@
 //!
 //! The runner never writes to stdout: test harnesses and nextest read it.
 
+use serde::Serialize;
 use std::ffi::{OsStr, OsString};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crate::scheduler::{self, TestWant};
 
@@ -60,6 +62,9 @@ pub(crate) struct TestEnv {
     pub(crate) lease: Option<PathBuf>,
     /// `CARGO_PKG_NAME` of the package the binary belongs to.
     pub(crate) pkg_name: Option<String>,
+    /// `KACHE_ADMISSION_STATS`: a file that gets one JSON line per
+    /// scheduled run, the cost of its admission.
+    pub(crate) admission_stats: Option<PathBuf>,
 }
 
 impl TestEnv {
@@ -69,6 +74,7 @@ impl TestEnv {
             rust_test_threads: std::env::var("RUST_TEST_THREADS").ok(),
             lease: std::env::var_os(scheduler::TEST_LEASE_ENV).map(PathBuf::from),
             pkg_name: std::env::var("CARGO_PKG_NAME").ok(),
+            admission_stats: std::env::var_os("KACHE_ADMISSION_STATS").map(PathBuf::from),
         }
     }
 }
@@ -256,6 +262,39 @@ fn positive(value: &str) -> Option<u32> {
     value.parse().ok().filter(|threads| *threads > 0)
 }
 
+/// One scheduled run's admission cost, a line of `KACHE_ADMISSION_STATS`.
+#[derive(Serialize)]
+struct AdmissionRecord<'a> {
+    pid: u32,
+    key: &'a str,
+    want: u32,
+    leased: bool,
+    held: u32,
+    wait_us: u64,
+    #[serde(flatten)]
+    stats: scheduler::admission_stats::AdmissionStats,
+}
+
+/// Append `record` as one JSON line. Diagnostic I/O never changes the
+/// test's exit status, so a failure here is dropped.
+fn append_admission_record(path: &Path, record: &AdmissionRecord<'_>) {
+    let Ok(mut line) = serde_json::to_vec(record) else {
+        return;
+    };
+    line.push(b'\n');
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(path)
+    {
+        let _ = file.write_all(&line);
+    }
+}
+
+fn micros(duration: Duration) -> u64 {
+    duration.as_micros().try_into().unwrap_or(u64::MAX)
+}
+
 /// How long to wait for a lease before running without one.
 pub(crate) fn wait_budget(env: &TestEnv) -> Duration {
     if env.nextest_mode.is_some() {
@@ -375,12 +414,15 @@ fn run_scheduled(
     key: &str,
     want: TestWant,
 ) -> i32 {
+    let started = Instant::now();
     let lease = scheduler::acquire_test_lease(
         cache_dir,
         scheduler::default_pool_size(),
         want,
         wait_budget(env),
     );
+    let wait_us = micros(started.elapsed());
+    let held = lease.as_ref().map_or(0, scheduler::TestLease::held);
     let mut command = test_command(args, marker);
     hide_runner(&mut command, hidden);
     if let Some(lease) = &lease {
@@ -394,6 +436,21 @@ fn run_scheduled(
     let status = child.wait();
     drop(lease);
     scheduler::record_test_rss(cache_dir, key);
+    if let Some(path) = &env.admission_stats {
+        let (TestWant::Fixed(want) | TestWant::Elastic(want)) = want;
+        append_admission_record(
+            path,
+            &AdmissionRecord {
+                pid: std::process::id(),
+                key,
+                want,
+                leased: held > 0,
+                held,
+                wait_us,
+                stats: scheduler::admission_stats::take(),
+            },
+        );
+    }
     match status {
         Ok(status) => finish(exit_disposition(status.code(), signals::of(&status))),
         Err(error) => run_failed(&args[0], &error),
@@ -549,10 +606,44 @@ mod tests {
             rust_test_threads: None,
             lease: None,
             pkg_name: Some("demo".into()),
+            admission_stats: None,
         }
     }
 
     const PROBE: &str = "/t/debug/deps/probe-0123456789abcdef";
+
+    #[test]
+    fn an_admission_record_is_one_json_line_per_run() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("admission.jsonl");
+        let record = AdmissionRecord {
+            pid: 7,
+            key: "test:demo:probe",
+            want: 2,
+            leased: true,
+            held: 2,
+            wait_us: 15,
+            stats: scheduler::admission_stats::AdmissionStats {
+                lock_attempts: 9,
+                ..scheduler::admission_stats::AdmissionStats::ZERO
+            },
+        };
+        append_admission_record(&path, &record);
+        append_admission_record(&path, &record);
+        let text = std::fs::read_to_string(&path).unwrap();
+        let lines: Vec<serde_json::Value> = text
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        assert_eq!(lines.len(), 2, "{text}");
+        assert_eq!(lines[1]["pid"], 7);
+        assert_eq!(lines[1]["key"], "test:demo:probe");
+        assert_eq!(lines[1]["want"], 2);
+        assert_eq!(lines[1]["leased"], true);
+        assert_eq!(lines[1]["held"], 2);
+        assert_eq!(lines[1]["wait_us"], 15);
+        assert_eq!(lines[1]["lock_attempts"], 9, "the counts are flattened in");
+    }
 
     #[test]
     fn artifact_stem_requires_cargo_metadata_hash() {

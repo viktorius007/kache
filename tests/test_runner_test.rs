@@ -330,6 +330,33 @@ fn exit_codes_pass_through_scheduled_and_plain() {
 }
 
 #[test]
+fn a_scheduled_run_appends_its_admission_cost() {
+    let fixture = Fixture::new();
+    let stats = fixture.path().join("admission.jsonl");
+    let mut runner = fixture.runner(&fixture.probe(), "exit7");
+    runner.env("KACHE_ADMISSION_STATS", &stats);
+    let output = run(runner);
+    assert_eq!(output.status.code(), Some(7), "{output:?}");
+    let text = fs::read_to_string(&stats).unwrap();
+    let records: Vec<serde_json::Value> = text
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(records.len(), 1, "{text}");
+    let record = &records[0];
+    assert_eq!(record["leased"], true, "{record}");
+    assert!(record["held"].as_u64().unwrap() >= 1, "{record}");
+    // An empty pool admits on the first plan, under the queue lock.
+    assert_eq!(record["admit_calls"], 1, "{record}");
+    assert_eq!(record["lock_holds"], 1, "{record}");
+    assert_eq!(record["unordered"], 0, "{record}");
+    assert!(
+        record["key"].as_str().unwrap().starts_with("test:"),
+        "{record}"
+    );
+}
+
+#[test]
 fn an_unscheduled_test_holds_target_protection_until_exit() {
     let fixture = Fixture::new();
     let mut command = fixture.runner(&fixture.probe(), "term");

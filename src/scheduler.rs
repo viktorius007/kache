@@ -41,6 +41,7 @@
 //! is covered by the test's slots and takes none of its own; see
 //! [`lease_covers`].
 
+pub mod admission_stats;
 mod budget;
 mod permit_wait;
 pub(crate) mod pressure;
@@ -711,7 +712,9 @@ impl Scheduler {
                             let nap = permit_wait::SATURATED_SLICE.min(remaining);
                             #[cfg(test)]
                             PERMIT_POLL_MAX.with(|max| max.set(max.get().max(nap)));
+                            let parked = std::time::Instant::now();
                             permit_wait::park(&self.root, armed, seen, nap);
+                            admission_stats::parked(parked.elapsed());
                         }
                     }
                 }
@@ -1046,20 +1049,30 @@ impl Scheduler {
         allowance: Duration,
     ) -> Result<Collect> {
         request.saved_for_tests.set(0);
+        admission_stats::admit_called();
         let wait = queue::LOCK_WAIT.min(allowance);
         match queue::lock(&self.root, wait) {
-            Ok(Some(_queue)) => match self.admit_in_order(request, need, ticket) {
-                Ok(collect) => return Ok(collect),
-                Err(error) => {
-                    tracing::debug!("permit queue unusable ({error:#}); taking slots out of order")
+            Ok(Some(queue)) => {
+                let held = std::time::Instant::now();
+                let collect = self.admit_in_order(request, need, ticket);
+                drop(queue);
+                admission_stats::lock_held(held.elapsed());
+                match collect {
+                    Ok(collect) => return Ok(collect),
+                    Err(error) => {
+                        tracing::debug!(
+                            "permit queue unusable ({error:#}); taking slots out of order"
+                        )
+                    }
                 }
-            },
+            }
             Ok(None) => tracing::debug!("permit queue stayed locked; taking slots out of order"),
             Err(error) => {
                 crate::invocation::process::check()?;
                 tracing::debug!("permit queue lock failed ({error:#}); taking slots out of order")
             }
         }
+        admission_stats::admitted_unordered();
         self.collect_unordered(request, need)
     }
 
@@ -1990,6 +2003,68 @@ mod tests {
             let _ = stop.send(());
             result
         })
+    }
+
+    #[test]
+    fn an_admission_counts_its_lock_hold_and_its_parks() {
+        let dir = temp_cache();
+        let scheduler = test_scheduler(dir.path(), 1);
+        let _ = admission_stats::take();
+        let holder = scheduler.acquire_permit(1).unwrap();
+        let stats = admission_stats::take();
+        assert_eq!(
+            (
+                stats.admit_calls,
+                stats.lock_attempts,
+                stats.lock_holds,
+                stats.unordered,
+                stats.parks
+            ),
+            (1, 1, 1, 0, 0),
+            "{stats:?}"
+        );
+        // A short wait and no budget scope: with the allowance spent, a
+        // one-slot pool would grant a recovery permit instead of none.
+        let waiter = Scheduler::open_with(
+            dir.path(),
+            1,
+            Duration::from_millis(20),
+            Duration::from_millis(5),
+        )
+        .unwrap();
+        assert!(waiter.acquire_permit(1).is_none(), "the one slot is held");
+        drop(holder);
+        let stats = admission_stats::take();
+        // The first plan finds the slot busy; the re-check after arming the
+        // wake does too; then the waiter parks until its allowance ends.
+        assert!(stats.admit_calls >= 2, "{stats:?}");
+        assert!(stats.parks >= 1, "{stats:?}");
+        assert!(stats.park_us > 0, "{stats:?}");
+        assert_eq!(stats.unordered, 0, "{stats:?}");
+    }
+
+    #[test]
+    fn a_queue_lock_that_stays_held_counts_an_out_of_order_admission() {
+        let dir = temp_cache();
+        let mut scheduler = test_scheduler(dir.path(), 1);
+        scheduler.wait_timeout = Duration::from_millis(20);
+        let _queue = queue::lock(&scheduler.root, Duration::ZERO)
+            .unwrap()
+            .unwrap();
+        let _ = admission_stats::take();
+        let permit = scheduler.acquire_permit(1);
+        let stats = admission_stats::take();
+        assert!(permit.is_some(), "a free pool admits out of order");
+        assert_eq!(
+            (
+                stats.lock_holds,
+                stats.lock_hold_us,
+                stats.lock_gave_up,
+                stats.unordered
+            ),
+            (0, 0, 1, 1),
+            "{stats:?}"
+        );
     }
 
     #[test]
@@ -4083,6 +4158,7 @@ mod tests {
             nextest_mode: None,
             rust_test_threads: Some("1".into()),
             pkg_name: Some("lease_fixture".into()),
+            admission_stats: None,
         };
         let live_plan = crate::test_runner::plan(&args, &env, Some(dir.path()));
         let identity = FlightIdentity::rustc("nested", &["lib".into()], false).with_key("lease");

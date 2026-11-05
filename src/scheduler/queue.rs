@@ -78,13 +78,18 @@ pub(super) fn lock(root: &Path, wait: Duration) -> Result<Option<fs::File>> {
     let start = std::time::Instant::now();
     loop {
         crate::invocation::process::check()?;
+        super::admission_stats::lock_attempted();
         match file.try_lock() {
-            Ok(()) => return Ok(Some(file)),
+            Ok(()) => {
+                super::admission_stats::lock_waited(start.elapsed(), false);
+                return Ok(Some(file));
+            }
             Err(fs::TryLockError::WouldBlock) => {}
             Err(fs::TryLockError::Error(error)) => return Err(error.into()),
         }
         let left = wait.saturating_sub(start.elapsed());
         if left.is_zero() {
+            super::admission_stats::lock_waited(start.elapsed(), true);
             return Ok(None);
         }
         std::thread::sleep(LOCK_POLL.min(left));
@@ -562,6 +567,24 @@ impl Drop for Ticket {
 mod tests {
     use super::*;
     use std::cell::RefCell;
+
+    #[test]
+    fn lock_counts_every_try_and_a_wait_that_runs_out() {
+        let dir = tempfile::tempdir().unwrap();
+        let _ = super::super::admission_stats::take();
+        let held = lock(dir.path(), Duration::ZERO).unwrap().unwrap();
+        let stats = super::super::admission_stats::take();
+        assert_eq!((stats.lock_attempts, stats.lock_gave_up), (1, 0));
+        // A second handle on the path cannot take the lock while `held` lives.
+        let wait = Duration::from_millis(2);
+        assert!(lock(dir.path(), wait).unwrap().is_none());
+        let stats = super::super::admission_stats::take();
+        assert!(stats.lock_attempts >= 2, "{stats:?}");
+        assert_eq!(stats.lock_gave_up, 1);
+        // `None` is returned only once the whole allowance has elapsed.
+        assert!(stats.lock_wait_us >= 2000, "{stats:?}");
+        drop(held);
+    }
 
     fn entry(rank: u64, kind: Kind, need: u32, id: &str) -> Entry {
         Entry {
