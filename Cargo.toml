@@ -23,6 +23,10 @@ path = "src/frontend.rs"
 name = "kache-engine"
 path = "src/engine.rs"
 
+[[bin]]
+name = "kache-test-runner"
+path = "src/test_runner_bin.rs"
+
 [workspace]
 members = [
     "crates/kache-core",
