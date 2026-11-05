@@ -735,9 +735,9 @@ impl Scheduler {
                 WaitStep::Ready(slots) => return Some(slots),
                 WaitStep::Stop => return None,
                 WaitStep::Busy(busy) if !busy.is_empty() => {
-                    if !waited {
-                        // The need is asked again once the request has waited
-                        // (see [`compile_need`]); it may fit at once.
+                    if !waited && need(true, request.saved_for_tests.get()).max(1) != asking {
+                        // A need that shrinks once the request has waited
+                        // (see [`compile_need`]) may fit at once.
                         waited = true;
                         continue;
                     }
@@ -3695,9 +3695,9 @@ mod tests {
         let (admitted, stats) = waiter.join().unwrap();
         assert!(admitted);
         assert!(stats.parks >= 2, "no slice ended: {stats:?}");
-        // The first scan, the scan after it has waited, the claim when woken.
+        // The first scan and the claim when woken.
         assert!(
-            stats.lock_holds <= 3,
+            stats.lock_holds <= 2,
             "{} lock holds; a slice that ends is not a reason to replan: {stats:?}",
             stats.lock_holds
         );
