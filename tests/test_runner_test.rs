@@ -345,9 +345,11 @@ fn a_scheduled_run_appends_its_admission_cost() {
     assert_eq!(records.len(), 1, "{text}");
     let record = &records[0];
     assert!(record["held"].as_u64().unwrap() >= 1, "{record}");
-    // An empty pool admits on the first plan, under the queue lock.
+    // An empty pool admits on the first attempt, with nothing queued and so
+    // no queue lock to take.
     assert_eq!(record["admit_calls"], 1, "{record}");
-    assert_eq!(record["lock_holds"], 1, "{record}");
+    assert_eq!(record["lock_holds"], 0, "{record}");
+    assert_eq!(record["unlocked"], 1, "{record}");
     assert_eq!(record["unordered"], 0, "{record}");
     assert!(
         record["key"].as_str().unwrap().starts_with("test:"),

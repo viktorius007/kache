@@ -92,11 +92,11 @@ class AdmissionAggregateTest(unittest.TestCase):
             admission_line(lock_attempts=1, wait_us=10, lock_wait_us=5, lock_holds=1, lock_hold_us=20),
             admission_line(lock_attempts=3, wait_us=30, lock_wait_us=15, lock_holds=2, lock_hold_us=40, lock_gave_up=1),
             admission_line(lock_attempts=2, wait_us=20, lock_wait_us=10, lock_holds=1, lock_hold_us=30, unordered=2),
-            admission_line(lock_attempts=10, wait_us=100, lock_wait_us=50, lock_holds=0, lock_hold_us=0, held=0, claims=1),
+            admission_line(lock_attempts=0, wait_us=100, lock_wait_us=50, lock_holds=0, lock_hold_us=0, held=0, claims=1, unlocked=1),
         ]
         summary = admission.aggregate_admission(lines)
         self.assertEqual(summary["lines"], 4)
-        self.assertEqual(summary["lock_attempts"], {"mean": 4.0, "p50": 2, "p99": 10})
+        self.assertEqual(summary["lock_attempts"], {"mean": 1.5, "p50": 1, "p99": 3})
         self.assertEqual(summary["wait_us"], {"mean": 40.0, "p50": 20, "p99": 100})
         self.assertEqual(summary["lock_wait_us"], {"mean": 20.0, "p50": 10, "p99": 50})
         self.assertEqual(summary["mean_hold_us"], 90 / 4)
@@ -104,6 +104,7 @@ class AdmissionAggregateTest(unittest.TestCase):
         self.assertEqual(summary["unordered_fraction"], 0.25)
         self.assertEqual(summary["not_leased_fraction"], 0.25)
         self.assertEqual(summary["claimed_fraction"], 0.25)
+        self.assertEqual(summary["unlocked_fraction"], 0.25)
 
     def test_no_holds_gives_no_mean_hold(self):
         summary = admission.aggregate_admission([admission_line(lock_holds=0)])

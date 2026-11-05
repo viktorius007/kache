@@ -425,6 +425,36 @@ pub(super) fn ready(root: &Path, entry: &Entry, now: SystemTime) -> Option<u128>
         .map(|state| state.slots)
 }
 
+/// The slots the queue's woken tickets are about to claim, when no live
+/// ticket is owed a plan: the other free slots are then anybody's, and a
+/// release has nobody to wake. `None` when a live ticket has no
+/// assignment, a ticket's owner is dead, or the queue cannot be read;
+/// that takes a plan under `queue.lock`, which also deletes the dead
+/// ticket. Reads without the lock, so it deletes nothing itself; a stale
+/// wake is skipped, as a plan skips it.
+pub(super) fn claimed_slots(root: &Path, now: SystemTime) -> Option<u128> {
+    let mut claimed = 0;
+    for entry in list(root).ok()? {
+        if owner_alive(&waiters_dir(root).join(&entry.id)) != Some(true) {
+            return None;
+        }
+        let mut file = match fs::File::open(queue_dir(root).join(entry.name())) {
+            Ok(file) => file,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(_) => return None,
+        };
+        let state = read_state(&mut file)?;
+        if !state.fresh(now) {
+            continue;
+        }
+        if state.woken == 0 || state.slots == 0 {
+            return None;
+        }
+        claimed |= state.slots;
+    }
+    Some(claimed)
+}
+
 /// `Some(false)` when nothing holds the lock at `path` or the file is gone;
 /// `None` when it cannot be probed.
 fn owner_alive(path: &Path) -> Option<bool> {
@@ -639,8 +669,9 @@ fn assign<'a>(
 /// slots, a waiter leaving. Nothing is woken when `queue.lock` stays held
 /// for [`LOCK_WAIT`]; the waiters' backstop covers that.
 pub(super) fn wake_admitted(root: &Path, pool: u32) {
-    // Without a ticket there is nobody to wake, and no lock to take.
-    if !matches!(list(root), Ok(queue) if !queue.is_empty()) {
+    // With every live ticket already assigned its slots there is nobody to
+    // wake, and no lock to take.
+    if claimed_slots(root, SystemTime::now()).is_some() {
         return;
     }
     let Ok(Some(queue_lock)) = lock(root, LOCK_WAIT) else {
@@ -1141,6 +1172,31 @@ mod tests {
         ticket.refresh(2, now).unwrap();
         assert_eq!(ticket.assigned(), None, "a look consumes the assignment");
         ticket.admitted();
+    }
+
+    #[test]
+    fn the_claimed_slots_are_those_of_woken_live_tickets_and_none_while_one_is_owed_a_plan() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("scheduler");
+        let now = SystemTime::now();
+        assert_eq!(claimed_slots(&root, now), Some(0), "nothing queued");
+        let first = Ticket::create(&root, Entry::new(1, Kind::Test, 2), now, 4).unwrap();
+        assert_eq!(claimed_slots(&root, now), None, "a ticket with no plan");
+        wake(&root, first.entry(), now, &[2, 3]);
+        assert_eq!(claimed_slots(&root, now), Some(0b1100));
+        let second = Ticket::create(&root, Entry::new(2, Kind::Compile, 1), now, 4).unwrap();
+        assert_eq!(claimed_slots(&root, now), None, "the second has no plan");
+        wake(&root, second.entry(), now, &[0]);
+        assert_eq!(claimed_slots(&root, now), Some(0b1101));
+        let later = now + STALE_AFTER;
+        assert_eq!(claimed_slots(&root, later), Some(0), "stale wakes are skipped");
+        let gone = Entry::new(3, Kind::Compile, 1);
+        fs::write(queue_dir(&root).join(gone.name()), b"").unwrap();
+        assert_eq!(claimed_slots(&root, now), None, "a dead owner is left to a plan");
+        let _alive = waiter_lock(&waiters_dir(&root).join(&gone.id)).unwrap();
+        assert_eq!(claimed_slots(&root, now), None, "a live ticket with no state");
+        drop(second);
+        first.admitted();
     }
 
     #[test]

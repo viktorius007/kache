@@ -30,6 +30,9 @@ pub struct AdmissionStats {
     /// Admissions that took the slots a releaser's plan assigned, without
     /// planning again.
     pub claims: u32,
+    /// Admissions in order without `queue.lock`: a claim, or free slots
+    /// taken while every queued ticket had its own.
+    pub unlocked: u32,
 }
 
 impl AdmissionStats {
@@ -44,6 +47,7 @@ impl AdmissionStats {
         park_us: 0,
         unordered: 0,
         claims: 0,
+        unlocked: 0,
     };
 }
 
@@ -99,6 +103,10 @@ pub(super) fn claimed() {
     update(|stats| stats.claims = stats.claims.saturating_add(1));
 }
 
+pub(super) fn admitted_unlocked() {
+    update(|stats| stats.unlocked = stats.unlocked.saturating_add(1));
+}
+
 /// The thread's counts, which start again from zero.
 pub fn take() -> AdmissionStats {
     STATS.with(|stats| stats.replace(AdmissionStats::ZERO))
@@ -124,6 +132,7 @@ mod tests {
         parked(Duration::from_micros(3));
         admitted_unordered();
         claimed();
+        admitted_unlocked();
         assert_eq!(
             take(),
             AdmissionStats {
@@ -137,6 +146,7 @@ mod tests {
                 park_us: 3,
                 unordered: 1,
                 claims: 1,
+                unlocked: 1,
             }
         );
         assert_eq!(take(), AdmissionStats::ZERO);

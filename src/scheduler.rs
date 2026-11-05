@@ -858,8 +858,9 @@ impl Scheduler {
 
     /// Lock every free slot in `range` without waiting. A slot this process
     /// already holds is busy to a second handle, so it is skipped.
-    fn take_free_slots(&self, range: Range<u32>) -> Vec<(u32, StoreLock)> {
+    fn take_free_slots(&self, range: impl IntoIterator<Item = u32>) -> Vec<(u32, StoreLock)> {
         range
+            .into_iter()
             .filter_map(
                 |index| match StoreLock::try_acquire(&self.permit_path(index)) {
                     Ok(Some(lock)) => Some((index, lock)),
@@ -1153,8 +1154,11 @@ impl Scheduler {
     /// it when it does not. Should the queue be unusable, or its lock stay
     /// held for [`queue::LOCK_WAIT`], take free slots out of order.
     ///
-    /// The claim needs no `queue.lock`: the slot locks decide a race with a
-    /// plan that gave the slot to someone else, and the loser plans again.
+    /// Neither the claim nor a first attempt while every queued ticket has
+    /// its slots needs `queue.lock`: the slot locks decide a race with a
+    /// plan that gave a slot to someone else, and the loser plans again.
+    /// With nobody owed a plan there is no order to keep, so the first free
+    /// slots outside the tickets' are this request's.
     fn admit(
         &self,
         request: &Request,
@@ -1165,11 +1169,22 @@ impl Scheduler {
         request.saved_for_tests.set(0);
         request.position.set(0);
         admission_stats::admit_called();
-        if let Some(waiting) = ticket {
-            if let Some(slots) = self.claim_assigned(request, need, waiting)? {
-                ticket.take().expect("the ticket was just used").admitted();
-                admission_stats::claimed();
-                return Ok(Collect::Ready(slots));
+        match ticket {
+            Some(waiting) => {
+                if let Some(slots) = self.claim_assigned(request, need, waiting)? {
+                    ticket.take().expect("the ticket was just used").admitted();
+                    admission_stats::claimed();
+                    admission_stats::admitted_unlocked();
+                    return Ok(Collect::Ready(slots));
+                }
+            }
+            None => {
+                if let Some(claimed) = queue::claimed_slots(&self.root, SystemTime::now())
+                    && let Collect::Ready(slots) = self.collect_free(request, need, claimed)?
+                {
+                    admission_stats::admitted_unlocked();
+                    return Ok(Collect::Ready(slots));
+                }
             }
         }
         let wait = queue::LOCK_WAIT.min(allowance);
@@ -1268,16 +1283,22 @@ impl Scheduler {
     /// Take the first `need` free slots of the request's range, and with
     /// `spare` every other free one.
     fn collect_unordered(&self, request: &Request, need: u32) -> Result<Collect> {
-        let range = self.range(request.kind);
-        Ok(
-            match try_collect_slots(self, range.clone(), need as usize)? {
-                Collect::Ready(mut slots) if request.spare => {
-                    slots.extend(self.take_free_slots(range));
-                    Collect::Ready(slots)
-                }
-                collect => collect,
-            },
-        )
+        self.collect_free(request, need, 0)
+    }
+
+    /// [`Scheduler::collect_unordered`] leaving the slots in `claimed` alone.
+    fn collect_free(&self, request: &Request, need: u32, claimed: u128) -> Result<Collect> {
+        let free = || {
+            self.range(request.kind)
+                .filter(move |&index| index >= 128 || claimed & (1 << index) == 0)
+        };
+        Ok(match try_collect_slots(self, free(), need as usize)? {
+            Collect::Ready(mut slots) if request.spare => {
+                slots.extend(self.take_free_slots(free()));
+                Collect::Ready(slots)
+            }
+            collect => collect,
+        })
     }
 
     /// Lock every free slot of the pool, let [`queue::plan`] decide which are
@@ -1359,7 +1380,11 @@ impl Scheduler {
     }
 }
 
-fn try_collect_slots(scheduler: &Scheduler, range: Range<u32>, need: usize) -> Result<Collect> {
+fn try_collect_slots(
+    scheduler: &Scheduler,
+    range: impl IntoIterator<Item = u32>,
+    need: usize,
+) -> Result<Collect> {
     let mut slots = Vec::with_capacity(need);
     let mut busy = Vec::new();
     for index in range {
@@ -2205,8 +2230,8 @@ mod tests {
                 stats.unordered,
                 stats.parks
             ),
-            (1, 1, 1, 0, 0),
-            "{stats:?}"
+            (1, 0, 0, 0, 0),
+            "nothing queued: no lock; {stats:?}"
         );
         // A short wait and no budget scope: with the allowance spent, a
         // one-slot pool would grant a recovery permit instead of none.
@@ -2223,6 +2248,7 @@ mod tests {
         // The first plan finds the slot busy; the re-check after arming the
         // wake does too; then the waiter parks until its allowance ends.
         assert!(stats.admit_calls >= 2, "{stats:?}");
+        assert!(stats.lock_holds >= 1, "the slot was busy: a plan; {stats:?}");
         assert!(stats.parks >= 1, "{stats:?}");
         assert!(stats.park_us > 0, "{stats:?}");
         assert_eq!(stats.unordered, 0, "{stats:?}");
@@ -2233,6 +2259,7 @@ mod tests {
         let dir = temp_cache();
         let mut scheduler = test_scheduler(dir.path(), 1);
         scheduler.wait_timeout = Duration::from_millis(20);
+        let _ahead = ticket_of_another(dir.path(), 1);
         let _queue = queue::lock(&scheduler.root, Duration::ZERO)
             .unwrap()
             .unwrap();
@@ -4953,6 +4980,14 @@ mod tests {
         queue::list(&scheduler_root(cache)).unwrap()
     }
 
+    /// A live ticket of another process, queued for one slot of any kind.
+    fn ticket_of_another(cache: &Path, pool: u32) -> queue::Ticket {
+        let now = SystemTime::now();
+        let rank = queue::rank(now, Priority::Background);
+        let entry = queue::Entry::new(rank, queue::Kind::Compile, 1);
+        queue::Ticket::create(&scheduler_root(cache), entry, now, pool).unwrap()
+    }
+
     fn wait_until(what: &str, mut done: impl FnMut() -> bool) {
         let deadline = std::time::Instant::now() + Duration::from_secs(10);
         while !done() {
@@ -5282,13 +5317,14 @@ mod tests {
     fn a_held_queue_lock_falls_back_to_first_come() {
         let dir = temp_cache();
         let scheduler = budget_scheduler(dir.path(), 1);
+        let _ahead = ticket_of_another(dir.path(), 1);
         let _queue = StoreLock::try_acquire(&queue::lock_path(&scheduler.root))
             .unwrap()
             .unwrap();
         let started = std::time::Instant::now();
         assert!(scheduler.acquire_permit(1).is_some());
         assert!(started.elapsed() >= BUDGET, "it waited for the queue first");
-        assert!(queued(dir.path()).is_empty());
+        assert_eq!(queued(dir.path()).len(), 1, "it left no ticket");
     }
 
     #[test]
@@ -5308,6 +5344,7 @@ mod tests {
     fn cancellation_while_the_queue_is_locked_takes_no_slot() {
         let dir = temp_cache();
         let cache = dir.path().to_path_buf();
+        let _ahead = ticket_of_another(&cache, 1);
         let _queue = StoreLock::try_acquire(&queue::lock_path(&scheduler_root(&cache)))
             .unwrap()
             .unwrap();
@@ -5447,6 +5484,70 @@ mod tests {
             Some((vec![0], 1)),
             "the release's plan assigned slot 0; the waiter claimed it"
         );
+    }
+
+    #[test]
+    fn a_first_attempt_with_nothing_queued_takes_free_slots_while_queue_lock_is_held() {
+        let dir = temp_cache();
+        let scheduler = test_scheduler(dir.path(), 2);
+        let _queue = queue::lock(&scheduler.root, Duration::ZERO)
+            .unwrap()
+            .unwrap();
+        let _ = admission_stats::take();
+        let permit = scheduler.acquire_permit(1).unwrap();
+        let stats = admission_stats::take();
+        assert_eq!(permit._slots[0].0, 0);
+        assert_eq!(
+            (stats.lock_attempts, stats.unordered, stats.unlocked),
+            (0, 0, 1),
+            "{stats:?}"
+        );
+    }
+
+    #[test]
+    fn a_first_attempt_leaves_an_assigned_slot_to_its_ticket_and_takes_the_next_without_the_lock() {
+        let dir = temp_cache();
+        let scheduler = test_scheduler(dir.path(), 3);
+        let ahead = ticket_of_another(dir.path(), 3);
+        let _queue = queue::lock(&scheduler.root, Duration::ZERO)
+            .unwrap()
+            .unwrap();
+        queue::wake(&scheduler.root, ahead.entry(), SystemTime::now(), &[0]);
+        let _ = admission_stats::take();
+        let permit = scheduler.acquire_permit(1).unwrap();
+        let stats = admission_stats::take();
+        assert_eq!(permit._slots[0].0, 1, "slot 0 is the ticket's");
+        assert_eq!(
+            (stats.lock_attempts, stats.unordered, stats.unlocked),
+            (0, 0, 1),
+            "{stats:?}"
+        );
+        drop(_queue);
+        ahead.admitted();
+    }
+
+    #[test]
+    fn a_release_with_every_ticket_assigned_takes_no_lock_and_with_one_owed_a_plan_takes_it() {
+        let dir = temp_cache();
+        let scheduler = test_scheduler(dir.path(), 2);
+        let permit = scheduler.acquire_permit(1).unwrap();
+        let mut ahead = ticket_of_another(dir.path(), 2);
+        {
+            let _queue = queue::lock(&scheduler.root, Duration::ZERO)
+                .unwrap()
+                .unwrap();
+            queue::wake(&scheduler.root, ahead.entry(), SystemTime::now(), &[1]);
+        }
+        let _ = admission_stats::take();
+        drop(permit);
+        assert_eq!(admission_stats::take().lock_attempts, 0, "nobody to plan for");
+        let permit = scheduler.acquire_permit(1).unwrap();
+        ahead.refresh(1, SystemTime::now()).unwrap();
+        let _ = admission_stats::take();
+        drop(permit);
+        let stats = admission_stats::take();
+        assert_eq!((stats.lock_attempts, stats.lock_holds), (1, 1), "{stats:?}");
+        ahead.admitted();
     }
 
     #[test]
