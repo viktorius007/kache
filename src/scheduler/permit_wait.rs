@@ -97,6 +97,15 @@ impl Word {
         }
     }
 
+    /// Wake one sleeper without moving the counter: a wake passed on, not
+    /// a change.
+    pub(super) fn pass_one(&self) {
+        #[cfg(target_os = "linux")]
+        if let Some(word) = &self.inner {
+            word.wake(1);
+        }
+    }
+
     /// Move the counter and wake every sleeper.
     pub(super) fn bump_all(&self) {
         #[cfg(target_os = "linux")]
@@ -386,6 +395,13 @@ mod linux {
             // including one that has not reached the futex yet. The syscall
             // below is what unblocks a waiter already inside it.
             self.atomic().fetch_add(1, Ordering::Relaxed);
+            self.wake(sleepers);
+        }
+
+        /// Wake up to `sleepers` of the processes in [`Self::wait`] without
+        /// moving the word. One that has not reached the futex yet sleeps
+        /// its whole limit.
+        pub(super) fn wake(&self, sleepers: u32) {
             futex(self.addr(), FUTEX_WAKE, sleepers, std::ptr::null());
         }
 

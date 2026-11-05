@@ -1152,7 +1152,8 @@ impl Scheduler {
     /// Take the slots a releaser's plan gave this request's ticket, or take
     /// `need` slots if the queue gives them to this request now, and queue
     /// it when it does not. Should the queue be unusable, or its lock stay
-    /// held for [`queue::LOCK_WAIT`], take free slots out of order.
+    /// with one holder for [`queue::LOCK_WAIT`], take free slots out of
+    /// order; a lock that keeps changing hands is waited for.
     ///
     /// Neither the claim nor a first attempt while every queued ticket has
     /// its slots needs `queue.lock`: the slot locks decide a race with a
@@ -1187,8 +1188,7 @@ impl Scheduler {
                 }
             }
         }
-        let wait = queue::LOCK_WAIT.min(allowance);
-        match queue::lock(&self.root, wait) {
+        match queue::lock(&self.root, allowance, queue::LOCK_WAIT) {
             Ok(Some(queue)) => {
                 let held = std::time::Instant::now();
                 let collect = self.admit_in_order(request, need, ticket);
@@ -2248,7 +2248,10 @@ mod tests {
         // The first plan finds the slot busy; the re-check after arming the
         // wake does too; then the waiter parks until its allowance ends.
         assert!(stats.admit_calls >= 2, "{stats:?}");
-        assert!(stats.lock_holds >= 1, "the slot was busy: a plan; {stats:?}");
+        assert!(
+            stats.lock_holds >= 1,
+            "the slot was busy: a plan; {stats:?}"
+        );
         assert!(stats.parks >= 1, "{stats:?}");
         assert!(stats.park_us > 0, "{stats:?}");
         assert_eq!(stats.unordered, 0, "{stats:?}");
@@ -2260,7 +2263,7 @@ mod tests {
         let mut scheduler = test_scheduler(dir.path(), 1);
         scheduler.wait_timeout = Duration::from_millis(20);
         let _ahead = ticket_of_another(dir.path(), 1);
-        let _queue = queue::lock(&scheduler.root, Duration::ZERO)
+        let _queue = queue::lock(&scheduler.root, Duration::ZERO, Duration::ZERO)
             .unwrap()
             .unwrap();
         let _ = admission_stats::take();
@@ -5106,7 +5109,9 @@ mod tests {
             let root = scheduler_root(cache);
             // Refresh truncates and rewrites ticket state under this lock.
             // Read the pass count under the same lock to avoid a partial read.
-            let _queue = queue::lock(&root, Duration::from_secs(5)).unwrap().unwrap();
+            let _queue = queue::lock(&root, Duration::from_secs(5), Duration::from_secs(5))
+                .unwrap()
+                .unwrap();
             let waiting = queued(cache);
             assert_eq!(waiting.len(), 1);
             assert_eq!(queue::passes(&root, &waiting[0]), 2);
@@ -5309,7 +5314,9 @@ mod tests {
         let permit = scheduler.acquire_permit(1).unwrap();
         assert_eq!(permit._slots[0].0, 0, "slot 1 is left for the ticket ahead");
         let root = scheduler_root(cache);
-        let _queue = queue::lock(&root, Duration::from_secs(5)).unwrap().unwrap();
+        let _queue = queue::lock(&root, Duration::from_secs(5), Duration::from_secs(5))
+            .unwrap()
+            .unwrap();
         assert_eq!(queue::state(&root, _ahead.entry()).unwrap().slots, 0b10);
     }
 
@@ -5490,7 +5497,7 @@ mod tests {
     fn a_first_attempt_with_nothing_queued_takes_free_slots_while_queue_lock_is_held() {
         let dir = temp_cache();
         let scheduler = test_scheduler(dir.path(), 2);
-        let _queue = queue::lock(&scheduler.root, Duration::ZERO)
+        let _queue = queue::lock(&scheduler.root, Duration::ZERO, Duration::ZERO)
             .unwrap()
             .unwrap();
         let _ = admission_stats::take();
@@ -5509,7 +5516,7 @@ mod tests {
         let dir = temp_cache();
         let scheduler = test_scheduler(dir.path(), 3);
         let ahead = ticket_of_another(dir.path(), 3);
-        let _queue = queue::lock(&scheduler.root, Duration::ZERO)
+        let _queue = queue::lock(&scheduler.root, Duration::ZERO, Duration::ZERO)
             .unwrap()
             .unwrap();
         queue::wake(&scheduler.root, ahead.entry(), SystemTime::now(), &[0]);
@@ -5533,14 +5540,18 @@ mod tests {
         let permit = scheduler.acquire_permit(1).unwrap();
         let mut ahead = ticket_of_another(dir.path(), 2);
         {
-            let _queue = queue::lock(&scheduler.root, Duration::ZERO)
+            let _queue = queue::lock(&scheduler.root, Duration::ZERO, Duration::ZERO)
                 .unwrap()
                 .unwrap();
             queue::wake(&scheduler.root, ahead.entry(), SystemTime::now(), &[1]);
         }
         let _ = admission_stats::take();
         drop(permit);
-        assert_eq!(admission_stats::take().lock_attempts, 0, "nobody to plan for");
+        assert_eq!(
+            admission_stats::take().lock_attempts,
+            0,
+            "nobody to plan for"
+        );
         let permit = scheduler.acquire_permit(1).unwrap();
         ahead.refresh(1, SystemTime::now()).unwrap();
         let _ = admission_stats::take();
@@ -5561,9 +5572,13 @@ mod tests {
         let waiter = permit_on_a_thread(cache, 1, 1);
         wait_until("the waiter to queue", || queued(cache).len() == 1);
         let entry = queued(cache).remove(0);
-        let queue = queue::lock(&scheduler.root, Duration::from_secs(5))
-            .unwrap()
-            .unwrap();
+        let queue = queue::lock(
+            &scheduler.root,
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+        )
+        .unwrap()
+        .unwrap();
         drop(held);
         queue::wake(&scheduler.root, &entry, SystemTime::now(), &[0]);
         let slots = waiter.join().unwrap();
@@ -5583,7 +5598,9 @@ mod tests {
         // A plan that was overtaken: slot 0 is still the holder's.
         let before = queue::millis(SystemTime::now());
         {
-            let _queue = queue::lock(&root, Duration::from_secs(5)).unwrap().unwrap();
+            let _queue = queue::lock(&root, Duration::from_secs(5), Duration::from_secs(5))
+                .unwrap()
+                .unwrap();
             queue::wake(&root, &entry, SystemTime::now(), &[0]);
         }
         wait_until("the waiter to look for itself", || {
@@ -5612,7 +5629,9 @@ mod tests {
         small.admitted(Duration::from_secs(5));
         {
             let root = scheduler_root(cache);
-            let _queue = queue::lock(&root, Duration::from_secs(5)).unwrap().unwrap();
+            let _queue = queue::lock(&root, Duration::from_secs(5), Duration::from_secs(5))
+                .unwrap()
+                .unwrap();
             let waiting = queued(cache);
             assert_eq!(waiting.len(), 1);
             assert_eq!(

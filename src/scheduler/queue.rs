@@ -58,10 +58,14 @@ use super::priority::Priority;
 pub(super) const FOREGROUND_HEAD_START: Duration = Duration::from_secs(10);
 /// How long a woken ticket counts before it has claimed its slots.
 pub(super) const STALE_AFTER: Duration = Duration::from_secs(2);
-/// The longest a waiter waits for `queue.lock` before taking slots out of
-/// order. Planning takes microseconds; only a holder the OS stopped running
-/// keeps the lock longer.
+/// The longest `queue.lock` goes without changing hands before a waiter
+/// stops waiting for it. Planning takes microseconds; only a holder the OS
+/// stopped running keeps the lock longer. A lock that keeps changing hands
+/// is waited for until the caller's allowance ends.
 pub(super) const LOCK_WAIT: Duration = Duration::from_secs(1);
+/// The longest a releaser waits for `queue.lock` to plan for the slots it
+/// freed. Past this the next holder plans for them.
+pub(super) const RELEASE_WAIT: Duration = Duration::from_secs(10);
 /// The longest a waiter sleeps for `queue.lock` without trying it where the
 /// holder's drop wakes it. A holder that is killed drops the lock without
 /// a wake; this bounds what that costs the next waiter.
@@ -107,15 +111,38 @@ fn lock_slice(woken: bool, tries: u32, left: Duration) -> Duration {
     slice.min(left)
 }
 
-/// Hold `queue.lock`, waiting up to `wait` for it. `None` when it stayed
-/// held. The file is never unlinked, so the lock on the open handle is the
-/// lock on the path.
+/// When `queue.wake` last moved: a holder's drop moves it, so a word that
+/// stands still is a holder that keeps the lock.
+struct Turnover {
+    seen: u32,
+    changed: std::time::Instant,
+}
+
+impl Turnover {
+    fn observe(&mut self, seen: u32, now: std::time::Instant) {
+        if seen != self.seen {
+            self.seen = seen;
+            self.changed = now;
+        }
+    }
+
+    /// How much of `stale` is left before the lock counts as kept.
+    fn left(&self, now: std::time::Instant, stale: Duration) -> Duration {
+        stale.saturating_sub(now.saturating_duration_since(self.changed))
+    }
+}
+
+/// Hold `queue.lock`, waiting up to `wait` for it, and no longer than
+/// `stale` since it last changed hands. `None` when it stayed held. The
+/// file is never unlinked, so the lock on the open handle is the lock on
+/// the path.
 ///
 /// A waiter sleeps on `queue.wake` until the holder drops the lock, with
 /// [`LOCK_SLICE`] as the backstop; where nothing wakes it, it tries again
 /// on a doubling backoff. A waiter that leaves without the lock passes the
-/// wake it may have taken to the next one.
-pub(super) fn lock(root: &Path, wait: Duration) -> Result<Option<QueueLock>> {
+/// wake it may have taken to the next one without moving the word: only a
+/// holder's drop counts as the lock changing hands.
+pub(super) fn lock(root: &Path, wait: Duration, stale: Duration) -> Result<Option<QueueLock>> {
     let file = fs::OpenOptions::new()
         .read(true)
         .write(true)
@@ -124,14 +151,20 @@ pub(super) fn lock(root: &Path, wait: Duration) -> Result<Option<QueueLock>> {
         .open(lock_path(root))?;
     let word = Word::open(&lock_wake_path(root));
     let start = std::time::Instant::now();
+    let mut turnover = Turnover {
+        seen: word.seen(),
+        changed: start,
+    };
     let mut tries = 0;
     loop {
         if let Err(error) = crate::invocation::process::check() {
-            word.bump_one();
+            word.pass_one();
             return Err(error.into());
         }
         super::admission_stats::lock_attempted();
         let seen = word.seen();
+        let now = std::time::Instant::now();
+        turnover.observe(seen, now);
         match file.try_lock() {
             Ok(()) => {
                 super::admission_stats::lock_waited(start.elapsed(), false);
@@ -142,14 +175,16 @@ pub(super) fn lock(root: &Path, wait: Duration) -> Result<Option<QueueLock>> {
             }
             Err(fs::TryLockError::WouldBlock) => {}
             Err(fs::TryLockError::Error(error)) => {
-                word.bump_one();
+                word.pass_one();
                 return Err(error.into());
             }
         }
-        let left = wait.saturating_sub(start.elapsed());
+        let left = wait
+            .saturating_sub(now.saturating_duration_since(start))
+            .min(turnover.left(now, stale));
         if left.is_zero() {
             super::admission_stats::lock_waited(start.elapsed(), true);
-            word.bump_one();
+            word.pass_one();
             return Ok(None);
         }
         word.wait(seen, lock_slice(WORDS_WAKE, tries, left));
@@ -674,7 +709,7 @@ pub(super) fn wake_admitted(root: &Path, pool: u32) {
     if claimed_slots(root, SystemTime::now()).is_some() {
         return;
     }
-    let Ok(Some(queue_lock)) = lock(root, LOCK_WAIT) else {
+    let Ok(Some(queue_lock)) = lock(root, RELEASE_WAIT, LOCK_WAIT) else {
         return;
     };
     let held = std::time::Instant::now();
@@ -896,18 +931,124 @@ mod tests {
     fn lock_counts_every_try_and_a_wait_that_runs_out() {
         let dir = tempfile::tempdir().unwrap();
         let _ = super::super::admission_stats::take();
-        let held = lock(dir.path(), Duration::ZERO).unwrap().unwrap();
+        let held = lock(dir.path(), Duration::ZERO, LOCK_WAIT)
+            .unwrap()
+            .unwrap();
         let stats = super::super::admission_stats::take();
         assert_eq!((stats.lock_attempts, stats.lock_gave_up), (1, 0));
         // A second handle on the path cannot take the lock while `held` lives.
         let wait = Duration::from_millis(2);
-        assert!(lock(dir.path(), wait).unwrap().is_none());
+        assert!(lock(dir.path(), wait, LOCK_WAIT).unwrap().is_none());
         let stats = super::super::admission_stats::take();
         assert!(stats.lock_attempts >= 2, "{stats:?}");
         assert_eq!(stats.lock_gave_up, 1);
         // `None` is returned only once the whole allowance has elapsed.
         assert!(stats.lock_wait_us >= 2000, "{stats:?}");
         drop(held);
+    }
+
+    #[test]
+    fn a_word_that_moves_restarts_the_stale_clock_and_one_that_stands_still_runs_it_out() {
+        let ms = Duration::from_millis;
+        let start = std::time::Instant::now();
+        let stale = ms(100);
+        let mut turnover = Turnover {
+            seen: 3,
+            changed: start,
+        };
+        turnover.observe(3, start + ms(60));
+        assert_eq!(turnover.left(start + ms(60), stale), ms(40), "unchanged");
+        turnover.observe(4, start + ms(60));
+        assert_eq!(turnover.left(start + ms(60), stale), ms(100), "moved");
+        assert_eq!(turnover.left(start + ms(160), stale), Duration::ZERO);
+        assert_eq!(turnover.left(start + ms(500), stale), Duration::ZERO);
+    }
+
+    #[test]
+    fn a_waiter_outlasts_a_lock_that_keeps_changing_hands() {
+        let dir = tempfile::tempdir().unwrap();
+        let held = lock(dir.path(), Duration::ZERO, LOCK_WAIT)
+            .unwrap()
+            .unwrap();
+        let path = lock_wake_path(dir.path());
+        // Six times `stale` of turnover, then none.
+        let stale = Duration::from_millis(100);
+        let bumper = std::thread::spawn(move || {
+            let word = Word::open(&path);
+            let until = std::time::Instant::now() + stale * 6;
+            while std::time::Instant::now() < until {
+                std::thread::sleep(Duration::from_millis(5));
+                word.bump_one();
+            }
+        });
+        let _ = super::super::admission_stats::take();
+        let started = std::time::Instant::now();
+        assert!(
+            lock(dir.path(), Duration::from_secs(30), stale)
+                .unwrap()
+                .is_none()
+        );
+        let elapsed = started.elapsed();
+        bumper.join().unwrap();
+        let stats = super::super::admission_stats::take();
+        assert_eq!(stats.lock_gave_up, 1, "{stats:?}");
+        assert!(
+            elapsed >= stale * 6,
+            "turnover kept it waiting: {elapsed:?}"
+        );
+        assert!(
+            elapsed < Duration::from_secs(30),
+            "the lock standing still ended the wait"
+        );
+        drop(held);
+    }
+
+    #[test]
+    fn a_waiter_that_leaves_passes_its_wake_without_moving_the_word() {
+        let dir = tempfile::tempdir().unwrap();
+        let held = lock(dir.path(), Duration::ZERO, LOCK_WAIT)
+            .unwrap()
+            .unwrap();
+        let word = Word::open(&lock_wake_path(dir.path()));
+        let before = word.seen();
+        let stale = Duration::from_millis(50);
+        let waiters: Vec<_> = (0..2)
+            .map(|_| {
+                let root = dir.path().to_path_buf();
+                std::thread::spawn(move || {
+                    lock(&root, Duration::from_secs(30), stale)
+                        .unwrap()
+                        .is_none()
+                })
+            })
+            .collect();
+        for waiter in waiters {
+            assert!(waiter.join().unwrap(), "gave up on a kept lock");
+        }
+        assert_eq!(
+            word.seen(),
+            before,
+            "a passed wake is not a change of hands"
+        );
+        drop(held);
+        assert_ne!(word.seen(), before, "a drop is");
+    }
+
+    #[test]
+    fn a_passed_wake_ends_a_sleep_as_an_unchanged_word() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = lock_wake_path(dir.path());
+        let word = Word::open(&path);
+        let seen = word.seen();
+        let sleeper =
+            std::thread::spawn(move || Word::open(&path).wait(seen, Duration::from_secs(30)));
+        while !sleeper.is_finished() {
+            std::thread::sleep(Duration::from_millis(5));
+            word.pass_one();
+        }
+        let woke = sleeper.join().unwrap();
+        assert!(matches!(woke, Wake::Slice | Wake::Unknown), "{woke:?}");
+        assert_eq!(word.seen(), seen);
     }
 
     #[test]
@@ -941,10 +1082,12 @@ mod tests {
     #[test]
     fn a_held_lock_is_tried_once_per_slice_not_polled() {
         let dir = tempfile::tempdir().unwrap();
-        let held = lock(dir.path(), Duration::ZERO).unwrap().unwrap();
+        let held = lock(dir.path(), Duration::ZERO, LOCK_WAIT)
+            .unwrap()
+            .unwrap();
         let _ = super::super::admission_stats::take();
         let wait = LOCK_SLICE * 4;
-        assert!(lock(dir.path(), wait).unwrap().is_none());
+        assert!(lock(dir.path(), wait, LOCK_WAIT).unwrap().is_none());
         let stats = super::super::admission_stats::take();
         // One try per slice and one when the allowance runs out. Polling at
         // `LOCK_POLL` would make a thousand.
@@ -961,10 +1104,10 @@ mod tests {
     fn dropping_the_lock_hands_it_to_a_waiter_without_a_poll() {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path().to_path_buf();
-        let held = lock(&root, Duration::ZERO).unwrap().unwrap();
+        let held = lock(&root, Duration::ZERO, LOCK_WAIT).unwrap().unwrap();
         let waiter = std::thread::spawn(move || {
             let _ = super::super::admission_stats::take();
-            let taken = lock(&root, Duration::from_secs(5)).unwrap();
+            let taken = lock(&root, Duration::from_secs(5), LOCK_WAIT).unwrap();
             (taken.is_some(), super::super::admission_stats::take())
         });
         // Long enough for the waiter to be asleep on the word, short enough
@@ -984,24 +1127,6 @@ mod tests {
             "woken after {:?}; the drop must wake the waiter before its slice ends",
             dropped.elapsed()
         );
-    }
-
-    #[cfg(target_os = "linux")]
-    #[test]
-    fn a_waiter_that_gives_up_passes_the_wake_on() {
-        let dir = tempfile::tempdir().unwrap();
-        let root = dir.path().to_path_buf();
-        let held = lock(&root, Duration::ZERO).unwrap().unwrap();
-        let word = Word::open(&lock_wake_path(&root));
-        let seen = word.seen();
-        assert!(lock(&root, Duration::from_millis(1)).unwrap().is_none());
-        assert_eq!(
-            word.seen(),
-            seen.wrapping_add(1),
-            "giving up bumps the word"
-        );
-        drop(held);
-        assert_eq!(word.seen(), seen.wrapping_add(2), "dropping bumps it");
     }
 
     fn entry(rank: u64, kind: Kind, need: u32, id: &str) -> Entry {
@@ -1189,12 +1314,24 @@ mod tests {
         wake(&root, second.entry(), now, &[0]);
         assert_eq!(claimed_slots(&root, now), Some(0b1101));
         let later = now + STALE_AFTER;
-        assert_eq!(claimed_slots(&root, later), Some(0), "stale wakes are skipped");
+        assert_eq!(
+            claimed_slots(&root, later),
+            Some(0),
+            "stale wakes are skipped"
+        );
         let gone = Entry::new(3, Kind::Compile, 1);
         fs::write(queue_dir(&root).join(gone.name()), b"").unwrap();
-        assert_eq!(claimed_slots(&root, now), None, "a dead owner is left to a plan");
+        assert_eq!(
+            claimed_slots(&root, now),
+            None,
+            "a dead owner is left to a plan"
+        );
         let _alive = waiter_lock(&waiters_dir(&root).join(&gone.id)).unwrap();
-        assert_eq!(claimed_slots(&root, now), None, "a live ticket with no state");
+        assert_eq!(
+            claimed_slots(&root, now),
+            None,
+            "a live ticket with no state"
+        );
         drop(second);
         first.admitted();
     }
