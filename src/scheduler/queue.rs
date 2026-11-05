@@ -468,8 +468,14 @@ pub(super) fn ready(root: &Path, entry: &Entry, now: SystemTime) -> Option<u128>
 /// ticket. Reads without the lock, so it deletes nothing itself; a stale
 /// wake is skipped, as a plan skips it.
 pub(super) fn claimed_slots(root: &Path, now: SystemTime) -> Option<u128> {
+    claimed_by(root, list(root).ok()?, now)
+}
+
+/// [`claimed_slots`] over `entries`, the queue as it was listed. A ticket
+/// gone since the listing was admitted or left and holds nothing.
+fn claimed_by(root: &Path, entries: Vec<Entry>, now: SystemTime) -> Option<u128> {
     let mut claimed = 0;
-    for entry in list(root).ok()? {
+    for entry in entries {
         if owner_alive(&waiters_dir(root).join(&entry.id)) != Some(true) {
             return None;
         }
@@ -751,7 +757,8 @@ fn wake_planned(root: &Path, pool: u32) {
 
 /// Tell `entry`'s owner that `slots` are its. The first wake since the
 /// owner last looked is the one its [`STALE_AFTER`] runs from; the slots
-/// are the latest plan's. Call only under `queue.lock`.
+/// are the latest plan's; a plan that repeats the recorded slots writes
+/// nothing. Call only under `queue.lock`.
 pub(super) fn wake(root: &Path, entry: &Entry, now: SystemTime, slots: &[u32]) {
     if let Ok(mut file) = fs::OpenOptions::new()
         .read(true)
@@ -760,7 +767,7 @@ pub(super) fn wake(root: &Path, entry: &Entry, now: SystemTime, slots: &[u32]) {
     {
         let mut state = read_state(&mut file).unwrap_or_default();
         let mask = slot_mask(slots);
-        if state.woken == 0 || state.slots != mask {
+        if state.slots != mask {
             if state.woken == 0 {
                 state.woken = millis(now);
             }
@@ -1036,18 +1043,30 @@ mod tests {
 
     #[test]
     fn a_passed_wake_ends_a_sleep_as_an_unchanged_word() {
+        if !WORDS_WAKE {
+            // A wait is a plain sleep and a pass wakes nobody.
+            return;
+        }
         let dir = tempfile::tempdir().unwrap();
         let path = lock_wake_path(dir.path());
         let word = Word::open(&path);
         let seen = word.seen();
         let sleeper =
             std::thread::spawn(move || Word::open(&path).wait(seen, Duration::from_secs(30)));
+        let deadline = std::time::Instant::now() + Duration::from_secs(10);
         while !sleeper.is_finished() {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "a passed wake did not end the sleep"
+            );
             std::thread::sleep(Duration::from_millis(5));
             word.pass_one();
         }
-        let woke = sleeper.join().unwrap();
-        assert!(matches!(woke, Wake::Slice | Wake::Unknown), "{woke:?}");
+        assert_eq!(
+            sleeper.join().unwrap(),
+            Wake::Slice,
+            "the word did not move"
+        );
         assert_eq!(word.seen(), seen);
     }
 
@@ -1269,6 +1288,11 @@ mod tests {
             [3],
             "a reserve slot is not a test's"
         );
+        assert_eq!(
+            take(&[128, 0], Kind::Compile, 1, 1, slot_mask(&[0])),
+            [0],
+            "a slot past the mask was never prior"
+        );
     }
 
     #[test]
@@ -1281,6 +1305,7 @@ mod tests {
             0,
             "a slot without a bit gives up the mask"
         );
+        assert_eq!(slot_mask(&[2, 2]), 0b100, "a slot named twice is one bit");
     }
 
     #[test]
@@ -1334,6 +1359,69 @@ mod tests {
         );
         drop(second);
         first.admitted();
+    }
+
+    #[test]
+    fn a_ticket_gone_since_the_listing_is_skipped_and_one_that_cannot_be_read_is_left_to_a_plan() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("scheduler");
+        let now = SystemTime::now();
+        let first = Ticket::create(&root, Entry::new(1, Kind::Test, 2), now, 4).unwrap();
+        wake(&root, first.entry(), now, &[2, 3]);
+        let gone = Entry::new(2, Kind::Compile, 1);
+        let _alive = waiter_lock(&waiters_dir(&root).join(&gone.id)).unwrap();
+        let listed = vec![first.entry().clone(), gone];
+        assert_eq!(
+            claimed_by(&root, listed.clone(), now),
+            Some(0b1100),
+            "a live owner whose ticket went since the listing holds nothing"
+        );
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let path = queue_dir(&root).join(first.entry().name());
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o000)).unwrap();
+            assert_eq!(
+                claimed_by(&root, listed, now),
+                None,
+                "a ticket that cannot be opened is left to a plan"
+            );
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
+        }
+        first.admitted();
+    }
+
+    #[test]
+    fn a_wake_without_slots_and_slots_without_a_wake_are_left_to_a_plan() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("scheduler");
+        let now = SystemTime::now();
+        let mut ticket = Ticket::create(&root, Entry::new(1, Kind::Test, 2), now, 4).unwrap();
+        let mut file = fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(queue_dir(&root).join(ticket.entry().name()))
+            .unwrap();
+        let seen = millis(now);
+        let woken_without_slots = State {
+            passes: 0,
+            seen,
+            woken: seen,
+            slots: 0,
+        };
+        write_state(&mut file, woken_without_slots).unwrap();
+        assert_eq!(ticket.assigned(), None, "a wake that recorded no slots");
+        assert_eq!(claimed_slots(&root, now), None);
+        let slots_without_a_wake = State {
+            passes: 0,
+            seen,
+            woken: 0,
+            slots: 0b1100,
+        };
+        write_state(&mut file, slots_without_a_wake).unwrap();
+        assert_eq!(ticket.assigned(), None, "slots nobody woke it for");
+        assert_eq!(claimed_slots(&root, now), None);
+        ticket.admitted();
     }
 
     #[test]

@@ -5443,9 +5443,57 @@ mod tests {
         // Of the spare slots 6 and 7, 7 goes to another taker.
         let taken = take_between_probe_and_lock(&scheduler, 7);
         let lease = scheduler.acquire_test_lease(TestWant::Elastic(1)).unwrap();
-        let _lock = taken.recv().unwrap();
+        let _lock = taken.recv_timeout(Duration::from_secs(10)).unwrap();
         let slots: Vec<u32> = lease._slots.iter().map(|(index, _)| *index).collect();
         assert_eq!(slots, [4, 6]);
+    }
+
+    #[test]
+    fn a_ticket_assigned_the_wrong_count_or_a_slot_its_kind_cannot_use_claims_nothing() {
+        let dir = temp_cache();
+        let scheduler = test_scheduler(dir.path(), 4);
+        let now = SystemTime::now();
+        let entry = queue::Entry::new(1, queue::Kind::Test, 1);
+        let mut ticket = queue::Ticket::create(&scheduler.root, entry, now, 4).unwrap();
+        let request = Request::new(queue::Kind::Test, false);
+        queue::wake(&scheduler.root, ticket.entry(), now, &[1, 2]);
+        assert!(
+            scheduler
+                .claim_assigned(&request, 1, &mut ticket)
+                .unwrap()
+                .is_none(),
+            "two slots for a need of one"
+        );
+        queue::wake(&scheduler.root, ticket.entry(), now, &[0]);
+        assert!(
+            scheduler
+                .claim_assigned(&request, 1, &mut ticket)
+                .unwrap()
+                .is_none(),
+            "slot 0 is the compile reserve of a pool of 4"
+        );
+        queue::wake(&scheduler.root, ticket.entry(), now, &[1]);
+        let slots = scheduler
+            .claim_assigned(&request, 1, &mut ticket)
+            .unwrap()
+            .expect("one usable slot for a need of one");
+        assert_eq!(slots[0].0, 1);
+        ticket.admitted();
+    }
+
+    #[test]
+    fn collecting_free_slots_leaves_every_claimed_one_alone() {
+        let dir = temp_cache();
+        let scheduler = test_scheduler(dir.path(), 2);
+        let request = Request::new(queue::Kind::Compile, false);
+        match scheduler.collect_free(&request, 1, 0b11).unwrap() {
+            Collect::Busy(busy) => assert!(busy.is_empty(), "claimed slots are not probed"),
+            Collect::Ready(_) => panic!("a claimed slot was taken"),
+        }
+        match scheduler.collect_free(&request, 1, 0b01).unwrap() {
+            Collect::Ready(slots) => assert_eq!(slots[0].0, 1, "the slot past the claimed one"),
+            Collect::Busy(busy) => panic!("nothing taken; busy {busy:?}"),
+        }
     }
 
     #[test]

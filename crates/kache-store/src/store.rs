@@ -1385,7 +1385,8 @@ fn lock_file_is_at_path(file: &fs::File, path: &Path) -> bool {
     }
 }
 
-/// Bytes of the owner's pid written in a lock file; longer content, from
+/// Bytes of the owner's pid written in a lock file. A file already at the
+/// width is overwritten in place; any other content, from an older or
 /// another writer, is cut first.
 const LOCK_OWNER_WIDTH: u64 = 10;
 
@@ -1409,7 +1410,7 @@ impl StoreLock {
         // makes the close after it start a writeback that the next taker
         // waits for.
         use std::io::{Seek, SeekFrom, Write};
-        if file.metadata()?.len() > LOCK_OWNER_WIDTH {
+        if file.metadata()?.len() != LOCK_OWNER_WIDTH {
             file.set_len(0)?;
         }
         file.seek(SeekFrom::Start(0))?;
