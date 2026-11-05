@@ -243,6 +243,18 @@ class ArgumentTest(unittest.TestCase):
             admission.scrub_env(env), {"PATH": "/bin", "CARGO_TARGET_DIR": "/t", "KACHE_CACHE_DIR": "/c"}
         )
 
+    def test_run_env_sets_the_runner_unless_disabled(self):
+        base = {"PATH": "/bin"}
+        with_runner = admission.run_env(base, "/k/kache", Path("/o"), 4)
+        self.assertEqual(with_runner["CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER"], "/k/kache test-runner")
+        bare = admission.run_env(base, "/k/kache", Path("/o"), 4, runner=False)
+        self.assertNotIn("CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER", bare)
+        self.assertEqual(bare["KACHE_CACHE_DIR"], "/o/cache")
+
+    def test_no_runner_flag(self):
+        self.assertFalse(admission.parse_args(["--kache", "/k", "--out", "/o"]).no_runner)
+        self.assertTrue(admission.parse_args(["--kache", "/k", "--out", "/o", "--no-runner"]).no_runner)
+
     def test_crate_sources(self):
         sources = admission.crate_sources(3)
         self.assertIn('name = "admission-probe"', sources["Cargo.toml"])

@@ -371,18 +371,22 @@ def run_script(cpus, out, index):
     )
 
 
-def run_env(base, kache, out, threads):
+def run_env(base, kache, out, threads, runner=True):
+    """`runner=False` runs the tests bare: no `kache test-runner` wrapper,
+    so no admission and no admission stats, the floor the wrapper is
+    measured against."""
     env = scrub_env(base)
     env.update(
         {
             "KACHE_CACHE_DIR": str(out / "cache"),
             "KACHE_RUNTIME_DIR": str(out / "cache"),
             "KACHE_NATIVE_RUNTIME_WARMUP": "0",
-            "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER": f"{kache} test-runner",
             "NEXTEST_TEST_THREADS": str(threads),
             "KACHE_ADMISSION_STATS": str(out / "admission.jsonl"),
         }
     )
+    if runner:
+        env["CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER"] = f"{kache} test-runner"
     return env
 
 
@@ -526,6 +530,11 @@ def parse_args(argv=None):
     parser.add_argument("--cpus", default="0-7", help="taskset -c mask; empty disables taskset")
     parser.add_argument("--out", type=Path, default=None, help="output directory")
     parser.add_argument("--keep-extracts", action="store_true")
+    parser.add_argument(
+        "--no-runner",
+        action="store_true",
+        help="run the tests without the kache test-runner wrapper",
+    )
     parser.add_argument("--run-timeout", type=float, default=600.0)
     parser.add_argument(
         "--load-cap", type=float, default=0.0, help="kill every run when load1 exceeds this"
@@ -782,7 +791,7 @@ def main(argv=None):
     args.out.mkdir(parents=True, exist_ok=True)
     write_crate(args.out, args.tests)
     archive(args.out)
-    env = run_env(os.environ, args.kache, args.out, args.threads)
+    env = run_env(os.environ, args.kache, args.out, args.threads, runner=not args.no_runner)
     results, rows = run_all(args, env)
     stop_daemon(args, env)
     junit_times = collect_junit(args)
