@@ -371,10 +371,17 @@ def run_script(cpus, out, index):
     )
 
 
-def run_env(base, kache, out, threads, runner=True):
-    """`runner=False` runs the tests bare: no `kache test-runner` wrapper,
-    so no admission and no admission stats, the floor the wrapper is
-    measured against."""
+def runner_command(args):
+    """The target runner the run measures: none, the one given, or kache's."""
+    if args.no_runner:
+        return None
+    return args.runner if args.runner is not None else f"{args.kache} test-runner"
+
+
+def run_env(base, runner, out, threads):
+    """`runner` is Cargo's target runner command, or None to run the tests
+    bare: no wrapper, so no admission and no admission stats, the floor
+    the wrapper is measured against."""
     env = scrub_env(base)
     env.update(
         {
@@ -385,8 +392,8 @@ def run_env(base, kache, out, threads, runner=True):
             "KACHE_ADMISSION_STATS": str(out / "admission.jsonl"),
         }
     )
-    if runner:
-        env["CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER"] = f"{kache} test-runner"
+    if runner is not None:
+        env["CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER"] = runner
     return env
 
 
@@ -534,6 +541,11 @@ def parse_args(argv=None):
         "--no-runner",
         action="store_true",
         help="run the tests without the kache test-runner wrapper",
+    )
+    parser.add_argument(
+        "--runner",
+        default=None,
+        help="Cargo target runner command to measure instead of `<kache> test-runner`",
     )
     parser.add_argument("--run-timeout", type=float, default=600.0)
     parser.add_argument(
@@ -791,7 +803,7 @@ def main(argv=None):
     args.out.mkdir(parents=True, exist_ok=True)
     write_crate(args.out, args.tests)
     archive(args.out)
-    env = run_env(os.environ, args.kache, args.out, args.threads, runner=not args.no_runner)
+    env = run_env(os.environ, runner_command(args), args.out, args.threads)
     results, rows = run_all(args, env)
     stop_daemon(args, env)
     junit_times = collect_junit(args)

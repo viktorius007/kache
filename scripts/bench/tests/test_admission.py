@@ -243,17 +243,20 @@ class ArgumentTest(unittest.TestCase):
             admission.scrub_env(env), {"PATH": "/bin", "CARGO_TARGET_DIR": "/t", "KACHE_CACHE_DIR": "/c"}
         )
 
-    def test_run_env_sets_the_runner_unless_disabled(self):
+    def test_run_env_sets_the_runner_it_is_given(self):
         base = {"PATH": "/bin"}
-        with_runner = admission.run_env(base, "/k/kache", Path("/o"), 4)
+        with_runner = admission.run_env(base, "/k/kache test-runner", Path("/o"), 4)
         self.assertEqual(with_runner["CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER"], "/k/kache test-runner")
-        bare = admission.run_env(base, "/k/kache", Path("/o"), 4, runner=False)
+        bare = admission.run_env(base, None, Path("/o"), 4)
         self.assertNotIn("CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER", bare)
         self.assertEqual(bare["KACHE_CACHE_DIR"], "/o/cache")
 
-    def test_no_runner_flag(self):
-        self.assertFalse(admission.parse_args(["--kache", "/k", "--out", "/o"]).no_runner)
-        self.assertTrue(admission.parse_args(["--kache", "/k", "--out", "/o", "--no-runner"]).no_runner)
+    def test_runner_command_is_kache_unless_overridden_or_disabled(self):
+        base = ["--kache", "/k/kache", "--out", "/o"]
+        self.assertEqual(admission.runner_command(admission.parse_args(base)), "/k/kache test-runner")
+        self.assertEqual(admission.runner_command(admission.parse_args(base + ["--runner", "/r"])), "/r")
+        self.assertIsNone(admission.runner_command(admission.parse_args(base + ["--no-runner"])))
+        self.assertIsNone(admission.runner_command(admission.parse_args(base + ["--runner", "/r", "--no-runner"])))
 
     def test_crate_sources(self):
         sources = admission.crate_sources(3)
