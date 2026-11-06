@@ -87,7 +87,8 @@ image-service-release:
 # Run the full workspace test suite.
 [group('dev')]
 test:
-  ./scripts/with-test-resources.sh cargo test --workspace
+  ./scripts/with-test-resources.sh cargo nextest run --workspace --test-threads num-cpus
+  cargo test --workspace --doc
 
 # Verify both the raised-limit and bounded-thread fallback paths without
 # changing the invoking shell's resource limits.
