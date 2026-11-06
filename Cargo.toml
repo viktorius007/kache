@@ -218,6 +218,7 @@ depends = ""
 assets = [
     ["target/release/kache", "usr/bin/kache", "755"],
     ["target/release/kache-engine", "usr/bin/kache-engine", "755"],
+    ["target/release/kache-test-runner", "usr/bin/kache-test-runner", "755"],
     ["README.md", "usr/share/doc/kache/README", "644"],
 ]
 # postinst runs `kache init --shims /usr/lib/kache --force --canonical-only`

@@ -17,6 +17,10 @@
 //! project. Cargo ranks that above a project's own runner, so [`delegate`]
 //! finds the runner the project set and the test binary still runs under it.
 //!
+//! The runner ships as its own binary, `kache-test-runner`, which `kache
+//! init` exports and `kache test-runner` starts in place of the engine: a
+//! test pays for a 3 MiB process, not a 30 MiB one.
+//!
 //! The runner never writes to stdout: test harnesses and nextest read it.
 
 use serde::Serialize;
@@ -30,7 +34,7 @@ use crate::scheduler::{self, TestWant};
 
 mod delegate;
 #[cfg(unix)]
-pub(crate) use delegate::runner_var;
+pub(crate) use delegate::{is_kache_runner, runner_var};
 
 /// Wait budget under nextest, which counts the wait toward its own
 /// `slow-timeout` and `terminate-after`.

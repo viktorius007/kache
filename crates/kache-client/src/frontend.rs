@@ -21,6 +21,9 @@ pub fn run(version: &str) -> Result<i32> {
     } else {
         std::env::current_dir()?.join(executable)
     };
+    if let Some(runner_args) = test_runner_args(&args) {
+        return run_test_runner(&executable, runner_args);
+    }
     if engine_only(&args)
         || std::env::var_os("KACHE_FAMILY_PROBE_ACTIVE").is_some()
         || std::env::var_os("KACHE_BUILD_SCRIPT_PATH").is_some()
@@ -72,6 +75,36 @@ pub fn run(version: &str) -> Result<i32> {
         }
     }
     forward_engine(&executable, version, &args, started_at)
+}
+
+/// The arguments after `test-runner` when the frontend was asked to run a
+/// test binary. Behind a compiler-name shim argv[1] is a compiler argument,
+/// so `cc test-runner` stays a compile.
+fn test_runner_args(args: &[OsString]) -> Option<&[OsString]> {
+    let arg0 = args.first()?.to_string_lossy();
+    if kache_shims::is_compiler_shim_name(&arg0) || args.get(1)? != "test-runner" {
+        return None;
+    }
+    Some(&args[2..])
+}
+
+/// Replace the frontend with the installed `kache-test-runner`: a test
+/// starts a 3 MiB binary, not the engine.
+fn run_test_runner(executable: &std::path::Path, args: &[OsString]) -> Result<i32> {
+    let runner = kache_shims::test_runner_for(executable)
+        .context("locating kache-test-runner; reinstall all Kache binaries together")?;
+    let mut command = Command::new(runner);
+    command.args(args);
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        Err(command.exec()).context("starting the Kache test runner")
+    }
+    #[cfg(not(unix))]
+    {
+        let status = command.status().context("starting the Kache test runner")?;
+        Ok(status.code().unwrap_or(1))
+    }
 }
 
 fn forward_engine(
@@ -178,6 +211,22 @@ fn engine_only(args: &[OsString]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn test_runner_args_follow_the_subcommand_except_behind_a_compiler_shim() {
+        let argv = |words: &[&str]| words.iter().map(OsString::from).collect::<Vec<_>>();
+        assert_eq!(
+            test_runner_args(&argv(&["kache", "test-runner", "bin", "--x"])),
+            Some(&argv(&["bin", "--x"])[..])
+        );
+        assert_eq!(
+            test_runner_args(&argv(&["/opt/kache", "test-runner"])),
+            Some(&[][..])
+        );
+        assert_eq!(test_runner_args(&argv(&["cc", "test-runner", "bin"])), None);
+        assert_eq!(test_runner_args(&argv(&["kache", "gc"])), None);
+        assert_eq!(test_runner_args(&argv(&["kache"])), None);
+        assert_eq!(test_runner_args(&argv(&[])), None);
+    }
 
     #[test]
     fn long_windows_handoff_uses_a_file_and_preserves_the_versioned_envelope() {

@@ -3,7 +3,7 @@
 
 mod companion;
 pub mod farm;
-pub use companion::{FrontendImage, engine_beside, engine_for, frontend_for};
+pub use companion::{FrontendImage, engine_beside, engine_for, frontend_for, test_runner_for};
 mod fs;
 mod program;
 mod select;

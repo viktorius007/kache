@@ -10255,7 +10255,7 @@ mod tests;
 //       when those keys are absent. Never sets CC or CXX.
 //   1c. Unix: offers compiler-name shims in ~/.local/lib/kache/shims.
 //       Saves shell PATH setup after confirmation; activation needs a new terminal.
-//   1d. Unix: offers CARGO_TARGET_<HOST>_RUNNER="kache test-runner" in the
+//   1d. Unix: offers CARGO_TARGET_<HOST>_RUNNER="kache-test-runner" in the
 //       same startup files, so test binaries share the scheduler's slots.
 //   2. Installs the daemon as a login service (launchd/systemd)
 //   3. Starts the daemon
@@ -11920,9 +11920,10 @@ fn init_completions(
     Ok(changed)
 }
 
-/// What `kache init` sets as Cargo's runner for the host target.
+/// What `kache init` sets as Cargo's runner for the host target: the runner
+/// binary itself, so a test starts neither the frontend nor the engine.
 #[cfg(unix)]
-const TEST_RUNNER: &str = "kache test-runner";
+const TEST_RUNNER: &str = "kache-test-runner";
 
 /// The host triple of the `rustc` Cargo would use here.
 #[cfg(unix)]
@@ -11953,15 +11954,21 @@ enum TestPacing {
 
 #[cfg(unix)]
 fn test_pacing(current: Option<&str>) -> TestPacing {
+    let words = |value: &str| {
+        value
+            .split_whitespace()
+            .map(str::to_owned)
+            .collect::<Vec<_>>()
+    };
     match current {
-        Some(TEST_RUNNER) => TestPacing::Active,
+        Some(value) if crate::test_runner::is_kache_runner(&words(value)) => TestPacing::Active,
         Some(value) if !value.is_empty() => TestPacing::Overridden(value.to_owned()),
         _ => TestPacing::Pending,
     }
 }
 
 /// What `kache init` plans for test pacing: an export of
-/// `CARGO_TARGET_<HOST>_RUNNER="kache test-runner"` in the shell startup
+/// `CARGO_TARGET_<HOST>_RUNNER="kache-test-runner"` in the shell startup
 /// files.
 #[cfg(unix)]
 enum TestPlan {
@@ -12043,10 +12050,10 @@ fn plan_test_runner(no_shell: bool) -> Result<TestPlan> {
     })
 }
 
-/// Export `CARGO_TARGET_<HOST>_RUNNER="kache test-runner"` from the shell
+/// Export `CARGO_TARGET_<HOST>_RUNNER="kache-test-runner"` from the shell
 /// startup files, so `cargo test` in any project paces its test binaries.
-/// Cargo ranks the variable above a project's own runner; `kache
-/// test-runner` looks that runner up and still runs the binary under it.
+/// Cargo ranks the variable above a project's own runner; the runner looks
+/// that runner up and still runs the binary under it.
 /// Files in `created` are not backed up. Returns true when a new terminal is
 /// needed.
 #[cfg(unix)]

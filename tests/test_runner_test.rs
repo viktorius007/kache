@@ -530,7 +530,7 @@ fn a_test_does_not_inherit_the_exported_runner() {
             .env("CARGO_HOME", fixture.path().join("cargo-home"))
             .env("KACHE_SCHEDULER", scheduler)
             .env("PROBE_RUNNER_VAR", &var)
-            .env(&var, "kache test-runner");
+            .env(&var, "kache-test-runner");
         if let Some(config) = config {
             command.env("KACHE_CONFIG", config);
         }

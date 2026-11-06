@@ -213,3 +213,71 @@ fn build_script_forwarding_never_contacts_the_daemon() {
         29
     );
 }
+
+const RUNNER_FIXTURE: &str = "frontend::boundary_tests::test_runner_fixture";
+
+#[test]
+#[ignore = "subprocess fixture: replaces itself with the runner beside KACHE_TEST_RUNNER_FRONTEND"]
+fn test_runner_fixture() {
+    let frontend =
+        std::path::PathBuf::from(std::env::var_os("KACHE_TEST_RUNNER_FRONTEND").unwrap());
+    let outcome = run_test_runner(&frontend, &[OsString::from("probe-arg")]);
+    // Reached only when the runner did not replace this process.
+    std::process::exit(match outcome {
+        Ok(code) => 100 + code,
+        Err(error) => {
+            eprintln!("{error:#}");
+            90
+        }
+    });
+}
+
+/// The frontend's exit status is the runner's own, and the runner sees the
+/// arguments after `test-runner`.
+#[test]
+fn the_test_runner_beside_the_frontend_replaces_it() {
+    let root = tempfile::tempdir_in("/tmp").unwrap();
+    let frontend = root.path().join("kache");
+    std::fs::write(&frontend, "").unwrap();
+    let runner = root.path().join("kache-test-runner");
+    std::fs::write(
+        &runner,
+        "#!/bin/sh\nprintf 'runner saw %s\\n' \"$*\"\nexit 7\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&runner, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let output = Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", RUNNER_FIXTURE, "--ignored", "--nocapture"])
+        .env("KACHE_TEST_RUNNER_FRONTEND", &frontend)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(7), "{output:?}");
+    assert!(
+        output.stdout.ends_with(b"runner saw probe-arg\n"),
+        "{output:?}"
+    );
+}
+
+/// Without the runner beside it the frontend fails before any exec, naming
+/// the reinstall.
+#[test]
+fn a_frontend_without_the_runner_beside_it_fails_before_exec() {
+    let root = tempfile::tempdir_in("/tmp").unwrap();
+    let frontend = root.path().join("kache");
+    std::fs::write(&frontend, "").unwrap();
+    let output = Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", RUNNER_FIXTURE, "--ignored", "--nocapture"])
+        .env("KACHE_TEST_RUNNER_FRONTEND", &frontend)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(90), "{output:?}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("reinstall all Kache binaries together"),
+        "{stderr}"
+    );
+    assert!(
+        stderr.contains("kache-test-runner is missing or not executable"),
+        "{stderr}"
+    );
+}

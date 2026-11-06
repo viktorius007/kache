@@ -34,16 +34,22 @@ pub(crate) fn runner_var(triple: &str) -> String {
     format!("CARGO_TARGET_{}_RUNNER", env_triple(triple))
 }
 
-/// True when `words` start `kache test-runner`.
+/// True when `words` start `kache-test-runner` or `kache test-runner`.
 pub(crate) fn is_kache_runner(words: &[String]) -> bool {
-    let [program, subcommand, ..] = words else {
+    let [program, rest @ ..] = words else {
         return false;
     };
     let name = Path::new(program)
         .file_name()
         .and_then(|name| name.to_str())
         .unwrap_or_default();
-    matches!(name, "kache" | "kache.exe") && subcommand == "test-runner"
+    match name {
+        "kache-test-runner" | "kache-test-runner.exe" => true,
+        "kache" | "kache.exe" => rest
+            .first()
+            .is_some_and(|subcommand| subcommand == "test-runner"),
+        _ => false,
+    }
 }
 
 /// The environment triple of the `CARGO_TARGET_<TRIPLE>_RUNNER` that names
@@ -642,6 +648,10 @@ mod tests {
         assert!(is_kache_runner(&words("kache test-runner")));
         assert!(is_kache_runner(&words("/usr/bin/kache test-runner --x")));
         assert!(is_kache_runner(&words("kache.exe test-runner")));
+        assert!(is_kache_runner(&words("kache-test-runner")));
+        assert!(is_kache_runner(&words("/usr/bin/kache-test-runner --x")));
+        assert!(is_kache_runner(&words("kache-test-runner.exe")));
+        assert!(!is_kache_runner(&words("kache-test-runner-2")));
         assert!(!is_kache_runner(&words("kache")));
         assert!(!is_kache_runner(&words("kache gc")));
         assert!(!is_kache_runner(&words("sudo test-runner")));

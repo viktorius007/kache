@@ -685,7 +685,7 @@ def read_sample_sources(out):
     engines = 0
     for comm in Path("/proc").glob("[0-9]*/comm"):
         try:
-            engines += comm.read_text().strip() == "kache-engine"
+            engines += comm.read_text().strip() in ("kache-engine", "kache-test-runn")
         except OSError:
             continue
     return {

@@ -11,6 +11,10 @@ const ENGINE: &str = "kache-engine";
 const FRONTEND: &str = "kache.exe";
 #[cfg(not(windows))]
 const FRONTEND: &str = "kache";
+#[cfg(windows)]
+const TEST_RUNNER: &str = "kache-test-runner.exe";
+#[cfg(not(windows))]
+const TEST_RUNNER: &str = "kache-test-runner";
 
 /// Frontend image captured before entering the engine.
 #[derive(Debug, Clone)]
@@ -32,20 +36,30 @@ pub fn frontend_for(executable: &Path) -> PathBuf {
 /// The companion beside an already selected frontend path, retaining stable
 /// installer aliases such as Homebrew's opt directory.
 pub fn engine_beside(frontend: &Path) -> io::Result<PathBuf> {
-    let engine = frontend.with_file_name(ENGINE);
-    if crate::is_executable_file(&engine) {
-        Ok(engine)
-    } else {
-        Err(io::Error::new(
-            io::ErrorKind::NotFound,
-            format!("{} is missing or not executable", engine.display()),
-        ))
-    }
+    companion_beside(frontend, ENGINE)
 }
 
 /// Follow a compiler-name shim to its installation before finding the engine.
 pub fn engine_for(frontend: &Path) -> io::Result<PathBuf> {
     engine_beside(&std::fs::canonicalize(frontend)?)
+}
+
+/// The test runner installed beside the frontend, which `kache test-runner`
+/// starts in place of the engine.
+pub fn test_runner_for(frontend: &Path) -> io::Result<PathBuf> {
+    companion_beside(&std::fs::canonicalize(frontend)?, TEST_RUNNER)
+}
+
+fn companion_beside(frontend: &Path, name: &str) -> io::Result<PathBuf> {
+    let companion = frontend.with_file_name(name);
+    if crate::is_executable_file(&companion) {
+        Ok(companion)
+    } else {
+        Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            format!("{} is missing or not executable", companion.display()),
+        ))
+    }
 }
 
 #[cfg(test)]
@@ -126,6 +140,28 @@ mod tests {
         assert_eq!(
             engine_for(&farm.join("cc")).unwrap(),
             engine.canonicalize().unwrap()
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn the_test_runner_is_found_beside_the_resolved_frontend_or_not_at_all() {
+        use std::os::unix::fs::{PermissionsExt, symlink};
+        let root = tempfile::tempdir().unwrap();
+        let install = root.path().join("install");
+        std::fs::create_dir(&install).unwrap();
+        std::fs::write(install.join(FRONTEND), "frontend").unwrap();
+        symlink(install.join(FRONTEND), root.path().join("kache")).unwrap();
+        let error = test_runner_for(&root.path().join("kache")).unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::NotFound);
+        assert!(error.to_string().contains(TEST_RUNNER), "{error}");
+        let runner = install.join(TEST_RUNNER);
+        std::fs::write(&runner, "runner").unwrap();
+        assert!(test_runner_for(&root.path().join("kache")).is_err());
+        std::fs::set_permissions(&runner, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(
+            test_runner_for(&root.path().join("kache")).unwrap(),
+            runner.canonicalize().unwrap()
         );
     }
 }

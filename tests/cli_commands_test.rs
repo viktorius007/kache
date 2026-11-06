@@ -3230,7 +3230,7 @@ fn init_exports_the_test_runner_for_the_host() {
         "CARGO_TARGET_{}_RUNNER",
         host.to_ascii_uppercase().replace(['-', '.'], "_")
     );
-    let export = format!("{var}='kache test-runner'; export {var}");
+    let export = format!("{var}='kache-test-runner'; export {var}");
     let init = |e: &Env, args: &[&str], runner: Option<&str>, stdin: &str| {
         let mut command = e.cmd();
         command
@@ -3292,7 +3292,7 @@ fn init_exports_the_test_runner_for_the_host() {
     let plan: serde_json::Value = serde_json::from_str(&init(
         &e,
         &["--no-service", "--check", "--json"],
-        Some("kache test-runner"),
+        Some("kache-test-runner"),
         "",
     ))
     .unwrap();
@@ -3316,6 +3316,9 @@ fn init_exports_the_test_runner_for_the_host() {
     assert!(!out.contains("Proposed changes"), "{out}");
 
     // Nothing to change on a rerun; the terminal decides what init reports.
+    let out = init(&e, &["--no-service"], Some("kache-test-runner"), "y\n");
+    assert!(out.contains("Test pacing: active"), "{out}");
+    // An export from an earlier kache still paces tests.
     let out = init(&e, &["--no-service"], Some("kache test-runner"), "y\n");
     assert!(out.contains("Test pacing: active"), "{out}");
     assert!(!out.contains("Pace test binaries"), "{out}");
@@ -3354,7 +3357,7 @@ fn init_exports_the_test_runner_for_the_host() {
     let out = command.assert().success().get_output().stdout.clone();
     let out = String::from_utf8(out).unwrap();
     assert!(
-        out.contains(&format!("Export {var}=\"kache test-runner\"")),
+        out.contains(&format!("Export {var}=\"kache-test-runner\"")),
         "{out}"
     );
     std::fs::write(
