@@ -602,6 +602,21 @@ def archive(out):
 
 LAUNCH_ATTEMPTS = 40
 LAUNCH_BACKOFF_S = 0.5
+# Scope requests in flight at once. The user manager answers a few dozen
+# promptly; a thousand at once time out on its bus before any run starts.
+LAUNCH_IN_FLIGHT = 16
+LAUNCH_SETTLE_S = 30.0
+
+
+def start_scope(command, env, log, gate):
+    """Start one scope while holding `gate` until its `sh` is running: the
+    run's log exists, or systemd-run already exited."""
+    with gate:
+        proc = subprocess.Popen(command, env=env)
+        deadline = time.monotonic() + LAUNCH_SETTLE_S
+        while not log.exists() and proc.poll() is None and time.monotonic() < deadline:
+            time.sleep(0.01)
+    return proc
 
 
 def retry_launch(status, log_exists, attempt):
@@ -635,7 +650,7 @@ def launch_run(args, index, env, results):
     log = args.out / f"run-{index}.log"
     for attempt in range(1, LAUNCH_ATTEMPTS + 1):
         started = time.monotonic()
-        proc = subprocess.Popen(command, env=env)
+        proc = start_scope(command, env, log, args.launch_gate)
         timed_out = False
         try:
             status = proc.wait(timeout=args.run_timeout)
@@ -757,6 +772,7 @@ def sampler(args, stop, rows):
 def run_all(args, env):
     results = {}
     rows = []
+    args.launch_gate = threading.BoundedSemaphore(LAUNCH_IN_FLIGHT)
     stop = threading.Event()
     sampling = threading.Thread(target=sampler, args=(args, stop, rows), daemon=True)
     sampling.start()

@@ -1,3 +1,7 @@
+import os
+import time
+import threading
+import tempfile
 #!/usr/bin/env python3
 """Exercise the pure parsers and aggregators of the admission surge harness."""
 
@@ -264,6 +268,23 @@ class ArgumentTest(unittest.TestCase):
         self.assertFalse(admission.retry_launch(1, False, admission.LAUNCH_ATTEMPTS))
         self.assertFalse(admission.retry_launch(0, False, 1))
         self.assertFalse(admission.retry_launch(1, True, 1))
+
+    def test_start_scope_holds_the_gate_until_the_run_logs_or_exits(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / "run.log"
+            gate = threading.BoundedSemaphore(1)
+            script = f"sleep 0.2; : > {log}; sleep 0.5"
+            started = time.monotonic()
+            proc = admission.start_scope(["sh", "-c", script], os.environ.copy(), log, gate)
+            self.assertTrue(log.exists())
+            self.assertIsNone(proc.poll())
+            self.assertGreaterEqual(time.monotonic() - started, 0.2)
+            self.assertTrue(gate.acquire(blocking=False))
+            gate.release()
+            proc.wait()
+            proc = admission.start_scope(["sh", "-c", "exit 3"], os.environ.copy(), Path(tmp) / "none", gate)
+            self.assertEqual(proc.wait(), 3)
+            self.assertTrue(gate.acquire(blocking=False))
 
     def test_crate_sources(self):
         sources = admission.crate_sources(3)
