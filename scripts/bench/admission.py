@@ -430,9 +430,11 @@ def run_rows(runs):
     status = ", ".join(
         "timeout" if r["timed_out"] else str(r["exit_status"]) for r in runs
     )
+    retries = sum(r.get("launch_attempts", 1) - 1 for r in runs)
     return [
         ("run wall s (mean / max)", f"{fmt(statistics.fmean(walls))} / {fmt(max(walls))}"),
         ("run exit statuses", status),
+        ("launch retries", str(retries)),
     ]
 
 
@@ -598,6 +600,16 @@ def archive(out):
         raise SystemExit(f"cargo nextest archive failed ({done.returncode}):\n{done.stderr}")
 
 
+LAUNCH_ATTEMPTS = 40
+LAUNCH_BACKOFF_S = 0.5
+
+
+def retry_launch(status, log_exists, attempt):
+    """True when systemd-run failed before the run started and attempts remain.
+    A run that produced its log started, whatever it exited with."""
+    return status != 0 and not log_exists and attempt < LAUNCH_ATTEMPTS
+
+
 def launch_run(args, index, env, results):
     unit = f"admission-{args.stamp}-{index}"
     command = [
@@ -620,24 +632,32 @@ def launch_run(args, index, env, results):
     extract = args.out / f"run-{index}"
     extract.mkdir(parents=True, exist_ok=True)
     (extract / "nextest.toml").write_text(run_config(args.out, index))
-    started = time.monotonic()
-    proc = subprocess.Popen(command, env=env)
-    timed_out = False
-    try:
-        status = proc.wait(timeout=args.run_timeout)
-    except subprocess.TimeoutExpired:
-        timed_out = True
-        subprocess.run(
-            ["systemctl", "--user", "kill", "--signal=KILL", f"{unit}.scope"],
-            check=False,
-        )
-        status = proc.wait()
+    log = args.out / f"run-{index}.log"
+    for attempt in range(1, LAUNCH_ATTEMPTS + 1):
+        started = time.monotonic()
+        proc = subprocess.Popen(command, env=env)
+        timed_out = False
+        try:
+            status = proc.wait(timeout=args.run_timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            subprocess.run(
+                ["systemctl", "--user", "kill", "--signal=KILL", f"{unit}.scope"],
+                check=False,
+            )
+            status = proc.wait()
+        # A thousand scopes asked for at once overrun the user manager's bus;
+        # systemd-run then fails before `sh` ever ran, and the run has no log.
+        if not retry_launch(status, log.exists(), attempt):
+            break
+        time.sleep(LAUNCH_BACKOFF_S * attempt)
     results[index] = {
         "index": index,
         "unit": unit,
         "wall_s": time.monotonic() - started,
         "exit_status": status,
         "timed_out": timed_out,
+        "launch_attempts": attempt,
     }
 
 

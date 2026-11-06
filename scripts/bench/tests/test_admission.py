@@ -258,6 +258,13 @@ class ArgumentTest(unittest.TestCase):
         self.assertIsNone(admission.runner_command(admission.parse_args(base + ["--no-runner"])))
         self.assertIsNone(admission.runner_command(admission.parse_args(base + ["--runner", "/r", "--no-runner"])))
 
+    def test_a_launch_is_retried_only_when_it_failed_before_the_run_started(self):
+        self.assertTrue(admission.retry_launch(1, False, 1))
+        self.assertTrue(admission.retry_launch(1, False, admission.LAUNCH_ATTEMPTS - 1))
+        self.assertFalse(admission.retry_launch(1, False, admission.LAUNCH_ATTEMPTS))
+        self.assertFalse(admission.retry_launch(0, False, 1))
+        self.assertFalse(admission.retry_launch(1, True, 1))
+
     def test_crate_sources(self):
         sources = admission.crate_sources(3)
         self.assertIn('name = "admission-probe"', sources["Cargo.toml"])
