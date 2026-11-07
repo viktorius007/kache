@@ -150,6 +150,7 @@ local_max_size = "200GiB"
 | none | `cache.event_log_max_size` | `64MiB` | Rotate the event log after this size. Rotation keeps the build in progress, up to half this size, and moves the dropped lines to `events.jsonl.archive/`, pruned at each rotation to 8 days and 512 MiB |
 | none | `cache.event_log_keep_lines` | `1000` | Minimum lines retained when the event log rotates |
 | `KACHE_DISABLED` | none | `false` | Pass all compiler work through when set to `1` or `true` |
+| `KACHE_SLICE` | none | `dev.slice` | Linux: run every job kache fronts in this systemd user slice with `oom_score_adj` 1000; an empty value leaves jobs where they started |
 | `KACHE_BLAZE` | `cache.blaze` | `false` | Route eligible local Cargo commands through an installed Blaze client. See [Optional Blaze builds](#optional-blaze-builds). |
 | `KACHE_LOCAL_ONLY` | `cache.local_only` | `false` | Ignore all remote and planner configuration while keeping local caching |
 | `KACHE_REMOTE_READONLY` | `cache.remote_readonly` | `false` | Allow remote reads but suppress remote writes. On GitHub Actions and GitLab CI, every job except a push to a protected branch is also forced read-only, and `=0` does not turn that off. A pull request job with `pull_request_prefix` set writes under that prefix instead, unless this setting is on or the remote is OCI. See [Who may write](/docs/remote-cache/ci#who-may-write). |
