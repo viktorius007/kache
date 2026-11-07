@@ -24,6 +24,10 @@ pub fn run(version: &str) -> Result<i32> {
     if let Some(runner_args) = test_runner_args(&args) {
         return run_test_runner(&executable, runner_args);
     }
+    #[cfg(target_os = "linux")]
+    if fronts_a_job(&args) {
+        crate::enter_dev_slice();
+    }
     if engine_only(&args)
         || std::env::var_os("KACHE_FAMILY_PROBE_ACTIVE").is_some()
         || std::env::var_os("KACHE_BUILD_SCRIPT_PATH").is_some()
@@ -184,6 +188,18 @@ fn engine_command(
     Ok(command)
 }
 
+/// A build or a compile, as opposed to a `kache` command such as `gc`.
+#[cfg(target_os = "linux")]
+fn fronts_a_job(args: &[OsString]) -> bool {
+    invoked_as_cargo(args) || !engine_only(args)
+}
+
+fn invoked_as_cargo(args: &[OsString]) -> bool {
+    args.first()
+        .and_then(|arg0| std::path::Path::new(arg0).file_stem())
+        .is_some_and(|name| name == "cargo")
+}
+
 fn engine_only(args: &[OsString]) -> bool {
     let arg0 = args
         .first()
@@ -192,10 +208,7 @@ fn engine_only(args: &[OsString]) -> bool {
     if kache_shims::is_compiler_shim_name(&arg0) {
         return false;
     }
-    let name = std::path::Path::new(arg0.as_ref())
-        .file_stem()
-        .and_then(|name| name.to_str());
-    if name == Some("cargo") {
+    if invoked_as_cargo(args) {
         return true;
     }
     let Some(first) = args.get(1) else {
@@ -302,6 +315,29 @@ mod tests {
         )
         .unwrap();
         assert!(file.is_none(), "short invocations stay inline");
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn builds_and_compiles_are_jobs_and_kache_commands_are_not() {
+        let argv = |words: &[&str]| words.iter().map(OsString::from).collect::<Vec<_>>();
+        for job in [
+            &["cargo", "build"][..],
+            &["/home/u/.local/lib/kache/shims/cargo"],
+            &["cc", "-c", "a.c"],
+            &["rustdoc", "--test", "lib.rs"],
+            &["kache", "rustc", "lib.rs"],
+        ] {
+            assert!(fronts_a_job(&argv(job)), "{job:?}");
+        }
+        for command in [
+            &["kache", "daemon", "run"][..],
+            &["kache", "gc"],
+            &["kache", "--help"],
+            &["kache"],
+        ] {
+            assert!(!fronts_a_job(&argv(command)), "{command:?}");
+        }
     }
 
     #[test]

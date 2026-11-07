@@ -581,6 +581,8 @@ fn test_runner_args(raw_args: &[std::ffi::OsString]) -> Option<&[std::ffi::OsStr
 /// `kache-test-runner <binary> <args>`: the Cargo target runner as its own
 /// binary, so a test does not start the engine.
 pub fn test_runner_main() -> i32 {
+    #[cfg(target_os = "linux")]
+    kache_client::enter_dev_slice();
     let args: Vec<std::ffi::OsString> = std::env::args_os().skip(1).collect();
     init_logging(LogMode::Wrapper);
     test_runner::run(&args)

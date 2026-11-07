@@ -6,3 +6,7 @@
 # that wants a host file sets KACHE_HOST_CONFIG on its own command.
 [env]
 KACHE_HOST_CONFIG = ""
+# The same processes start outside the development tier move: a kache a test
+# spawns stays in the test's group instead of asking the user manager for a
+# scope. A test of the move sets KACHE_SLICE on its own command.
+KACHE_SLICE = ""

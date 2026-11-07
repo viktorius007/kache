@@ -118,3 +118,35 @@ fn the_binary_explains_itself_and_refuses_to_run_nothing() {
     let stderr = String::from_utf8(none.stderr).unwrap();
     assert!(stderr.contains("expected a test binary to run"), "{stderr}");
 }
+
+/// The runner enters the development slice before it starts the test, so
+/// the test runs there.
+#[cfg(target_os = "linux")]
+#[test]
+fn the_runner_starts_the_test_inside_the_development_slice() {
+    let manager = std::env::var_os("XDG_RUNTIME_DIR")
+        .map(|dir| Path::new(&dir).join("systemd/private"))
+        .filter(|socket| socket.exists());
+    if manager.is_none() {
+        eprintln!("skipping: no systemd user manager socket under XDG_RUNTIME_DIR");
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    kache_fs::testutil::write_executable(
+        &dir.path().join(PROBE),
+        "#!/bin/sh\ncat /proc/self/cgroup > \"$PROBE_DIR/cgroup\"\n",
+    );
+    let output = runner(dir.path())
+        .env("KACHE_SLICE", "dev-kachetest.slice")
+        .arg(dir.path().join(PROBE))
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let cgroup = std::fs::read_to_string(dir.path().join("cgroup")).unwrap();
+    let path = kache_client::cgroup_v2_path(&cgroup).unwrap();
+    assert_eq!(
+        path.rsplit('/').nth(1),
+        Some("dev-kachetest.slice"),
+        "{path}"
+    );
+}

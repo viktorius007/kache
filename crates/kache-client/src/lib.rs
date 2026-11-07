@@ -14,6 +14,12 @@ mod creation_mask;
 #[cfg(unix)]
 pub use creation_mask::creation_mask;
 mod argv_file;
+mod cgroup;
+pub use cgroup::cgroup_v2_path;
+#[cfg(target_os = "linux")]
+mod dev_slice;
+#[cfg(target_os = "linux")]
+pub use dev_slice::enter as enter_dev_slice;
 #[cfg(any(test, target_os = "macos"))]
 mod dyld_env;
 #[cfg(target_os = "macos")]

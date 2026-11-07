@@ -63,25 +63,34 @@ fn frontend_images_fixture() {
     let frontend = directory.join("kache");
     std::fs::copy(std::env::current_exe().unwrap(), &frontend).unwrap();
     let engine = directory.join("kache-engine");
-    std::fs::write(
-        &engine,
-        "#!/bin/sh\nprintf '%s\\0' \"$@\" > \"$FORWARDED_FILE\"\nprintf 'engine-stdout-\\377'\nprintf 'engine-stderr-\\376' >&2\nexit 29\n",
-    )
-    .unwrap();
+    let script = std::env::var("KACHE_FRONTEND_ENGINE").unwrap_or_else(|_| {
+        "#!/bin/sh\nprintf '%s\\0' \"$@\" > \"$FORWARDED_FILE\"\nprintf 'engine-stdout-\\377'\nprintf 'engine-stderr-\\376' >&2\nexit 29\n".to_owned()
+    });
+    std::fs::write(&engine, script).unwrap();
     std::fs::set_permissions(&engine, std::fs::Permissions::from_mode(0o755)).unwrap();
 }
 
-fn run_case(arg0: OsString, flag: Option<&str>, expected_connections: usize) -> i32 {
+/// A directory holding a copy of this test binary as `kache` and an engine
+/// script beside it: `engine`, or one that records its argv and exits 29.
+fn frontend_images(engine: Option<&str>) -> (tempfile::TempDir, std::path::PathBuf) {
     let root = tempfile::tempdir_in("/tmp").unwrap();
     let directory = root.path().canonicalize().unwrap();
     // Another test's fork must never inherit a writable frontend or engine FD.
-    let prepared = Command::new(std::env::current_exe().unwrap())
+    let mut command = Command::new(std::env::current_exe().unwrap());
+    command
         .args(["--exact", IMAGES, "--ignored", "--nocapture"])
         .env_clear()
-        .env("KACHE_FRONTEND_IMAGES", &directory)
-        .output()
-        .unwrap();
+        .env("KACHE_FRONTEND_IMAGES", &directory);
+    if let Some(engine) = engine {
+        command.env("KACHE_FRONTEND_ENGINE", engine);
+    }
+    let prepared = command.output().unwrap();
     assert!(prepared.status.success(), "{prepared:?}");
+    (root, directory)
+}
+
+fn run_case(arg0: OsString, flag: Option<&str>, expected_connections: usize) -> i32 {
+    let (_root, directory) = frontend_images(None);
     let frontend = directory.join("kache");
     let config = directory.join("config.toml");
     std::fs::write(&config, "").unwrap();
@@ -280,4 +289,57 @@ fn a_frontend_without_the_runner_beside_it_fails_before_exec() {
         stderr.contains("kache-test-runner is missing or not executable"),
         "{stderr}"
     );
+}
+
+/// The cgroup v2 path the engine started in, when the frontend runs as
+/// `arg0` under `KACHE_SLICE=`[`TEST_SLICE`](crate::dev_slice::tests::TEST_SLICE).
+#[cfg(target_os = "linux")]
+fn engine_cgroup(arg0: &str) -> String {
+    let (_root, directory) = frontend_images(Some(
+        "#!/bin/sh\ncat /proc/self/cgroup > \"$FORWARDED_FILE\"\n",
+    ));
+    let report = directory.join("cgroup");
+    let output = Command::new(directory.join("kache"))
+        .arg0(arg0)
+        .args(["--exact", FIXTURE, "--ignored", "--nocapture"])
+        .env("KACHE_SLICE", crate::dev_slice::tests::TEST_SLICE)
+        .env("FORWARDED_FILE", &report)
+        .stdin(Stdio::null())
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let cgroup = std::fs::read_to_string(report).unwrap();
+    crate::cgroup_v2_path(&cgroup).unwrap().to_owned()
+}
+
+#[cfg(target_os = "linux")]
+fn own_cgroup_path() -> String {
+    let cgroup = std::fs::read_to_string("/proc/self/cgroup").unwrap();
+    crate::cgroup_v2_path(&cgroup).unwrap().to_owned()
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn a_cargo_job_starts_its_engine_inside_the_development_slice() {
+    if let Some(reason) = crate::dev_slice::tests::no_user_manager() {
+        eprintln!("skipping: {reason}");
+        return;
+    }
+    let path = engine_cgroup("cargo");
+    let mut components = path.rsplit('/').skip(1);
+    assert_eq!(
+        components.next(),
+        Some(crate::dev_slice::tests::TEST_SLICE),
+        "{path}"
+    );
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn a_kache_command_starts_its_engine_where_it_was_started() {
+    if let Some(reason) = crate::dev_slice::tests::no_user_manager() {
+        eprintln!("skipping: {reason}");
+        return;
+    }
+    assert_eq!(engine_cgroup("kache"), own_cgroup_path());
 }
