@@ -1097,6 +1097,10 @@ pub struct TrackedTargetRoot {
     pub rustc: Option<String>,
     /// Found through Git, but never observed in a build through kache.
     pub discovered: bool,
+    /// The device of the filesystem the workspace was on when it was last
+    /// recorded, which tells a deleted workspace from one on a volume that
+    /// is not mounted. `None` when it was never read.
+    pub workspace_device: Option<u64>,
 }
 
 /// A shadow policy's would-evict set for one size-driven sweep
@@ -1861,7 +1865,8 @@ fn initialize_db(db: &Connection, mode: IndexMode) -> rusqlite::Result<()> {
             device         TEXT NOT NULL,
             inode          TEXT NOT NULL,
             rustc          TEXT,
-            discovered     INTEGER NOT NULL DEFAULT 0
+            discovered     INTEGER NOT NULL DEFAULT 0,
+            workspace_device TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_target_roots_last_seen
             ON target_roots(last_seen);",
@@ -1871,6 +1876,9 @@ fn initialize_db(db: &Connection, mode: IndexMode) -> rusqlite::Result<()> {
     let _ = db.execute_batch("ALTER TABLE target_roots ADD COLUMN rustc TEXT");
     let _ = db
         .execute_batch("ALTER TABLE target_roots ADD COLUMN discovered INTEGER NOT NULL DEFAULT 0");
+    // The filesystem a target's workspace was on, so cleanup can tell a
+    // deleted workspace from an unmounted volume.
+    let _ = db.execute_batch("ALTER TABLE target_roots ADD COLUMN workspace_device TEXT");
 
     crate::file_hash::ensure_file_hash_cache_schema(db)?;
     db.pragma_update(None, "user_version", INDEX_SCHEMA_GENERATION)?;
@@ -1906,7 +1914,9 @@ fn initialize_db(db: &Connection, mode: IndexMode) -> rusqlite::Result<()> {
 ///    payload schema. Compiled cache entries are retained.
 /// 13: `entries.rustc_version`, for explicit compiler-version cleanup.
 /// 14: partial index for pending durability counts and ordered flush batches.
-const INDEX_SCHEMA_GENERATION: i64 = 14;
+/// 15: `target_roots.workspace_device`, the filesystem a tracked target's
+///     workspace was on.
+const INDEX_SCHEMA_GENERATION: i64 = 15;
 
 /// Raise the refcount of every blob `cache_key` maps to at least the
 /// references all mappings hold on it. Run before giving this key's
@@ -4808,6 +4818,7 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
         let Some(identity) = crate::filesystem::directory_identity(&target) else {
             return Ok(());
         };
+        let workspace_device = crate::filesystem::device_of(&workspace_root);
         // The upsert below refuses to touch a fresh, unchanged row, but even
         // a refused upsert takes the index's write lock; read first so a
         // warm target directory costs one query per invocation, not a wait
@@ -4817,7 +4828,7 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
             .query_row(
                 "SELECT discovered = 0 AND last_seen > unixepoch() - 300
                     AND workspace_root = ?2 AND device = ?3 AND inode = ?4
-                    AND (?5 IS NULL OR rustc IS ?5)
+                    AND (?5 IS NULL OR rustc IS ?5) AND workspace_device IS ?6
                  FROM target_roots WHERE path = ?1",
                 params![
                     target.to_string_lossy(),
@@ -4825,6 +4836,7 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
                     identity.device.to_string(),
                     identity.inode.to_string(),
                     rustc,
+                    workspace_device.map(|device| device.to_string()),
                 ],
                 |row| row.get(0),
             )
@@ -4838,7 +4850,8 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
         if !in_transaction {
             self.db.execute_batch("BEGIN IMMEDIATE")?;
         }
-        let written = self.record_target_root(&target, &workspace_root, identity, rustc);
+        let written =
+            self.record_target_root(&target, &workspace_root, identity, workspace_device, rustc);
         if !in_transaction {
             finish_transaction(&self.db, written.is_ok())?;
         }
@@ -4851,6 +4864,7 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
         target: &Path,
         workspace_root: &Path,
         identity: crate::filesystem::PathIdentity,
+        workspace_device: Option<u64>,
         rustc: Option<&str>,
     ) -> Result<()> {
         // The directory may have been replaced or moved since its identity
@@ -4860,10 +4874,12 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
         }
         self.db.execute(
             "INSERT INTO target_roots
-                (path, workspace_root, first_seen, last_seen, device, inode, rustc, discovered)
-             VALUES (?1, ?2, unixepoch(), unixepoch(), ?3, ?4, ?5, 0)
+                (path, workspace_root, first_seen, last_seen, device, inode, rustc, discovered,
+                 workspace_device)
+             VALUES (?1, ?2, unixepoch(), unixepoch(), ?3, ?4, ?5, 0, ?6)
              ON CONFLICT(path) DO UPDATE SET
                 workspace_root = excluded.workspace_root,
+                workspace_device = excluded.workspace_device,
                 last_seen = unixepoch(),
                 device = excluded.device,
                 inode = excluded.inode,
@@ -4874,13 +4890,15 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
                 OR target_roots.device != excluded.device
                 OR target_roots.inode != excluded.inode
                 OR (excluded.rustc IS NOT NULL AND target_roots.rustc IS NOT excluded.rustc)
-                OR target_roots.discovered != 0",
+                OR target_roots.discovered != 0
+                OR target_roots.workspace_device IS NOT excluded.workspace_device",
             params![
                 target.to_string_lossy(),
                 workspace_root.to_string_lossy(),
                 identity.device.to_string(),
                 identity.inode.to_string(),
                 rustc,
+                workspace_device.map(|device| device.to_string()),
             ],
         )?;
         // One row per directory. Git may report a canonical /private path
@@ -4930,10 +4948,12 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
         };
         let inserted = self.db.execute(
             "INSERT INTO target_roots
-                (path, workspace_root, first_seen, last_seen, device, inode, discovered)
-             VALUES (?1, ?2, unixepoch(), unixepoch(), ?3, ?4, 1)
+                (path, workspace_root, first_seen, last_seen, device, inode, discovered,
+                 workspace_device)
+             VALUES (?1, ?2, unixepoch(), unixepoch(), ?3, ?4, 1, ?5)
              ON CONFLICT(path) DO UPDATE SET
                 workspace_root = excluded.workspace_root,
+                workspace_device = excluded.workspace_device,
                 first_seen = unixepoch(),
                 last_seen = unixepoch(),
                 device = excluded.device,
@@ -4948,6 +4968,7 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
                 workspace_root.to_string_lossy(),
                 identity.device.to_string(),
                 identity.inode.to_string(),
+                crate::filesystem::device_of(&workspace_root).map(|device| device.to_string()),
             ],
         )?;
         let inserted = inserted != 0;
@@ -4967,7 +4988,8 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
     pub fn tracked_target_roots(&self, stale_hours: u64) -> Result<Vec<TrackedTargetRoot>> {
         let stale_seconds = stale_hours.saturating_mul(3600).min(i64::MAX as u64) as i64;
         let mut stmt = self.db.prepare(
-            "SELECT path, workspace_root, first_seen, last_seen, device, inode, rustc, discovered
+            "SELECT path, workspace_root, first_seen, last_seen, device, inode, rustc, discovered,
+                    workspace_device
              FROM target_roots
              WHERE last_seen <= unixepoch() - ?1
              ORDER BY last_seen ASC, path ASC",
@@ -4984,29 +5006,73 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
                 inode,
                 row.get::<_, Option<String>>(6)?,
                 row.get::<_, bool>(7)?,
+                row.get::<_, Option<String>>(8)?,
             ))
         })?;
         let mut targets = Vec::new();
         for row in rows {
-            let (path, workspace_root, first_seen, last_seen, device, inode, rustc, discovered) =
-                row?;
+            let (
+                path,
+                workspace_root,
+                first_seen,
+                last_seen,
+                device,
+                inode,
+                rustc,
+                discovered,
+                workspace_device,
+            ) = row?;
             let (Ok(device), Ok(inode)) = (device.parse::<u64>(), inode.parse::<u64>()) else {
                 continue;
             };
             let path = PathBuf::from(path);
+            let workspace_root = PathBuf::from(workspace_root);
             let recorded = crate::filesystem::PathIdentity { device, inode };
             let identity = self.renumbered_device(&path, recorded);
+            let workspace_device = match workspace_device.and_then(|text| text.parse().ok()) {
+                // The workspace shared the target's volume, whose number
+                // [`Self::renumbered_device`] followed.
+                Some(device) if device == recorded.device => Some(identity.device),
+                Some(device) => Some(device),
+                None => self.backfilled_workspace_device(&path, &workspace_root),
+            };
             targets.push(TrackedTargetRoot {
                 path,
-                workspace_root: PathBuf::from(workspace_root),
+                workspace_root,
                 first_seen,
                 last_seen,
                 identity,
                 rustc,
                 discovered,
+                workspace_device,
             });
         }
         Ok(targets)
+    }
+
+    /// The device of `workspace_root` for a row recorded before kache kept
+    /// it, read while the workspace is there and recorded, unless the store
+    /// is read-only. Only a directory holding a Cargo manifest counts: a bare
+    /// mount point left by an unmounted volume is not the workspace, and its
+    /// device would later make the volume's absence read as a deletion.
+    fn backfilled_workspace_device(&self, path: &Path, workspace_root: &Path) -> Option<u64> {
+        if !workspace_root.join("Cargo.toml").is_file() {
+            return None;
+        }
+        let device = crate::filesystem::device_of(workspace_root)?;
+        if !self.read_only
+            && let Err(error) = self.db.execute(
+                "UPDATE target_roots SET workspace_device = ?1
+                 WHERE path = ?2 AND workspace_device IS NULL",
+                params![device.to_string(), path.to_string_lossy()],
+            )
+        {
+            tracing::debug!(
+                "could not record the workspace device of target root {}: {error:#}",
+                path.display()
+            );
+        }
+        Some(device)
     }
 
     /// `recorded`, with the device number `path` has now when only that
@@ -5014,7 +5080,8 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
     /// so the same directory, at the same path with the same inode, would
     /// otherwise read as replaced: hidden from `kache targets` and forgotten
     /// by cleanup. A replaced directory gets a new inode and stays replaced.
-    /// The row is updated too, unless the store is read-only.
+    /// The row is updated too, unless the store is read-only, and so is its
+    /// workspace device when the workspace was on the same volume.
     fn renumbered_device(
         &self,
         path: &Path,
@@ -5028,7 +5095,9 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
         }
         if !self.read_only
             && let Err(error) = self.db.execute(
-                "UPDATE target_roots SET device = ?1
+                "UPDATE target_roots SET device = ?1,
+                    workspace_device = CASE WHEN workspace_device = ?3
+                        THEN ?1 ELSE workspace_device END
                  WHERE path = ?2 AND device = ?3 AND inode = ?4",
                 params![
                     now.device.to_string(),

@@ -1,5 +1,6 @@
 use super::*;
 use std::fs;
+use std::path::{Path, PathBuf};
 
 #[test]
 fn doctor_link_layout_uses_the_mapped_store_and_leaves_missing_shards_absent() {
@@ -8546,16 +8547,179 @@ fn target_rows_report_each_worktree_and_sort_by_what_frees_most() {
     }
 }
 
+/// The absolute path of `target`, made a Cargo target that a build in
+/// `workspace`, made a Cargo workspace, recorded.
+fn recorded_build(store: &Store, workspace: &Path, target: &Path) -> PathBuf {
+    fs::create_dir_all(workspace).unwrap();
+    fs::write(workspace.join("Cargo.toml"), "[package]\nname = \"p\"\n").unwrap();
+    fs::create_dir_all(target.join("debug")).unwrap();
+    fs::write(target.join("CACHEDIR.TAG"), CARGO_CACHEDIR_TAG).unwrap();
+    store.remember_target_root(target, workspace).unwrap();
+    std::path::absolute(target).unwrap()
+}
+
 #[test]
-fn a_workspace_is_gone_only_when_its_parent_is_still_there() {
-    let root = tempfile::tempdir().unwrap();
-    let workspace = root.path().join("wt");
-    std::fs::create_dir(&workspace).unwrap();
-    assert!(!workspace_is_gone(&workspace));
-    std::fs::remove_dir(&workspace).unwrap();
-    assert!(workspace_is_gone(&workspace));
-    // An unmounted volume looks like a missing parent, not a deletion.
-    assert!(!workspace_is_gone(&root.path().join("offline/wt")));
+fn a_workspace_with_no_recorded_device_is_never_gone() {
+    let dir = tempfile::tempdir().unwrap();
+    let config = crate::test_support::test_config(dir.path().join("cache"));
+    let store = Store::open(&config).unwrap();
+    let workspace = dir.path().join("wt/feature");
+    recorded_build(&store, &workspace, &dir.path().join("target"));
+    let tracked = store.tracked_target_roots(0).unwrap().pop().unwrap();
+    fs::remove_dir_all(&workspace).unwrap();
+
+    assert!(workspace_is_gone(&tracked));
+    let unknown = crate::store::TrackedTargetRoot {
+        workspace_device: None,
+        ..tracked
+    };
+    assert!(!workspace_is_gone(&unknown));
+}
+
+/// The target of a worktree at `wt/L49/jmap` under `dir`, removed with its
+/// lane folder `wt/L49` as removing a lane does.
+fn target_of_a_removed_lane(store: &Store, dir: &Path) -> PathBuf {
+    let target = recorded_build(
+        store,
+        &dir.join("wt/L49/jmap"),
+        &dir.join("cargo-build/ab/0123"),
+    );
+    fs::remove_dir_all(dir.join("wt/L49")).unwrap();
+    target
+}
+
+#[test]
+fn an_orphans_preview_offers_a_target_whose_worktree_went_with_its_lane_folder() {
+    let dir = tempfile::tempdir().unwrap();
+    let config = crate::test_support::test_config(dir.path().join("cache"));
+    let store = Store::open(&config).unwrap();
+    let target = target_of_a_removed_lane(&store, dir.path());
+
+    let (offered, _, orphans) =
+        tracked_target_entries(&config, TrackedSelection::Orphaned, true).unwrap();
+    assert_eq!(
+        offered.iter().map(|t| t.path.clone()).collect::<Vec<_>>(),
+        std::slice::from_ref(&target)
+    );
+    assert!(orphans.contains(&target));
+}
+
+#[test]
+fn an_orphans_clean_removes_a_target_whose_worktree_went_with_its_lane_folder() {
+    let dir = tempfile::tempdir().unwrap();
+    let config = crate::test_support::test_config(dir.path().join("cache"));
+    let store = Store::open(&config).unwrap();
+    let target = target_of_a_removed_lane(&store, dir.path());
+
+    let orphans = CleanScope::Tracked(TrackedSelection::Orphaned);
+    clean(&config, false, true, false, orphans).unwrap();
+    assert!(!target.exists());
+}
+
+/// A temporary directory on another filesystem than `than`'s, standing in
+/// for a volume mounted below it.
+#[cfg(target_os = "linux")]
+fn another_volume(than: &Path) -> tempfile::TempDir {
+    use std::os::unix::fs::MetadataExt;
+    let device = fs::metadata(than).unwrap().dev();
+    ["/dev/shm", "/tmp", "/var/tmp"]
+        .into_iter()
+        .find_map(|candidate| {
+            let dir = tempfile::tempdir_in(candidate).ok()?;
+            (fs::metadata(dir.path()).ok()?.dev() != device).then_some(dir)
+        })
+        .expect("a writable filesystem besides the temporary directory's")
+}
+
+/// `dir/mnt/vol`, the mount point of `volume`.
+#[cfg(target_os = "linux")]
+fn mount(dir: &Path, volume: &Path) -> PathBuf {
+    let mount_point = dir.join("mnt/vol");
+    fs::create_dir_all(dir.join("mnt")).unwrap();
+    std::os::unix::fs::symlink(volume, &mount_point).unwrap();
+    mount_point
+}
+
+/// The target of a workspace on `volume`, mounted at `dir/mnt/vol`, after the
+/// volume is unmounted: its mount point is left an empty directory on the
+/// filesystem below it, or is removed with it.
+#[cfg(target_os = "linux")]
+fn target_on_an_unmounted_volume(
+    store: &Store,
+    dir: &Path,
+    volume: &Path,
+    leaves_mount_point: bool,
+) -> PathBuf {
+    let mount_point = mount(dir, volume);
+    let target = recorded_build(
+        store,
+        &mount_point.join("proj"),
+        &dir.join("cargo-build/ab/0123"),
+    );
+    fs::remove_file(&mount_point).unwrap();
+    if leaves_mount_point {
+        fs::create_dir(&mount_point).unwrap();
+    }
+    target
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn an_orphans_clean_keeps_a_target_whose_workspace_volume_is_not_mounted() {
+    for leaves_mount_point in [true, false] {
+        let dir = tempfile::tempdir().unwrap();
+        let volume = another_volume(dir.path());
+        let config = crate::test_support::test_config(dir.path().join("cache"));
+        let store = Store::open(&config).unwrap();
+        let target =
+            target_on_an_unmounted_volume(&store, dir.path(), volume.path(), leaves_mount_point);
+
+        let orphans = CleanScope::Tracked(TrackedSelection::Orphaned);
+        clean(&config, false, true, false, orphans).unwrap();
+        assert!(
+            target.join("CACHEDIR.TAG").is_file(),
+            "leaves_mount_point={leaves_mount_point}"
+        );
+    }
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn an_orphans_preview_offers_no_target_whose_workspace_volume_is_not_mounted() {
+    for leaves_mount_point in [true, false] {
+        let dir = tempfile::tempdir().unwrap();
+        let volume = another_volume(dir.path());
+        let config = crate::test_support::test_config(dir.path().join("cache"));
+        let store = Store::open(&config).unwrap();
+        target_on_an_unmounted_volume(&store, dir.path(), volume.path(), leaves_mount_point);
+
+        let (offered, _, orphans) =
+            tracked_target_entries(&config, TrackedSelection::Orphaned, true).unwrap();
+        assert!(
+            offered.is_empty() && orphans.is_empty(),
+            "leaves_mount_point={leaves_mount_point}"
+        );
+    }
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn a_workspace_deleted_from_a_mounted_volume_is_an_orphan() {
+    let dir = tempfile::tempdir().unwrap();
+    let volume = another_volume(dir.path());
+    let config = crate::test_support::test_config(dir.path().join("cache"));
+    let store = Store::open(&config).unwrap();
+    let mount_point = mount(dir.path(), volume.path());
+    let target = recorded_build(
+        &store,
+        &mount_point.join("proj"),
+        &dir.path().join("cargo-build/ab/0123"),
+    );
+    fs::remove_dir_all(volume.path().join("proj")).unwrap();
+
+    let (_, _, orphans) =
+        tracked_target_entries(&config, TrackedSelection::Orphaned, true).unwrap();
+    assert!(orphans.contains(&target));
 }
 
 #[test]

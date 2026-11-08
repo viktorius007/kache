@@ -327,10 +327,10 @@ fn statfs_of(path: &Path) -> Option<libc::statfs> {
     (rc == 0).then_some(stat)
 }
 
-/// `path` if it exists, else its nearest existing ancestor. Used so the probe
-/// works before `Store::open` has created the cache directory.
-#[cfg(any(target_os = "macos", target_os = "linux", windows))]
-fn nearest_existing(path: &Path) -> Option<std::path::PathBuf> {
+/// `path` if it exists, else its nearest existing ancestor, symlinks
+/// followed. The probe uses it before `Store::open` has created the cache
+/// directory.
+pub fn nearest_existing(path: &Path) -> Option<std::path::PathBuf> {
     let mut current = path;
     loop {
         if current.exists() {

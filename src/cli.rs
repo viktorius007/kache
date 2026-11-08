@@ -6289,7 +6289,7 @@ fn target_rows(config: &Config, now: i64) -> Result<Vec<TargetRow>> {
         rows.push(TargetRow {
             path: tracked.path.display().to_string(),
             workspace: tracked.workspace_root.display().to_string(),
-            state: if workspace_is_gone(&tracked.workspace_root) {
+            state: if workspace_is_gone(tracked) {
                 TargetState::WorktreeDeleted
             } else {
                 TargetState::Live
@@ -6824,16 +6824,27 @@ impl TrackedSelection {
     }
 }
 
-/// A workspace is gone when looking it up finds nothing while the
-/// directory holding it still exists. The parent check keeps an unmounted
-/// volume or a network share that is offline from reading as a deleted
-/// worktree.
-pub(crate) fn workspace_is_gone(workspace_root: &std::path::Path) -> bool {
+/// A tracked target's workspace is gone when looking it up finds nothing on
+/// the filesystem it was recorded on: the nearest of its ancestors that
+/// still exists is on the device the workspace had. However many of its
+/// parent directories were deleted with it, that ancestor is on the same
+/// volume. An unmounted volume, or one not mounted yet, leaves the path on
+/// another filesystem, the bare mount point's or its parent's, which is not
+/// a deletion. A row with no recorded device is never gone.
+pub(crate) fn workspace_is_gone(tracked: &crate::store::TrackedTargetRoot) -> bool {
     // Only a lookup that finds nothing counts: a permission or I/O error on
     // a network share is not a deleted worktree.
-    let missing = std::fs::symlink_metadata(workspace_root)
+    let missing = std::fs::symlink_metadata(&tracked.workspace_root)
         .is_err_and(|error| error.kind() == std::io::ErrorKind::NotFound);
-    missing && workspace_root.parent().is_some_and(std::path::Path::is_dir)
+    missing
+        && tracked.workspace_device.is_some_and(|recorded| {
+            tracked
+                .workspace_root
+                .parent()
+                .and_then(crate::cache_fs::nearest_existing)
+                .and_then(|ancestor| crate::machine::device_of(&ancestor))
+                == Some(recorded)
+        })
 }
 
 fn tracked_target_entries(
@@ -6893,7 +6904,7 @@ fn tracked_target_entries(
             }
             continue;
         }
-        let orphaned = workspace_is_gone(&tracked.workspace_root);
+        let orphaned = workspace_is_gone(&tracked);
         if !selection.includes(orphaned, now.saturating_sub(tracked.last_seen)) {
             continue;
         }

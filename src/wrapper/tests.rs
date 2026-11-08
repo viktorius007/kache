@@ -3136,6 +3136,7 @@ fn automatic_donors_require_built_live_targets_and_keep_the_recent_limit() {
         last_seen: 0,
         rustc: None,
         discovered,
+        workspace_device: None,
     };
     let mut targets = Vec::new();
     for index in 0..10 {

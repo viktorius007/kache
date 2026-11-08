@@ -26,6 +26,12 @@ pub fn directory_identity(path: &Path) -> Option<PathIdentity> {
         })
 }
 
+/// The device of the filesystem `path` resolves onto, symlinks followed;
+/// `None` when it cannot be read.
+pub fn device_of(path: &Path) -> Option<u64> {
+    kache_fs::file_identity(path).ok().map(|id| id.dev)
+}
+
 /// What Cargo writes in `CACHEDIR.TAG` at the top of a target directory.
 const CARGO_TAG: &[u8] = b"Signature: 8a477f597d28d172789f06886806bc55";
 /// How much of `CACHEDIR.TAG` is read: the signature is in its first line.

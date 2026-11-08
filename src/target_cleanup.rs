@@ -271,10 +271,7 @@ pub(crate) fn sweep(config: &Config, now: u64) -> anyhow::Result<Swept> {
         let Some(idle) = idle_secs(config, &tracked, now) else {
             continue;
         };
-        let orphaned = orphaned(
-            &tracked,
-            crate::cli::workspace_is_gone(&tracked.workspace_root),
-        );
+        let orphaned = orphaned(&tracked, crate::cli::workspace_is_gone(&tracked));
         let intact = intact(&tracked);
         let Some(reason) = reason(config, orphaned, idle) else {
             if let Some(window) = window.filter(|_| intact && !tracked.discovered) {
@@ -377,10 +374,7 @@ pub(crate) fn plan(config: &Config, tracked: &TrackedTargetRoot, now: u64) -> Pl
         return Plan::default();
     };
     let intact = intact(tracked);
-    let orphaned = orphaned(
-        tracked,
-        crate::cli::workspace_is_gone(&tracked.workspace_root),
-    );
+    let orphaned = orphaned(tracked, crate::cli::workspace_is_gone(tracked));
     let reason = reason(config, orphaned, idle);
     if let Some(reason) = reason.filter(|_| intact && !crate::cli::target_in_use(&tracked.path)) {
         return Plan {
@@ -1594,6 +1588,7 @@ mod tests {
             },
             rustc: None,
             discovered,
+            workspace_device: Some(1),
         }
     }
 

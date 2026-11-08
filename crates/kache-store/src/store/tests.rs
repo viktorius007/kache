@@ -6389,6 +6389,114 @@ fn a_target_root_keeps_its_row_when_its_volume_is_renumbered() {
 }
 
 #[test]
+fn a_target_root_records_the_device_its_workspace_is_on() {
+    for discovered in [false, true] {
+        let dir = tempfile::tempdir().unwrap();
+        let store = Store::open(test_config(dir.path())).unwrap();
+        let workspace = dir.path().join("workspace");
+        let target = workspace.join("target");
+        tagged_target(&target);
+        if discovered {
+            store
+                .remember_discovered_target_root(&target, &workspace)
+                .unwrap();
+        } else {
+            store.remember_target_root(&target, &workspace).unwrap();
+        }
+        assert_eq!(
+            store.tracked_target_roots(0).unwrap()[0].workspace_device,
+            crate::filesystem::device_of(&workspace),
+            "discovered={discovered}"
+        );
+    }
+}
+
+#[test]
+fn a_renumbered_volume_carries_a_workspace_on_it_along() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Store::open(test_config(dir.path())).unwrap();
+    let workspace = dir.path().join("workspace");
+    let target = workspace.join("target");
+    tagged_target(&target);
+    store.remember_target_root(&target, &workspace).unwrap();
+    let now = crate::filesystem::directory_identity(&target).unwrap();
+    let path = std::path::absolute(&target).unwrap();
+    let elsewhere = now.device + 7;
+    for (recorded, expected) in [(now.device + 3, now.device), (elsewhere, elsewhere)] {
+        // Written before a restart renumbered the target's volume.
+        store
+            .db
+            .execute(
+                "UPDATE target_roots SET device = ?1, workspace_device = ?2 WHERE path = ?3",
+                rusqlite::params![
+                    (now.device + 3).to_string(),
+                    recorded.to_string(),
+                    path.to_string_lossy()
+                ],
+            )
+            .unwrap();
+        assert_eq!(
+            store.tracked_target_roots(0).unwrap()[0].workspace_device,
+            Some(expected),
+            "recorded {recorded}"
+        );
+        let stored: String = store
+            .db
+            .query_row(
+                "SELECT workspace_device FROM target_roots WHERE path = ?1",
+                rusqlite::params![path.to_string_lossy()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(stored, expected.to_string(), "the row is healed");
+    }
+}
+
+#[test]
+fn a_row_without_a_workspace_device_learns_it_only_from_a_cargo_workspace() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Store::open(test_config(dir.path())).unwrap();
+    let workspace = dir.path().join("workspace");
+    let target = workspace.join("target");
+    tagged_target(&target);
+    store.remember_target_root(&target, &workspace).unwrap();
+    let path = std::path::absolute(&target).unwrap();
+    // A row written before kache kept the workspace device.
+    store
+        .db
+        .execute(
+            "UPDATE target_roots SET workspace_device = NULL WHERE path = ?1",
+            rusqlite::params![path.to_string_lossy()],
+        )
+        .unwrap();
+    let stored = || -> Option<String> {
+        store
+            .db
+            .query_row(
+                "SELECT workspace_device FROM target_roots WHERE path = ?1",
+                rusqlite::params![path.to_string_lossy()],
+                |row| row.get(0),
+            )
+            .unwrap()
+    };
+
+    // A bare directory may be the mount point of a volume that is not mounted.
+    assert_eq!(
+        store.tracked_target_roots(0).unwrap()[0].workspace_device,
+        None
+    );
+    assert_eq!(stored(), None);
+
+    std::fs::write(workspace.join("Cargo.toml"), "[workspace]\n").unwrap();
+    let device = crate::filesystem::device_of(&workspace).unwrap();
+    assert_eq!(
+        store.tracked_target_roots(0).unwrap()[0].workspace_device,
+        Some(device)
+    );
+    assert_eq!(stored(), Some(device.to_string()), "the row is backfilled");
+}
+
+#[test]
 fn a_target_root_records_the_compiler_that_built_into_it() {
     let dir = tempfile::tempdir().unwrap();
     let config = test_config(dir.path());
@@ -7073,7 +7181,7 @@ fn a_moved_directory_does_not_drop_the_rows_of_its_new_path() {
     store.remember_target_root(&new, &workspace).unwrap();
 
     store
-        .record_target_root(&old, &workspace, identity, None)
+        .record_target_root(&old, &workspace, identity, None, None)
         .unwrap();
     let paths: Vec<_> = store
         .tracked_target_roots(0)
