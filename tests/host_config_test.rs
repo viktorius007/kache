@@ -8,11 +8,12 @@
 #[allow(dead_code)]
 mod common;
 
-use common::{hermetic_command, kache_binary};
+use common::{DaemonGuard, hermetic_command, kache_binary};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Mutex, MutexGuard};
+use tempfile::TempDir;
 
 /// The tests below read or change this process's `KACHE_HOST_CONFIG`.
 static ENV_LOCK: Mutex<()> = Mutex::new(());
@@ -49,6 +50,39 @@ impl Drop for HostConfigEnv {
                 None => std::env::remove_var("KACHE_HOST_CONFIG"),
             }
         }
+    }
+}
+
+/// One test's cache dir, and the guard that stops any daemon a kache spawned
+/// against it. `kache doctor` can start one: it asks the C driver on `PATH`
+/// to place the linker, and a kache `cc` shim there is a compile that
+/// auto-starts a daemon in the child's cache dir. Fields drop in order, so the
+/// guard stops that daemon before the directory goes, on a panic too.
+struct Fixture {
+    _daemon: DaemonGuard,
+    dir: TempDir,
+    cache: PathBuf,
+}
+
+impl Fixture {
+    fn new() -> Self {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = dir.path().join("cache");
+        Self {
+            _daemon: DaemonGuard::new(kache_binary(), &cache),
+            dir,
+            cache,
+        }
+    }
+
+    /// A kache built without the harness: it inherits this process's
+    /// environment, `PATH` included.
+    fn direct_command(&self) -> Command {
+        let mut command = Command::new(kache_binary());
+        command
+            .env("KACHE_CACHE_DIR", &self.cache)
+            .env("KACHE_CONFIG", self.cache.join("config.toml"));
+        command
     }
 }
 
@@ -92,14 +126,14 @@ fn host_config_detail(mut command: Command) -> String {
 #[test]
 fn a_harness_spawned_kache_ignores_the_host_file() {
     let env = HostConfigEnv::lock();
-    let dir = tempfile::tempdir().unwrap();
-    let cache = dir.path().join("cache");
-    let host = write_host_file(dir.path());
+    let fixture = Fixture::new();
+    let cache = &fixture.cache;
+    let host = write_host_file(fixture.dir.path());
 
     env.set(&host);
     let detail = host_config_detail(hermetic_command(
         kache_binary(),
-        &cache,
+        cache,
         Some(&cache.join("config.toml")),
     ));
 
@@ -117,27 +151,67 @@ fn a_directly_spawned_kache_inherits_the_host_layer_off() {
         Ok(""),
         "run through cargo test or nextest, which apply .cargo/config.toml [env]"
     );
-    let dir = tempfile::tempdir().unwrap();
-    let cache = dir.path().join("cache");
-
-    let mut command = Command::new(kache_binary());
-    command
-        .env("KACHE_CACHE_DIR", &cache)
-        .env("KACHE_CONFIG", cache.join("config.toml"));
+    let fixture = Fixture::new();
     assert_eq!(
-        host_config_detail(command),
+        host_config_detail(fixture.direct_command()),
         "off (KACHE_HOST_CONFIG is empty)"
     );
+}
+
+/// A host with kache's shims on `PATH` turns the doctor run above into a
+/// daemon in the test's cache dir. Unstopped, it outlived the test, held the
+/// deleted directory open, and piled up across runs. A kache `cc` shim on the
+/// child's `PATH` starts one on any host; the fixture must stop it while the
+/// test unwinds.
+#[cfg(target_os = "linux")]
+#[test]
+fn a_failing_test_still_stops_the_daemon_its_doctor_started() {
+    let _env = HostConfigEnv::lock();
+    let (lock_tx, lock_rx) = std::sync::mpsc::channel();
+    let failed = std::thread::spawn(move || {
+        let fixture = Fixture::new();
+        let shims = fixture.dir.path().join("shims");
+        std::fs::create_dir(&shims).unwrap();
+        std::fs::write(shims.join(kache_shims::farm::MARKER), "").unwrap();
+        std::os::unix::fs::symlink(kache_binary(), shims.join("cc")).unwrap();
+        let path = std::env::var_os("PATH").unwrap_or_default();
+        let path = std::env::join_paths(std::iter::once(shims).chain(std::env::split_paths(&path)))
+            .unwrap();
+        let mut command = fixture.direct_command();
+        command.env("PATH", path);
+        host_config_detail(command);
+
+        let run_lock = std::fs::OpenOptions::new()
+            .write(true)
+            .open(fixture.cache.join("daemon.run.lock"))
+            .expect("the doctor's shim compile started no daemon");
+        assert!(
+            matches!(run_lock.try_lock(), Err(std::fs::TryLockError::WouldBlock)),
+            "the running daemon must hold its lifetime lock"
+        );
+        lock_tx.send(run_lock).unwrap();
+        panic!("simulated test failure while the daemon runs");
+    })
+    .join();
+    assert!(failed.is_err(), "the fixture thread must have panicked");
+
+    let run_lock = lock_rx
+        .recv()
+        .expect("the daemon never started; see the fixture's panic above");
+    run_lock
+        .try_lock()
+        .expect("the fixture's Drop must stop the daemon while the test unwinds");
+    run_lock.unlock().unwrap();
 }
 
 #[test]
 fn a_test_can_opt_into_a_host_file() {
     let _env = HostConfigEnv::lock();
-    let dir = tempfile::tempdir().unwrap();
-    let cache = dir.path().join("cache");
-    let host = write_host_file(dir.path());
+    let fixture = Fixture::new();
+    let cache = &fixture.cache;
+    let host = write_host_file(fixture.dir.path());
 
-    let mut command = hermetic_command(kache_binary(), &cache, Some(&cache.join("config.toml")));
+    let mut command = hermetic_command(kache_binary(), cache, Some(&cache.join("config.toml")));
     command.env("KACHE_HOST_CONFIG", &host);
     let detail = host_config_detail(command);
 
