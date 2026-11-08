@@ -7159,11 +7159,20 @@ fn fallback_is_sccache(config: Option<&crate::config::Config>) -> bool {
 }
 
 fn is_sccache_program(value: &str) -> bool {
+    program_is(value, "sccache")
+}
+
+/// Whether `value`, a bare name or a path to an executable, names kache.
+fn is_kache_program(value: &str) -> bool {
+    program_is(value, "kache")
+}
+
+fn program_is(value: &str, program: &str) -> bool {
     let name = std::path::Path::new(value)
         .file_name()
         .and_then(|name| name.to_str())
         .unwrap_or(value);
-    name.eq_ignore_ascii_case("sccache") || name.eq_ignore_ascii_case("sccache.exe")
+    name.eq_ignore_ascii_case(program) || name.eq_ignore_ascii_case(&format!("{program}.exe"))
 }
 
 fn active_sccache_migration_line(line: &str) -> bool {
@@ -10300,7 +10309,7 @@ pub(crate) fn plan_cargo_wrapper_edit(path: &std::path::Path) -> Result<CargoWra
         .and_then(|b| b.get("rustc-wrapper"))
         .and_then(|v| v.as_str());
     match current {
-        Some("kache") => Ok(CargoWrapperPlan::AlreadySet),
+        Some(program) if is_kache_program(program) => Ok(CargoWrapperPlan::AlreadySet),
         Some(other) => Ok(CargoWrapperPlan::Replace(other.to_string())),
         None if parsed.get("build").is_some() => Ok(CargoWrapperPlan::AddUnderBuild),
         None => Ok(CargoWrapperPlan::AppendSection),

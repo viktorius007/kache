@@ -3367,6 +3367,17 @@ fn test_cargo_wrapper_edit_already_set() {
     assert!(matches!(plan, CargoWrapperPlan::AlreadySet));
 }
 
+// A wrapper named by path is still kache: `init` must leave it alone instead
+// of rewriting a deliberate explicit path to the bare name.
+#[test]
+fn test_cargo_wrapper_edit_already_set_by_path() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("config.toml");
+    std::fs::write(&path, "[build]\nrustc-wrapper = \".cargo/bin/kache\"\n").unwrap();
+    let plan = plan_cargo_wrapper_edit(&path).unwrap();
+    assert!(matches!(plan, CargoWrapperPlan::AlreadySet));
+}
+
 // The planner's Replace / AddUnderBuild / AppendSection arms are reached by
 // reading a real config file (the apply tests above build those plans by
 // hand). Drive each shape through the file-reading path, then apply the
