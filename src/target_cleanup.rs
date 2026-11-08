@@ -1716,6 +1716,39 @@ mod tests {
         target
     }
 
+    #[test]
+    fn a_cleanup_pass_leaves_the_target_directories_it_keeps_unmodified() {
+        let root = tempfile::tempdir().unwrap();
+        let cache = tempfile::tempdir().unwrap();
+        // Unit pruning reaches every recorded target, the idle rule every
+        // discovered one; neither is old enough to go.
+        let mut policy = config(cache.path(), true, 2);
+        policy.auto_clean_unused_units_days = 30;
+        let store = Store::open(&policy).unwrap();
+        let (_, recorded) = tracked_target(&store, root.path(), "recorded");
+        let (workspace, discovered) = tracked_target(&store, root.path(), "discovered");
+        store.forget_target_root(&discovered).unwrap();
+        store
+            .remember_discovered_target_root(&discovered, &workspace)
+            .unwrap();
+        let then = filetime::FileTime::from_unix_time(1_000_000_000, 0);
+        for target in [&recorded, &discovered] {
+            filetime::set_file_mtime(target, then).unwrap();
+        }
+
+        assert_eq!(sweep(&policy, unix_now_secs()).unwrap(), Swept::default());
+
+        for target in [&recorded, &discovered] {
+            let modified = std::fs::metadata(target).unwrap();
+            assert_eq!(
+                filetime::FileTime::from_last_modification_time(&modified),
+                then,
+                "{}",
+                target.display()
+            );
+        }
+    }
+
     /// Whether this machine's temp filesystem shows reads, which watching needs.
     #[cfg(unix)]
     fn reads_show(dir: &Path) -> bool {

@@ -19,8 +19,12 @@
 //! neither read nor written since, and arms the rest again. It does nothing
 //! on a filesystem where reads never move an access time (`noatime`), or on
 //! one that is not local, where Cargo does not lock its build directories.
-//! When the probe for reads cannot run, as on a full volume, the target
-//! keeps its arming and waits for the next pass.
+//! The probe for reads arms and reads the target's own `CACHEDIR.TAG` and
+//! writes no file: a probe file created and removed would move the target
+//! directory's modification time on every pass, and anything that reads that
+//! time as build activity would see every target as active. When the probe
+//! cannot run, as in a target without a readable tag, the target keeps its
+//! arming and waits for the next pass.
 //!
 //! Both of Cargo's layouts are handled (see [`crate::cargo_layout`]):
 //!
@@ -45,8 +49,9 @@ use std::time::{Duration, SystemTime};
 /// version, and the build and artifact locks from 1.100.
 const LOCKS: [&str; 3] = [".cargo-lock", ".cargo-build-lock", ".cargo-artifact-lock"];
 
-/// Name of the file [`probe_reads`] reads.
-const PROBE: &str = ".kache-atime-probe";
+/// The file [`probe_reads`] reads: the tag Cargo writes at the top of every
+/// target directory.
+const PROBE: &str = "CACHEDIR.TAG";
 
 /// Directory under the cache dir holding when each target was armed.
 const ARMED_DIR: &str = "unit-prune";
@@ -61,27 +66,48 @@ pub(crate) struct Pruned {
     pub(crate) used: usize,
 }
 
-/// Whether reading a file in `dir` whose access time is older than its
-/// modification time moves the access time, which is what arming relies on.
-/// An error means the probe could not run: a full volume refuses its file,
-/// which says nothing about reads.
-fn probe_reads(dir: &Path) -> std::io::Result<bool> {
-    let probe = dir.join(format!("{PROBE}-{}", std::process::id()));
-    let moved = (|| -> std::io::Result<bool> {
-        std::fs::write(&probe, b"probe")?;
-        let armed = arm_file(&probe)?;
-        std::fs::read(&probe)?;
-        let accessed = filetime::FileTime::from_last_access_time(&std::fs::metadata(&probe)?);
+/// Whether reading a file in `target_dir` whose access time is older than
+/// its modification time moves the access time, which is what arming relies
+/// on. An error means the probe could not run, which says nothing about
+/// reads.
+fn probe_reads(target_dir: &Path) -> std::io::Result<bool> {
+    probe_file(&target_dir.join(PROBE))
+}
+
+/// [`probe_reads`] on the regular file `file`, whose access time is put back
+/// afterwards. A symlink or special file is refused, so a planted tag cannot
+/// send the probe to another file or block it on a FIFO.
+fn probe_file(file: &Path) -> std::io::Result<bool> {
+    let before = std::fs::symlink_metadata(file)?;
+    if !before.file_type().is_file() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            format!("{} is not a regular file", file.display()),
+        ));
+    }
+    let armed = arm_file(file)?;
+    let moved = read_start(file).and_then(|()| {
+        let accessed = filetime::FileTime::from_last_access_time(&std::fs::metadata(file)?);
         Ok(moved_past(accessed, armed))
-    })();
-    let _ = std::fs::remove_file(&probe);
+    });
+    let _ = filetime::set_file_atime(file, filetime::FileTime::from_last_access_time(&before));
     moved
 }
 
-/// [`probe_reads`], counting a probe that could not run as no.
+/// Read the first byte of `file`, which is a read the filesystem may record.
+fn read_start(file: &Path) -> std::io::Result<()> {
+    use std::io::Read;
+    std::fs::File::open(file)?.read_exact(&mut [0; 1])
+}
+
+/// Whether reads show on the filesystem holding `dir`, from a file the test
+/// writes there; a probe that could not run counts as no.
 #[cfg(test)]
 pub(crate) fn reads_visible(dir: &Path) -> bool {
-    probe_reads(dir).unwrap_or(false)
+    let file = dir.join(format!(".reads-visible-{}", std::process::id()));
+    let visible = std::fs::write(&file, b"probe").is_ok() && probe_file(&file).unwrap_or(false);
+    let _ = std::fs::remove_file(&file);
+    visible
 }
 
 /// Whether `accessed` is later than the `armed` access time: a read moved it.
@@ -432,7 +458,7 @@ fn prune_with(
 
 /// Whether this pass may arm `target_dir`, by `shows_reads`. Where reads do
 /// not show, an arming would no longer vouch for anything, so its `record`
-/// is forgotten. A probe that could not run, as on a full volume, says
+/// is forgotten. A probe that could not run, as without a readable tag, says
 /// nothing about reads: the target waits for the next pass with its record.
 fn can_arm(
     record: &Path,
@@ -845,6 +871,73 @@ mod tests {
         assert!(!moved_past(armed, armed));
     }
 
+    /// A target directory holding only Cargo's tag, every time on it fixed.
+    fn tagged_at(dir: &Path, time: filetime::FileTime) -> (PathBuf, PathBuf) {
+        let target = dir.join("target");
+        let tag = target.join("CACHEDIR.TAG");
+        write(&tag, "Signature: 8a477f597d28d172789f06886806bc55");
+        filetime::set_file_times(&tag, time, time).unwrap();
+        filetime::set_file_mtime(&target, time).unwrap();
+        (target, tag)
+    }
+
+    #[test]
+    fn probing_reads_leaves_the_target_directory_unmodified() {
+        let dir = tempfile::tempdir().unwrap();
+        let then = filetime::FileTime::from_unix_time(1_000_000_000, 0);
+        let (target, tag) = tagged_at(dir.path(), then);
+
+        let _ = probe_reads(&target);
+
+        let modified = std::fs::metadata(&target).unwrap();
+        assert_eq!(
+            filetime::FileTime::from_last_modification_time(&modified),
+            then,
+            "a probe file created and removed moves this"
+        );
+        assert_eq!(entries(&target), [tag]);
+    }
+
+    #[test]
+    fn probing_reads_puts_back_the_tag_access_time() {
+        let dir = tempfile::tempdir().unwrap();
+        let then = filetime::FileTime::from_unix_time(1_000_000_000, 0);
+        let (target, tag) = tagged_at(dir.path(), then);
+        // Arming sets the access time a second below the modification time,
+        // and a read that shows sets it to now: either differs from this.
+        let accessed = filetime::FileTime::from_unix_time(1_000_000_500, 0);
+        filetime::set_file_atime(&tag, accessed).unwrap();
+
+        probe_reads(&target).unwrap();
+
+        let times = std::fs::metadata(&tag).unwrap();
+        assert_eq!(filetime::FileTime::from_last_access_time(&times), accessed);
+        assert_eq!(
+            filetime::FileTime::from_last_modification_time(&times),
+            then
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn probing_reads_refuses_a_tag_that_is_not_a_regular_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let then = filetime::FileTime::from_unix_time(1_000_000_000, 0);
+        let elsewhere = dir.path().join("elsewhere");
+        write(&elsewhere, "not a tag");
+        filetime::set_file_times(&elsewhere, then, then).unwrap();
+        let target = dir.path().join("target");
+        std::fs::create_dir(&target).unwrap();
+        std::os::unix::fs::symlink(&elsewhere, target.join("CACHEDIR.TAG")).unwrap();
+
+        assert_eq!(
+            probe_reads(&target).unwrap_err().kind(),
+            std::io::ErrorKind::InvalidInput
+        );
+        let times = std::fs::metadata(&elsewhere).unwrap();
+        assert_eq!(filetime::FileTime::from_last_access_time(&times), then);
+    }
+
     #[test]
     fn arms_waits_then_judges() {
         let now = SystemTime::UNIX_EPOCH + Duration::from_secs(100 * DAY);
@@ -1125,6 +1218,10 @@ mod tests {
         );
         let target = dir.path().join("target");
         per_unit_profile(&target.join("debug"));
+        write(
+            &target.join(PROBE),
+            "Signature: 8a477f597d28d172789f06886806bc55",
+        );
         set_times(&target, ago(60));
         prune(&cache, &target, window, ago(40));
         let armed = read_armed(&armed_record(&cache, &target));
@@ -1145,7 +1242,7 @@ mod tests {
         let armed = read_armed(&record);
         let window = Duration::from_secs(30 * DAY);
         let now = SystemTime::now();
-        // A full volume refuses the probe's file.
+        // A probe that cannot run, as when the tag refuses a new access time.
         let full = |_: &Path| -> std::io::Result<bool> {
             Err(std::io::Error::from(std::io::ErrorKind::StorageFull))
         };
