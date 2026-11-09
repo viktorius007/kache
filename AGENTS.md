@@ -19,6 +19,7 @@ cargo install --locked cargo-mutants --version 27.1.0
 ```
 
 Do not invoke `cargo mutants` with `RUSTC_WRAPPER=kache`. The Justfile clears it. Hand-running mutants without `just` wraps kache in itself and the unmutated baseline dies.
+While a flaky test remains, run mutants with `--baseline skip`; never `-- --skip` (the custom harness rejects it).
 
 ## How mutants die here
 
